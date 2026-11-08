@@ -9,11 +9,13 @@ actions are capped and always ask: secrets, the agent's own skills, plugins and 
 action whose effect cannot be read is treated as high stakes.
 
 Types are fine-grained so that a record says something: shell commands are typed by program (and by subcommand
-when the subcommand changes the stakes), MCP tools by server and tool.
+when the subcommand changes the stakes), MCP tools by server and tool. A program that runs other commands (find
+-exec, awk system(), sed's e, parallel, watch) takes the stakes of what it runs, typed by it.
 """
 from __future__ import annotations
 
 import fnmatch
+import itertools
 import os
 import re
 import shlex
@@ -255,6 +257,7 @@ class Seg:
     tokens: list
     sub: bool        # may run in a subshell (parentheses, pipe, background): a `cd` here may not stick
     cond: bool       # may not run at all (after && or ||)
+    sep: str = ""    # the separator before it
 
 
 FD_PREFIX = re.compile(r"(?<![\w$])\d+(?=[<>])")          # the 2 of 2>file (glued: "timeout 5 >f" keeps its 5)
@@ -312,7 +315,7 @@ def _build(tokens: list[str]) -> list[Seg]:
         if t in SEPS:
             if cur:
                 segs.append(Seg(cur, paren or d0 > 0 or prev in PIPES or t in PIPES or t == "&",
-                                prev in ("&&", "||")))
+                                prev in ("&&", "||"), prev))
             cur, paren, prev = [], False, t
             continue
         if not cur:
@@ -323,7 +326,7 @@ def _build(tokens: list[str]) -> list[Seg]:
             depth, paren = max(0, depth - 1), True
         cur.append(t)
     if cur:
-        segs.append(Seg(cur, paren or d0 > 0 or prev in PIPES, prev in ("&&", "||")))
+        segs.append(Seg(cur, paren or d0 > 0 or prev in PIPES, prev in ("&&", "||"), prev))
     return segs
 
 
@@ -439,15 +442,15 @@ FIND_WRITES = {"-delete", "-exec", "-execdir", "-ok", "-okdir", "-fprint", "-fpr
 
 # awk options. Short flags that take no value and neither write nor load code (gawk, mawk, BWK, busybox):
 AWK_FLAGS = set("bcCghIkMnNOPrsStV")
-# gawk long options (getopt_long also takes an unambiguous abbreviation). "unsafe": the program comes from a file
-# or a library, or the call writes a file (profile, variable dump, pretty-print, debugger script, persistence).
+# gawk long options (getopt_long also takes an unambiguous abbreviation). "load": code comes from a file, a library
+# or the debugger's commands; "write": the call writes a file (profile, variable dump, pretty-print, persistence).
 AWK_LONG = {"field-separator": "value", "assign": "value", "source": "code", "lint": "flag",
             "characters-as-bytes": "flag", "traditional": "flag", "copyright": "flag", "gen-pot": "flag",
             "help": "flag", "usage": "flag", "trace": "flag", "csv": "flag", "bignum": "flag",
             "non-decimal-data": "flag", "use-lc-numeric": "flag", "optimize": "flag", "posix": "flag",
             "re-interval": "flag", "no-optimize": "flag", "sandbox": "flag", "lint-old": "flag", "version": "flag",
-            "file": "unsafe", "exec": "unsafe", "include": "unsafe", "load": "unsafe", "dump-variables": "unsafe",
-            "debug": "unsafe", "pretty-print": "unsafe", "profile": "unsafe", "persist": "unsafe"}
+            "file": "load", "exec": "load", "include": "load", "load": "load", "debug": "load",
+            "dump-variables": "write", "pretty-print": "write", "profile": "write", "persist": "write"}
 AWK_KEYWORDS = {"BEGIN", "END", "BEGINFILE", "ENDFILE", "function", "func", "if", "else", "while", "for", "do",
                 "break", "continue", "next", "nextfile", "exit", "return", "delete", "in", "getline", "print",
                 "printf", "switch", "case", "default"}
@@ -494,19 +497,16 @@ def _awk_regex_end(prog: str, i: int) -> int | None:
     return None
 
 
-def _awk_program_writes(prog: str) -> bool:
-    """An awk program writes or runs something only through: print/printf redirected (`>` outside parentheses,
-    `>>`, `|`), a command pipe (`|`, `|&`: `"cmd" | getline` too), `system`, `getline < file`, or gawk's @-forms
-    (@include, @load, indirect calls). Comparisons are not writes. Strings, regex literals and comments are
-    skipped; anything that cannot be read with certainty (a stray character, an ambiguous slash, unbalanced
-    brackets, a regex whose end awks disagree on) counts as writing."""
+def _awk_tokens(prog: str) -> list[tuple[str, str]] | None:
+    """The tokens of an awk program, (kind, text) with kind str, re, word, num, op or nl; None when it cannot be read
+    with certainty: a stray character or an @-form (gawk directives, indirect calls), an ambiguous slash, unbalanced
+    brackets, a regex whose end awks disagree on, a broken string, continuation or comment."""
+    out: list[tuple[str, str]] = []
     i, n = 0, len(prog)
     state = "expect"            # what a slash is: "expect" a regex, "after" an operand (division), or "ambiguous"
     parens: list[bool] = []     # open parentheses: True for an if/while/for/switch header
     braces = 0
     header = False              # the last word opens a header
-    print_depth = None          # parenthesis depth of the print/printf statement being read
-    getline = False             # a getline in the current statement
     while i < n:
         c = prog[i]
         if c in " \t\r":
@@ -515,64 +515,61 @@ def _awk_program_writes(prog: str) -> bool:
         if c == "\\":                                   # a line continuation, nothing else
             m = AWK_CONTINUATION.match(prog, i)
             if not m:
-                return True
+                return None
             i = m.end()
             continue
         if c == "#":                                    # a comment ends at the end of the line
             end = prog.find("\n", i)
             end = n if end < 0 else end
             if prog[i:end].rstrip(" \t\r").endswith("\\"):
-                return True
+                return None
             i = end
             continue
         if c == "\n":
-            state, header, getline = "expect", False, False
+            out.append(("nl", c))
+            state, header = "expect", False
             i += 1
             continue
         if c == '"':
             j = i + 1
             while j < n and prog[j] != '"':
                 if prog[j] == "\n":
-                    return True
+                    return None
                 j += 2 if prog[j] == "\\" else 1
             if j >= n:
-                return True
+                return None
+            out.append(("str", prog[i + 1:j]))
             i, state, header = j + 1, "after", False
             continue
         if c == "/" and state != "after":
             j = None if state == "ambiguous" else _awk_regex_end(prog, i)
             if j is None:
-                return True
+                return None
+            out.append(("re", prog[i:j]))
             i, state, header = j, "after", False
             continue
         m = AWK_WORD.match(prog, i)
         if m:
             w, i = m.group(0), m.end()
-            if w == "system":
-                return True
-            if w in ("print", "printf"):
-                print_depth = len(parens)
-            getline = getline or w == "getline"
+            out.append(("word", w))
             header = w in AWK_HEADERS
             state = ("expect" if w in AWK_EXPECT else
                      "ambiguous" if w in AWK_KEYWORDS or w == "length" else "after")
             continue
         m = AWK_NUMBER.match(prog, i) or AWK_OP.match(prog, i)
         if not m:
-            return True                                 # @ (gawk directives, indirect calls) or a stray character
+            return None                                 # @ (gawk directives, indirect calls) or a stray character
         op, i = m.group(0), m.end()
-        if op in ("|", "|&", ">>") or (op == ">" and print_depth is not None and len(parens) <= print_depth):
-            return True
-        if op == "<" and getline:
-            return True
+        number = op[0] in "0123456789."
+        out.append(("num" if number else "op", op))
         if op == "(":
             parens.append(header)
             state = "expect"
         elif op == ")":
             if not parens:
-                return True
+                return None
             state = "expect" if parens.pop() else "after"
-        elif op in ("]",) or op[0] in "0123456789.":
+        elif op == "]" or number:
             state = "after"
         elif op in ("++", "--", "$"):
             state = "ambiguous"
@@ -581,21 +578,99 @@ def _awk_program_writes(prog: str) -> bool:
         if op in ("{", "}"):
             braces += 1 if op == "{" else -1
             if braces < 0:
-                return True
-        if op in (";", "}"):
-            print_depth = None
-        if op in (";", "{", "}"):
-            getline = False
+                return None
         header = False
-    return bool(parens) or braces != 0
+    return None if parens or braces else out
 
 
-def _awk_writes(args: list[str]) -> bool:
-    """An awk call that may write a file or run a command: a program read from a file or a library, an option
-    that writes, an option we do not know, an option after the program, or a program text that writes. The texts
-    read are the program and every value an awk could take for one: gawk's -e/--source, and the value of an option
-    BWK awk (macOS) ignores (`--assign x`, `-nF x`): it runs the next word as the program."""
+AWK_BEFORE_PIPE = {";", "{", "}", "(", "=", ",", "&&", "||", "!"}   # what may precede `"cmd" | getline`
+
+
+def _awk_string(text: str) -> str | None:
+    """The value of an awk string literal, or None for an escape awks read differently (octal, hex, unknown)."""
+    out, i = [], 0
+    while i < len(text):
+        if text[i] == "\\":
+            e = text[i + 1:i + 2]
+            if e not in ('"', "\\", "/", "n", "t"):
+                return None
+            out.append({"n": "\n", "t": "\t"}.get(e, e))
+            i += 2
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
+def _awk_read(prog: str) -> tuple[bool, list[str] | None]:
+    """(writes, commands) of an awk program. It writes or runs something only through: print/printf redirected
+    (`>` outside parentheses, `>>`, `|`), a command pipe (`|`, `|&`: `"cmd" | getline` too), `system`,
+    `getline < file`, or gawk's @-forms (@include, @load, indirect calls); comparisons are not writes. A command is
+    read when it is one string literal: `system("cmd")`, `print | "cmd"`, `"cmd" | getline`; anything else (a
+    variable, a concatenation, an @-form) makes the commands unreadable (None). A program that cannot be read with
+    certainty writes, and runs something unreadable when its text holds `system`, `|` or `@`."""
+    toks = _awk_tokens(prog)
+    if toks is None:
+        return True, (None if re.search(r"system|[|@]", prog) else [])
+    writes, cmds = False, []
+    depth = 0                   # parenthesis depth
+    print_depth = None          # parenthesis depth of the print/printf statement being read
+    getline = False             # a getline in the current statement
+    none = ("nl", "")
+    for k, (kind, val) in enumerate(toks):
+        nxt = toks[k + 1] if k + 1 < len(toks) else none
+        if kind == "nl":
+            getline = False
+        elif kind == "word" and val == "system":
+            call = toks[k + 1:k + 4]
+            if [t[0] for t in call] != ["op", "str", "op"] or call[0][1] != "(" or call[2][1] != ")":
+                return True, None
+            cmds.append(_awk_string(call[1][1]))
+        elif kind == "word" and val in ("print", "printf"):
+            print_depth = depth
+        elif kind == "word" and val == "getline":
+            getline = True
+        elif kind == "op" and val in ("|", "|&"):
+            if nxt == ("word", "getline"):              # "cmd" | getline: the command is the string before
+                before = toks[k - 2] if k >= 2 else none
+                if k < 1 or toks[k - 1][0] != "str" or not (before[0] == "nl" or before[1] in AWK_BEFORE_PIPE):
+                    return True, None
+                cmds.append(_awk_string(toks[k - 1][1]))
+            elif print_depth is not None:               # print | "cmd": the command is the string after
+                after = toks[k + 2] if k + 2 < len(toks) else none
+                if nxt[0] != "str" or not (after[0] == "nl" or after[1] in (";", "}")):
+                    return True, None
+                cmds.append(_awk_string(nxt[1]))
+            else:
+                return True, None
+        elif kind == "op":
+            if val == ">>" or (val == ">" and print_depth is not None and depth <= print_depth):
+                writes = True
+            elif val == "<" and getline:
+                writes = True
+            depth += 1 if val == "(" else -1 if val == ")" else 0
+            if val in (";", "}"):
+                print_depth = None
+            if val in (";", "{", "}"):
+                getline = False
+    if None in cmds:
+        return True, None
+    return writes or bool(cmds), cmds
+
+
+def _awk_program_writes(prog: str) -> bool:
+    """An awk program writes or runs something (see _awk_read)."""
+    return _awk_read(prog)[0]
+
+
+def _awk_call(args: list[str]) -> tuple[bool, list[str] | None, list[str]]:
+    """(writes, commands, program texts) of an awk call. writes: it may write a file or run a command. commands: the
+    literal commands it runs, or None when what it runs cannot be read: a program or extension read from a file, an
+    option we do not know, an option after the program, a computed command. The texts read are the program and
+    every value an awk could take for one: gawk's -e/--source, and the value of an option BWK awk (macOS) ignores
+    (`--assign x`, `-nF x`): it runs the next word as the program."""
     texts: list[str] = []
+    writes = False
     n = 0
     while n < len(args):
         a = args[n]
@@ -607,11 +682,13 @@ def _awk_writes(args: list[str]) -> bool:
         if a.startswith("--"):
             name, eq, val = a[2:].partition("=")
             kinds = [AWK_LONG[name]] if name in AWK_LONG else [v for k, v in AWK_LONG.items() if k.startswith(name)]
-            if len(kinds) != 1 or kinds[0] == "unsafe":
-                return True
-            if kinds[0] != "flag" and not eq:
+            if len(kinds) != 1 or kinds[0] == "load":
+                return True, None, texts
+            if kinds[0] == "write":
+                writes = True                           # the file is attached (=file) or a default name
+            elif kinds[0] != "flag" and not eq:
                 if n + 1 >= len(args):
-                    return True
+                    return True, None, texts
                 n += 1
                 texts.append(args[n])
             elif kinds[0] == "code":
@@ -622,11 +699,14 @@ def _awk_writes(args: list[str]) -> bool:
                     continue
                 if ch == "L":                           # gawk's lint level, attached
                     break
+                if ch in "opd":                         # gawk's pretty-print, profile, variable dump: the file is
+                    writes = True                       # the rest of the word or a default name
+                    break
                 if ch not in "Fve":
-                    return True                         # -f -E -i -l -o -p -d -D -W, or an option we do not know
+                    return True, None, texts            # -f -E -i -l -D -W, or an option we do not know
                 if j + 1 == len(a):                     # the value is the next word
                     if n + 1 >= len(args):
-                        return True
+                        return True, None, texts
                     n += 1
                     if ch == "e" or a not in ("-F", "-v"):
                         texts.append(args[n])
@@ -637,8 +717,14 @@ def _awk_writes(args: list[str]) -> bool:
     if n < len(args):
         texts.append(args[n])
         if any(x.startswith("-") and x != "-" for x in args[n + 1:]):
-            return True                                 # an option after the program: some awks still read it
-    return any(_awk_program_writes(t) for t in texts)
+            return True, None, texts                    # an option after the program: some awks still read it
+    cmds: list[str] = []
+    for t in texts:
+        w, c = _awk_read(t)
+        if c is None:
+            return True, None, texts
+        writes, cmds = writes or w, cmds + c
+    return writes, cmds, texts
 
 
 def _ro_writes(prog: str, args: list[str]) -> bool:
@@ -650,8 +736,8 @@ def _ro_writes(prog: str, args: list[str]) -> bool:
     if prog == "yq":
         return any(a == "--inplace" or re.fullmatch(r"-[A-Za-z]*i[A-Za-z]*", a) for a in args)
     if prog in AWKS:
-        return _awk_writes(args)
-    if prog == "find":
+        return _awk_call(args)[0]
+    if prog in FINDS:
         return bool(FIND_WRITES & set(args))
     if prog == "git":
         return any(a == "--output" or a.startswith("--output=") for a in args)
@@ -669,11 +755,225 @@ def _ro_writes(prog: str, args: list[str]) -> bool:
         return any(re.fullmatch(r"-[A-Za-z]*C[A-Za-z]*", a) for a in args)
     if prog in ("rg", "grep", "egrep", "fgrep"):
         return any(a.startswith(("--pre", "--hostname-bin")) for a in args)
-    if prog == "sed":
-        script = " ".join(a for a in args if not a.startswith("-"))
-        return (any(a.startswith("-i") or a == "--in-place" for a in args)
-                or bool(re.search(r"(?:^|[;{}\n])\s*[0-9$,]*[wWe]\s+\S|/[gpiI0-9]*[we]\s+\S", script)))
+    if prog in SEDS:
+        writes, risky, _ = _sed_call(args)
+        return writes or risky
     return False
+
+
+SED_LONG = {"expression": "e", "file": "f", "in-place": "i", "line-length": "l", "quiet": "", "silent": "",
+            "debug": "", "follow-symlinks": "", "posix": "", "regexp-extended": "", "separate": "", "sandbox": "",
+            "unbuffered": "", "null-data": "", "zero-terminated": "", "binary": "", "help": "", "version": ""}
+
+
+def _sed_reading(args: list[str], gnu: bool) -> tuple[list[str], bool, bool] | None:
+    """How one sed reads its arguments: (scripts, a script file, in place), or None when it rejects an option. GNU
+    sed takes options anywhere (and long ones, abbreviated too) and -i's suffix attached only; BSD sed stops at the
+    first operand and takes the value of -i and -I from the next word when it is not attached."""
+    flags, values = ("nrEsuzb", "efl") if gnu else ("EHalnru", "efiI")
+    scripts: list[str] = []
+    operands: list[str] = []
+    from_file = inplace = False
+    n = 0
+    while n < len(args):
+        a = args[n]
+        if a == "--" or (not gnu and (a == "-" or not a.startswith("-"))):
+            operands += args[n + (a == "--"):]
+            break
+        if a == "-" or not a.startswith("-"):
+            operands.append(a)
+        elif a.startswith("--"):
+            name, eq, val = a[2:].partition("=")
+            keys = [k for k in SED_LONG if k == name] or [k for k in SED_LONG if k.startswith(name)]
+            if not gnu or len(keys) != 1:
+                return None
+            kind = SED_LONG[keys[0]]
+            if kind in ("e", "f", "l") and not eq:
+                if n + 1 >= len(args):
+                    return None
+                n, val = n + 1, args[n + 1]
+            scripts += [val] if kind == "e" else []
+            from_file, inplace = from_file or kind == "f", inplace or kind == "i"
+        else:
+            for j, ch in enumerate(a[1:], 1):
+                if ch in flags:
+                    continue
+                if gnu and ch == "i":                   # the rest of the word is the backup suffix
+                    inplace = True
+                    break
+                if ch not in values:
+                    return None
+                val = a[j + 1:]
+                if not val:
+                    if n + 1 >= len(args):
+                        return None
+                    n, val = n + 1, args[n + 1]
+                scripts += [val] if ch == "e" else []
+                from_file, inplace = from_file or ch == "f", inplace or ch in "iI"
+                break
+        n += 1
+    if not scripts and not from_file and operands:
+        scripts.append(operands[0])
+    return scripts, from_file, inplace
+
+
+def _sed_bracket_end(text: str, i: int) -> int | None:
+    """The index after the bracket expression that opens at text[i] (a leading ] or ^] is a character, [:class:],
+    [=c=] and [.c.] hold their own ]), or None when it does not close on this line."""
+    j, n = i + 1, len(text)
+    j += text.startswith("^", j)
+    j += text.startswith("]", j)
+    while j < n and text[j] not in "]\n":
+        if text[j] == "[" and text[j + 1:j + 2] in (".", ":", "="):
+            end = text.find(text[j + 1] + "]", j + 2)
+            if end < 0:
+                return None
+            j = end + 2
+        else:
+            j += 1
+    return j + 1 if j < n and text[j] == "]" else None
+
+
+def _sed_script(text: str, brackets: bool) -> tuple[bool, bool] | None:
+    """(writes, executes) of a sed script read one way, or None when that reading cannot parse it. brackets: a
+    delimiter inside a bracket expression is a character (BSD, POSIX) rather than the end of the regex. Executes:
+    GNU's e command or s///e flag; writes: the w/W command or the w flag (file names run to the end of the line)."""
+    i, n, depth = 0, len(text), 0
+    writes = executes = False
+
+    def part(i: int, delim: str, regex: bool) -> int | None:      # the index after the delimiter that closes it
+        while i < n:
+            if text[i] == "\\":
+                i += 2
+            elif text[i] == "\n":
+                return None
+            elif text[i] == delim:
+                return i + 1
+            elif text[i] == "[" and regex and brackets:
+                i = _sed_bracket_end(text, i)
+                if i is None:
+                    return None
+            else:
+                i += 1
+        return None
+
+    def address(i: int) -> int | None:                            # the index after an address (i when none)
+        if i < n and text[i].isdigit():
+            while i < n and (text[i].isdigit() or text[i] == "~"):
+                i += 1
+            return i
+        if i < n and text[i] == "$":
+            return i + 1
+        if i < n and text[i] in "/\\":
+            if text[i] == "\\" and (i + 1 >= n or text[i + 1] in "\n\\"):
+                return None
+            delim, i = ("/", i + 1) if text[i] == "/" else (text[i + 1], i + 2)
+            i = part(i, delim, True)
+            while i is not None and i < n and text[i] in "IM":
+                i += 1
+        return i
+
+    def eol(i: int, continued: bool = False) -> int:              # the end of the line
+        while i < n and text[i] != "\n":
+            i += 2 if continued and text[i] == "\\" else 1
+        return i
+
+    while True:
+        while i < n and text[i] in " \t\r\n;":
+            i += 1
+        if i >= n:
+            break
+        if text[i] == "#":
+            i = eol(i)
+            continue
+        start = i
+        i = address(i)
+        if i is not None and i > start and i < n and text[i] == ",":
+            i += 1
+            while i < n and text[i] in " \t":
+                i += 1
+            first = i
+            i = i + 1 if i < n and text[i] in "+~" else i
+            i = address(i)
+            if i is not None and i == first:
+                return None
+        if i is None:
+            return None
+        while i < n and text[i] in " \t":
+            i += 1
+        if i < n and text[i] == "!":
+            i += 1
+            while i < n and text[i] in " \t":
+                i += 1
+        if i >= n:
+            return None                                 # an address without a command
+        c, i = text[i], i + 1
+        if c == "{":
+            depth += 1
+            continue
+        if c == "}":
+            depth -= 1
+            if depth < 0:
+                return None
+        elif c in "lLqQ":
+            while i < n and (text[i] in " \t" or text[i].isdigit()):
+                i += 1
+        elif c in ":btTv":                              # a label: up to ;, } or the end of the line
+            while i < n and text[i] not in ";}\n":
+                i += 1
+        elif c in "aic":                                # text up to the end of the line; \ continues it
+            i = eol(i, True)
+            continue
+        elif c in "rRwWe":                              # a file name or a command up to the end of the line
+            end = eol(i)
+            if c in "rRwW" and not text[i:end].strip():
+                return None
+            writes, executes, i = writes or c in "wW", executes or c == "e", end
+            continue
+        elif c in "sy":
+            if i >= n or text[i] in "\n\\":
+                return None
+            delim = text[i]
+            i = part(i + 1, delim, c == "s")
+            i = None if i is None else part(i, delim, False)
+            if i is None:
+                return None
+            while c == "s" and i < n and text[i] in "gpiImMe0123456789w":
+                if text[i] == "w":
+                    writes, i = True, eol(i + 1)
+                    break
+                executes, i = executes or text[i] == "e", i + 1
+        elif c not in "=dDgGhHnNpPxzF":
+            return None
+        while i < n and text[i] in " \t\r":
+            i += 1
+        if i < n and text[i] not in ";\n}#":
+            return None
+    return None if depth else (writes, executes)
+
+
+def _sed_call(args: list[str]) -> tuple[bool, bool, list[str]]:
+    """(writes, risky, scripts) of a sed call over every way a sed may read it: GNU or BSD options; a delimiter in a
+    bracket expression literal (BSD) or not (GNU may be either). risky: a reading executes something (GNU's e
+    command or s///e flag) or takes its script from a file, or no reading parses at all. writes: in place, or the
+    w/W command or flag. A reading that the sed itself would reject runs nothing."""
+    writes = risky = valid = False
+    scripts: list[str] = []
+    for gnu in (True, False):
+        reading = _sed_reading(args, gnu)
+        if reading is None:
+            continue
+        texts, from_file, inplace = reading
+        scripts += texts
+        if from_file:
+            risky = valid = True
+            continue
+        parses = [[r for r in (_sed_script(t, True), _sed_script(t, False) if gnu else None) if r] for t in texts]
+        if all(parses):
+            valid = True
+            writes = writes or inplace or any(r[0] for p in parses for r in p)
+            risky = risky or any(r[1] for p in parses for r in p)
+    return writes, risky or not valid, scripts
 
 
 def _write_args(prog: str, args: list[str]) -> list[str]:
@@ -708,6 +1008,230 @@ def _xargs_rest(args: list[str]) -> list[str]:
             continue
         return args[n:]
     return []
+
+
+# ------------------------------------------------------------------------------------- command runners (R22)
+COMPLEX = ("shell:complex", HIGH)
+FINDS = {"find", "gfind", "bfs"}
+FIND_EXEC = {"-exec", "-execdir", "-ok", "-okdir"}
+SEDS = {"sed", "gsed"}
+RUNS = {"xargs", "parallel", "watch"} | FINDS            # programs whose arguments are a command
+MAX_VARIANTS = 32                                        # beyond, what runs is not read: shell:complex
+
+
+def _top(results: list[tuple[str, str]]) -> tuple[str, str]:
+    """The riskiest result; a fail-safe type wins a tie."""
+    best = results[0]
+    for r in results[1:]:
+        if RANK[r[1]] > RANK[best[1]] or (RANK[r[1]] == RANK[best[1]] and r[0] in FLOORS and best[0] not in FLOORS):
+            best = r
+    return best
+
+
+def _lit(result: tuple[str, str]) -> tuple[str, str]:
+    """An inner command whose program is a variable is not a literal: shell:complex, which no override lowers."""
+    return COMPLEX if result[0] == "shell:dynamic" else result
+
+
+def _runner(own: tuple[str, str], inners: list[tuple[str, str]]) -> tuple[str, str]:
+    """A program that runs commands takes the riskiest of them, and at least medium stakes. It is typed by that
+    command when it reaches medium stakes, else by the runner itself (a chain takes its riskiest part)."""
+    if not inners:
+        return own
+    top = _top(inners)
+    if RANK[top[1]] >= RANK[MEDIUM]:
+        return top
+    return own[0], own[1] if RANK[own[1]] > RANK[MEDIUM] else MEDIUM
+
+
+def _computed(word: str) -> bool:
+    """A word the shell computes: a variable, a substitution, a glob, a brace expansion, `~user`."""
+    return any(c in word for c in UNRESOLVED) or (word.startswith("~") and word != "~" and not word.startswith("~/"))
+
+
+FOUND = "clr_found"                                     # a benign stand-in for the {} placeholder (a found path)
+
+
+def _find_clauses(expr: list[str]) -> list[list[str]]:
+    """The commands of a find expression's -exec/-execdir/-ok/-okdir clauses: the command and its arguments up to
+    `;`, up to `{} +`, or up to the end of the expression."""
+    out, n = [], 0
+    while n < len(expr):
+        if expr[n] in FIND_EXEC:
+            j = n + 1
+            while j < len(expr) and expr[j] != ";" and not (expr[j] == "+" and j > n + 1 and expr[j - 1] == "{}"):
+                j += 1
+            if j > n + 1:
+                out.append(expr[n + 1:j])
+            n = j
+        n += 1
+    return out
+
+
+def _found_code(prog: str, args: list[str]) -> bool:
+    """A found path ({}) would be read as code, not data: a shell's -c script, an interpreter's inline code, script
+    or module, an awk program, a sed script, or anything given to a program that itself runs commands."""
+    base = re.sub(r"\d+(\.\d+)*$", "", prog)
+    if prog in SHELLS:
+        i = next((n for n, a in enumerate(args) if re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*", a)), None)
+        texts = args if i is None else args[i + 1:i + 2]
+    elif prog in INTERPRETERS or base in INTERPRETERS:
+        inline = INLINE_FLAGS & set(args) or _inline_cluster(args)
+        texts = args[args.index("-m") + 1:args.index("-m") + 2] if "-m" in args and not inline else args
+    elif prog in AWKS:
+        texts = _awk_call(args)[2]
+    elif prog in SEDS:
+        texts = _sed_call(args)[2]
+    else:
+        texts = args if prog in RUNS else []
+    return any("{}" in t for t in texts)
+
+
+def _find_inner(inner: list[str], cwd, home: str, depth: int) -> tuple[str, str] | None:
+    """One command a find clause runs (None when there is none). The {} placeholder is a plain argument, a found
+    path; but when it is spliced into a larger word, stands as the program, or lands where a found name would be
+    read as code (a shell -c script, an interpreter's code, an awk program, a sed script, a nested runner), what
+    runs is not a literal: shell:complex, which no override lowers."""
+    toks = _unwrap(inner)
+    if not toks:
+        return None
+    if (any("{}" in t and t != "{}" for t in inner) or "{}" in toks[0]
+            or _found_code(os.path.basename(toks[0]), toks[1:])):
+        return COMPLEX
+    clause = [FOUND if t == "{}" else t for t in inner]
+    return _lit(_shell_segment(clause, cwd, home, depth + 1))
+
+
+def _find(toks: list[str], cwd, home: str, depth: int, writes: bool) -> tuple[str, str]:
+    """find runs a command per -exec/-execdir/-ok/-okdir clause, taking the riskiest. A segment that starts with an
+    option or a comma is the rest of a find expression that an escaped `;` cut off."""
+    prog, args = os.path.basename(toks[0]), toks[1:]
+    if prog in FINDS:
+        free = prog == "find" and not writes and not _ro_writes(prog, args)
+        own, expr = (f"shell:{prog}", FREE if free else MEDIUM), args
+    else:
+        own, expr = ("shell:find", MEDIUM), toks
+    inners = [r for inner in _find_clauses(expr) if (r := _find_inner(inner, cwd, home, depth)) is not None]
+    return _runner(own, inners)
+
+
+def _glue_find(segs: list[Seg]) -> list[Seg]:
+    """An escaped `;` that ends a find clause reads as a separator: a segment after `;` that starts with an option
+    or `,` is glued back to the find command before it, so that its clauses keep the starting points."""
+    out: list[Seg] = []
+    for s in segs:
+        head = s.tokens[0] if s.tokens else ""
+        prev = _unwrap(out[-1].tokens) if out else []
+        if s.sep == ";" and (head.startswith("-") or head == ",") and prev and os.path.basename(prev[0]) in FINDS:
+            out[-1] = Seg(out[-1].tokens + [";"] + s.tokens, out[-1].sub, out[-1].cond, out[-1].sep)
+        else:
+            out.append(s)
+    return out
+
+
+# GNU parallel's options known to be harmless: they neither run nor load anything, write nothing, reach no other
+# host and change no replacement string. Any other option makes the call unreadable.
+PARALLEL_FLAGS = {"0", "k", "v", "t", "q", "r", "u", "g", "m", "X", "null", "keep-order", "verbose", "quote",
+                  "no-run-if-empty", "ungroup", "group", "xargs", "bar", "eta", "progress", "dry-run", "dryrun",
+                  "line-buffer", "lb", "tag", "will-cite", "no-notice", "shuf", "xapply", "link", "noswap"}
+PARALLEL_VALUES = {"j", "P", "n", "N", "L", "s", "d", "C", "E", "a", "jobs", "max-procs", "max-args", "max-lines",
+                   "max-chars", "delimiter", "colsep", "halt", "timeout", "delay", "retries", "nice", "memfree",
+                   "load", "block", "block-size", "tagstring", "header", "trim", "arg-file"}
+PARALLEL_SEPS = {":::", ":::+", "::::", "::::+"}
+PARALLEL_RS = re.compile(r"\{(\d*)(\.|//|/\.|/|#|%)?\}")     # {} {.} {/} {//} {/.} {#} {%}, {n} and {n.}...
+WATCH_FLAGS = set("dtbegcCxpwr") | {"differences", "no-title", "beep", "errexit", "chgexit", "color", "no-color",
+                                    "exec", "precise", "no-wrap", "no-rerun"}
+WATCH_VALUES = {"n", "q", "interval", "equexit"}
+
+
+def _options(args: list[str], flags: set[str], values: set[str]) -> tuple[int, list[str]] | None:
+    """Where the operands of a call start, and the names of the options given (short ones by letter); None for an
+    option outside `flags` and `values` (options that take a value)."""
+    n, names = 0, []
+    while n < len(args) and args[n].startswith("-") and args[n] not in PARALLEL_SEPS:
+        a = args[n]
+        if a == "--":
+            return n + 1, names
+        if a.startswith("--"):
+            name = a[2:].split("=", 1)[0]
+            if name not in flags | values:
+                return None
+            n += name in values and "=" not in a
+            names.append(name)
+        else:
+            for j, ch in enumerate(a[1:], 1):
+                if ch not in flags | values:
+                    return None
+                names.append(ch)
+                if ch in values:
+                    n += j + 1 == len(a)                 # the value is the next word unless attached
+                    break
+        n += 1
+    return n, names
+
+
+def _parallel_value(m: re.Match, combo: tuple[str, ...]) -> str:
+    pos, op = m.group(1), m.group(2) or ""
+    if op in ("#", "%"):
+        return "1"                                       # the job or slot number
+    if pos and not 0 < int(pos) <= len(combo):
+        return m.group(0)
+    out = []
+    for v in [combo[int(pos) - 1]] if pos else combo:
+        if op in ("/", "/."):
+            v = v.rsplit("/", 1)[-1]                     # the base name
+        elif op == "//":
+            v = v.rsplit("/", 1)[0] if "/" in v else "."  # the directory
+        if op in (".", "/."):
+            v = re.sub(r"\.[^./]*$", "", v)              # without the extension
+        out.append(v)
+    return " ".join(out)
+
+
+def _parallel(args: list[str], cwd, home: str, depth: int) -> tuple[str, str]:
+    """GNU parallel runs its command through a shell once per combination of the ::: arguments, put in place of
+    {}, {1}, {.}... or appended; without a command, the arguments are the commands. Arguments read from a file or
+    stdin, a computed argument, a perl replacement string, or an option outside the harmless ones (other hosts,
+    profiles, custom replacement strings, filters...) make what runs unreadable."""
+    opts = _options(args, PARALLEL_FLAGS, PARALLEL_VALUES)
+    if opts is None:
+        return COMPLEX
+    n, names = opts
+    rest = args[n:]
+    k = next((i for i, a in enumerate(rest) if a in PARALLEL_SEPS), len(rest))
+    cmd, groups = rest[:k], []
+    for a in rest[k:]:
+        if a in PARALLEL_SEPS:
+            groups.append((a, []))
+        else:
+            groups[-1][1].append(a)
+    if (not groups or {"a", "arg-file"} & set(names) or any(s.startswith("::::") for s, _ in groups)
+            or any(_computed(a) for _, g in groups for a in g) or "{=" in " ".join(cmd)):
+        return COMPLEX
+    if not cmd:
+        if len(groups) > 1:
+            return COMPLEX                               # the arguments of each group are joined into commands
+        lines = groups[0][1]
+    else:
+        combos = list(itertools.islice(itertools.product(*(g for _, g in groups)), MAX_VARIANTS + 1))
+        if len(combos) > MAX_VARIANTS:
+            return COMPLEX
+        line = " ".join(cmd)
+        lines = [PARALLEL_RS.sub(lambda m, c=c: _parallel_value(m, c), line) if PARALLEL_RS.search(line)
+                 else " ".join([line, *c]) for c in combos]
+    return _runner(("shell:parallel", MEDIUM), [_lit(_shell(t, cwd, home, depth + 1)[:2]) for t in dict.fromkeys(lines)])
+
+
+def _watch(args: list[str], cwd, home: str, depth: int) -> tuple[str, str]:
+    """watch runs its command through `sh -c`, the arguments joined by spaces (or directly with -x)."""
+    opts = _options(args, WATCH_FLAGS, WATCH_VALUES)
+    if opts is None:
+        return COMPLEX
+    rest = args[opts[0]:]
+    if not rest:
+        return "shell:watch", MEDIUM
+    inners = [_shell(" ".join(rest), cwd, home, depth + 1)[:2], _shell_segment(rest, cwd, home, depth + 1)]
+    return _runner(("shell:watch", MEDIUM), [_lit(r) for r in inners])
 
 
 UNRESOLVED = "$`?*[{"
@@ -773,6 +1297,23 @@ def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
             return f"shell:{prog}:-m:{mod}", MEDIUM
         script = next((a for a in args if not a.startswith("-")), "")
         return (f"shell:{prog}:{os.path.basename(script)}" if script else f"shell:{prog}"), MEDIUM
+    if prog in AWKS:
+        w, cmds, _ = _awk_call(args)
+        if cmds is None:
+            return COMPLEX
+        own = (f"shell:{prog}", FREE if prog in READ_ONLY and not writes and not w else MEDIUM)
+        return _runner(own, [_lit(_shell(c, cwd, home, depth + 1)[:2]) for c in dict.fromkeys(cmds)])
+    if prog in SEDS:
+        w, risky, _ = _sed_call(args)
+        if risky:
+            return COMPLEX                               # GNU sed runs the pattern space as a command
+        return f"shell:{prog}", FREE if prog == "sed" and not writes and not w else MEDIUM
+    if prog in FINDS or prog.startswith("-") or prog == ",":
+        return _find(toks, cwd, home, depth, writes)
+    if prog == "parallel":
+        return _parallel(args, cwd, home, depth)
+    if prog == "watch":
+        return _watch(args, cwd, home, depth)
     sub = next((a for a in args if not a.startswith("-")), "")
     if prog in OUTSIDE:
         return OUTSIDE[prog], HIGH
@@ -827,10 +1368,6 @@ def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
                                                                   "set-url", "rename") for a in args))):
             return f"shell:git:{sub}", FREE
         return f"shell:git:{sub or 'unknown'}", MEDIUM
-    if prog == "find" and not writes and not _ro_writes(prog, args):
-        return "shell:find", FREE
-    if prog == "sed" and not writes and not _ro_writes(prog, args):
-        return "shell:sed", FREE
     if prog in READ_ONLY and not writes and not _ro_writes(prog, args):
         return f"shell:{prog}", FREE
     return f"shell:{prog}", MEDIUM
@@ -977,8 +1514,8 @@ def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str,
     home = _norm(home or os.path.expanduser("~"))
     command = _join_lines(command)
     start = cwd or os.getcwd()
-    by_lines = _run(_build(_tokens_lines(command)), start, home, depth)
-    whole = _run(_build(_tokens_whole(command)), start, home, depth)
+    by_lines = _run(_glue_find(_build(_tokens_lines(command))), start, home, depth)
+    whole = _run(_glue_find(_build(_tokens_whole(command))), start, home, depth)
     best = whole if RANK[whole[1]] >= RANK[by_lines[1]] else by_lines
     if best[1] == CAP:
         return best[0], best[1], False
