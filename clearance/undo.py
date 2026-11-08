@@ -29,6 +29,10 @@ def snapshot(paths: list[str], root: str, max_bytes: int = 5_000_000) -> str | N
     try:
         for p in paths:
             ap = os.path.abspath(p)
+            if "\x00" in ap:
+                return None
+            if os.path.islink(ap):
+                return None
             if os.path.lexists(ap):
                 if not os.path.isfile(ap):
                     return None
@@ -40,13 +44,15 @@ def snapshot(paths: list[str], root: str, max_bytes: int = 5_000_000) -> str | N
                     data = fh.read(max_bytes + 1)
                 if len(data) != size and len(data) > max_bytes:
                     return None
+                if b"\x00" in data[:8192]:
+                    return None
                 mode = os.stat(ap).st_mode & 0o777
                 entries.append({"path": ap, "existed": True, "mode": mode})
                 blobs.append(data)
             else:
                 entries.append({"path": ap, "existed": False})
                 blobs.append(None)
-    except OSError:
+    except (OSError, ValueError, TypeError, MemoryError):
         return None
 
     snap_id = uuid.uuid4().hex
