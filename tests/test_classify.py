@@ -228,3 +228,192 @@ def test_read_verb_is_not_raised_by_an_ambiguous_noun(tool, typ, stakes):
 
 def test_reads_external_still_true_for_get_message():
     assert C.reads_external("mcp__gmail__get_message", {}, CWD) is True
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Fix round 1: adversarial review of the classifier
+# --------------------------------------------------------------------------------------------------------------------
+HOME = "/home/me"
+
+
+def kh(tool, args=None):
+    a = C.classify(tool, args or {}, cwd=CWD, home=HOME)
+    return a.type, a.stakes
+
+
+def cmd(command):
+    return kh("terminal", {"command": command})
+
+
+@pytest.mark.parametrize("command,typ,stakes", [
+    ('git commit -m "a\nb"; git push', "shell:git:push", C.HIGH),
+    ('git commit -m "a\nb"&&git push', "shell:git:push", C.HIGH),
+    ('git commit -m "title\n\nbody" && git push', "shell:git:push", C.HIGH),
+    ('echo "a\nb">~/.ssh/authorized_keys', "file:sensitive", C.CAP),
+    ('echo "a\nb" >> ~/.ssh/authorized_keys', "file:sensitive", C.CAP),
+    ('echo "\x0c";git push', "shell:git:push", C.HIGH),
+    ('echo " ";npm publish', "shell:npm:publish", C.HIGH),
+    ("echo k >> \\\n~/.ssh/authorized_keys", "file:sensitive", C.CAP),
+    ("git \\\npush origin main", "shell:git:push", C.HIGH),
+    ("npm \\\npublish", "shell:npm:publish", C.HIGH),
+    ("cat > n.md <<EOF\ndon't push\nEOF\ngit push", "shell:git:push", C.HIGH),
+    ("pwd\r\nnpm publish", "shell:npm:publish", C.HIGH),
+    ("ls # note\ngit push", "shell:git:push", C.HIGH),
+])
+def test_quotes_continuations_and_newlines(command, typ, stakes):
+    assert cmd(command) == (typ, stakes)
+
+
+@pytest.mark.parametrize("command,typ", [
+    ("ls;(git push)", "shell:git:push"), ("ls&&(git push)", "shell:git:push"),
+    ("ls ;(npm publish)", "shell:npm:publish"), ("ls |& npm publish", "shell:npm:publish"),
+    ("true;{ git push;}", "shell:git:push"), ("ls||git push", "shell:git:push"),
+])
+def test_glued_separators(command, typ):
+    assert cmd(command) == (typ, C.HIGH)
+
+
+def test_redirect_operators_are_not_separators():
+    assert cmd("ls 2>&1")[1] == C.FREE
+    assert cmd("ls >&2")[1] == C.FREE
+    assert cmd("echo k >& ~/.ssh/authorized_keys") == ("file:sensitive", C.CAP)
+    assert cmd("echo k &> ~/.ssh/authorized_keys") == ("file:sensitive", C.CAP)
+
+
+@pytest.mark.parametrize("command", [
+    "cd $HOME/.ssh && echo k >> authorized_keys",
+    'cd "${HOME}/.ssh" && echo k >> authorized_keys',
+    "cd ~/.ssh; cd /tmp; cd -; echo k >> authorized_keys",
+    "pushd ~/.ssh && echo k >> authorized_keys",
+    "builtin cd ~/.ssh && echo k >> authorized_keys",
+    "command cd ~/.ssh && echo k >> authorized_keys",
+    "cd >/dev/null ~/.ssh && echo k >> authorized_keys",
+    "cd ~/.ssh; (cd /tmp) ; echo k >> authorized_keys",
+    "cd ~/.ssh; cd /tmp | true; echo k >> authorized_keys",
+    "cd ~/.ssh; cd /tmp & echo k >> authorized_keys",
+    "cd ~/.ssh; true || cd /tmp; echo k >> authorized_keys",
+    "(cd ~/.ssh && echo k >> authorized_keys)",
+    "cd ~/.ssh\ncd /tmp\ncd -\necho k >> authorized_keys",
+])
+def test_cd_cannot_be_dodged(command):
+    assert cmd(command) == ("file:sensitive", C.CAP)
+
+
+@pytest.mark.parametrize("command", [
+    "cd $FOO && echo k >> authorized_keys",
+    "cd ~/.ssh; popd; echo k >> authorized_keys",
+    "cd `pwd`/x && echo k > out.txt",
+    "cd ~/.ssh; cd $X; cp a b",
+])
+def test_unknown_cwd_makes_relative_writes_at_least_high(command):
+    assert C.RANK[cmd(command)[1]] >= C.RANK[C.HIGH]
+
+
+def test_known_cd_keeps_ordinary_writes_ordinary():
+    assert cmd("cd src && echo hi > out.txt")[1] == C.MEDIUM
+    assert cmd("(cd ../x && git push)") == ("shell:git:push", C.HIGH)
+
+
+@pytest.mark.parametrize("tool", ["mcp__gmail__get_and_forward_message", "mcp__slack__check_and_respond_to_messages",
+                                  "mcp__reports__summarize_and_email", "mcp__gmail__export_to_email",
+                                  "mcp__crm__fetch_and_mail_report", "mcp__sms__lookup_and_text_sms",
+                                  "mcp__gmail__forward_message", "mcp__gmail__reply_to_thread"])
+def test_connector_words_remove_the_noun_exemption(tool):
+    assert kh(tool)[1] == C.HIGH
+
+
+@pytest.mark.parametrize("tool,args", [
+    ("mcp__slack__slack_get_channel_history", {}), ("mcp__brave_search__brave_web_search", {}),
+    ("mcp__playwright__browser_navigate", {}), ("mcp__fetch__fetch", {}), ("mcp__github__get_issue", {}),
+    ("mcp__exa__search", {}), ("mcp__tavily__search", {}), ("mcp__firecrawl__scrape", {}),
+    ("terminal", {"command": "VAR=1 curl https://x"}), ("terminal", {"command": "timeout 5 curl https://x"}),
+    ("terminal", {"command": "timeout -s KILL 5 curl https://x"}),
+    ("terminal", {"command": "bash -c 'curl https://x'"}), ("terminal", {"command": "xargs curl < urls"}),
+    ("terminal", {"command": "sudo -u me curl https://x"}), ("terminal", {"command": "env -u A curl https://x"}),
+    ("terminal", {"command": "gh issue view 1"}), ("terminal", {"command": "gh pr view 1"}),
+    ("terminal", {"command": "gh api repos/a/b/issues"}), ("terminal", {"command": "ls\ncurl https://x"}),
+])
+def test_reads_external_second_round_true(tool, args):
+    assert C.reads_external(tool, args, CWD) is True
+
+
+@pytest.mark.parametrize("tool,args", [
+    ("terminal", {"command": "git clone x"}), ("terminal", {"command": "gh api -X POST repos/a/b"}),
+    ("terminal", {"command": "gh api repos/a/b -f x=1"}), ("terminal", {"command": "gh pr create"}),
+    ("mcp__github__create_issue", {}), ("mcp__gmail__get_and_forward_message", {}),
+    ("mcp__hubspot__get_contact", {}),
+])
+def test_reads_external_second_round_false(tool, args):
+    assert C.reads_external(tool, args, CWD) is False
+
+
+def test_windows_paths_keep_forward_slashes(monkeypatch):
+    import ntpath
+    import types
+    monkeypatch.setattr(C, "os", types.SimpleNamespace(path=ntpath, getcwd=lambda: "C:\\work"))
+    assert C.files_written("write_file", {"path": "a.py"}, CWD) == [f"{CWD}/a.py"]
+    assert C.reads_external("read_file", {"path": "src/a.py"}, CWD) is False
+    assert C.reads_external("read_file", {"path": "/etc/hosts"}, CWD) is True
+    a = C.classify("write_file", {"path": "src/a.py"}, cwd=CWD)
+    assert (a.type, a.stakes, a.reversible) == ("file:write", C.LOW, True)
+    assert cmd("cd ~/.ssh && echo k >> authorized_keys")[1] == C.CAP
+
+
+@pytest.mark.parametrize("body", [
+    "*** Begin Patch\n*** Frobnicate File: /etc/hosts\n*** End Patch",
+    "",
+])
+def test_unreadable_patch_is_high_and_irreversible(body):
+    a = C.classify("patch", {"mode": "patch", "patch": body}, cwd=CWD)
+    assert (a.stakes, a.reversible) == (C.HIGH, False)
+    a = C.classify("patch", {"mode": "patch", "path": "README.md",
+                             "patch": "*** Frobnicate File: /etc/hosts"}, cwd=CWD)
+    assert (a.stakes, a.reversible) == (C.HIGH, False)
+
+
+def test_v4a_edge_headers():
+    body = "*** Begin Patch\n***Add File:/etc/hosts\n+x\n*** End Patch"
+    assert kh("patch", {"mode": "patch", "patch": body}) == ("file:sensitive", C.CAP)
+    body = "*** Begin Patch\n*** Update File: src/a.py\r\n*** Add File: /etc/hosts\r\n+x\r\n*** End Patch"
+    assert kh("patch", {"mode": "patch", "patch": body}) == ("file:sensitive", C.CAP)
+    body = "*** Begin Patch\n*** Move File: src/a.py -> b -> /etc/x\n*** End Patch"
+    assert kh("patch", {"mode": "patch", "patch": body}) == ("file:sensitive", C.CAP)
+
+
+@pytest.mark.parametrize("command", [
+    "echo k | tee -a ~/.ssh/authorized_keys", "cp x ~/.ssh/authorized_keys", "mv x ~/.ssh/config",
+    "dd of=~/.ssh/authorized_keys", "ln -sf x ~/.ssh/authorized_keys", "install x ~/.ssh/y",
+    "rsync x ~/.ssh/", "sudo tee /etc/hosts", "touch ~/.ssh/x",
+])
+def test_sensitive_paths_given_to_write_commands_are_capped(command):
+    assert cmd(command) == ("file:sensitive", C.CAP)
+
+
+def test_ordinary_write_commands_stay_ordinary():
+    assert cmd("cp a b") == ("shell:cp", C.MEDIUM)
+    assert cmd("echo hi | tee out.txt") == ("shell:tee", C.MEDIUM)
+
+
+def test_symlinks_are_resolved(tmp_path):
+    proj = tmp_path / "proj"
+    ssh = tmp_path / "home" / ".ssh"
+    proj.mkdir()
+    ssh.mkdir(parents=True)
+    (proj / "ssh").symlink_to(ssh)
+    (proj / "plain").mkdir()
+    a = C.classify("write_file", {"path": "ssh/authorized_keys"}, cwd=str(proj))
+    assert (a.type, a.stakes) == ("file:sensitive", C.CAP)
+    a = C.classify("terminal", {"command": "echo k >> ssh/authorized_keys"}, cwd=str(proj))
+    assert (a.type, a.stakes) == ("file:sensitive", C.CAP)
+    a = C.classify("write_file", {"path": "plain/x.txt"}, cwd=str(proj))
+    assert (a.type, a.stakes, a.reversible) == ("file:write", C.LOW, True)
+    (proj / "out").symlink_to(tmp_path)
+    a = C.classify("write_file", {"path": "out/x.txt"}, cwd=str(proj))
+    assert (a.type, a.stakes) == ("file:write-outside", C.MEDIUM)
+
+
+def test_clamped_mcp_names_are_high():
+    name = "mcp__gmail__get_message_" + "a" * 31 + "_deadbeef"
+    assert len(name) == 64 and C.CLAMPED.match(name)
+    assert C.classify(name, {}, cwd=CWD).stakes == C.HIGH
+    assert C.reads_external(name, {}, CWD) is False
