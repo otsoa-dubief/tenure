@@ -6,7 +6,7 @@ The CLI, the gateway and cron run in separate processes and may answer approvals
 read-modify-write happens inside ``transaction()`` (BEGIN IMMEDIATE), so no update is lost. The ledger lives in the
 same database, written in the same transaction as the state it explains, as a hash chain: each row carries the hash
 of the previous one, so an exported evidence file can be checked line by line (``verify``). The ledger records
-action types, stakes, outcomes and generations, never commands, paths or message contents.
+agents, action types, stakes, outcomes and anonymised sessions, never commands, paths or message contents.
 """
 from __future__ import annotations
 
@@ -46,12 +46,38 @@ STAT_FIELDS = ("actions", "checked", "alone", "faults")
 PENDING_COLS = ("tool_call_id", "agent", "type", "stakes", "reversible", "decision", "phase", "rule_key",
                 "session", "snap_id", "at")
 
-# Ledger input events: the only ones a replay reads. Derived events (tier, trial, confirmed, revoked) are display only.
+# Ledger input events: the only ones a replay reads, in ledger order. Derived events (tier, trial, confirmed, revoked)
+# are display only.
 #   {"event": "settings", "risks": {...}, "spot": float, "strict": bool, "rule": str}
-#   {"event": "outcome", "agent", "type", "stakes", "reversible", "result": success|fault|neutral,
-#    "source": approval|refusal|check|notify|spot|undo|flag|timeout|nobody|expired, "session"}
+#       The settings in force from here on: logged before the first outcome, then whenever they change. Replay:
+#       rule.reevaluate(state, params.required_n(risks, state.stakes)) on every type of every agent known so far.
+#   {"event": "outcome", "agent", "type", "stakes", "reversible", "result": success|fault|neutral, "source", "session"}
+#       Replay: the agent's type (a new one is TypeState(type, stakes, reversible)) takes the event's stakes and
+#       reversibility, then on_success / on_fault(n from the settings, session, source) or on_neutral(source), then
+#       rule.count_action when (result, source) is in COUNTED, unless that fault failed the trial (the rule returned
+#       a "trial" event with the reason "failed"). Sources (OUTCOME_SOURCES):
+#         success: approval (an approved ask ran cleanly), spot (an approved spot check ran cleanly), notify (a T2
+#                  action ran cleanly);
+#         fault:   refusal (an ask refused), spot (a spot check refused, or approved but failing its automatic
+#                  check), check (an action that ran failed its automatic check), undo, flag (after the fact);
+#         neutral: error (the tool failed), alone (a T3 action ran, unverified), blocked (stopped after our
+#                  decision, never ran), timeout (no answer from a person: timeout, cancellation, smart approval),
+#                  nobody (nobody could answer: cron, yolo, approvals off), expired (no outcome within 24 h).
 #   {"event": "agent", "old": str, "new": str, "mode": carry|strict, "vetoed": [type, ...]}
+#       Replay: every type of `old` that `new` has no state for yet becomes rule.carry_over(old state,
+#       n_new=params.required_n(risks, stakes), veto=type in vetoed, strict=mode == "strict").
 #   {"event": "revoke", "agent", "type"}
+#       Replay: rule.revoke on that type.
+OUTCOME_SOURCES = {
+    "success": frozenset({"approval", "spot", "notify"}),
+    "fault": frozenset({"refusal", "spot", "check", "undo", "flag"}),
+    "neutral": frozenset({"error", "alone", "blocked", "timeout", "nobody", "expired"}),
+}
+# Outcomes of an action that ran: the wait after a failed trial counts them (rule.count_action). A refused spot check
+# never ran; an approved one failing its check shares its source ("spot") and is not counted either, which changes
+# nothing in practice: a spot check is only drawn while no trial and no wait are open.
+COUNTED = frozenset({("success", "approval"), ("success", "spot"), ("success", "notify"), ("fault", "check"),
+                     ("neutral", "error"), ("neutral", "alone")})
 
 
 def _canon(obj) -> str:

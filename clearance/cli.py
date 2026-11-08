@@ -46,32 +46,39 @@ def presets_text(spot: float) -> str:
     return "\n".join(lines)
 
 
-def status_text(model: str | None = None) -> str:
+TIERS = {rule.T1: "T1 ask", rule.T2: "T2 notify", rule.T3: "T3 alone"}
+
+
+def _agent(core, agent: str | None) -> str:
+    return agent or core.ST.last_agent or core.store_().get_meta("agent:last") or "unknown@unknown"
+
+
+def status_text(agent: str | None = None) -> str:
     core = _core()
     cfg = core.settings()
-    model = model or core.ST.last_model or core.store_().get_meta("model:last") or "unknown-model"
-    st = core.store_()
-    with st.transaction():
-        rows = st.states(model)
-    lines = [f"clearance — record for {model} (preset {cfg['preset']}, 1 spot check in {round(1 / cfg['spot'])})"]
+    agent = _agent(core, agent)
+    with core.txn() as st:
+        rows = st.states(agent)
+    lines = [f"clearance — record for {agent} (preset {cfg['preset']}, 1 spot check in {round(1 / cfg['spot'])}"
+             f"{', strict mode' if cfg['strict'] else ''})"]
     why = core.nobody_answers()
     if why:
-        lines.append(f"Learning paused here: nobody answers approvals ({why}). Cleared types still run.")
+        lines.append(f"Learning paused here: nobody answers approvals ({why}). Earned tiers still run.")
     if not cfg["enabled"]:
         lines.append("clearance is disabled (plugins.entries.clearance.settings.enabled: false).")
     if not rows:
-        lines.append("No action type has asked yet. Reads never ask; everything else asks until it is cleared.")
+        lines.append("No action type has a record yet. Reads never ask; everything else asks until its type earns "
+                     "autonomy.")
     for _, s in rows:
-        risk = cfg["risks"].get(s.stakes)
-        if s.level == rule.CLEARED:
-            where = "CLEARED" + (" (by your 'always')" if s.manual else "")
-        elif risk is None:
-            where = "always asked (capped by your settings)"
-        else:
-            need = rule.required(s, params.clearance_number(risk, cfg["spot"]))
-            where = f"asks — {s.streak}/{need} approvals in a row"
-        lines.append(f"  {s.key:<28} {s.stakes:<6} {where:<44} approved {s.approvals}, refused {s.refusals}, "
-                     f"spot checks {s.spot_checks}, revoked {s.revocations}")
+        n = params.required_n(cfg["risks"], s.stakes)
+        k = len(s.sessions)
+        series = ("always asked (capped by your settings)" if n is None else
+                  f"{s.series}/{rule.required(s, n)} in a row, {k} session{'' if k == 1 else 's'}")
+        notes = [f"{s.provisional} provisional"] if s.provisional else []
+        notes += [f"trial: {s.trial_left} to go"] if s.trial_left else []
+        notes += [f"trial failed: {s.trial_wait} actions to wait"] if s.trial_wait else []
+        lines.append(f"  {s.key:<28} {s.stakes:<6} {TIERS[s.tier]:<9} {series:<38} {s.successes} successes, "
+                     f"{s.faults} faults, {s.spot_checks} spot checks" + (f" ({'; '.join(notes)})" if notes else ""))
     ledger = st.ledger()
     problems = store.verify(ledger)
     lines.append(f"Evidence: {len(ledger)} entries, " + ("chain intact." if not problems else
@@ -105,41 +112,41 @@ def explain_text() -> str:
     return "\n".join(lines)
 
 
-def flag(type_key: str, note: str = "", model: str | None = None) -> str:
+def flag(type_key: str, note: str = "", agent: str | None = None) -> str:
+    """A fault the owner reports after the fact. The note is not stored: the ledger never holds free text."""
     core = _core()
     cfg = core.settings()
-    model = model or core.ST.last_model or core.store_().get_meta("model:last") or "unknown-model"
-    st = core.store_()
-    with st.transaction():
-        known = {s.key: s for _, s in st.states(model)}
+    agent = _agent(core, agent)
+    with core.txn() as st:
+        known = {s.key: s for _, s in st.states(agent)}
         if type_key not in known:
-            return f"No record of {type_key} for {model}. Types: {', '.join(sorted(known)) or 'none yet'}."
+            return f"No record of {type_key} for {agent}. Types: {', '.join(sorted(known)) or 'none yet'}."
         s = known[type_key]
-        risk = cfg["risks"].get(s.stakes)
-        need = core.NEVER if risk is None else params.clearance_number(risk, cfg["spot"])
-        events = rule.on_flag(s, need, note=note)
-        st.put_state(model, s)
-        for ev in events:
-            st.log({**ev, "model": model})
-    return core._say(events[0], cfg["spot"]) or f"clearance: error recorded on {type_key}."
+        core.sync_settings(st, cfg)
+        core.record_outcome(st, cfg, agent=agent, type_key=type_key, stakes=s.stakes, reversible=s.reversible,
+                            result="fault", source="flag")
+        st.bump(agent, "faults")
+        s = st.get_state(agent, type_key, s.stakes, s.reversible)
+    return f"clearance: fault recorded on {type_key} for {agent}; it is now at {TIERS[s.tier]}."
 
 
-def revoke(type_key: str, model: str | None = None) -> str:
+def revoke(type_key: str, agent: str | None = None) -> str:
     core = _core()
-    model = model or core.ST.last_model or core.store_().get_meta("model:last") or "unknown-model"
-    st = core.store_()
+    agent = _agent(core, agent)
     done = []
-    with st.transaction():
-        for _, s in st.states(model):
-            if (type_key == "all" or s.key == type_key) and s.level == rule.CLEARED:
-                s.level, s.streak, s.manual = rule.ASK, 0, False
-                s.generation += 1
-                s.revocations += 1
-                st.put_state(model, s)
-                st.log(dict(event="revoked", type=s.key, stakes=s.stakes, generation=s.generation, at=time.time(),
-                            reason="revoked by the owner", model=model))
-                done.append(s.key)
-    return f"clearance revoked: {', '.join(done)}." if done else "Nothing to revoke."
+    with core.txn() as st:
+        for _, s in st.states(agent):
+            if type_key not in ("all", s.key):
+                continue
+            if type_key == "all" and s.tier == rule.T1 and not s.series and not s.provisional and s.wald >= 0:
+                continue                                       # nothing earned to take back
+            events = rule.revoke(s)
+            st.put_state(agent, s)
+            st.log({"event": "revoke", "agent": agent, "type": s.key})
+            for ev in events:
+                st.log({**ev, "agent": agent})
+            done.append(s.key)
+    return f"clearance revoked for {agent}: {', '.join(done)}." if done else "Nothing to revoke."
 
 
 def export(path: str = "") -> str:

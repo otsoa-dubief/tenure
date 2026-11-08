@@ -1,20 +1,21 @@
 # Copyright 2026 Otsoa Dubief
 # SPDX-License-Identifier: Apache-2.0
-"""How many approvals in a row before an action type is cleared, for the risk a user accepts.
+"""The numbers of the rule, for the risk a user accepts: series lengths, the middle tier's steps, the guarantee.
 
-clearance runs Dodge's continuous sampling plan CSP-1 (1943) on each action type: every action of the type asks the
-owner until ``i`` actions in a row have been approved (the clearance number); after that, a random fraction ``f`` of
-the type's actions still asks (spot checks), and one refusal sends the type back to asking every time.
+The series length for an accepted risk ``bar`` (the share of errors that may run without a human check) is the
+formula of the preregistered study, in exact fractions: N = ceil(1 / (DETECTION * bar)) - 1 (``study_n``). A type
+whose last N verified outcomes are successes acts alone, except for a random fraction ``f`` of its actions that still
+asks (spot checks); one caught error takes the autonomy back.
 
-Errors the owner catches never run: an asked action that is refused is blocked. The only errors that run without
-approval are the unchecked ones once the type is cleared. Their long-run share of the type's actions is the
-average outgoing quality (AOQ). For an agent whose error rate ``p`` is stable,
+Errors the owner catches never run: an asked action that is refused is blocked. The only errors that run unchecked
+are those of a type that acts alone. Their long-run share of the type's actions is the average outgoing quality
+(AOQ) of Dodge's continuous sampling plan CSP-1 (1943). For an agent whose error rate ``p`` is stable,
 
-    AOQ(p) = p (1 - f) u / (f + (1 - f) u),  u = (1 - p)^i,
+    AOQ(p) = p (1 - f) u / (f + (1 - f) u),  u = (1 - p)^N,
 
-and its maximum over ``p`` is the AOQL, the guarantee shown to users. ``clearance_number`` picks the smallest ``i``
-whose AOQL stays at or under the accepted risk. For an agent that changes after clearance and errs only where it is
-not checked, the share is at most ``(1 - f) / (f i + 1)`` until the first caught error revokes the clearance.
+and its maximum over ``p`` is the AOQL, the guarantee shown to users for that N (``aoql``). For an agent that changes
+once it acts alone and errs only where it is not checked, the share is at most ``(1 - f) / (f N + 1)`` until the
+first caught error (``worst_case``).
 """
 from __future__ import annotations
 
@@ -61,13 +62,6 @@ def wald_steps(stakes: str) -> tuple[float, float, float]:
     return math.log(pm / pb), math.log((1 - pm) / (1 - pb)), math.log(BETA / (1 - ALPHA))
 
 
-def _check(risk: float, spot: float) -> None:
-    if not (isinstance(risk, (int, float)) and 0 < risk < 1):
-        raise ValueError(f"risk must be between 0 and 1 (exclusive), got {risk!r}")
-    if not (isinstance(spot, (int, float)) and 0 < spot <= 1):
-        raise ValueError(f"spot-check rate must be in (0, 1], got {spot!r}")
-
-
 def aoq(p: float, i: int, spot: float) -> float:
     u = (1 - p) ** i
     return p * (1 - spot) * u / (spot + (1 - spot) * u)
@@ -93,16 +87,6 @@ def aoql(i: int, spot: float) -> tuple[float, float]:
             fa = aoq(a, i, spot)
     p = (lo + hi) / 2
     return aoq(p, i, spot), p
-
-
-@lru_cache(maxsize=1024)
-def clearance_number(risk: float, spot: float = DEFAULT_SPOT) -> int:
-    """Smallest i, from ceil(1 / risk) - 1 up, whose AOQL is at most ``risk``."""
-    _check(risk, spot)
-    i = max(1, math.ceil(1 / risk) - 1)
-    while aoql(i, spot)[0] > risk:
-        i += 1
-    return i
 
 
 def worst_case(i: int, spot: float) -> float:

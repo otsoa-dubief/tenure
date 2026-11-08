@@ -18,9 +18,10 @@ tags: [approvals, autonomy, oversight, safety, statistics]
 requires_hermes: ">=0.23.0"
 provides_tools: []
 provides_hooks:
+  - pre_api_request
   - pre_tool_call
   - post_approval_response
-  - pre_api_request
+  - post_tool_call
 config_schema:
   preset:
     type: str
@@ -36,6 +37,11 @@ config_schema:
     type: float
     default: 0.1
     description: "Share of a cleared type's actions that still ask, at random (default one in ten)"
+    required: false
+  strict:
+    type: bool
+    default: false
+    description: "On a model or provider change, start every type over instead of carrying half the record on trial"
     required: false
   types:
     type: dict

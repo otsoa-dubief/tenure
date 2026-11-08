@@ -1,9 +1,8 @@
-"""Clearance numbers and guarantees (CSP-1, Dodge 1943): the numbers a user sees before choosing a risk."""
-import math
+"""Series lengths (the study's formula), Wald steps and guarantees (CSP-1, Dodge 1943): the numbers a user sees
+before choosing a risk."""
+from fractions import Fraction
 
 import pytest
-
-from fractions import Fraction
 
 from clearance import params
 from clearance.params import ALPHA, BETA, PRESETS, required_n, study_n, wald_steps
@@ -58,12 +57,6 @@ def test_worst_case_when_the_agent_changes_after_clearance():
     assert params.worst_case(54, 1.0) == 0.0
 
 
-@pytest.mark.parametrize("bad", [0, 1, -0.1, 1.5, float("nan")])
-def test_legacy_clearance_number_still_checks_its_risk(bad):
-    with pytest.raises(ValueError):
-        params.clearance_number(bad, 0.1)
-
-
 def test_presets():
     """Three recommendations; high stakes stay capped (always asked) unless the careful preset lets them be earned."""
     assert set(params.PRESETS) == {"careful", "balanced", "fast"}
@@ -79,3 +72,8 @@ def test_describe_shows_the_guarantee_for_the_study_n():
     assert table["low"]["aoql"] == params.aoql(52, 0.1)[0]
     assert table["low"]["worst_case"] == pytest.approx(params.worst_case(52, 0.1))
     assert table["high"]["capped"] and table["high"]["n"] is None and table["high"]["aoql"] is None
+
+
+def test_the_old_clearance_number_is_gone():
+    """Series lengths come from the study's formula only (``study_n``); the CSP-1 search for i is removed."""
+    assert not hasattr(params, "clearance_number")

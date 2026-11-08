@@ -1,28 +1,50 @@
 # Copyright 2026 Otsoa Dubief
 # SPDX-License-Identifier: Apache-2.0
-"""clearance: earned autonomy for Hermes, per action type, with a statistical guarantee.
+"""clearance: earned autonomy for Hermes, per action type, from verified evidence.
 
-Every action that changes something asks the owner, through Hermes' own approval prompt, until its type has been
-approved ``i`` times in a row; then the agent acts alone on that type, except for random spot checks, and one
-refusal (or an error the owner flags) sends the type back to asking. ``i`` comes from the risk the owner accepts
-(``params``). Records are kept per model: a new model starts with an empty record.
+Each action type (``classify``) of each agent (``model@provider``) has a tier (``rule``): T1 asks the owner first;
+T2 acts, then notifies the owner with an undo (reversible types only); T3 acts alone, with random spot checks. A type
+climbs on verified outcomes only, judged after the tool has run (``proofs``): an approved action that ran cleanly and
+passed its automatic check is a success; a refusal, a failed check, an undo or a flagged error is a fault; what
+nobody verified (a timeout, a failed tool, an answer from no person, an action taken alone) teaches nothing.
 
-Hooks: pre_tool_call (decide), post_approval_response (count the owner's answer), pre_api_request (which model is
-acting). CLI: ``hermes clearance``. Slash command: ``/clearance``. Local only: no network, no LLM call.
+Hooks:
+
+- ``pre_api_request``: which agent acts. A new agent inherits the previous agent's record on trial (half of each
+  series, provisional), unless a public benchmark vetoes it or strict mode is on.
+- ``pre_tool_call``: the decision for the action's type. Asks go through Hermes' own approval gate with a one-off
+  rule key, so a "session" or "always" answer never silences the next ask; T2 saves the files first (``undo``); a
+  session that read external content asks for everything.
+- ``post_approval_response``: a refusal is a fault; an approval waits for the execution.
+- ``post_tool_call``: the verified outcome of the decision, and the suspension of a session that read external
+  content.
+
+Every outcome, settings change, agent change and revocation is written to the hash-chained ledger as an input event
+(``store``), in the transaction that applies it, so that replaying the ledger recomputes the same tiers. CLI:
+``hermes clearance``. Slash command: ``/clearance``. Local only: no network, no LLM call.
 """
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import random
+import threading
+import time
 import uuid
+from collections import OrderedDict
+from contextlib import contextmanager
 
-from . import classify, params, rule, store
+from . import benchmarks, classify, params, personal, proofs, rule, store, undo
 
 log = logging.getLogger("clearance")
 PREFIX = "clearance"
-NEVER = 10 ** 9                  # a clearance number no record reaches (types capped by the owner's settings)
+RULE = "study-rule-B/1"          # the rule named in settings events; the passport computes its fingerprint
+PURGE_EVERY = 3600               # seconds between two clean-ups of undo snapshots past their window, per process
+MAX_SESSIONS = 4096              # sessions whose agent this process remembers
+_TIER = {rule.T1: "T1, asking first", rule.T2: "T2, acting then notifying you with an undo",
+         rule.T3: "T3, acting alone"}
 
 
 class _State:
@@ -30,9 +52,11 @@ class _State:
         self.ctx = None
         self.store = None
         self.store_path = ""
-        self.models: dict[str, str] = {}          # session -> model of its latest API request
-        self.last_model = ""
+        self.lock = threading.RLock()            # Hermes runs tools in parallel threads; they share one connection
+        self.agents: OrderedDict[str, str] = OrderedDict()   # session id -> agent of its latest API request
+        self.last_agent = ""
         self.rng = random.SystemRandom()
+        self.purged_at = 0.0
 
 
 ST = _State()
@@ -48,14 +72,29 @@ def _hermes_home() -> str:
 
 
 def data_dir() -> str:
-    return os.path.join(_hermes_home(), "plugin-data", "clearance")
+    """``<hermes home>/plugin-data/clearance``, from Hermes' ``plugin_data_dir`` when it can be imported."""
+    try:
+        from plugins.plugin_storage import plugin_data_dir
+        return str(plugin_data_dir(PREFIX))
+    except Exception:
+        return os.path.join(_hermes_home(), "plugin-data", PREFIX)
 
 
 def store_() -> store.Store:
     path = os.path.join(data_dir(), "clearance.db")
-    if ST.store is None or ST.store_path != path:
-        ST.store, ST.store_path = store.Store(path), path
-    return ST.store
+    with ST.lock:
+        if ST.store is None or ST.store_path != path:
+            ST.store, ST.store_path = store.Store(path), path
+        return ST.store
+
+
+@contextmanager
+def txn():
+    """The store inside one write transaction, one thread at a time: every write of a hook happens here."""
+    with ST.lock:
+        st = store_()
+        with st.transaction():
+            yield st
 
 
 def _get(key, default=None):
@@ -70,7 +109,7 @@ def _truthy(value) -> bool:
 
 
 def parse_risk(value, default):
-    """A risk from the owner's settings: 0.02, "2%", "1/50", or "cap" (always ask)."""
+    """A risk from the owner's settings: 0.02, "2%", "1/50", or "cap" (always ask). Kept strictly between 0 and 1."""
     if value is None or str(value).strip().lower() in ("cap", "capped", "never", "none", "null", "always ask"):
         return None
     try:
@@ -88,6 +127,8 @@ def parse_risk(value, default):
 
 
 def settings() -> dict:
+    """The owner's settings: preset, risk per stakes level (None = capped), spot-check rate (strictly between 0 and
+    1, else the default), strict mode, type overrides, enabled."""
     preset = str(_get("preset", params.DEFAULT_PRESET) or params.DEFAULT_PRESET).strip().lower()
     if preset not in params.PRESETS:
         preset = params.DEFAULT_PRESET
@@ -98,11 +139,41 @@ def settings() -> dict:
             if level in custom:
                 risks[level] = parse_risk(custom[level], risks[level])
     spot = parse_risk(_get("spot_check", params.DEFAULT_SPOT), params.DEFAULT_SPOT)
-    if spot is None:
-        spot = params.DEFAULT_SPOT
     overrides = _get("types")
-    return dict(preset=preset, risks=risks, spot=spot, overrides=overrides if isinstance(overrides, dict) else {},
+    return dict(preset=preset, risks=risks, spot=params.DEFAULT_SPOT if spot is None else spot,
+                strict=_truthy(_get("strict", False)), overrides=overrides if isinstance(overrides, dict) else {},
                 enabled=_truthy(_get("enabled", True)))
+
+
+def settings_event(cfg: dict) -> dict:
+    """The settings as the ledger records them: what a replay needs to recompute the tiers."""
+    return {"event": "settings", "risks": dict(cfg["risks"]), "spot": cfg["spot"], "strict": bool(cfg["strict"]),
+            "rule": RULE}
+
+
+def settings_fingerprint(cfg: dict) -> str:
+    text = json.dumps(settings_event(cfg), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def sync_settings(st: store.Store, cfg: dict) -> list[dict]:
+    """In a transaction, before any outcome: settings that differ from the last ones in the ledger are logged, then
+    every type of every agent is re-evaluated under them (stricter settings can take a T3 back). Returns the derived
+    events."""
+    fp = settings_fingerprint(cfg)
+    if st.get_meta("settings:fingerprint") == fp:
+        return []
+    st.log(settings_event(cfg))
+    st.set_meta("settings:fingerprint", fp)
+    events = []
+    for agent, s in st.states():
+        before = s.to_dict()
+        for ev in rule.reevaluate(s, params.required_n(cfg["risks"], s.stakes)):
+            st.log({**ev, "agent": agent})
+            events.append({**ev, "agent": agent})
+        if s.to_dict() != before:
+            st.put_state(agent, s)
+    return events
 
 
 # ---------------------------------------------------------------------------------------------------- context
@@ -117,24 +188,43 @@ def _session_cwd() -> str:
     return os.environ.get("TERMINAL_CWD") or os.getcwd()
 
 
-def ask_key(model: str, type_key: str, generation: int) -> str:
-    """Rule key of an ordinary ask: per type, model and generation, so that Hermes' own "session"/"always" grants
-    end with a revocation and never carry over to another model."""
-    tag = hashlib.sha256(model.encode("utf-8")).hexdigest()[:8]
-    return f"{PREFIX}:{type_key}:{tag}:g{generation}"
+def anon(session_id) -> str:
+    """A session as stored: sha256(session id)[:12]; "" without a session id, which counts as no session."""
+    sid = str(session_id or "")
+    return hashlib.sha256(sid.encode("utf-8")).hexdigest()[:12] if sid else ""
 
 
-def current_model(session_id: str = "") -> str:
-    return ST.models.get(str(session_id or "")) or ST.last_model or "unknown-model"
+def agent_name(model, provider) -> str:
+    return f"{model}@{provider or 'unknown'}"
+
+
+def agent_of(session_id="") -> str:
+    """The agent acting in a session: the model and provider of the session's latest API request in this process,
+    else of this process's latest API request, else the profile's last active agent."""
+    with ST.lock:
+        agent = ST.agents.get(str(session_id or "")) or ST.last_agent
+        if not agent:
+            try:
+                agent = store_().get_meta("agent:last")
+            except Exception:
+                agent = None
+    return agent or "unknown@unknown"
+
+
+def _remember(session_id: str, agent: str) -> None:
+    ST.agents[session_id] = agent
+    ST.agents.move_to_end(session_id)
+    while len(ST.agents) > MAX_SESSIONS:
+        ST.agents.popitem(last=False)
 
 
 def nobody_answers(session_id: str = "") -> str | None:
     """Why no person will answer an approval now, or None: --yolo, or a cron job (public signals only).
 
     Hermes calls post_approval_response only for a person's decision (or a smart-mode verdict, which carries
-    decided_by): with --yolo, /yolo, approvals.mode off, a cron or single-query run, or a "session"/"always" grant,
-    it settles the ask itself without the hook, so nothing is counted there anyway. This check matters for cron,
-    where a spot check on a cleared type would otherwise fall to cron_mode and fail the job."""
+    decided_by): with --yolo, /yolo, approvals.mode off, a cron or single-query run, it settles the ask itself
+    without the hook. This check matters for cron, where a spot check on a type acting alone would otherwise fall to
+    cron_mode and fail the job."""
     if _truthy(os.environ.get("HERMES_YOLO_MODE", "")):
         return "--yolo"
     try:
@@ -153,110 +243,48 @@ def _announce(text: str) -> None:
         log.debug("clearance: post_message failed", exc_info=True)
 
 
-def _say(event: dict, spot: float) -> str | None:
-    t = event.get("type")
-    if event["event"] == "cleared":
-        how = ("by your own 'always'" if event.get("manual")
-               else f"after {event.get('approvals_in_a_row')} approvals in a row")
-        return (f"clearance: {t} is cleared {how}. The agent now acts alone on it; 1 action in {round(1 / spot)} "
-                f"is still spot-checked, and one refusal revokes it.")
-    if event["event"] == "revoked":
-        return (f"clearance: {t} clearance revoked ({event.get('reason')}). Every action of this type asks again; "
-                f"next clearance after {event.get('next_required')} approvals in a row.")
-    return None
-
-
-def type_state(model: str, key: str, stakes: str) -> rule.TypeState:
-    st = store_()
-    with st.transaction():
-        return st.get_state(model, key, stakes)
-
-
-# ------------------------------------------------------------------------------------------------------ hooks
-def pre_api_request(model="", provider="", session_id="", **kwargs):
+def _purge() -> None:
+    """Delete undo snapshots past their 24-hour window, at most once an hour per process."""
+    now = time.time()
+    if now - ST.purged_at < PURGE_EVERY:
+        return
+    ST.purged_at = now
     try:
-        if not model:
-            return None
-        sid, model = str(session_id or kwargs.get("task_id") or ""), str(model)
-        old = ST.models.get(sid)
-        ST.models[sid], ST.last_model = model, model
-        if old != model:
-            st = store_()
-            with st.transaction():
-                if old:
-                    st.log(dict(event="model", old_model=old, new_model=model))
-                st.set_meta("model:last", model)
-            if old:
-                _announce(f"clearance: the agent now runs on {model}. Its record starts empty: every type asks again "
-                          f"until it earns clearance.")
+        undo.purge(data_dir())
     except Exception:
-        log.exception("clearance: pre_api_request failed")
-    return None
+        log.debug("clearance: undo purge failed", exc_info=True)
 
 
-def _message(act, s, need, risk) -> str:
-    if need is None:
-        return (f"clearance — {act.summary}\n{act.type} ({act.stakes} stakes) is capped by your settings: always "
-                f"asked ({s.approvals} approvals on record).")
-    return (f"clearance — {act.summary}\n{act.type} ({act.stakes} stakes): {s.streak}/{need} approvals in a row "
-            f"before the agent acts alone (accepted risk {risk:.2%}). Approve if the action is right; deny if it "
-            f"is wrong.")
+def _say(events: list[dict], spot: float) -> list[str]:
+    """Plain announcements for the owner: tier changes, trials, confirmed carry-overs."""
+    out = []
+    for ev in events:
+        t, kind, reason = ev.get("type"), ev.get("event"), ev.get("reason")
+        if kind == "tier" and reason == "series":
+            out.append(f"clearance: {t} now acts alone, after {ev.get('required')} verified successes in a row from "
+                       f"{ev.get('sessions')} sessions. 1 action in {round(1 / spot)} is still spot-checked, and a "
+                       f"fault sends it back down.")
+        elif kind == "tier" and reason == "wald":
+            out.append(f"clearance: {t} now acts, then notifies you with an undo, after a run of verified successes.")
+        elif kind == "tier" and reason in ("fault", "settings"):
+            why = "after a fault" if reason == "fault" else "under your new settings"
+            out.append(f"clearance: {t} is back at {_TIER.get(ev.get('to'), ev.get('to'))}, {why}.")
+        elif kind == "trial" and reason == "fault":
+            out.append(f"clearance: {t} is on trial: its next {ev.get('left')} actions ask, and all must succeed.")
+        elif kind == "trial" and reason == "passed":
+            out.append(f"clearance: {t} passed its trial.")
+        elif kind == "trial" and reason == "failed":
+            out.append(f"clearance: {t} failed its trial: every action asks, and a new trial opens after "
+                       f"{ev.get('wait')} more actions of this type.")
+        elif kind == "trial" and reason == "wait over":
+            out.append(f"clearance: {t} gets a new trial: its next {ev.get('left')} actions ask.")
+        elif kind == "confirmed":
+            out.append(f"clearance: {t}: the record carried over from the previous agent is now confirmed by this "
+                       f"agent's own successes.")
+    return out
 
 
-def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_id="", **kwargs):
-    try:
-        cfg = settings()
-        if not cfg["enabled"]:
-            return None
-        act = classify.classify(tool_name, args if isinstance(args, dict) else {}, cwd=_session_cwd(),
-                                overrides=cfg["overrides"])
-        if act.stakes == classify.FREE:
-            return None
-        one_off = tool_call_id or uuid.uuid4().hex
-        if act.stakes == classify.CAP:
-            return {"action": "approve", "rule_key": f"{PREFIX}:cap:{act.type}:{one_off}",
-                    "message": f"clearance — {act.summary}\n{act.type} is capped: always asked."}
-        model = current_model(session_id or task_id)
-        risk = cfg["risks"].get(act.stakes)
-        need = None if risk is None else params.clearance_number(risk, cfg["spot"])
-        nobody = nobody_answers(session_id)
-        st = store_()
-        with st.transaction():
-            s = st.get_state(model, act.type, act.stakes)
-            cleared = s.level == rule.CLEARED and need is not None
-            if nobody:
-                # Nobody answers: a cleared type runs (cron can use what was earned); the rest goes to Hermes'
-                # own policy for that context (cron_mode, yolo...). Nothing is learned without a person.
-                if cleared:
-                    return None
-                return {"action": "approve", "rule_key": ask_key(model, act.type, s.generation),
-                        "message": _message(act, s, need if need is None else rule.required(s, need), risk)}
-            decision = rule.ASK if need is None else rule.decide(s, need, cfg["spot"], ST.rng)
-            if decision == rule.ALLOW:
-                return None
-            spot = decision == rule.SPOT
-            if spot:
-                key = f"{PREFIX}:spot:{act.type}:{one_off}"
-            elif need is None:
-                key = f"{PREFIX}:capped:{act.type}:{one_off}"      # "always" must not silence a capped type
-            else:
-                key = ask_key(model, act.type, s.generation)
-            st.add_pending(tool_call_id or key, model, act.type, s.generation, spot=spot, rule_key=key,
-                           stakes=act.stakes)
-            st.expire_pending()
-        if spot:
-            msg = (f"clearance spot check — {act.summary}\n{act.type} is cleared; 1 action in "
-                   f"{round(1 / cfg['spot'])} is still checked. Deny if the action is wrong: the clearance is "
-                   f"revoked.")
-        else:
-            msg = _message(act, s, need if need is None else rule.required(s, need), risk)
-        return {"action": "approve", "rule_key": key, "message": msg}
-    except Exception as e:
-        log.exception("clearance: pre_tool_call failed")
-        return {"action": "approve", "message": f"clearance: internal error ({type(e).__name__}); asking you instead "
-                                                f"of letting the action through."}
-
-
+# ----------------------------------------------------------------------------------------------------- record
 def outcome(choice, decided_by=None) -> str:
     """approved / refused / neutral. Timeouts, cancellations, transport failures and answers given by a model
     (smart approvals) are not the owner's judgement and count for nothing."""
@@ -272,43 +300,333 @@ def outcome(choice, decided_by=None) -> str:
     return "neutral"
 
 
-def post_approval_response(command="", description="", pattern_key="", pattern_keys=None, session_key="", surface="",
-                           turn_id="", tool_call_id="", choice="", **kwargs):
+def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, stakes: str, reversible: bool,
+                   result: str, source: str, session: str = "") -> list[dict]:
+    """Apply one outcome to an agent's type and log it, in a transaction, after ``sync_settings``: first the input
+    event a replay reads, then the rule's derived events. The one way an outcome reaches the record (hooks, CLI,
+    dashboard). After the outcome of an action that ran, the wait after a failed trial counts it (``store.COUNTED``),
+    except for the fault that failed the trial. Returns the derived events."""
+    if source not in store.OUTCOME_SOURCES.get(result, ()):
+        raise ValueError(f"clearance: unknown outcome {result!r} from {source!r}")
+    s = st.get_state(agent, type_key, stakes, reversible)
+    n = params.required_n(cfg["risks"], stakes)
+    if result == "success":
+        events = rule.on_success(s, n, session=session, source=source)
+    elif result == "fault":
+        events = rule.on_fault(s, n, session=session, source=source)
+    else:
+        events = rule.on_neutral(s, source)
+    failed_trial = any(ev["event"] == "trial" and ev.get("reason") == "failed" for ev in events)
+    if (result, source) in store.COUNTED and not failed_trial:
+        events += rule.count_action(s)
+    st.put_state(agent, s)
+    st.log({"event": "outcome", "agent": agent, "type": type_key, "stakes": stakes, "reversible": bool(reversible),
+            "result": result, "source": source, "session": session})
+    for ev in events:
+        st.log({**ev, "agent": agent})
+    return events
+
+
+def _bump(st: store.Store, agent: str, result: str, *, checked: bool = False, alone: bool = False) -> None:
+    """Counters, one outcome at a time: every action; checked by a person; acted on its own; faults."""
+    st.bump(agent, "actions")
+    if checked:
+        st.bump(agent, "checked")
+    if alone:
+        st.bump(agent, "alone")
+    if result == "fault":
+        st.bump(agent, "faults")
+
+
+def _expire(st: store.Store, cfg: dict) -> list[dict]:
+    """Pending rows older than 24 hours (an ask nobody answered, a call that never reported back): neutral, and never
+    a success."""
+    events = []
+    for p in st.expire_pending():
+        events += record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
+                                 reversible=p["reversible"], result="neutral", source="expired",
+                                 session=p["session"])
+        _bump(st, p["agent"], "neutral")
+    return events
+
+
+def _carry(st: store.Store, cfg: dict, old: str, new: str) -> str:
+    """The new agent's record, made from the previous agent's (``rule.carry_over``), with its ``agent`` ledger event.
+    Returns the announcement."""
+    strict = bool(cfg["strict"])
+    old_model, new_model = personal.split_agent(old)[0], personal.split_agent(new)[0]
+    have = {s.key for _, s in st.states(new)}
+    carried = reset = kept = 0
+    vetoed = []
+    for _, s in st.states(old):
+        if s.key in have:                    # the new agent's own evidence on a type is never overwritten
+            kept += 1
+            continue
+        n_new = params.required_n(cfg["risks"], s.stakes)
+        eligible = not strict and s.stakes != "high" and n_new is not None
+        veto = eligible and benchmarks.veto(old_model, new_model, s.key)
+        st.put_state(new, rule.carry_over(s, n_new=n_new, veto=veto, strict=strict))
+        if veto:
+            vetoed.append(s.key)
+        elif eligible:
+            carried += 1
+        else:
+            reset += 1
+    st.log({"event": "agent", "old": old, "new": new, "mode": "strict" if strict else "carry", "vetoed": vetoed})
+    text = (f"clearance: new agent {new} (was {old}). Action types: {carried} carried over on trial, {reset} reset, "
+            f"{len(vetoed)} vetoed by a public benchmark.")
+    if kept:
+        text += f" {kept} kept this agent's own record."
+    if strict:
+        text += " Strict mode: every type starts over, and a fault on record becomes a trial."
+    elif carried:
+        text += " A carried-over record is half the old series, provisional until this agent's own successes match it."
+    return text
+
+
+def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool) -> str:
+    if decision == rule.SPOT:
+        return (f"clearance spot check — {act.summary}\n{act.type} acts alone; 1 action in {round(1 / spot)} is "
+                f"still checked at random. Deny if the action is wrong: the type goes back down.")
+    if n is None:
+        why = (f"{act.type} ({act.stakes} stakes) is capped by your settings: always asked ({s.successes} verified "
+               f"successes on record).")
+    elif suspended:
+        why = "This session read external content, so every action asks again (suspended: external content read)."
+    elif s.trial_left:
+        why = f"{act.type} is on trial after a fault: {s.trial_left} more verified successes needed, without a fault."
+    elif s.trial_wait:
+        why = (f"{act.type} failed its trial: every action asks, and a new trial opens after {s.trial_wait} more "
+               f"actions of this type.")
+    elif unsaved:
+        why = (f"{act.type} would act and then notify you, but an undo cannot be prepared for this action (a file "
+               f"too large, binary or unreadable): asking instead.")
+    else:
+        k = len(s.sessions)
+        why = (f"{act.type} ({act.stakes} stakes) asks first: {s.series}/{rule.required(s, n)} verified successes in "
+               f"a row, from {k} session{'' if k == 1 else 's'} (2 needed), before the agent acts alone.")
+        if s.provisional:
+            why += f" {s.provisional} of them carried over from the previous agent, provisional."
+    return f"clearance — {act.summary}\n{why} Approve if the action is right; deny if it is wrong."
+
+
+def _find_pending(st: store.Store, call: str, key: str) -> dict | None:
+    """Our pending row for an answer: by tool call id (checked against our key when there is one), else by the one-off
+    id that ends our key (an id may itself hold colons)."""
+    if call:
+        p = st.get_pending(call)
+        if p is not None and (not key or p["rule_key"] == key):
+            return p
+    if key:
+        rest = key[len(PREFIX) + 1:]
+        cut = len(rest)
+        while (cut := rest.rfind(":", 0, cut)) >= 0:
+            p = st.get_pending(rest[cut + 1:])
+            if p is not None and p["rule_key"] == key:
+                return p
+    return None
+
+
+def _settle(st: store.Store, cfg: dict, p: dict, tool: str, args: dict, cwd: str, result, status,
+            error_type) -> list[str]:
+    """The verified outcome of one pending decision, once its call has reported back. Returns the owner's messages."""
+    phase, agent, key = p["phase"], p["agent"], p["type"]
+    decided = phase in ("approved", "notify", "alone")      # approved by a person, or run by an earned tier
+    blocked = str(status or "").strip().lower() == "blocked"
+    posts = []
+    if not decided:                                         # nobody answered (cron, yolo, approvals off), or no hook
+        result_source = ("neutral", "nobody")
+    elif blocked:                                           # another guard stopped it after our decision
+        result_source = ("neutral", "blocked")
+    elif proofs.execution(tool, status, error_type, result) == "failed":
+        result_source = ("neutral", "error")
+    else:
+        paths = classify.files_written(tool, args, cwd)
+        reason = proofs.check_files(paths) if paths else None
+        spot = p["decision"] == rule.SPOT
+        if reason:
+            result_source = ("fault", "spot" if spot else "check")
+            posts.append(f"clearance: {key}: the automatic check failed ({reason}); counted as a fault.")
+        elif phase == "approved":
+            result_source = ("success", "spot" if spot else "approval")
+        elif phase == "notify":
+            result_source = ("success", "notify")
+        else:
+            result_source = ("neutral", "alone")
+    events = record_outcome(st, cfg, agent=agent, type_key=key, stakes=p["stakes"], reversible=p["reversible"],
+                            result=result_source[0], source=result_source[1], session=p["session"])
+    _bump(st, agent, result_source[0], checked=phase == "approved",
+          alone=decided and not blocked and phase in ("notify", "alone"))
+    if result_source == ("success", "notify"):
+        undo_id = st.add_undo(agent, key, p["snap_id"])
+        posts.append(f"clearance: {key} acted on its own · /clearance undo {undo_id}")
+    return posts + _say(events, cfg["spot"])
+
+
+# ------------------------------------------------------------------------------------------------------ hooks
+def pre_api_request(model="", provider="", session_id="", **kwargs):
+    """Which agent acts. An agent this profile has never seen inherits the record of the agent before it (the
+    session's previous one, else the profile's last one): ``_carry``."""
     try:
-        key = str(pattern_key or "")
-        key = key[len("plugin_rule:"):] if key.startswith("plugin_rule:") else ""
-        ours = key.startswith(PREFIX + ":")
-        if not ours and not tool_call_id:
+        if not model:
+            return None
+        sid = str(session_id or kwargs.get("task_id") or "")
+        agent = agent_name(model, provider)
+        with ST.lock:
+            prev = ST.agents.get(sid)
+            _remember(sid, agent)
+            if prev == agent and ST.last_agent == agent:
+                return None
+        cfg = settings()
+        posts = []
+        with txn() as st:
+            last = st.get_meta("agent:last")
+            if last != agent:
+                st.set_meta("agent:last", agent)
+            if st.get_meta(f"agent:known:{agent}") is None:
+                st.set_meta(f"agent:known:{agent}", "1")
+                old = prev if prev and prev != agent else last
+                if old and old != agent and st.states(old):
+                    posts += _say(sync_settings(st, cfg), cfg["spot"])
+                    posts.append(_carry(st, cfg, old, agent))
+        ST.last_agent = agent
+        for text in posts:
+            _announce(text)
+    except Exception:
+        log.exception("clearance: pre_api_request failed")
+    return None
+
+
+def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_id="", **kwargs):
+    """The decision for one call: None to let it run (free, acting alone, or acting then notifying with its files
+    saved), else Hermes' approval gate with a one-off rule key. Any internal error asks, unless the call was already
+    classified free. Every call that reaches the record first expires stale pending rows."""
+    act = None
+    try:
+        cfg = settings()
+        if not cfg["enabled"]:
+            return None
+        tool, args = str(tool_name or ""), (args if isinstance(args, dict) else {})
+        cwd = _session_cwd()
+        act = classify.classify(tool, args, cwd=cwd, overrides=cfg["overrides"])
+        if act.stakes == classify.FREE:
+            return None
+        _purge()
+        call = str(tool_call_id or "")
+        one_off = call or uuid.uuid4().hex
+        if act.stakes == classify.CAP:
+            return {"action": "approve", "rule_key": f"{PREFIX}:cap:{act.type}:{one_off}",
+                    "message": f"clearance — {act.summary}\n{act.type} is capped: always asked."}
+        sid = str(session_id or task_id or "")
+        nobody = nobody_answers()
+        posts, directive = [], None
+        with txn() as st:
+            posts += _say(sync_settings(st, cfg), cfg["spot"])
+            posts += _say(_expire(st, cfg), cfg["spot"])
+            agent, session = agent_of(sid), anon(sid)
+            s = st.get_state(agent, act.type, act.stakes, act.reversible)
+            n = params.required_n(cfg["risks"], act.stakes)
+            suspended = st.is_tainted(session)
+            decision = rule.decide(s, n, cfg["spot"], suspended=suspended, rng=ST.rng)
+            if nobody and decision == rule.SPOT:
+                decision = rule.ALLOW                       # nobody can answer a spot check: the earned tier runs
+            snap = None
+            if decision == rule.NOTIFY:
+                paths = classify.files_written(tool, args, cwd)
+                snap = undo.snapshot(paths, data_dir()) if paths and call else None
+            unsaved = decision == rule.NOTIFY and snap is None
+            if unsaved:
+                decision = rule.ASK                         # no undo can be prepared: ask instead
+            row = dict(agent=agent, type=act.type, stakes=act.stakes, reversible=act.reversible, decision=decision,
+                       session=session)
+            if decision in (rule.ALLOW, rule.NOTIFY):
+                st.add_pending(one_off, phase="alone" if decision == rule.ALLOW else "notify", rule_key="",
+                               snap_id=snap, **row)
+            else:
+                kind = ("ask" if nobody else "spot" if decision == rule.SPOT else "capped" if n is None
+                        else "trial" if s.trial_left or s.trial_wait else "ask")
+                key = f"{PREFIX}:{kind}:{act.type}:{one_off}"
+                st.add_pending(one_off, phase="nobody" if nobody else "asked", rule_key=key, **row)
+                directive = {"action": "approve", "rule_key": key,
+                             "message": _ask_message(act, s, n, cfg["spot"], decision=decision, suspended=suspended,
+                                                     unsaved=unsaved)}
+        for text in posts:
+            _announce(text)
+        return directive
+    except Exception as e:
+        log.exception("clearance: pre_tool_call failed")
+        if act is not None and act.stakes == classify.FREE:
+            return None
+        return {"action": "approve", "rule_key": f"{PREFIX}:ask:{act.type if act else 'unknown'}:{uuid.uuid4().hex}",
+                "message": f"clearance: internal error ({type(e).__name__}); asking you instead of letting the action "
+                           f"through."}
+
+
+def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs):
+    """The owner's answer to one of our asks: a refusal is a fault; an approval waits for the execution
+    (post_tool_call); anything else (a timeout, a cancellation, a model's answer) teaches nothing. Answers to other
+    prompts, even for the same call, are ignored."""
+    try:
+        raw = str(pattern_key or "")
+        mine = raw.startswith(f"plugin_rule:{PREFIX}:")
+        if raw and not mine:
+            return None
+        key, call = (raw[len("plugin_rule:"):] if mine else ""), str(tool_call_id or "")
+        if not key and not call:
             return None
         cfg = settings()
-        st = store_()
-        say = []
-        with st.transaction():
-            p = st.pop_pending(tool_call_id=str(tool_call_id or ""), rule_key=key if ours else "")
-            if p is None:
+        posts = []
+        with txn() as st:
+            p = _find_pending(st, call, key)
+            if p is None or p["phase"] != "asked":
                 return None
-            result = "neutral" if nobody_answers(session_key) else outcome(choice, kwargs.get("decided_by"))
-            stakes = p.get("stakes") or classify.MEDIUM
-            s = st.get_state(p["model"], p["type"], stakes)
-            risk = cfg["risks"].get(stakes)
-            need = NEVER if risk is None else params.clearance_number(risk, cfg["spot"])
-            if result == "approved":
-                events = rule.on_approval(s, need, manual=(str(choice).lower() == "always" and risk is not None),
-                                          spot=p["spot"])
-            elif result == "refused":
-                events = rule.on_refusal(s, need, spot=p["spot"])
+            verdict = outcome(choice, kwargs.get("decided_by"))
+            if verdict == "approved":
+                st.set_phase(p["tool_call_id"], "approved")
+                return None
+            st.pop_pending(p["tool_call_id"])
+            posts += _say(sync_settings(st, cfg), cfg["spot"])
+            if verdict == "refused":
+                result, source = "fault", ("spot" if p["decision"] == rule.SPOT else "refusal")
             else:
-                events = rule.on_neutral(s, str(choice))
-            st.put_state(p["model"], s)
-            st.log(dict(event=result, type=p["type"], stakes=stakes, spot=p["spot"], generation=p["generation"],
-                        model=p["model"], choice=str(choice), surface=str(surface)))
-            for ev in events:
-                st.log({**ev, "model": p["model"]})
-                say.append(_say(ev, cfg["spot"]))
-        for text in filter(None, say):
+                result, source = "neutral", "timeout"
+            posts += _say(record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
+                                         reversible=p["reversible"], result=result, source=source,
+                                         session=p["session"]), cfg["spot"])
+            _bump(st, p["agent"], result)
+        for text in posts:
             _announce(text)
     except Exception:
         log.exception("clearance: post_approval_response failed")
+    return None
+
+
+def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_call_id="", status=None,
+                   error_type=None, task_id="", **kwargs):
+    """After the call: the verified outcome of our pending decision (once per call id), and the suspension of a
+    session that brought in external content."""
+    try:
+        tool, args = str(tool_name or ""), (args if isinstance(args, dict) else {})
+        cwd = _session_cwd()
+        external = classify.reads_external(tool, args, cwd)
+        call = str(tool_call_id or "")
+        with ST.lock:
+            ours = bool(call) and store_().get_pending(call) is not None
+        if not external and not ours:
+            return None
+        cfg = settings()
+        posts = []
+        with txn() as st:
+            if external:
+                st.taint(anon(session_id or task_id))
+            p = st.pop_pending(call) if call else None
+            if p is not None:
+                posts += _say(sync_settings(st, cfg), cfg["spot"])
+                posts += _settle(st, cfg, p, tool, args, cwd, result, status, error_type)
+        for text in posts:
+            _announce(text)
+    except Exception:
+        log.exception("clearance: post_tool_call failed")
     return None
 
 
@@ -320,9 +638,10 @@ def _slash(raw_args="", **kwargs):
 
 def register(ctx):
     ST.ctx = ctx
+    ctx.register_hook("pre_api_request", pre_api_request)
     ctx.register_hook("pre_tool_call", pre_tool_call)
     ctx.register_hook("post_approval_response", post_approval_response)
-    ctx.register_hook("pre_api_request", pre_api_request)
+    ctx.register_hook("post_tool_call", post_tool_call)
     from . import cli
     ctx.register_cli_command(name="clearance", help="Earned autonomy per action type: status, setup, flag, revoke, "
                                                      "export and verify the evidence",
