@@ -3,3 +3,10 @@ Copyright 2026 Otsoa Dubief
 
 This product includes software developed by Otsoa Dubief
 (https://github.com/otsoa-dubief/clearance).
+
+The bundled benchmark snapshot (clearance/data/benchmarks.json) contains data from the Epoch AI Benchmarking Hub,
+"Capabilities & benchmarking", by Epoch AI, licensed under CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/), https://epoch.ai/benchmarks.
+Downloaded from https://epoch.ai/data/benchmark_data.zip, accessed 2026-11-08. The data was filtered to three
+benchmarks (Terminal-Bench, SWE-bench Verified, OSWorld), converted to percentages, and the best run per model kept.
+Scores taken by Epoch from other sources keep the licence of those sources.
