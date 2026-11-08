@@ -28,6 +28,7 @@
   var BASE = "/api/plugins/clearance";
   var POLL_MS = 2000;
   var WEEK = 7 * 86400;
+  var PASSPORT_MS = 30000;  // a passport replays the ledger: fetched on open, after an action, else every 30 s
 
   // ----------------------------------------------------------------------------------------- pinned rule values
   // Mirrors of clearance/params.py and rule.py, used only to say what evidence is still missing and to preview N.
@@ -167,7 +168,8 @@
   }
 
   /** Poll ``fn`` every POLL_MS while the page is visible; ``deps`` restart it. */
-  function usePoll(fn, deps, enabled) {
+  function usePoll(fn, deps, enabled, every) {
+    var period = every || POLL_MS;
     var state = useState({ data: null, error: null, at: 0 });
     var set = state[1];
     var alive = useRef(true);
@@ -178,13 +180,13 @@
       var timer = null;
       var my = ++tickRef.current;
       function run() {
-        if (document.hidden) { timer = setTimeout(run, POLL_MS); return; }
+        if (document.hidden) { timer = setTimeout(run, period); return; }
         Promise.resolve().then(fn).then(function (data) {
           if (alive.current && my === tickRef.current) set({ data: data, error: null, at: Date.now() });
         }, function (err) {
           if (alive.current && my === tickRef.current) set(function (s) { return { data: s.data, error: err, at: s.at }; });
         }).then(function () {
-          if (alive.current && my === tickRef.current) timer = setTimeout(run, POLL_MS);
+          if (alive.current && my === tickRef.current) timer = setTimeout(run, period);
         });
       }
       run();
@@ -405,7 +407,7 @@
       return h(Empty, { title: "No evidence yet" },
         "clearance starts counting at the first action an agent asks to run. Reads never ask. Every action type starts at ",
         h("b", null, "T1, asks first"), ", and climbs only on verified successes: ",
-        "the middle tier after about 12 (low stakes) or 18 (medium) without a fault, T3 after a full series from two sessions.");
+        "reversible types reach the middle tier after a run of verified successes without a fault, and T3 after a full series of N from two sessions.");
     }
     var current = props.settings;
     var byProfile = [];
@@ -507,15 +509,15 @@
 
     return h("div", { className: "clr-mapview" },
       table, cards,
-      h(Legend, null),
+      h(Legend, { spot: props.settings && props.settings.spot }),
       h(Transitions, { items: props.transitions }));
   }
 
-  function Legend() {
+  function Legend(props) {
     return h("div", { className: "clr-legend" },
       h("span", null, h(TierChip, { tier: "ask" }), " asks first"),
       h("span", null, h(TierChip, { tier: "notify" }), " acts, then notifies with an undo (reversible types)"),
-      h("span", null, h(TierChip, { tier: "alone" }), " acts alone, 1 in 10 spot-checked"),
+      h("span", null, h(TierChip, { tier: "alone" }), " acts alone, " + (props.spot ? oneIn(props.spot) : "a share") + " spot-checked"),
       h("span", null, h(TierChip, { capped: true }), " capped: always asks"),
       h("span", null, h("span", { className: "clr-mono" }, "37/52"), " verified successes in a row / required"),
       h("span", null, h(Flag, { kind: "prov" }, "prov"), " carried over from the previous model"));
@@ -631,7 +633,7 @@
       return STAKES.indexOf(p.stakes) - STAKES.indexOf(q.stakes) || (p.type < q.type ? -1 : 1);
     });
     function act(path, body, ok) {
-      return apiPost(path, body).then(function (res) { props.onDone(ok(res), "success"); },
+      return apiPost(path, body, { raw: props.raw }).then(function (res) { props.onDone(ok(res), "success"); },
         function (err) { props.onDone(errText(err), "error"); throw err; });
     }
     var tot = a.totals || {};
@@ -720,6 +722,11 @@
       p == null ? null : h("circle", { cx: p, cy: 7, r: 2.5, className: "clr-interval-point" }));
   }
 
+  function Stale(props) {
+    return props.res.error && props.res.data ? h("div", { className: "clr-msg clr-tone--warn" },
+      "Last refresh failed (" + errText(props.res.error) + "). Showing the data from " + hms(props.res.at) + ".") : null;
+  }
+
   function ModelsView(props) {
     var res = usePoll(function () { return apiGet("/models", { raw: props.raw }); }, [props.raw, props.version]);
     if (res.error && !res.data) return h("div", { className: "clr-error" }, errText(res.error));
@@ -732,7 +739,7 @@
       if (!g || g.type !== r.type) byType.push(g = { type: r.type, rows: [] });
       g.rows.push(r);
     });
-    return h("div", { className: "clr-models" },
+    return h("div", { className: "clr-models" }, h(Stale, { res: res }),
       h("p", { className: "clr-lede" },
         "Your own benchmark: each model's verified record on your work, per action type, with a 95% Wilson interval on its fault rate. ",
         "Ranked by the interval's upper bound, never by one score. Beside it, the public measure, as information: ",
@@ -783,7 +790,7 @@
 
   // ---------------------------------------------------------------------------------------------- switch preview
   var STATUS = {
-    carried: { label: "carried, provisional", tone: "prov", text: "Half the series carries over, marked provisional until the new model adds its own." },
+    carried: { label: "carried, provisional", tone: "prov", text: "Part of the series carries over, marked provisional until the new model adds its own." },
     reset: { label: "reset", tone: "muted", text: "Starts from zero: high stakes, capped, or strict mode." },
     vetoed: { label: "vetoed", tone: "fault", text: "The public benchmark shows the new model weaker on this type: nothing carries over." },
     kept: { label: "kept", tone: "ok", text: "The new agent already has its own record here; it is never overwritten." }
@@ -889,7 +896,7 @@
     var row = agents.filter(function (r) { return r.key === sel; })[0] || agents[0];
     var res = usePoll(function () {
       return row ? apiGet("/passport", { agent: row.agent.agent, of: row.profile, raw: props.raw }) : null;
-    }, [row && row.key, props.raw, props.version], !!row);
+    }, [row && row.key, props.raw, props.version], !!row, PASSPORT_MS);
     if (!agents.length) return h(Empty, { title: "No passport yet" }, "A passport covers an agent's record; it appears with the first verified action.");
     var d = res.data && res.data.passport;
     var v = res.data ? verdict(res.data.verify, d) : null;
@@ -909,7 +916,7 @@
             agents.map(function (r) { return h("option", { key: r.key, value: r.key }, r.agent.agent + " · " + r.profile); }))),
         h(Btn, { kind: "primary", onClick: download, disabled: !d }, "Download JSON"),
         h("span", { className: "clr-dim clr-small" }, "Signed and tamper-evident: any change to it, or to the ledger it cites, shows on verification.")),
-      res.error && !res.data ? h("div", { className: "clr-error" }, errText(res.error)) : null,
+      res.error && !res.data ? h("div", { className: "clr-error" }, errText(res.error)) : h(Stale, { res: res }),
       !d ? h("div", { className: "clr-dim clr-pad" }, "Loading…") : h("div", { className: "clr-passport-grid" },
         h("section", { className: cx("clr-verdict", "clr-verdict--" + v.tone) },
           h("div", { className: "clr-verdict-title" }, v.title),
@@ -968,7 +975,7 @@
                 kind: "ghost", disabled: !mine, confirm: "Undo #" + u.id + "?",
                 title: mine ? "Restore the files" : "Undo acts on this dashboard's profile only",
                 onConfirm: function () {
-                  return apiPost("/undo", { id: u.id }).then(function (r) {
+                  return apiPost("/undo", { id: u.id }, { raw: props.raw }).then(function (r) {
                     props.onDone(r.message, r.ok ? "success" : "error");
                   }, function (e) { props.onDone(errText(e), "error"); });
                 }
@@ -982,7 +989,7 @@
     var presetS = useState(null), preset = presetS[0], setPreset = presetS[1];
     var risksS = useState(null), risks = risksS[0], setRisks = risksS[1];
     var strictS = useState(null), strict = strictS[0], setStrict = strictS[1];
-    var roS = useState(false), readOnly = roS[0], setReadOnly = roS[1];
+    var readOnly = props.readOnly, setReadOnly = props.onReadOnly;
     var msgS = useState(null), msg = msgS[0], setMsg = msgS[1];
     if (!cur) return h(Empty, { title: "No settings logged yet" }, "The balanced preset applies until the first action is recorded.");
     var pr = preset || cur.preset;
@@ -1015,9 +1022,10 @@
       if (custom) body.risks = (function () { var r = {}; STAKES.forEach(function (s) { r[s] = rk[s] == null ? "cap" : "1/" + Math.round(1 / rk[s]); }); return r; })();
       else if (pr !== cur.preset) body.preset = pr;
       if (sx !== cur.strict) body.strict = sx;
-      apiPost("/settings", body).then(function () {
+      apiPost("/settings", body, { raw: props.raw }).then(function () {
         setMsg({ tone: "ok", text: "Saved. The new settings are logged in the ledger and apply from the next action." });
         setPreset(null); setRisks(null); setStrict(null);
+        props.onDone("Settings saved.", "success");
       }, function (e) {
         if (errStatus(e) === 501) setReadOnly(true);
         else setMsg({ tone: "fault", text: errText(e) });
@@ -1061,7 +1069,7 @@
           h("label", { className: "clr-switch-toggle" },
             h("input", { type: "checkbox", checked: sx, disabled: readOnly, onChange: function (e) { setStrict(e.target.checked); } }),
             h("span", { className: "clr-toggle-track", "aria-hidden": true }),
-            h("span", null, sx ? "On: a new model starts with an empty record (the study's rule)" : "Off: a new model inherits half of the previous record, provisionally")),
+            h("span", null, sx ? "On: a new model starts with an empty record (the study's rule)" : "Off: a new model inherits part of the previous record, provisionally")),
           h("div", { className: "clr-dial-n clr-dim clr-small" }, "spot checks " + oneIn(cur.spot))),
         readOnly ? h("div", { className: "clr-readonly" },
           h("div", null, h("b", null, "Read-only here."), " This dashboard process cannot write clearance's settings (Hermes gives plugins no other public writer). Run:"),
@@ -1104,13 +1112,17 @@
     var transS = useState([]), transitions = transS[0], setTransitions = transS[1];
     var prev = useRef(null);
     var toneS = useState("dark"), tone = toneS[0], setTone = toneS[1];
+    var roS = useState(false), settingsRO = roS[0], setSettingsRO = roS[1];   // 501 once: read-only for the visit
 
-    var agentsRes = usePoll(function () { return apiGet("/agents", { raw: raw }); }, [raw, version]);
-    var activityRes = usePoll(function () {
-      return apiGet("/activity", { since: Math.floor(Date.now() / 1000) - WEEK, raw: raw });
+    var tick = usePoll(function () {
+      return Promise.all([apiGet("/agents", { raw: raw }),
+        apiGet("/activity", { since: Math.floor(Date.now() / 1000) - WEEK, raw: raw })]).then(function (r) {
+        return { agents: r[0], activity: r[1] };
+      });
     }, [raw, version]);
+    var agentsRes = tick;
 
-    var data = agentsRes.data;
+    var data = tick.data ? tick.data.agents : null;
     var profiles = data ? data.profiles : [];
     var rows = useMemo(function () {
       var out = [];
@@ -1177,7 +1189,11 @@
       if (view !== "map" || drawer) return;
       if (k === "j" || k === "ArrowDown") { setFocus(Math.min(rows.length - 1, focus + 1)); e.preventDefault(); }
       else if (k === "k" || k === "ArrowUp") { setFocus(Math.max(0, focus - 1)); e.preventDefault(); }
-      else if (k === "Enter" && focusRow) { setDrawer(focusRow.key); }
+      else if (k === "Enter" && focusRow) {
+        var tag = ((e.target && e.target.tagName) || "").toLowerCase();
+        if (tag === "button" || tag === "a" || (e.target && e.target.getAttribute && e.target.getAttribute("role") === "tab")) return;
+        setDrawer(focusRow.key);
+      }
     }, [help, drawer, raw, view, focus, rows, focusRow]);
     useEffect(function () {
       window.addEventListener("keydown", onKey);
@@ -1186,8 +1202,8 @@
 
     function done(text, type) { setToast({ text: text, type: type, at: Date.now() }); setVersion(version + 1); }
 
-    var activity = activityRes.data;
-    var err = agentsRes.error || activityRes.error;
+    var activity = tick.data ? tick.data.activity : null;
+    var err = tick.error;
     var unreadable = profiles.filter(function (p) { return p.error; });
     var updated = agentsRes.at ? hms(agentsRes.at) : "—";
 
@@ -1200,8 +1216,9 @@
     } else if (view === "models") body = h(ModelsView, { raw: raw, version: version });
     else if (view === "switch") body = h(SwitchView, { rows: rows, raw: raw, version: version });
     else if (view === "passport") body = h(PassportView, { rows: rows, raw: raw, version: version });
-    else if (view === "undo") body = h(UndoView, { undoable: activity && activity.undoable, current: currentProfile, onDone: done });
-    else body = h(SettingsView, { settings: current && current.settings, profile: currentProfile });
+    else if (view === "undo") body = h(UndoView, { undoable: activity && activity.undoable, current: currentProfile, onDone: done, raw: raw });
+    else body = h(SettingsView, { settings: current && current.settings, profile: currentProfile, raw: raw, onDone: done,
+      readOnly: settingsRO, onReadOnly: setSettingsRO });
 
     return h("div", { className: "clr", "data-tone": tone },
       h("header", { className: "clr-head" },
