@@ -158,12 +158,12 @@ def test_medium_fault_opens_trial_and_lengthens(reversible, k, start):
     assert s.tier == rule.T1 and s.trial_left == 3 and s.lengthened and s.unresolved_fault
     assert ("trial", "none", "open", "fault") in moves(events)
     assert rule.required(s, MEDIUM) == math.ceil(1.25 * MEDIUM) == 132
-    succeed(s, 3, MEDIUM)                                       # the trial passes
-    assert s.trial_left == 0 and not s.unresolved_fault
+    succeed(s, 3, MEDIUM)                                       # the trial passes; the fault stays in memory
+    assert s.trial_left == 0 and s.unresolved_fault
     succeed(s, 131, MEDIUM)
     assert s.tier != rule.T3
     succeed(s, 1, MEDIUM)
-    assert s.tier == rule.T3 and not s.lengthened and rule.required(s, MEDIUM) == MEDIUM
+    assert s.tier == rule.T3 and not s.lengthened and rule.required(s, MEDIUM) == MEDIUM and s.unresolved_fault
 
 
 def test_series_frozen_during_trial_and_wait():
@@ -176,7 +176,7 @@ def test_series_frozen_during_trial_and_wait():
     assert s.trial_left == 1 and (s.series, s.sessions, s.wald, s.tier) == frozen and s.successes == 12
     events = succeed(s, 1, MEDIUM)
     assert moves(events) == [("trial", "open", "none", "passed")]
-    assert s.trial_left == 0 and not s.unresolved_fault and (s.series, s.sessions, s.wald) == frozen[:3]
+    assert s.trial_left == 0 and s.unresolved_fault and (s.series, s.sessions, s.wald) == frozen[:3]
     # A new fault opens a new trial; a fault during the trial fails it.
     fault(s, MEDIUM)
     assert s.trial_left == 3
@@ -284,21 +284,13 @@ def test_carry_over_never_for_high_vetoed_or_strict():
                                      (low, None, False, False)]:                         # last: capped now
         new = rule.carry_over(old, n_new=n_new, veto=veto, strict=strict)
         assert fresh(new, old) and new.trial_left == 0 and not new.unresolved_fault     # a clean record owes nothing
-    # Strict mode without an unresolved fault: no trial, even when a passed one is on the old record.
-    m = state("medium", reversible=True)
-    succeed(m, 10, MEDIUM)
-    fault(m, MEDIUM)
-    succeed(m, 3 + 40, MEDIUM)                                  # trial passed, climbing again
-    assert m.faults == 1 and not m.unresolved_fault and m.series == 40
-    for veto, strict in ((False, True), (True, False)):
-        new = rule.carry_over(m, n_new=MEDIUM, veto=veto, strict=strict)
-        assert fresh(new, m) and (new.trial_left, new.unresolved_fault) == (0, False)
     # Low faults never become trials.
     lo = state("low")
     succeed(lo, 5, LOW)
     fault(lo, LOW)
     assert rule.carry_over(lo, n_new=LOW, veto=False, strict=True).trial_left == 0
-    # A fault whose trial is not passed yet (open, or waiting after a failure) is never escaped by a model change.
+    # A medium or high fault in memory becomes a trial in every mode, whether its trial is open, failed and waiting,
+    # or already passed by the old agent (the fault stays in its memory).
     open_trial = state("medium", reversible=True)
     fault(open_trial, MEDIUM)
     waiting = state("medium")
@@ -306,12 +298,51 @@ def test_carry_over_never_for_high_vetoed_or_strict():
     fault(waiting, MEDIUM)
     high_fault = state("high")
     fault(high_fault, HIGH)
-    assert waiting.trial_wait == 50
-    for old, n_new in ((open_trial, MEDIUM), (waiting, MEDIUM), (high_fault, HIGH)):
+    passed = state("medium", reversible=True)
+    succeed(passed, 10, MEDIUM)
+    fault(passed, MEDIUM)
+    succeed(passed, 3 + 40, MEDIUM)                             # trial passed, climbing again
+    assert waiting.trial_wait == 50 and (passed.trial_left, passed.series, passed.unresolved_fault) == (0, 40, True)
+    for old, n_new in ((open_trial, MEDIUM), (waiting, MEDIUM), (high_fault, HIGH), (passed, MEDIUM)):
         for veto, strict in ((False, False), (True, False), (False, True)):
             new = rule.carry_over(old, n_new=n_new, veto=veto, strict=strict)
-            assert (new.trial_left, new.trial_wait, new.unresolved_fault) == (3, 0, True)
-            assert (new.series, new.provisional, new.tier) == (0, 0, rule.T1)
+            assert (new.trial_left, new.trial_wait, new.unresolved_fault, new.tier) == (3, 0, True, rule.T1)
+            carried = 20 if old is passed and not (veto or strict) else 0
+            assert (new.series, new.provisional) == (carried, carried)
+
+
+def test_a_grave_fault_stays_in_memory_until_a_new_agent_passes_its_trial():
+    # (a) A trial passed in the same configuration does not erase the fault: the next agent owes a trial.
+    s = state("medium", reversible=True)
+    succeed(s, 10, MEDIUM)
+    fault(s, MEDIUM)
+    succeed(s, 3 + 132, MEDIUM)                                 # trial passed, then the lengthened climb back to T3
+    assert (s.tier, s.trial_left, s.unresolved_fault) == (rule.T3, 0, True)
+    b = rule.carry_over(s, n_new=MEDIUM, veto=False, strict=False)
+    assert (b.trial_left, b.unresolved_fault, b.provisional) == (3, True, 52)
+    # (b) The new agent passes that trial: the fault is erased, and the next model change owes nothing.
+    assert ("trial", "open", "none", "passed") in moves(succeed(b, 3, MEDIUM))
+    assert not b.unresolved_fault
+    for veto, strict in ((False, False), (True, False), (False, True)):
+        assert rule.carry_over(b, n_new=MEDIUM, veto=veto, strict=strict).trial_left == 0
+    # The same after a strict reset.
+    c = rule.carry_over(s, n_new=MEDIUM, veto=False, strict=True)
+    assert (c.trial_left, c.unresolved_fault) == (3, True)
+    succeed(c, 3, MEDIUM)
+    assert not c.unresolved_fault and rule.carry_over(c, n_new=MEDIUM, veto=False, strict=True).trial_left == 0
+    # A new agent that faults during that trial keeps a fault in memory: its own, which its next trial cannot erase.
+    d = rule.carry_over(s, n_new=MEDIUM, veto=False, strict=False)
+    fault(d, MEDIUM)
+    for _ in range(50):
+        rule.count_action(d)
+    succeed(d, 3, MEDIUM)
+    assert (d.trial_left, d.unresolved_fault) == (0, True)
+    assert rule.carry_over(d, n_new=MEDIUM, veto=False, strict=False).trial_left == 3
+    # (c) A record that never had a medium or high fault owes nothing.
+    clean = climbed("medium", reversible=True, n=MEDIUM)
+    for veto, strict in ((False, False), (True, False), (False, True)):
+        new = rule.carry_over(clean, n_new=MEDIUM, veto=veto, strict=strict)
+        assert (new.trial_left, new.unresolved_fault) == (0, False)
 
 
 def test_carry_over_keeps_bad_evidence():
