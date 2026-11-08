@@ -12,6 +12,7 @@ acting). CLI: ``hermes clearance``. Slash command: ``/clearance``. Local only: n
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import random
@@ -116,39 +117,26 @@ def _session_cwd() -> str:
     return os.environ.get("TERMINAL_CWD") or os.getcwd()
 
 
+def ask_key(model: str, type_key: str, generation: int) -> str:
+    """Rule key of an ordinary ask: per type, model and generation, so that Hermes' own "session"/"always" grants
+    end with a revocation and never carry over to another model."""
+    tag = hashlib.sha256(model.encode("utf-8")).hexdigest()[:8]
+    return f"{PREFIX}:{type_key}:{tag}:g{generation}"
+
+
 def current_model(session_id: str = "") -> str:
     return ST.models.get(str(session_id or "")) or ST.last_model or "unknown-model"
 
 
 def nobody_answers(session_id: str = "") -> str | None:
-    """Why no person will answer an approval now, or None. Same sources as airlock: --yolo, /yolo, a `hermes -z`
-    turn, approvals.mode off, cron."""
+    """Why no person will answer an approval now, or None: --yolo, or a cron job (public signals only).
+
+    Hermes calls post_approval_response only for a person's decision (or a smart-mode verdict, which carries
+    decided_by): with --yolo, /yolo, approvals.mode off, a cron or single-query run, or a "session"/"always" grant,
+    it settles the ask itself without the hook, so nothing is counted there anyway. This check matters for cron,
+    where a spot check on a cleared type would otherwise fall to cron_mode and fail the job."""
     if _truthy(os.environ.get("HERMES_YOLO_MODE", "")):
         return "--yolo"
-    try:
-        from tools import approval
-    except Exception:
-        approval = None
-    if approval is not None:
-        probes = (
-            lambda: "--yolo" if _truthy(getattr(approval, "_YOLO_MODE_FROZEN", False)) else None,
-            lambda: "/yolo" if approval.is_current_session_yolo_enabled() else None,
-            lambda: "--yolo" if approval._yolo_active() else None,
-            lambda: "approvals.mode: off" if approval.approval_context._get_approval_mode() == "off" else None,
-        )
-        for probe in probes:
-            try:
-                why = probe()
-                if why:
-                    return why
-            except Exception:
-                pass
-        try:
-            from gateway.session_finite import unattended_turn
-            if unattended_turn():
-                return "hermes -z"
-        except Exception:
-            pass
     try:
         if ST.ctx is not None and ST.ctx.current_cron_execution() is not None:
             return "cron"
@@ -241,7 +229,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 # own policy for that context (cron_mode, yolo...). Nothing is learned without a person.
                 if cleared:
                     return None
-                return {"action": "approve", "rule_key": f"{PREFIX}:{act.type}:g{s.generation}",
+                return {"action": "approve", "rule_key": ask_key(model, act.type, s.generation),
                         "message": _message(act, s, need if need is None else rule.required(s, need), risk)}
             decision = rule.ASK if need is None else rule.decide(s, need, cfg["spot"], ST.rng)
             if decision == rule.ALLOW:
@@ -252,7 +240,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             elif need is None:
                 key = f"{PREFIX}:capped:{act.type}:{one_off}"      # "always" must not silence a capped type
             else:
-                key = f"{PREFIX}:{act.type}:g{s.generation}"
+                key = ask_key(model, act.type, s.generation)
             st.add_pending(tool_call_id or key, model, act.type, s.generation, spot=spot, rule_key=key,
                            stakes=act.stakes)
             st.expire_pending()

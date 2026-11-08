@@ -95,8 +95,9 @@ A shell chain takes its riskiest part: `pytest && git push` is `shell:git:push`.
 - **With airlock** (walls that follow untrusted content): any plugin's block wins, then any request to ask.
   clearance never blocks; it only asks or lets a cleared type through.
 - **Hermes' own "always" button** on a clearance prompt clears the type by hand, until its next refusal.
-- **Cron**: cleared types run unattended; anything else follows `approvals.cron_mode` (deny by default). Nothing
-  is learned when nobody can answer: cron, `--yolo`, `approvals.mode: off`.
+- **Cron**: cleared types run unattended, without spot checks; anything else follows `approvals.cron_mode` (deny
+  by default). Only a person's answers count: when Hermes settles an ask itself (cron, `--yolo`,
+  `approvals.mode: off`, a smart-mode verdict), nothing is learned.
 - **Evidence**: decisions are kept in `plugin-data/clearance/clearance.db` as a hash chain, with action types,
   stakes, outcomes and models, never commands, paths or message contents.
 

@@ -92,7 +92,8 @@ def test_asks_counts_and_clears(plugin):
     i = mod.params.clearance_number(0.25, 0.1)
     for n in range(i):
         d = ask(mod, "write_file", {"path": "src/a.py"}, f"c{n}")
-        assert d["action"] == "approve" and d["rule_key"] == "clearance:file:write:g0"
+        assert d["action"] == "approve" and d["rule_key"].startswith("clearance:file:write:")
+        assert d["rule_key"].endswith(":g0")
         assert f"{n}/{i}" in d["message"]
         answer(mod, d, f"c{n}", "once")
     assert ask(mod, "write_file", {"path": "src/b.py"}, "next") is None          # cleared: acts alone
@@ -115,7 +116,7 @@ def test_refusal_resets_and_a_refused_spot_check_revokes(plugin):
     assert "spot check" in d["message"]
     answer(mod, d, "spot", "deny")
     d = ask(mod, "terminal", {"command": "npm test"}, "after")
-    assert d["action"] == "approve" and d["rule_key"] == "clearance:shell:npm:g1"  # new generation
+    assert d["action"] == "approve" and d["rule_key"].endswith(":g1")             # new generation
     assert any("revoked" in p for p in ctx.posted)
 
 
@@ -159,9 +160,12 @@ def test_a_new_model_has_its_own_record(plugin):
         d = ask(mod, "write_file", {"path": "a.py"}, f"c{n}")
         answer(mod, d, f"c{n}", "once")
     assert ask(mod, "write_file", {"path": "a.py"}, "z") is None
+    key_a = ask(mod, "terminal", {"command": "npm test"}, "ka")["rule_key"]
     mod.pre_api_request(model="model-b", provider="nous", session_id="s1")
     assert ask(mod, "write_file", {"path": "a.py"}, "y")["action"] == "approve"
     assert any("model-b" in p for p in ctx.posted)
+    key_b = ask(mod, "terminal", {"command": "npm test"}, "kb")["rule_key"]
+    assert key_a != key_b        # Hermes' "always" for one model's type must not carry over to the next model
 
 
 def test_nobody_to_answer_cleared_types_run_and_others_fall_to_hermes(plugin, monkeypatch):
