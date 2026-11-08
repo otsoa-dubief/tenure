@@ -4,6 +4,7 @@
 # the owner logs in there himself. Usage: setup.sh [--dry-run]
 set -euo pipefail
 
+case "${1:-}" in ""|--dry-run) ;; *) echo "usage: setup.sh [--dry-run]" >&2; exit 2;; esac
 DRY=0; [ "${1:-}" = "--dry-run" ] && DRY=1
 ROOT=/tmp/acme
 HH=$ROOT/.hermes
@@ -30,8 +31,15 @@ if [ -e "$HH/config.yaml" ]; then echo "  config.yaml exists: left as is (settin
 else echo "  no config.yaml yet: the owner logs in with his own subscription (hermes setup / hermes login)"; fi
 
 say "plugin"
-if [ -e "$HH/plugins/clearance" ]; then echo "  replacing the previous copy of the plugin directory only"; run rm -rf "$HH/plugins/clearance"; fi
-run cp -R "$SRC" "$HH/plugins/clearance"
+# copy to a temp name inside plugins/, then swap it in; only a real directory under plugins/ is ever removed
+TMP="$HH/plugins/.clearance.new"
+run rm -rf "$TMP"
+run cp -R "$SRC" "$TMP"
+if [ -d "$HH/plugins/clearance" ] && [ ! -L "$HH/plugins/clearance" ]; then
+  echo "  replacing the previous copy of the plugin directory only"
+  run rm -rf "$HH/plugins/clearance"
+elif [ -L "$HH/plugins/clearance" ]; then echo "refusing: $HH/plugins/clearance is a symlink" >&2; exit 1; fi
+run mv "$TMP" "$HH/plugins/clearance"
 run env HERMES_HOME="$HH" "$HERMES" plugins enable clearance
 echo "  settings stay at their defaults (no config edit); change one with:"
 echo "    HERMES_HOME=$HH $HERMES config set plugins.clearance.<key> <value>"
@@ -49,7 +57,7 @@ def total(prices):
 
 
 def discount(price, percent):
-    return price * (100 - percent) / 100
+    return price - percent
 PY
     cat > "$SHOP/test_shop.py" <<'PY'
 from shop import total, discount
@@ -68,12 +76,10 @@ PY
     git -C "$SHOP" -c user.name=Acme -c user.email=dev@acme.test commit -q -m "Initial shop"
   fi
 fi
-if [ -d "$REMOTE" ]; then echo "  $REMOTE already exists: kept"; else
-  run git init -q --bare -b main "$REMOTE"
-  if [ "$DRY" = 1 ]; then echo "  would set origin and push"; else
-    git -C "$SHOP" remote add origin "$REMOTE" 2>/dev/null || true
-    git -C "$SHOP" push -q -u origin main
-  fi
+if [ -d "$REMOTE" ]; then echo "  $REMOTE already exists: kept"; else run git init -q --bare -b main "$REMOTE"; fi
+if [ "$DRY" = 1 ]; then echo "  would make sure origin is $REMOTE and push main"; else
+  git -C "$SHOP" remote get-url origin >/dev/null 2>&1 || git -C "$SHOP" remote add origin "$REMOTE"
+  git -C "$SHOP" push -q -u origin main
 fi
 
 say "next"

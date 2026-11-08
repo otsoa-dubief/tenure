@@ -3,14 +3,14 @@
 
 Owner answers come from a data file (scenario.json), never from code:
 each step is {"label", "wait" (regex on the screen), "keys" (list of strings), "delay" (s), "repeat" (n, default 1)}.
-A step with "repeat" n fires on n successive appearances of its pattern (the screen must change
-between two firings, so one panel is never answered twice). Writes <cast> and <cast>.marks.json (label -> seconds since start),
+A step with "repeat" n fires on n successive appearances of its pattern (the pattern must disappear
+from the screen between two firings, so a redraw never double-fires). Writes <cast> and <cast>.marks.json (label -> seconds since start),
 which storyboard.md uses to map each beat to a timestamp.
 
 Adapted from airlock's docs/images/src/session/record.py (same author, MIT/Apache).
 Needs pyte (pip install pyte).
 """
-import argparse, fcntl, json, os, pty, re, select, struct, sys, termios, time
+import argparse, codecs, fcntl, json, os, pty, re, select, signal, struct, sys, termios, time
 
 import pyte
 
@@ -38,67 +38,101 @@ def defaults(steps):
     return steps
 
 
+def stop_child(pid, grace=3.0):
+    """SIGTERM, then SIGKILL after `grace` seconds; WNOHANG polling only, never a blocking wait."""
+    def dead():
+        try:
+            return os.waitpid(pid, os.WNOHANG)[0] == pid
+        except ChildProcessError:
+            return True
+    if dead():
+        return
+    for sig, wait in ((signal.SIGTERM, grace), (signal.SIGKILL, 5.0)):
+        try:
+            os.kill(pid, sig)
+        except ProcessLookupError:
+            return
+        end = time.time() + wait
+        while time.time() < end:
+            if dead():
+                return
+            time.sleep(0.05)
+
+
 def record(cmd, cast, steps, cols=110, rows=34, idle=240.0, maxt=600.0, env=None, key_pause=0.15):
     steps = defaults(steps)
+    for st in steps:  # fail before any child exists
+        try:
+            st["_re"] = re.compile(st["wait"])
+        except re.error as e:
+            raise ValueError(f"bad regex in step {st['label']!r}: {st['wait']!r}: {e}") from None
+    os.umask(0o077)  # the cast records everything Hermes draws: owner only
     pid, fd = pty.fork()
     if pid == 0:
-        os.environ.update({"COLUMNS": str(cols), "LINES": str(rows), "TERM": "xterm-256color", **(env or {})})
-        os.execvp("/bin/sh", ["sh", "-c", cmd])
+        try:
+            fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+            os.environ.update({"COLUMNS": str(cols), "LINES": str(rows), "TERM": "xterm-256color", **(env or {})})
+            os.execvp("/bin/sh", ["sh", "-c", cmd])
+        finally:
+            os._exit(127)
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
     t0 = time.time()
     screen = pyte.Screen(cols, rows)
     stream = pyte.Stream(screen)
+    decoder = codecs.getincrementaldecoder("utf-8")("replace")
     marks, step, left = {}, 0, (steps[0]["repeat"] if steps else 0)
-    seen, last, answered = None, time.time(), None  # answered: screen text of the panel just answered
-    with open(cast, "w") as out:
-        out.write(json.dumps({"version": 2, "width": cols, "height": rows, "timestamp": int(t0)}) + "\n")
-        while True:
-            r, _, _ = select.select([fd], [], [], 0.2)
-            if r:
-                try:
-                    data = os.read(fd, 65536)
-                except OSError:
-                    break
-                if not data:
-                    break
-                s = data.decode("utf-8", "replace")
-                out.write(json.dumps([round(time.time() - t0, 3), "o", s]) + "\n")
-                stream.feed(s)
-                last = time.time()
-            if step < len(steps):
-                st = steps[step]
-                text = "\n".join(screen.display)
-                shown = bool(re.search(st["wait"], text))
-                if answered is not None:
-                    # a repeat counts only once the panel left or its text changed (a new panel, even a similar one)
-                    if shown and text == answered:
-                        shown = False
-                    else:
-                        answered = None
-                if seen is None and shown:
-                    seen = time.time()
-                    marks.setdefault(st["label"], round(seen - t0, 3))
-                if seen is not None and time.time() - seen > st["delay"]:
-                    for k in st["keys"]:
-                        os.write(fd, expand(k).encode())
-                        time.sleep(key_pause)
-                    seen, left = None, left - 1
-                    if left > 0:
-                        answered = text
-                    else:
-                        step += 1
-                        left = steps[step]["repeat"] if step < len(steps) else 0
-            if time.time() - last > idle or time.time() - t0 > maxt:
-                break
+    seen, last = None, time.time()
+    answered = None  # set after a repeat step fired: True until its pattern has left the screen
     try:
-        os.close(fd)
-    except OSError:
-        pass
-    try:
-        os.waitpid(pid, 0)
-    except ChildProcessError:
-        pass
-    json.dump({"marks": marks, "steps_done": step, "steps_total": len(steps)}, open(cast + ".marks.json", "w"), indent=1)
+        with open(cast, "w") as out:
+            out.write(json.dumps({"version": 2, "width": cols, "height": rows, "timestamp": int(t0)}) + "\n")
+            while True:
+                r, _, _ = select.select([fd], [], [], 0.2)
+                if r:
+                    try:
+                        data = os.read(fd, 65536)
+                    except OSError:
+                        break
+                    if not data:
+                        break
+                    s = decoder.decode(data)
+                    if s:
+                        out.write(json.dumps([round(time.time() - t0, 3), "o", s]) + "\n")
+                        stream.feed(s)
+                    last = time.time()
+                if step < len(steps):
+                    st = steps[step]
+                    shown = bool(st["_re"].search("\n".join(screen.display)))
+                    if answered:
+                        # a repeat fires again only after the pattern disappeared once since the last firing
+                        if shown:
+                            shown = False
+                        else:
+                            answered = False
+                    if seen is None and shown:
+                        seen = time.time()
+                        marks.setdefault(st["label"], round(seen - t0, 3))
+                    if seen is not None and time.time() - seen > st["delay"]:
+                        for k in st["keys"]:
+                            os.write(fd, expand(k).encode())
+                            time.sleep(key_pause)
+                        seen, left = None, left - 1
+                        if left > 0:
+                            answered = True
+                        else:
+                            step += 1
+                            left = steps[step]["repeat"] if step < len(steps) else 0
+                if time.time() - last > idle or time.time() - t0 > maxt:
+                    break
+    finally:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        stop_child(pid)
+        os.umask(0o022)
+    with open(cast + ".marks.json", "w") as f:
+        json.dump({"marks": marks, "steps_done": step, "steps_total": len(steps)}, f, indent=1)
     return marks, step
 
 
@@ -113,7 +147,10 @@ def main():
     ap.add_argument("--idle", type=float, default=240.0, help="stop after this many silent seconds")
     ap.add_argument("--maxt", type=float, default=900.0, help="hard time limit in seconds")
     a = ap.parse_args()
-    marks, done = record(a.cmd, a.cast, load_scenario(a.scenario), a.cols, a.rows, a.idle, a.maxt)
+    try:
+        marks, done = record(a.cmd, a.cast, load_scenario(a.scenario), a.cols, a.rows, a.idle, a.maxt)
+    except ValueError as e:
+        sys.exit(f"record.py: {e}")
     for k, v in marks.items():
         print(f"{v:8.1f}s  {k}")
     print(f"{done} steps done", file=sys.stderr)

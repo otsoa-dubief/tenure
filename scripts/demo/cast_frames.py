@@ -2,6 +2,7 @@
 Waits longer than `cap` seconds are shortened, except before a screen that shows a pattern in `holds`."""
 import html
 import json
+import os
 import re
 import sys
 
@@ -70,5 +71,6 @@ def frames(cast, cap=1.2, step=0.1, holds=(), start=None):
 
 if __name__ == "__main__":
     head, fr = frames(sys.argv[1], holds=[(r"4\. Deny", 4.0)], start=r"\$ curl")
+    os.umask(0o077)  # frames contain everything on screen
     json.dump({"width": head["width"], "height": head["height"], "frames": fr}, open(sys.argv[2], "w"))
     print(len(fr), "frames,", round(sum(d for _, d in fr), 1), "s")

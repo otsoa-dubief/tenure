@@ -14,6 +14,10 @@ and announced as such on screen. Every number on screen comes from the recorded 
    with `HERMES_GATEWAY_LOCK_DIR=<tmp dir>`.
 5. Frames for the edit: `cast_frames.py <cast> <out.json>` (adapt `holds` and `start` first).
 
+Notes:
+- Review every cast and frames file before publishing: they record everything Hermes drew on screen. Both are written owner-only (umask 077).
+- The demo project holds a real bug planted for the agent to fix (`discount` in `shop.py`, caught by `test_shop.py`); no fake data or numbers are shown.
+
 ## Beats
 
 | Target | Beat | Cast mark (scenario label) | Dashboard shot |
