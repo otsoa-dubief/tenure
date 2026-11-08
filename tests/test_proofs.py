@@ -1,3 +1,8 @@
+import os
+import threading
+
+import pytest
+
 from clearance import proofs
 
 
@@ -49,3 +54,22 @@ def test_big_or_unknown_files_are_not_judged(tmp_path):
     other = tmp_path / "a.txt"
     other.write_text("def x(:")
     assert proofs.check_files([str(big), str(other), str(tmp_path / "missing.py")]) is None
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="FIFOs are POSIX only")
+def test_a_fifo_is_never_opened(tmp_path):
+    """A written path that is a FIFO (or a device) is skipped: opening it would block the hook until a writer came."""
+    fifo = tmp_path / "pipe.py"
+    os.mkfifo(fifo)
+    got = []
+    worker = threading.Thread(target=lambda: got.append(proofs.check_files([str(fifo)])), daemon=True)
+    worker.start()
+    worker.join(5)
+    hung = worker.is_alive()
+    if hung:                                   # release the blocked reader so the test process can exit
+        try:
+            os.close(os.open(fifo, os.O_WRONLY | os.O_NONBLOCK))
+        except OSError:
+            pass
+        worker.join(5)
+    assert not hung and got == [None]
