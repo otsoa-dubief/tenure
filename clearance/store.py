@@ -22,7 +22,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS types (model TEXT NOT NULL, key TEXT NOT NULL, state TEXT NOT NULL,
                                   PRIMARY KEY (model, key));
 CREATE TABLE IF NOT EXISTS pending (tool_call_id TEXT PRIMARY KEY, model TEXT, type TEXT, generation INTEGER,
-                                    spot INTEGER, rule_key TEXT, at REAL);
+                                    spot INTEGER, rule_key TEXT, at REAL, stakes TEXT);
 CREATE INDEX IF NOT EXISTS pending_rule ON pending (rule_key);
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS ledger (seq INTEGER PRIMARY KEY AUTOINCREMENT, at REAL, event TEXT, prev TEXT, hash TEXT);
@@ -83,10 +83,10 @@ class Store:
 
     # ------------------------------------------------------------------------------------------------ pending
     def add_pending(self, tool_call_id: str, model: str, type_key: str, generation: int, *, spot: bool,
-                    rule_key: str, at: float | None = None) -> None:
-        self.db.execute("INSERT OR REPLACE INTO pending VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    rule_key: str, at: float | None = None, stakes: str = "") -> None:
+        self.db.execute("INSERT OR REPLACE INTO pending VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                         (tool_call_id, model, type_key, generation, int(spot), rule_key,
-                         time.time() if at is None else at))
+                         time.time() if at is None else at, stakes))
 
     def pop_pending(self, *, tool_call_id: str = "", rule_key: str = "") -> dict | None:
         row = None
@@ -99,7 +99,7 @@ class Store:
             return None
         self.db.execute("DELETE FROM pending WHERE tool_call_id = ?", (row[0],))
         return dict(tool_call_id=row[0], model=row[1], type=row[2], generation=row[3], spot=bool(row[4]),
-                    rule_key=row[5], at=row[6])
+                    rule_key=row[5], at=row[6], stakes=row[7] or "")
 
     def expire_pending(self, older_than: float = 24 * 3600) -> None:
         self.db.execute("DELETE FROM pending WHERE at < ?", (time.time() - older_than,))
