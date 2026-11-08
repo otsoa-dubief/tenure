@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
-      - run: pip install pytest
+      - run: pip install pytest cryptography     # Hermes ships it: passports are signed
       - run: python -m pytest -q tests
 
   windows:
@@ -36,7 +36,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install pytest
+      - run: pip install pytest                  # without cryptography: unsigned passports
       - run: python -m pytest -q -rs tests
 
   hermes:

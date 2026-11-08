@@ -42,11 +42,11 @@ import uuid
 from collections import OrderedDict
 from contextlib import contextmanager
 
-from . import benchmarks, classify, params, personal, proofs, rule, store, undo
+from . import benchmarks, classify, params, passport, personal, proofs, rule, store, undo
 
 log = logging.getLogger("clearance")
 PREFIX = "clearance"
-RULE = "study-rule-B/1"          # the rule named in settings events; the passport computes its fingerprint
+RULE = rule.VERSION              # the rule named in settings events; the passport computes its fingerprint
 PURGE_EVERY = 3600               # seconds between two clean-ups of undo snapshots past their window, per process
 MAX_SESSIONS = 4096              # sessions whose agent, or suspension, this process remembers
 LOCK_TIMEOUT = 10.0              # seconds a hook waits for another thread's transaction before giving up

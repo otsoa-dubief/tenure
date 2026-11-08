@@ -833,39 +833,10 @@ def test_parallel_tool_calls_share_one_connection_safely(plugin, caplog):
     assert state(mod, "shell:npm").successes == 60
 
 
-def replay(rows, rule, params, store):
-    """The ledger contract of ``store``, read back: settings, outcomes, agent changes and revocations only."""
-    cfg, states = None, {}
-    for row in rows:
-        e = row["event"]
-        if e["event"] == "settings":
-            cfg = e
-            for s in states.values():
-                rule.reevaluate(s, params.required_n(cfg["risks"], s.stakes))
-        elif e["event"] == "outcome":
-            s = states.get((e["agent"], e["type"])) or rule.TypeState(key=e["type"], stakes=e["stakes"])
-            if s.stakes != e["stakes"]:
-                rule.rebase(s)                       # evidence counts only at the stakes it was earned at
-            s.stakes, s.reversible = e["stakes"], e["reversible"]
-            n = params.required_n(cfg["risks"], e["stakes"])
-            if e["result"] == "neutral":
-                events = rule.on_neutral(s, e["source"])
-            else:
-                fn = rule.on_success if e["result"] == "success" else rule.on_fault
-                events = fn(s, n, session=e["session"], source=e["source"])
-            failed = any(v["event"] == "trial" and v["reason"] == "failed" for v in events)
-            if (e["result"], e["source"]) in store.COUNTED and not failed:
-                rule.count_action(s)
-            states[(e["agent"], e["type"])] = s
-        elif e["event"] == "agent":
-            have = {k for (a, k) in states if a == e["new"]}
-            for (a, k), s in list(states.items()):
-                if a == e["old"] and k not in have:
-                    states[(e["new"], k)] = rule.carry_over(s, n_new=params.required_n(cfg["risks"], s.stakes),
-                                                            veto=k in e["vetoed"], strict=e["mode"] == "strict")
-        elif e["event"] == "revoke":
-            rule.revoke(states[(e["agent"], e["type"])])
-    return states
+def replay(mod):
+    """The states the ledger's input events lead to, by (agent, type): ``passport.replay``, the one reading of the
+    ledger contract of ``store``."""
+    return {(a, k): s for a, types in mod.passport.replay(mod.store_().ledger()).items() for k, s in types.items()}
 
 
 def test_ledger_inputs_replay_to_the_live_states(plugin, monkeypatch, tmp_path):
@@ -901,7 +872,7 @@ def test_ledger_inputs_replay_to_the_live_states(plugin, monkeypatch, tmp_path):
     ctx.call("write_file", write("c"), answer="deny")
     mod.cli.flag("memory:write", agent=A)
     live = {(a, s.key): s.to_dict() for a, s in mod.store_().states()}
-    replayed = {k: s.to_dict() for k, s in replay(mod.store_().ledger(), mod.rule, mod.params, mod.store).items()}
+    replayed = {k: s.to_dict() for k, s in replay(mod).items()}
     for d in list(live.values()) + list(replayed.values()):
         d.pop("changed_at")
     assert set(live) == set(replayed) and len(live) >= 8
@@ -1249,7 +1220,7 @@ def test_replay_after_a_stakes_change_matches_the_live_states(plugin):
     climb(ctx, 2, name="l")                                              # back to low, re-based again
     assert len([e for e in ledger(mod, "tier") if e["reason"] == "stakes"]) == 2
     live = {(a, s.key): s.to_dict() for a, s in mod.store_().states()}
-    replayed = {k: s.to_dict() for k, s in replay(mod.store_().ledger(), mod.rule, mod.params, mod.store).items()}
+    replayed = {k: s.to_dict() for k, s in replay(mod).items()}
     for d in list(live.values()) + list(replayed.values()):
         d.pop("changed_at")
     assert replayed == live

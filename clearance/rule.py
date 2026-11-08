@@ -57,6 +57,7 @@ from dataclasses import asdict, dataclass, field
 
 from . import params
 
+VERSION = "study-rule-B/1"    # the rule named in settings events and in the passport's rule fingerprint
 T1, T2, T3 = "ask", "notify", "alone"                            # tiers
 ASK, NOTIFY, ALLOW, SPOT = "ask", "notify", "allow", "spot"      # decisions
 

@@ -1,0 +1,156 @@
+# Earned Autonomy Protocol v0.1
+
+Protocol identifier: `earned-autonomy/0.1`. Reference implementation: `clearance/passport.py` (replay, passport,
+verification) and `clearance/store.py` (ledger).
+
+An agent earns autonomy per action type from verified outcomes. Everything it earned is derived from a hash-chained
+ledger of input events. An **autonomy passport** summarises one agent's record. It is signed and tamper-evident:
+anyone holding the passport and the ledger can replay the ledger with the rule and recompute the same tiers.
+
+## 1. The ledger
+
+The ledger is a list of rows, in order:
+
+```json
+{"seq": 1, "at": 1794100000.123, "event": {...}, "prev": "<64 hex>", "hash": "<64 hex>"}
+```
+
+- `seq` starts at 1 and increases by 1.
+- `prev` is the previous row's `hash`; the first row's `prev` is 64 zeros.
+- `hash = sha256("<prev>|<seq>|<repr(at)>|<canonical JSON of event>")`, where `repr(at)` is Python's shortest
+  round-trip representation of the float, and the canonical JSON has sorted keys, the separators `,` and `:`, and
+  UTF-8 text without escaping.
+
+Rows never hold a command, a path, an argument, file content or a secret. A session is `sha256(session_id)[:12]`.
+An agent is `"<model>@<provider>"` (provider `unknown` when empty).
+
+### 1.1 Input events
+
+Only these four kinds are read by a replay. They are applied in ledger order.
+
+| Event | Fields | Replay |
+|---|---|---|
+| `settings` | `risks` (`{low, medium, high}`: an accepted risk, or `null` for a capped level), `spot` (spot-check rate), `strict` (bool), `rule` (`"study-rule-B/1"`) | Every type of every agent known so far is re-evaluated: its series is capped at the new length and a T3 type that no longer meets it drops. Looser settings never promote a type by themselves. Logged before the first outcome, then on every change. |
+| `outcome` | `agent`, `type`, `stakes` (`low`, `medium`, `high`), `reversible` (bool), `result` (`success`, `fault`, `neutral`), `source`, `session` | The agent's type (new: tier T1, empty record). If its stakes differ from the event's, its evidence is re-based first (series, sessions and carried part restart; the Wald score keeps a fault's penalty; tier T1). It takes the event's stakes and reversibility, then the success, fault or neutral update of the rule. Then, if `(result, source)` is an executed action (below), the wait after a failed trial counts it, unless that fault is the one that failed the trial. |
+| `agent` | `old`, `new`, `mode` (`carry` or `strict`), `vetoed` (list of types) | Every type of `old` that `new` has no record for gets the carried-over state: half of the series, provisional, with half of a negative score; a fresh start at high stakes, for a capped level, for a vetoed type or in strict mode. A medium or high fault in `old`'s memory becomes a trial for `new` in every mode. |
+| `revoke` | `agent`, `type` | The owner takes the type back: T1, no series, no score credit, no carried part. Not a fault. |
+
+Sources per result:
+
+- success: `approval`, `spot`, `notify`;
+- fault: `refusal`, `spot`, `check`, `undo`, `flag`;
+- neutral: `error`, `alone`, `blocked`, `timeout`, `nobody`, `expired`, `ambiguous`.
+
+Executed actions, counted by the wait after a failed trial: `success/approval`, `success/spot`, `success/notify`,
+`fault/check`, `neutral/error`, `neutral/alone`.
+
+A replay refuses a ledger with an unknown event kind, an outcome, agent or revoke event before the first settings
+event, or settings of another rule.
+
+### 1.2 Derived events
+
+`tier`, `trial`, `confirmed`, `revoked` and `neutral_expired` follow the input event that caused them, for display.
+A replay ignores them: the input events alone determine the states.
+
+## 2. The rule fingerprint
+
+`rule.fingerprint` is the sha256 of the canonical JSON of:
+
+```json
+{"version": "study-rule-B/1", "DETECTION": "19/20", "WALD": {"low": [pb, pm], "medium": [pb, pm]},
+ "ALPHA": a, "BETA": b, "lengthen": l, "trial": t, "wait": w, "sessions": s, "carry": c, "veto": v}
+```
+
+with the values of `clearance/params.py`, `clearance/rule.py` and `clearance/benchmarks.py`
+(`passport.rule_spec()` prints them). Two implementations with the same fingerprint apply the same numbers. A
+different fingerprint means the replay of this implementation may not apply to that passport.
+
+## 3. The passport
+
+```json
+{
+  "protocol": "earned-autonomy/0.1",
+  "generated_at": "2026-11-08T12:00:00Z",
+  "agent": {"model": "...", "provider": "...", "profile": "<sha256(profile name)[:12]>"},
+  "rule": {"name": "study-rule-B", "fingerprint": "<64 hex>"},
+  "settings_fingerprint": "<64 hex>",
+  "redacted": true,
+  "types": [
+    {"type": "file:write", "stakes": "low", "tier": "alone", "series": 52, "required": 52, "sessions": 3,
+     "provisional": 0, "guarantee": {"aoql": 0.0, "worst_case": 0.0, "conditional": false}}
+  ],
+  "ledger": {"count": 1234, "head": "<64 hex>"},
+  "public_key": "<64 hex: raw Ed25519 public key>",
+  "signature": "<128 hex: Ed25519 signature>"
+}
+```
+
+- `settings_fingerprint`: sha256 of the canonical JSON of the last `settings` event in the ledger's first `count`
+  rows, restricted to `event`, `risks`, `spot`, `strict` and `rule`. Tiers are computed under these settings.
+- `types`, sorted by `type`, one entry per type the agent has a record for:
+  - `tier`: `ask` (T1), `notify` (T2), `alone` (T3);
+  - `series`: verified successes in a row; `required`: the series length for T3 (`null` when the level is capped);
+  - `sessions`: distinct sessions in the series; `provisional`: carried-over successes not yet confirmed;
+  - `guarantee`: computed from the series length and the spot-check rate by `params`, or `{"capped": true}`. The
+    example's numbers are placeholders.
+- `ledger`: the number of rows and the hash of the last one when the passport was made.
+- `signature`: Ed25519 over the canonical JSON of the passport without the `signature` field. The key is created at
+  first use in the plugin's data directory with mode 0600. Without the `cryptography` library, `public_key` and
+  `signature` are `null` and the passport says so when verified (`unsigned`).
+
+### 3.1 Redaction
+
+Type names can carry names taken from arguments: a script, a make target, an npm script, a Python module. By default
+every type segment after the program and its subcommand is replaced by the first 8 hex digits of its sha256:
+
+| Type | Redacted |
+|---|---|
+| `shell:npm:run:build` | `shell:npm:run:<sha8("build")>` |
+| `shell:python3:deploy.py` | `shell:python3:<sha8("deploy.py")>` |
+| `shell:python3:-m:pytest` | `shell:python3:-m:<sha8("pytest")>` |
+| `shell:make:release` | `shell:make:<sha8("release")>` |
+| `shell:git:commit`, `file:write`, `mcp:server:tool` | unchanged |
+
+The third segment of a `shell:` type is hashed after a script runner (shells, interpreters, `npx`, `make` and its
+kin) unless it is a fixed word of the classifier (`inline`, `default`); any segment beyond the third is hashed. Other
+namespaces are unchanged. `"redacted": true` tells the verifier to apply the same function to the replayed states
+before comparing. The hash is not salted: it keeps a name out of a casual reading, it does not stop someone who
+guesses the name. The ledger itself holds the plain type names.
+
+## 4. Verification
+
+`verify(passport, rows)` returns a list of problems; an empty list means everything checks. An unsigned passport that
+is otherwise right returns `["unsigned"]`. Steps, in order:
+
+1. **Signature.** Rebuild the canonical JSON without `signature` and check it against `public_key`.
+2. **Rule.** The passport's rule fingerprint must equal the verifier's.
+3. **Chain.** Every row of the ledger: `seq` in order, `prev` equal to the previous `hash`, `hash` recomputed.
+4. **Place in the chain.** The ledger has at least `count` rows, and row `count` has the passport's `head`. A longer
+   ledger is fine: the passport describes the ledger as it was then.
+5. **Replay.** Replay the first `count` rows (section 1.1), check `settings_fingerprint`, then recompute each type of
+   the passport's agent (redacted if the passport is) and compare every field. Each difference is reported:
+   `type file:write: tier 'alone' in the passport, 'notify' by replay`.
+
+Without the ledger, only steps 1 and 2 run.
+
+To anchor a ledger in time, publish the line `clearance ledger head <hash> at <ISO date> (<n> events)` anywhere (a
+post, a gist). The plugin makes no network call.
+
+## 5. What it proves, and what it does not
+
+It proves:
+
+- the passport was not changed after it was signed by the holder of `public_key`;
+- the ledger rows were not changed, reordered, inserted or removed before row `count`, once its head is known;
+- the tiers in the passport follow from the ledger's input events by this rule, under the settings recorded in the
+  ledger at the time, not today's.
+
+It does not prove:
+
+- that the events happened. The owner holds the signing key and could write a whole new ledger and sign it. A third
+  party detects a change to a passport or a ledger already published or anchored, not a complete rewrite by its
+  author before publication;
+- that a success was a good action. An outcome records what a person approved or refused and what the automatic
+  checks found; an error nobody notices cannot be counted;
+- who holds the key. The public key identifies a key, not a person or an organisation;
+- anything about another profile, agent or rule version.
