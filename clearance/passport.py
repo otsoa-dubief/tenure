@@ -33,7 +33,8 @@ from . import benchmarks, classify, params, personal, rule, store
 PROTOCOL = "earned-autonomy/0.1"
 RULE_NAME = "study-rule-B"
 KEY_FILE = "passport-ed25519.pem"
-TYPE_FIELDS = ("type", "stakes", "tier", "series", "required", "sessions", "provisional", "guarantee")
+TYPE_FIELDS = ("type", "stakes", "tier", "effective_tier", "series", "required", "sessions", "provisional",
+               "guarantee")
 ROOT_KEYS = ("protocol", "generated_at", "agent", "rule", "settings_fingerprint", "redacted", "types", "ledger",
              "public_key", "signature")
 PART_KEYS = {"agent": ("model", "provider", "profile"), "rule": ("name", "fingerprint"), "ledger": ("count", "head")}
@@ -45,7 +46,7 @@ RUNNER_WORDS = frozenset({"inline", "default", "-m"})   # fixed words classify p
 SUBCOMMANDS = frozenset(
     classify.GIT_READ | classify.KUBE_WRITE | {sub for _, sub in classify.PUBLISH} | {
         # fixed words of classify
-        "run", "send", "api", "unknown", "default", "inline",
+        "run", "send", "api", "unknown", "default", "inline", "clearance", "version",
         # git
         "add", "commit", "pull", "merge", "rebase", "checkout", "switch", "branch", "tag", "remote", "reset",
         "restore", "stash", "clone", "init", "cherry-pick", "revert", "clean", "rm", "mv", "config", "worktree",
@@ -216,7 +217,8 @@ def _entries(states: dict[str, rule.TypeState], cfg: dict | None, redact: bool) 
         name = redact_type(key) if redact else key
         if name in out:
             raise ValueError(f"two types redact to {name}")
-        out[name] = {"type": name, "stakes": s.stakes, "tier": s.tier, "series": s.series,
+        out[name] = {"type": name, "stakes": s.stakes, "tier": s.tier,
+                     "effective_tier": rule.effective_tier(s, n, s.stakes), "series": s.series,
                      "required": None if n is None else rule.required(s, n), "sessions": len(s.sessions),
                      "provisional": s.provisional, "guarantee": rule.guarantee(s, n, spot)}
     return [out[k] for k in sorted(out)]

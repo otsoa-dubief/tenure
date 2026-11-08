@@ -21,7 +21,9 @@ The ledger is a list of rows, in order:
   round-trip representation of the float, and the canonical JSON has sorted keys, the separators `,` and `:`, and
   UTF-8 text without escaping.
 
-Rows never hold a command, a path, an argument, file content or a secret. A session is `sha256(session_id)[:12]`.
+Rows never hold a whole command, a path, file content or a secret. Type names can include a script, target or alias
+name taken from the command (`shell:npm:run:build`): the ledger keeps them, and the passport and the dashboard
+redact them by default (§3.1). A session is `sha256(session_id)[:12]`.
 An agent is `"<model>@<provider>"` (provider `unknown` when empty).
 
 ### 1.1 Input events
@@ -39,7 +41,8 @@ Sources per result:
 
 - success: `approval`, `spot`, `notify`;
 - fault: `refusal`, `spot`, `check`, `undo`, `flag`;
-- neutral: `error`, `alone`, `blocked`, `timeout`, `nobody`, `expired`, `ambiguous`.
+- neutral: `error`, `alone`, `blocked`, `timeout`, `nobody`, `expired`, `ambiguous`, `background` (a terminal call
+  Hermes ran in the background: the result is the launch, not the command's outcome).
 
 Executed actions, counted by the wait after a failed trial: `success/approval`, `success/spot`, `success/notify`,
 `fault/check`, `neutral/error`, `neutral/alone`.
@@ -76,8 +79,9 @@ different fingerprint means the replay of this implementation may not apply to t
   "settings_fingerprint": "<64 hex>",
   "redacted": true,
   "types": [
-    {"type": "file:write", "stakes": "low", "tier": "alone", "series": 52, "required": 52, "sessions": 3,
-     "provisional": 0, "guarantee": {"aoql": 0.0, "worst_case": 0.0, "conditional": false}}
+    {"type": "file:write", "stakes": "low", "tier": "alone", "effective_tier": "alone", "series": 52,
+     "required": 52, "sessions": 3, "provisional": 0, "guarantee": {"aoql": 0.0, "worst_case": 0.0,
+     "conditional": false}}
   ],
   "ledger": {"count": 1234, "head": "<64 hex>"},
   "public_key": "<64 hex: raw Ed25519 public key>",
@@ -88,7 +92,11 @@ different fingerprint means the replay of this implementation may not apply to t
 - `settings_fingerprint`: sha256 of the canonical JSON of the last `settings` event in the ledger's first `count`
   rows, restricted to `event`, `risks`, `spot`, `strict` and `rule`. Tiers are computed under these settings.
 - `types`, sorted by `type`, one entry per type the agent has a record for:
-  - `tier`: `ask` (T1), `notify` (T2), `alone` (T3);
+  - `tier`: `ask` (T1), `notify` (T2), `alone` (T3), as stored;
+  - `effective_tier`: the tier that would run an action of this type at its stakes under the passport's settings:
+    `ask` when the level is capped or a trial or its wait is open; `alone` only when `tier` is `alone`, the series
+    reaches `required` and holds two sessions; `notify` only when `tier` is `notify` and the middle tier's score
+    holds (`rule.effective_tier`). A spot check or a suspension can still make an action ask;
   - `series`: verified successes in a row; `required`: the series length for T3 (`null` when the level is capped);
   - `sessions`: distinct sessions in the series; `provisional`: carried-over successes not yet confirmed;
   - `guarantee`: computed from the series length and the spot-check rate by `params`, or `{"capped": true}`. The

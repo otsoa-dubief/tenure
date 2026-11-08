@@ -915,7 +915,7 @@
           h("select", { className: "clr-select", value: row ? row.key : "", onChange: function (e) { setSel(e.target.value); } },
             agents.map(function (r) { return h("option", { key: r.key, value: r.key }, r.agent.agent + " · " + r.profile); }))),
         h(Btn, { kind: "primary", onClick: download, disabled: !d }, "Download JSON"),
-        h("span", { className: "clr-dim clr-small" }, "Signed and tamper-evident: any change to it, or to the ledger it cites, shows on verification.")),
+        h("span", { className: "clr-dim clr-small" }, "Signed and tamper-evident: a change after it is signed or anchored shows on verification.")),
       res.error && !res.data ? h("div", { className: "clr-error" }, errText(res.error)) : h(Stale, { res: res }),
       !d ? h("div", { className: "clr-dim clr-pad" }, "Loading…") : h("div", { className: "clr-passport-grid" },
         h("section", { className: cx("clr-verdict", "clr-verdict--" + v.tone) },

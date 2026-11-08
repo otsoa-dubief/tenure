@@ -151,8 +151,8 @@ def test_build_and_verify_ok(plugin, monkeypatch, tmp_path):
     rows = mod.store_().ledger()
     assert p["ledger"] == {"count": len(rows), "head": rows[-1]["hash"]}
     t = {e["type"]: e for e in p["types"]}
-    assert set(t["file:write"]) == {"type", "stakes", "tier", "series", "required", "sessions", "provisional",
-                                    "guarantee"}
+    assert set(t["file:write"]) == {"type", "stakes", "tier", "effective_tier", "series", "required", "sessions",
+                                    "provisional", "guarantee"}
     assert t["memory:write"]["required"] == 4 and t["file:write-outside"]["stakes"] == "medium"
     assert re.fullmatch(r"[0-9a-f]{128}", p["signature"]) and re.fullmatch(r"[0-9a-f]{64}", p["public_key"])
     assert mod.passport.verify(p) == [NO_LEDGER]

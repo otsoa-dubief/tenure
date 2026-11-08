@@ -11,6 +11,10 @@ closes that gap: every action that changes something asks first, through Hermes'
 action type (writing files in the project, `npm`, `git push`, sending a message, one MCP tool) keeps its own
 verified record, and climbs three tiers: ask, act then notify (with undo), act alone. It climbs only on
 evidence. Ordinary reads never ask; secrets, sensitive files and the agent's own skills and plugins always do.
+So does anything that could switch clearance off: Hermes' own CLI (all of it except `hermes status`,
+`hermes --version`, `hermes config get|show|path|env-path` and the read commands of `hermes clearance`), any write
+to the Hermes home wherever `HERMES_HOME` points, and anything naming clearance's own data. No type override
+lowers these (`self:*`, `secrets:*`, `file:sensitive`).
 
 ## Three pillars
 
@@ -66,13 +70,22 @@ Asked-but-never-run actions are never counted as successes.
 
 **Two sessions.** The series that reaches "act alone" must hold successes from at least two distinct sessions.
 
-**Suspension after external content.** A session that read text written by someone else asks for everything,
-until it ends. That covers `web_search`, `web_extract`, the `browser_*` tools, `read_file` outside the project,
-`curl` and `wget` (also inside `$(...)`, `bash -c`, `xargs`), `gh` reads of issues, PRs and the API, and MCP read
-tools of servers whose name suggests mail, chat or the web (mail, gmail, outlook, imap, slack, discord, telegram,
-whatsapp, web, fetch, browser, rss, reddit, twitter, x, brave, search, exa, tavily, serp, playwright, puppeteer,
-firecrawl, crawl, scrape, github). A session that runs code through `execute_code` is suspended too, and a child
-agent that read external content suspends its parent.
+**Suspension after external content.** A session asks for everything, until it ends, after using one of these
+tools or commands:
+
+- the tools `web_search`, `web_extract`, every `browser_*` tool, `read_file` on a path outside the project, and
+  `execute_code`;
+- in `terminal`: `curl`, `wget`, `http`, `https` and `xh` (HTTPie and xh), `xhs`, `lynx`, `w3m`, `links`, `aria2c`,
+  `nc`, `ncat`, `git clone`, `git pull` and `git fetch`, `gh issue view`, `gh pr view` and `gh api` reads (also
+  inside `$(...)`, `bash -c`, `xargs`);
+- the MCP read tools (a read verb such as get, list, search, read, fetch, and no write verb) of a server whose name
+  contains one of: mail, gmail, outlook, imap, slack, discord, telegram, whatsapp, web, fetch, browser, rss, reddit,
+  twitter, x, brave, search, exa, tavily, serp, playwright, puppeteer, firecrawl, crawl, scrape, github, gitlab,
+  notion, linear, jira, confluence, asana, trello, drive, docs.
+
+Anything else is not detected: a script that downloads by itself (`python fetch.py`, `node fetch.js`), `cat` of a
+file outside the project, or an MCP server under another name. A child agent started from a suspended session
+starts suspended, and a child agent that read external content suspends its parent.
 
 **Model change.** A new model inherits half its evidence provisionally (confirmed by its own
 successes), except at high stakes or when it scores more than 5 points lower on the matching public benchmark. Strict mode (`hermes clearance strict on`) starts every type
@@ -173,7 +186,11 @@ enabled: true
 Stored, in `plugin-data/clearance/clearance.db` of each Hermes profile: action types and stakes, outcomes, tiers,
 the agent string `model@provider`, sessions as `sha256(session id)[:12]`, timestamps, and a hash chain over all of
 it. 
-Never in the database or the ledger: a command, a path, an argument, file content, a message, or a secret. The undo snapshots (file bytes and their paths, mode 0600) are the one exception, deleted after 24 h. Nothing leaves your machine:
+Never in the database or the ledger: a whole command, a path, file content, a message, or a secret. Type names can
+include a script, target or alias name taken from the command (`shell:npm:run:build`, `shell:make:deploy`,
+`shell:git:my-alias`): the ledger keeps them, and the passport and the dashboard redact them by default (a hash of
+the name, see [docs/protocol.md](docs/protocol.md) §3.1). The undo snapshots (file bytes and their paths, mode
+0600) are the one other exception, deleted after 24 h. Nothing leaves your machine:
 no network access, no LLM call, no telemetry. clearance does not read `.env`, `auth.json` or any credential
 store. Reads outside the plugin folder, as the catalog asks: the dashboard tab reads, read-only, the
 `plugin-data/clearance/clearance.db` of the Hermes root and of each `profiles/*` folder; act-then-notify reads the
