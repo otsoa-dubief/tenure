@@ -17,7 +17,7 @@ table of how each model does on yours: verified successes and faults per action 
 denominator (`3 faults / 140 checks`). A bundled snapshot of public scores sits beside it, and a model that
 scores clearly lower on the same benchmark loses a carry-over. A model with no public measure is shown as such.
 
-![Personal benchmark](docs/images/dashboard-benchmark.png)
+![Personal benchmark](docs/images/dashboard-models.png)
 
 **2. The live map.** The dashboard tab shows every agent and every action type: its tier, its evidence, what it
 still needs, and what changes if you switch model or move the risk dial. Each change comes with its reason.
@@ -29,6 +29,8 @@ tamper-evident: anyone holding the passport and the exported ledger can replay t
 same tiers (`hermes clearance verify`). The format is in [docs/protocol.md](docs/protocol.md).
 
 ![Autonomy passport](docs/images/dashboard-passport.png)
+
+![Dashboard on a phone](docs/images/dashboard-mobile.png)
 
 ## Install in 60 seconds
 
@@ -94,15 +96,14 @@ settings.
 
 clearance uses the same rule as a preregistered study, simulated on 6,000+ agents. See [docs/the-study.md](docs/the-study.md).
 
-What clearance adds to the study's rule:
+The middle tier (act, then notify) is part of the study. What clearance adds to the rule:
 
 - spot checks on a cleared type (one in ten by default);
 - the requirement of two distinct sessions;
 - suspension after external content;
 - one trial covers the faults that happen during the wait and the inherited faults;
 - evidence is re-based when the stakes of a type change;
-- human approval plus clean execution counts as proof, an adaptation of the study's automatic control;
-- the middle tier (act, then notify with an undo).
+- human approval plus clean execution counts as proof, an adaptation of the study's automatic control.
 
 Carry-over is our addition; strict mode is the study.
 
@@ -163,7 +164,9 @@ it. Undo snapshots of files the agent changed alone are kept locally for 24 hour
 
 Never stored: a command, a path, an argument, file content, a message, or a secret. Nothing leaves your machine:
 no network access, no LLM call, no telemetry. clearance does not read `.env`, `auth.json` or any credential
-store. The dashboard tab reads, read-only, the databases of the other profiles under the Hermes root.
+store. Reads outside the plugin folder, as the catalog asks: the dashboard tab reads, read-only, the
+`plugin-data/clearance/clearance.db` of the Hermes root and of each `profiles/*` folder; act-then-notify reads the
+project files an action is about to change, to snapshot them for undo (24 hours, 5 MB per action).
 
 ## License
 

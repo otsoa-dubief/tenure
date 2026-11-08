@@ -9,17 +9,6 @@ description: >-
   with random spot checks, from verified evidence and a guarantee you choose (Dodge's CSP-1). Your own per-model
   benchmark, a live dashboard map, and a signed, tamper-evident autonomy passport. Sessions that read external
   content are suspended. Local only: no network, no LLM call.
-capabilities: []
-dashboard:
-  tab: Clearance
-  api: /api/plugins/clearance/
-reads_outside_plugin:
-  - path: "<hermes root>/plugin-data/clearance/clearance.db and <hermes root>/profiles/*/plugin-data/clearance/clearance.db"
-    mode: read-only
-    why: the dashboard shows every profile's agents; nothing is written on a read
-  - path: project files the agent is about to change
-    mode: read, snapshotted for undo
-    why: act-then-notify saves the files first so an action can be undone (24 h, 5 MB per action)
 author: Otsoa Dubief
 license: Apache-2.0
 homepage: https://github.com/otsoa-dubief/clearance

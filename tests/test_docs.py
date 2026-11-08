@@ -43,7 +43,7 @@ def test_readme_references_real_files_and_commands():
     for ref in ("docs/protocol.md", "docs/the-study.md", "clearance/NOTICE"):
         assert (ROOT / ref).exists()
         assert ref in README
-    for img in ("benchmark", "map", "passport"):
+    for img in ("models", "map", "passport", "mobile"):
         assert f"docs/images/dashboard-{img}.png" in README
     from clearance import cli
     import re
@@ -55,10 +55,9 @@ def test_readme_references_real_files_and_commands():
 def test_manifest():
     assert "\nversion: 1.0.0\n" in MANIFEST
     assert '\nrequires_hermes: ">=0.23.0"\n' in MANIFEST
-    assert "\ndashboard:\n" in MANIFEST
-    assert "\nreads_outside_plugin:\n" in MANIFEST
-    assert "profiles/*/plugin-data/clearance/clearance.db" in MANIFEST and "snapshotted for undo" in MANIFEST
     assert "tamper-proof" not in MANIFEST.lower()
+    assert (ROOT / "clearance" / "dashboard" / "manifest.json").exists()      # the dashboard is declared there
+    assert "profiles/*" in README and "snapshot" in README                    # the reads disclosure
 
 
 def test_notice_attributes_epoch_ai():
