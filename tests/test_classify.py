@@ -214,3 +214,17 @@ def test_reads_external_true(tool, args):
     ("write_file", {"path": "a"})])
 def test_reads_external_false(tool, args):
     assert C.reads_external(tool, args, CWD) is False
+
+
+@pytest.mark.parametrize("tool,typ,stakes", [
+    ("mcp__gmail__get_message", "mcp:gmail:get_message", C.FREE),
+    ("mcp__slack__list_messages", "mcp:slack:list_messages", C.FREE),
+    ("mcp__gmail__send_message", "mcp:gmail:send_message", C.HIGH),
+    ("mcp__gmail__get_and_send_draft", "mcp:gmail:get_and_send_draft", C.HIGH),
+    ("mcp__notion__search_and_update", "mcp:notion:search_and_update", C.MEDIUM)])
+def test_read_verb_is_not_raised_by_an_ambiguous_noun(tool, typ, stakes):
+    assert k(tool) == (typ, stakes)
+
+
+def test_reads_external_still_true_for_get_message():
+    assert C.reads_external("mcp__gmail__get_message", {}, CWD) is True

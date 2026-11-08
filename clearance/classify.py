@@ -402,12 +402,18 @@ FREE_VERBS = {"get", "list", "search", "read", "fetch", "find", "query", "lookup
               "check", "status", "retrieve", "download", "export", "info", "inspect", "preview", "summarize"}
 
 
+NOUN_WORDS = {"message", "messages", "email", "emails", "mail", "sms", "notification", "notifications"}
+
+
 def _words(name: str) -> set[str]:
     return {w.lower() for w in re.split(r"[_\-.\s]+|(?<=[a-z])(?=[A-Z])", name) if w}
 
 
 def _mcp(server: str, tool: str) -> tuple[str, str, bool]:
     w = _words(tool)
+    lead = re.split(r"[_\-.\s]+", tool)[0].lower()
+    if lead in FREE_VERBS and not ((HIGH_VERBS | MEDIUM_VERBS) & (w - NOUN_WORDS)):
+        return f"mcp:{server}:{tool}", FREE, False        # "get_message": the noun is not an action
     stakes = HIGH if w & HIGH_VERBS else MEDIUM if w & MEDIUM_VERBS else FREE if w & FREE_VERBS else HIGH
     return f"mcp:{server}:{tool}", stakes, False
 
