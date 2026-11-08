@@ -284,11 +284,14 @@ def _last_settings(rows: list[dict]) -> dict | None:
     return next((r["event"] for r in reversed(rows) if r["event"].get("event") == "settings"), None)
 
 
-def build(st, agent: str, settings: dict, data_dir: str, redact: bool = True) -> dict:
+def build(st, agent: str, settings: dict, data_dir: str, redact: bool = True, create_key: bool = True,
+          rows: list[dict] | None = None) -> dict:
     """The passport of ``agent``: its recorded states, under the settings of the ledger's last settings event (the
     ones they were computed with; ``settings`` only stands in before the first one, and names the profile with its
-    optional ``profile`` key, else the Hermes home holding ``data_dir``), signed when a key is available."""
-    rows = st.ledger()
+    optional ``profile`` key, else the Hermes home holding ``data_dir``), signed when a key is available (with
+    ``create_key`` false, only when one already exists: nothing is written). ``rows``: the ledger, when the caller
+    already read it."""
+    rows = st.ledger() if rows is None else rows
     cfg = _last_settings(rows)
     if cfg is None and settings:
         cfg = {"event": "settings", "risks": dict(settings.get("risks") or {}),
@@ -305,7 +308,10 @@ def build(st, agent: str, settings: dict, data_dir: str, redact: bool = True) ->
          "redacted": bool(redact),
          "types": _entries({s.key: s for _, s in st.states(agent)}, cfg, redact),
          "ledger": {"count": len(rows), "head": _head(rows)}}
-    key, public = keypair(data_dir)
+    if create_key or os.path.exists(os.path.join(data_dir, KEY_FILE)):
+        key, public = keypair(data_dir)
+    else:                                                # read-only caller: unsigned, nothing written
+        key, public = None, None
     p["public_key"] = public
     p["signature"] = None if key is None else sign(p, key)
     return p

@@ -597,3 +597,28 @@ def test_events_hold_only_types_tiers_reasons_and_counts():
     assert ("tier", rule.T3, rule.T2, "settings") in moves(events)
     for e in events:
         assert set(e) <= allowed and secret not in json.dumps(e)
+
+
+def test_effective_tier_is_the_tier_decide_would_act_on():
+    s = climbed("low", reversible=True)
+    assert s.tier == rule.T3 and rule.effective_tier(s, LOW, "low") == rule.T3
+    assert rule.effective_tier(s, LOW * 2, "low") == rule.T1            # today's requirement is longer than the series
+    assert rule.effective_tier(s, None, "low") == rule.T1               # capped
+    assert rule.effective_tier(s, LOW, "medium") == rule.T1             # earned at other stakes
+    s.trial_left = 3
+    assert rule.effective_tier(s, LOW, "low") == rule.T1                # an open trial asks
+    s.trial_left, s.sessions = 0, ["a"]
+    assert rule.effective_tier(s, LOW, "low") == rule.T1                # two sessions needed for T3
+    t2 = state("low", reversible=True)
+    t2.tier, t2.wald = rule.T2, params.wald_steps("low")[2]
+    assert rule.effective_tier(t2, LOW, "low") == rule.T2
+    t2.wald = 0.0
+    assert rule.effective_tier(t2, LOW, "low") == rule.T1               # score no longer at the middle tier's bar
+    for _ in range(40):
+        for stakes in ("low", "medium"):
+            u = state(stakes, reversible=True)
+            u.tier, u.series, u.sessions = rule.T3, 99, ["a", "b"]
+            n = random.choice([None, 10, 50, 99])
+            decision = rule.decide(u, n, 0.1, suspended=False, rng=random.Random(1))
+            eff = rule.effective_tier(u, n, stakes)
+            assert (decision == rule.ASK) == (eff == rule.T1)      # series 99 meets every requirement above

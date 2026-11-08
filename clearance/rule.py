@@ -184,6 +184,20 @@ def decide(s: TypeState, n: int | None, spot: float, *, suspended: bool, rng: ra
     return ASK
 
 
+def effective_tier(s: TypeState, n: int | None, stakes: str) -> str:
+    """The tier that would actually run an action of this type at ``stakes`` today: the stored tier, held to the same
+    guards as ``decide`` plus the decision-time check (``_earned``): a capped type, evidence earned at other stakes,
+    an open trial or wait, a series shorter than today's requirement, fewer than two sessions, or a Wald score above
+    the middle tier's bar all ask (T1). Reads only; it changes nothing."""
+    if n is None or s.stakes != stakes or s.trial_left > 0 or s.trial_wait > 0:
+        return T1
+    if s.tier == T3 and s.series >= required(s, n) and len(s.sessions) >= SESSIONS:
+        return T3
+    if s.tier == T2 and _middle(s) and s.wald <= params.wald_steps(s.stakes)[2] + TOL:
+        return T2
+    return T1
+
+
 def on_success(s: TypeState, n: int | None, *, session: str, source: str) -> list[dict]:
     """A verified success. ``session`` is the anonymised session id; ``source`` "spot" marks a spot check.
 

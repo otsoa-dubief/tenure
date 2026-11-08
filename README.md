@@ -101,6 +101,14 @@ A shell chain takes its riskiest part: `pytest && git push` is `shell:git:push`.
 - **Evidence**: decisions are kept in `plugin-data/clearance/clearance.db` as a hash chain, with action types,
   stakes, outcomes and models, never commands, paths or message contents.
 
+## Dashboard tab
+
+The Hermes dashboard gets a Clearance tab (API under `/api/plugins/clearance/`, behind the dashboard's own
+authentication). Disclosed, as the catalog asks: to show every profile on the machine, the tab **reads, read-only**,
+the `plugin-data/clearance/clearance.db` of the Hermes root and of each `profiles/*` folder, which are outside this
+plugin's folder; it also reads the passport key file's presence, never its content, and writes nothing on a read.
+Revoke, flag, undo and settings act on the dashboard's current profile only.
+
 ## Limits
 
 - The guarantee covers errors you would refuse when asked. An error nobody would notice cannot be counted.

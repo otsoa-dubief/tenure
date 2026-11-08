@@ -1,0 +1,14 @@
+{
+  "name": "clearance",
+  "label": "Clearance",
+  "description": "What each agent has earned, per action type: tiers, personal benchmark per model, model-switch preview, passport",
+  "icon": "Shield",
+  "version": "0.1.0",
+  "tab": {
+    "path": "/clearance",
+    "position": "after:skills"
+  },
+  "entry": "dist/index.js",
+  "css": "dist/style.css",
+  "api": "plugin_api.py"
+}

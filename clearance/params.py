@@ -42,6 +42,7 @@ WALD = {"low": (0.10, 0.30), "medium": (0.05, 0.20)}
 ALPHA = BETA = 0.05
 
 
+@lru_cache(maxsize=512)
 def study_n(bar) -> int:
     """Series length: consecutive approvals needed for a bar (accepted share of unchecked errors), in exact fractions."""
     b = bar if isinstance(bar, Fraction) else Fraction(str(bar))

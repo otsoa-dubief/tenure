@@ -10,7 +10,8 @@ description: >-
   from the risk you accept (Dodge's continuous sampling plan, CSP-1): with one spot check in ten, 54 approvals in a
   row keep the errors that run unapproved under 1 in 50. Records are per model; reads never ask; secrets,
   sensitive files and the agent's own skills and plugins always ask. Hash-chained evidence you can export and
-  verify. Local only: no network, no LLM call.
+  verify. Local only: no network, no LLM call. The dashboard tab reads, read-only, every profile's
+  plugin-data/clearance/clearance.db under the Hermes root (outside this plugin's folder) and writes nothing on a read.
 author: Otsoa Dubief
 license: Apache-2.0
 homepage: https://github.com/otsoa-dubief/clearance

@@ -396,6 +396,36 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
     return events
 
 
+UNDO_WINDOW = 24 * 3600          # seconds an act-then-notify action can be undone
+
+
+def undo_entry(st: store.Store, id: int, cfg: dict | None = None) -> str:
+    """Revert one act-then-notify action (files back to their snapshot) and count it as a fault of its type, unless
+    its automatic check already did. Call it inside ``txn()``. Returns a message for the owner; nothing is changed
+    when it cannot be undone. ``cfg`` is for a caller outside the hooks (the dashboard) that has the settings in force
+    from the ledger: they are then used as they are, with no sync; by default, the configured settings are synced."""
+    entry = st.get_undo(id)
+    if entry is None:
+        return f"No action #{id} to undo."
+    if entry["undone"]:
+        return f"Action #{id} is already undone."
+    if time.time() - entry["at"] > UNDO_WINDOW:
+        return f"Action #{id} is past its {UNDO_WINDOW // 3600} h undo window."
+    if not entry["snap_id"] or undo.restore(entry["snap_id"], data_dir()) == 0:
+        return f"Action #{id} cannot be restored: no usable snapshot."
+    agent, key = entry["agent"], entry["type"]
+    if not entry["fault"]:
+        recorded = st.recorded(agent, key)
+        if cfg is None:
+            cfg = settings()
+            sync_settings(st, cfg)
+        record_outcome(st, cfg, agent=agent, type_key=key, stakes=recorded.stakes if recorded else "medium",
+                       reversible=recorded.reversible if recorded else True, result="fault", source="undo")
+        st.bump(agent, "faults")
+    st.mark_undone(id)
+    return f"Action #{id} undone ({key})" + ("." if entry["fault"] else "; counted as a fault.")
+
+
 def _bump(st: store.Store, agent: str, result: str, *, checked: bool = False, alone: bool = False) -> None:
     """Counters, one outcome at a time: every action; checked by a person; acted on its own; faults."""
     st.bump(agent, "actions")
