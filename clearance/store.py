@@ -1,3 +1,5 @@
+# Copyright 2026 Otsoa Dubief
+# SPDX-License-Identifier: Apache-2.0
 """State and evidence, in one SQLite file per Hermes profile.
 
 The CLI, the gateway and cron run in separate processes and may answer approvals at the same time: every

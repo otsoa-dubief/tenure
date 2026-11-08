@@ -1,3 +1,5 @@
+# Copyright 2026 Otsoa Dubief
+# SPDX-License-Identifier: Apache-2.0
 """What a tool call is: its action type (the unit whose record is kept) and its stakes.
 
 Grid from the earned-autonomy study: an action is classed by what it does, not by the tool. Reads are free. Writes

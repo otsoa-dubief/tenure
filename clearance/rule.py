@@ -1,3 +1,5 @@
+# Copyright 2026 Otsoa Dubief
+# SPDX-License-Identifier: Apache-2.0
 """The rule for one action type: Dodge's CSP-1 with the refinements of the earned-autonomy study.
 
 - ASK: every action of the type asks the owner. ``i`` approvals in a row clear the type.

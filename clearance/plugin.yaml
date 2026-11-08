@@ -1,0 +1,49 @@
+name: clearance
+version: 0.1.0
+manifest_version: 2
+api_version: 1
+label: clearance
+description: >-
+  Earned autonomy, per action type, with a guarantee you choose. Every action that changes something asks you,
+  through Hermes' own approval prompt, until its type has been approved enough times in a row; then the agent acts
+  alone on that type, with random spot checks, and one refusal sends it back to asking. How many approvals comes
+  from the risk you accept (Dodge's continuous sampling plan, CSP-1): with one spot check in ten, 54 approvals in a
+  row keep the errors that run unapproved under 1 in 50. Records are per model; reads never ask; secrets,
+  sensitive files and the agent's own skills and plugins always ask. Hash-chained evidence you can export and
+  verify. Local only: no network, no LLM call.
+author: Otsoa Dubief
+license: Apache-2.0
+homepage: https://github.com/otsoa-dubief/clearance
+tags: [approvals, autonomy, oversight, safety, statistics]
+requires_hermes: ">=0.23.0"
+provides_tools: []
+provides_hooks:
+  - pre_tool_call
+  - post_approval_response
+  - pre_api_request
+config_schema:
+  preset:
+    type: str
+    default: balanced
+    description: "careful, balanced or fast: the accepted risk per stakes level (see `hermes clearance setup`)"
+    required: false
+  risks:
+    type: dict
+    default: {}
+    description: "Your own risks per stakes level, over the preset: e.g. {low: 1/50, medium: 1%, high: cap}"
+    required: false
+  spot_check:
+    type: float
+    default: 0.1
+    description: "Share of a cleared type's actions that still ask, at random (default one in ten)"
+    required: false
+  types:
+    type: dict
+    default: {}
+    description: "Reclassify action types: {pattern: free|low|medium|high|cap}, e.g. {'mcp:notion:*': medium}"
+    required: false
+  enabled:
+    type: bool
+    default: true
+    description: "Turn clearance off without uninstalling it"
+    required: false

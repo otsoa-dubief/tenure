@@ -1,3 +1,5 @@
+# Copyright 2026 Otsoa Dubief
+# SPDX-License-Identifier: Apache-2.0
 """How many approvals in a row before an action type is cleared, for the risk a user accepts.
 
 clearance runs Dodge's continuous sampling plan CSP-1 (1943) on each action type: every action of the type asks the
