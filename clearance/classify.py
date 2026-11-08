@@ -39,7 +39,7 @@ FREE_TOOLS = {
     "kanban_heartbeat", "x_search", "read_terminal", "read_window_below", "close_terminal", "feishu_doc_read",
     "feishu_drive_list_comments", "feishu_drive_list_comment_replies", "yb_query_group_info",
     "yb_query_group_members", "yb_search_sticker", "focus_pane", "show_tip", "set_theme", "annotate_preview",
-    "setup_beat", "gui_tour", "desktop_preview", "drive_preview", "manage_connections",
+    "setup_beat", "gui_tour", "desktop_preview", "drive_preview",
 }
 TOOLS = {
     "process_manage": ("process:manage", MEDIUM, True),
@@ -59,6 +59,7 @@ TOOLS = {
     "cronjob_manage": ("cron:manage", HIGH, True),
     "skill_manage": ("self:skills", CAP, True),
     "manage_catalog": ("self:plugins", CAP, True),
+    "manage_connections": ("self:connections", CAP, False),
     "browser_vault": ("secrets:vault", CAP, False),
     "send_message": ("message:send", HIGH, False),
     "yb_send_dm": ("message:send", HIGH, False),
@@ -90,6 +91,70 @@ def _file(path: str, cwd: str | None, home: str) -> tuple[str, str, bool]:
     return "file:write-outside", MEDIUM, True
 
 
+_V4A_HEADER = re.compile(r"^\*\*\*\s*(?:Add|Update|Delete)\s+File:\s*(.+?)\s*$", re.M)
+_V4A_MOVE_TO = re.compile(r"^\*\*\*\s*Move\s+to:\s*(.+?)\s*$", re.M)
+_V4A_MOVE_FILE = re.compile(r"^\*\*\*\s*Move\s+File:\s*(.+?)\s*->\s*(.+?)\s*$", re.M)
+
+
+def _v4a_paths(patch: str) -> list[str]:
+    """Every path a V4A patch body names: Add/Update/Delete headers, `Move to:` and Hermes' `Move File: a -> b`."""
+    found: list[tuple[int, str]] = [(m.start(), m.group(1)) for m in _V4A_HEADER.finditer(patch or "")]
+    found += [(m.start(), m.group(1)) for m in _V4A_MOVE_TO.finditer(patch or "")]
+    for m in _V4A_MOVE_FILE.finditer(patch or ""):
+        found += [(m.start(), m.group(1)), (m.start() + 1, m.group(2))]
+    return [p for _, p in sorted(found)]
+
+
+def _abs(path: str, cwd: str | None) -> str:
+    p = os.path.expanduser(path) if path.startswith("~") else path
+    return os.path.normpath(p if os.path.isabs(p) else os.path.join(cwd or os.getcwd(), p))
+
+
+def files_written(tool_name: str, args: dict, cwd: str | None) -> list[str]:
+    """Absolute paths a write_file or patch call touches (the `path` argument and every V4A header); else []."""
+    if tool_name not in ("write_file", "patch") or not isinstance(args, dict):
+        return []
+    raw = [str(args.get("path") or args.get("file_path") or "")]
+    if tool_name == "patch":
+        raw += _v4a_paths(str(args.get("patch") or ""))
+    out: list[str] = []
+    for r in raw:
+        if r.strip() and _abs(r.strip(), cwd) not in out:
+            out.append(_abs(r.strip(), cwd))
+    return out
+
+
+def _files(tool_name: str, args: dict, cwd: str | None, home: str) -> tuple[str, str, bool]:
+    paths = files_written(tool_name, args, cwd) or [""]
+    return max((_file(p, cwd, home) for p in paths), key=lambda r: RANK[r[1]])
+
+
+def reads_external(tool_name: str, args: dict, cwd: str | None) -> bool:
+    """True when the call brings in content written by someone else: the web, a browser, a mailbox or chat server
+    (MCP), a file outside the project, a curl or wget."""
+    args = args if isinstance(args, dict) else {}
+    if tool_name in ("web_extract", "web_search") or tool_name.startswith("browser_"):
+        return True
+    if tool_name == "read_file":
+        path = str(args.get("path") or args.get("file_path") or "")
+        if not path:
+            return False
+        root = os.path.normpath(cwd or os.getcwd()).rstrip("/") + "/"
+        return not (_abs(path, cwd) + "/").startswith(root)
+    split = _mcp_split(tool_name)
+    if split:
+        verb = re.split(r"[_\-.\s]+", split[1])[0].lower()
+        return verb in FREE_VERBS and _external_server(split[0])
+    if tool_name == "terminal":
+        for seg in _segments(str(args.get("command", ""))):
+            toks = [t for t in seg if t not in ("(", ")")]
+            while toks and os.path.basename(toks[0]) in WRAPPERS:
+                toks = toks[1:]
+            if toks and os.path.basename(toks[0]) in ("curl", "wget"):
+                return True
+    return False
+
+
 # ---------------------------------------------------------------------------------------------------------- shell
 READ_ONLY = {"ls", "cat", "head", "tail", "less", "more", "grep", "rg", "egrep", "fgrep", "wc", "pwd", "echo",
              "printf", "which", "whereis", "whoami", "id", "date", "uname", "printenv", "tree", "du", "df", "stat",
@@ -112,22 +177,25 @@ SEPARATORS = {";", "&&", "||", "|", "&", "\n"}
 
 
 def _segments(command: str) -> list[list[str]]:
-    try:
-        lex = shlex.shlex(command, posix=True, punctuation_chars=True)
-        lex.whitespace_split = True
-        tokens = list(lex)
-    except ValueError:
-        tokens = command.split()
-    segs, cur = [], []
-    for t in tokens:
-        if t in SEPARATORS:
-            if cur:
-                segs.append(cur)
-            cur = []
-        else:
-            cur.append(t)
-    if cur:
-        segs.append(cur)
+    """Split on lines first (shlex would swallow a newline as plain whitespace), then on shell separators."""
+    segs: list[list[str]] = []
+    for line in command.splitlines():
+        try:
+            lex = shlex.shlex(line, posix=True, punctuation_chars=True)
+            lex.whitespace_split = True
+            tokens = list(lex)
+        except ValueError:
+            tokens = line.split()
+        cur: list[str] = []
+        for t in tokens:
+            if t in SEPARATORS:
+                if cur:
+                    segs.append(cur)
+                cur = []
+            else:
+                cur.append(t)
+        if cur:
+            segs.append(cur)
     return segs
 
 
@@ -289,18 +357,41 @@ def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, s
     return f"shell:{prog}", MEDIUM
 
 
+def _cd_target(seg: list[str], cwd: str, home: str) -> str | None:
+    """The directory a plain `cd <dir>` segment moves to (a leading subshell paren is ignored), else None."""
+    toks = [t for t in seg if t not in ("(", ")")]
+    if not toks or toks[0] != "cd":
+        return None
+    args = [a for a in toks[1:] if not a.startswith("-")]
+    dest = args[0] if args else "~"
+    if "$" in dest or "`" in dest:
+        return None
+    if dest.startswith("~"):
+        dest = home + dest[1:]
+    return os.path.normpath(dest if os.path.isabs(dest) else os.path.join(cwd, dest))
+
+
 def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str, bool]:
     best = ("shell:unknown", MEDIUM)
     first = True
+    home = home or os.path.expanduser("~")
+    vcwd = cwd or os.getcwd()                       # virtual cwd: follows `cd` across segments
     for seg in _segments(command or ""):
-        t, s = _shell_segment(seg, cwd, home or os.path.expanduser("~"), depth)
+        t, s = _shell_segment(seg, vcwd, home, depth)
+        moved = _cd_target(seg, vcwd, home)
+        if moved:
+            vcwd = moved
         if first or RANK[s] > RANK[best[1]]:
             best, first = (t, s), False
-    return best[0], best[1], best[1] in (FREE, LOW, MEDIUM)
+    return best[0], best[1], False                  # a command is never reversible by Clearance
 
 
 # ------------------------------------------------------------------------------------------------------------ MCP
-MCP = re.compile(r"^mcp_([A-Za-z0-9-]+)_(.+)$")
+MCP = re.compile(r"^mcp__(.+?)__(.+)$")                   # Hermes >= 0.23: mcp__<server>__<tool>
+MCP_LEGACY = re.compile(r"^mcp_([A-Za-z0-9-]+)_(.+)$")
+# Servers that bring in text written by other people: reading them is reading untrusted content.
+EXTERNAL_SERVERS = ("mail", "gmail", "outlook", "imap", "slack", "discord", "telegram", "whatsapp", "web", "fetch",
+                    "browser", "rss", "reddit", "twitter", "x")
 HIGH_VERBS = {"send", "post", "publish", "email", "mail", "sms", "tweet", "message", "notify", "invite", "share", "pay",
               "payment", "payments", "purchase", "buy", "charge", "transfer", "refund", "order", "checkout", "invoice",
               "payout", "withdraw", "deposit", "broadcast", "reply", "comment", "dm"}
@@ -318,7 +409,18 @@ def _words(name: str) -> set[str]:
 def _mcp(server: str, tool: str) -> tuple[str, str, bool]:
     w = _words(tool)
     stakes = HIGH if w & HIGH_VERBS else MEDIUM if w & MEDIUM_VERBS else FREE if w & FREE_VERBS else HIGH
-    return f"mcp:{server}:{tool}", stakes, stakes != HIGH
+    return f"mcp:{server}:{tool}", stakes, False
+
+
+def _mcp_split(tool_name: str) -> tuple[str, str] | None:
+    m = MCP.match(tool_name) or MCP_LEGACY.match(tool_name)
+    return (m.group(1), m.group(2)) if m else None
+
+
+def _external_server(server: str) -> bool:
+    s = server.lower()
+    words = {w for w in re.split(r"[^a-z0-9]+", s) if w}
+    return any((k in words) if len(k) == 1 else (k in s) for k in EXTERNAL_SERVERS)
 
 
 # ----------------------------------------------------------------------------------------------------------- main
@@ -355,19 +457,19 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
     args = args if isinstance(args, dict) else {}
     home = home or os.path.expanduser("~")
     if tool_name in FREE_TOOLS:
-        t, stakes, rev = f"read:{tool_name}", FREE, True
+        t, stakes, rev = f"read:{tool_name}", FREE, False
     elif tool_name in ("write_file", "patch"):
-        t, stakes, rev = _file(str(args.get("path") or args.get("file_path") or ""), cwd, home)
+        t, stakes, rev = _files(tool_name, args, cwd, home)
     elif tool_name == "terminal":
         t, stakes, rev = _shell(str(args.get("command", "")), cwd, home)
     elif tool_name in TOOLS:
         t, stakes, rev = TOOLS[tool_name]
     elif tool_name.startswith("kanban_"):
-        t, stakes, rev = f"kanban:{tool_name[len('kanban_'):]}", LOW, True
-    elif MCP.match(tool_name):
-        m = MCP.match(tool_name)
-        t, stakes, rev = _mcp(m.group(1), m.group(2))
+        t, stakes, rev = f"kanban:{tool_name[len('kanban_'):]}", LOW, False
+    elif _mcp_split(tool_name):
+        t, stakes, rev = _mcp(*_mcp_split(tool_name))
     else:
         t, stakes, rev = f"tool:{tool_name}", HIGH, False
     stakes = _override(t, stakes, overrides)
+    rev = rev and t == "file:write"                 # only a write inside the project can be undone
     return Action(type=t, stakes=stakes, reversible=rev, summary=_summary(tool_name, args, t))

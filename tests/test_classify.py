@@ -141,3 +141,76 @@ def test_commands_that_hide_what_they_run(cmd, typ, stakes):
 ])
 def test_subshells_and_substitutions(cmd, typ, stakes):
     assert k("terminal", {"command": cmd}) == (typ, stakes)
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# v2: adversarial findings
+# --------------------------------------------------------------------------------------------------------------------
+def test_multiline_commands_take_their_riskiest_line():
+    assert k("terminal", {"command": "pwd\nnpm publish"}) == ("shell:npm:publish", C.HIGH)
+    assert k("terminal", {"command": "ls\ngit push origin main"}) == ("shell:git:push", C.HIGH)
+
+
+def test_v4a_patch_bodies_are_read():
+    body = "*** Begin Patch\n*** Add File: /home/me/.ssh/authorized_keys\n+k\n*** End Patch"
+    assert k("patch", {"mode": "patch", "patch": body}) == ("file:sensitive", C.CAP)
+    body = "*** Begin Patch\n*** Update File: .env\n+k\n*** End Patch"
+    assert k("patch", {"mode": "patch", "path": "README.md", "patch": body}) == ("file:sensitive", C.CAP)
+    body = "*** Begin Patch\n*** Update File: src/a.py\n+k\n*** End Patch"
+    a = C.classify("patch", {"mode": "patch", "patch": body}, cwd=CWD)
+    assert (a.type, a.stakes, a.reversible) == ("file:write", C.LOW, True)
+    body = "*** Begin Patch\n*** Move File: src/a.py -> /etc/x\n*** End Patch"
+    assert k("patch", {"mode": "patch", "patch": body}) == ("file:sensitive", C.CAP)
+    body = "*** Begin Patch\n*** Update File: src/a.py\n*** Move to: /tmp/b.py\n*** End Patch"
+    assert k("patch", {"mode": "patch", "patch": body}) == ("file:write-outside", C.MEDIUM)
+
+
+def test_hermes_mcp_names():
+    assert k("mcp__notion__search") == ("mcp:notion:search", C.FREE)
+    assert k("mcp__gmail__send_email") == ("mcp:gmail:send_email", C.HIGH)
+    assert k("mcp_notion_search") == ("mcp:notion:search", C.FREE)
+
+
+def test_manage_connections_is_capped():
+    assert k("manage_connections") == ("self:connections", C.CAP)
+
+
+def test_cd_is_followed_for_redirects():
+    assert k("terminal", {"command": "cd ~/.ssh && echo k >> authorized_keys"}) == ("file:sensitive", C.CAP)
+    assert k("terminal", {"command": "cd /etc\necho k > hosts"}) == ("file:sensitive", C.CAP)
+
+
+def test_only_project_file_writes_are_reversible():
+    r = lambda tool, args: C.classify(tool, args, cwd=CWD).reversible
+    assert r("write_file", {"path": "src/a.py"}) is True
+    assert r("write_file", {"path": "/tmp/x"}) is False
+    assert r("terminal", {"command": "rm a.py"}) is False
+    assert r("terminal", {"command": "ls"}) is False
+    assert r("memory", {}) is False
+    assert r("read_file", {"path": "a"}) is False
+
+
+def test_files_written():
+    body = "*** Begin Patch\n*** Update File: src/a.py\n*** Move File: b.py -> c.py\n*** End Patch"
+    assert C.files_written("write_file", {"path": "a.py"}, CWD) == [f"{CWD}/a.py"]
+    assert C.files_written("patch", {"path": "README.md", "mode": "patch", "patch": body}, CWD) == [
+        f"{CWD}/README.md", f"{CWD}/src/a.py", f"{CWD}/b.py", f"{CWD}/c.py"]
+    assert C.files_written("terminal", {"command": "ls"}, CWD) == []
+    assert C.files_written("read_file", {"path": "a"}, CWD) == []
+
+
+@pytest.mark.parametrize("tool,args", [
+    ("web_extract", {}), ("web_search", {}), ("browser_navigate", {}), ("browser_click", {}),
+    ("mcp__gmail__get_message", {}), ("mcp__slack__read_channel", {}),
+    ("read_file", {"path": "/etc/hosts"}), ("read_file", {"path": "../other/x"}),
+    ("terminal", {"command": "curl -s https://x"}), ("terminal", {"command": "ls && wget https://x"})])
+def test_reads_external_true(tool, args):
+    assert C.reads_external(tool, args, CWD) is True
+
+
+@pytest.mark.parametrize("tool,args", [
+    ("read_file", {"path": "src/a.py"}), ("terminal", {"command": "ls"}),
+    ("mcp__notion__update_page", {}), ("mcp__notion__search", {}), ("mcp__hubspot__get_contact", {}),
+    ("write_file", {"path": "a"})])
+def test_reads_external_false(tool, args):
+    assert C.reads_external(tool, args, CWD) is False
