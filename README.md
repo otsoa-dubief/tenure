@@ -1,45 +1,36 @@
-# clearance — earned autonomy for Hermes Agent
+# clearance: everything covered, autonomy earned
 
-**Your agent asks until it has earned the right not to: one action type at a time, with a guarantee you choose.**
+**Hermes alone asks only for commands that look dangerous. clearance covers every action that changes something,
+and your agent earns its way back to acting alone, one action type at a time, with a guarantee you choose.**
 
-Hermes asks you command by command, or not at all. So you either approve the same safe actions forever, or you
-switch approvals off and hope. clearance finds the middle on its own:
+Out of the box, Hermes asks about a short list of risky-looking commands and lets everything else through. You
+cannot see what the agent did without asking, and you cannot say "trust it on this, not on that". clearance
+closes that gap: every action that changes something asks first, through Hermes' own approval prompt. Each
+action type (writing files in the project, `npm`, `git push`, sending a message, one MCP tool) keeps its own
+verified record, and climbs from asking, to acting then telling you with an undo, to acting alone, only on
+evidence. Reads never ask. Secrets, sensitive files and the agent's own skills and plugins always ask.
 
-- every action that changes something asks you, through Hermes' own approval prompt;
-- each **action type** (writing files in the project, `npm`, `git push`, sending a message, an MCP tool…) keeps its
-  own record of your answers;
-- after **i approvals in a row**, the type is **cleared**: the agent acts alone on it, with random **spot checks**
-  (one action in ten still asks);
-- **one refusal**, on a spot check or an error you flag, revokes the clearance: back to asking;
-- a **new model starts with an empty record**: what one model earned says nothing about the next.
+## Three pillars
 
-Reads never ask. Secrets, sensitive files and the agent's own skills and plugins always ask.
+**1. Your own benchmark.** Public leaderboards say how a model does on someone else's tasks. clearance keeps a
+table of how each model does on yours: verified successes and faults per action type, always with the
+denominator (`3 faults / 140 checks`). A bundled snapshot of public scores sits beside it, and a model that
+scores clearly lower on the same benchmark loses a carry-over. A model with no public measure is shown as such.
 
-## How many approvals? The risk you accept decides
+![Personal benchmark](docs/images/dashboard-benchmark.png)
 
-`i` is not a magic number. clearance runs Dodge's continuous sampling plan CSP-1 (1943) on each action type, and
-picks the smallest `i` that keeps the share of errors that run **without your approval** under the risk you
-accept. With one spot check in ten:
+**2. The live map.** The dashboard tab shows every agent and every action type: its tier, its evidence, what it
+still needs, and what changes if you switch model or move the risk dial. Each change comes with its reason.
 
-| Preset | Low stakes (files in the project, memory) | Medium (commands, code, files elsewhere) | High (leaves the machine, money) |
-|---|---|---|---|
-| careful | 110 approvals (1 in 100) | 220 (1 in 200) | 1,100 (1 in 1,000) |
-| **balanced** (default) | **54** (1 in 50) | **110** (1 in 100) | always asked |
-| fast | 21 (1 in 20) | 54 (1 in 50) | always asked |
+![Live map](docs/images/dashboard-map.png)
 
-What the guarantee says, honestly:
+**3. The autonomy passport.** One file that states what an agent earned and on what evidence. It is signed and
+tamper-evident: anyone holding the passport and the exported ledger can replay the ledger and recompute the
+same tiers (`hermes clearance verify`). The format is in [docs/protocol.md](docs/protocol.md).
 
-- **Errors you catch never run.** An asked action you refuse is blocked; only unchecked actions of a cleared type
-  can be wrong without you seeing them first.
-- **For an agent whose error rate is stable**, those errors stay under the risk you chose, whatever that rate is
-  (that maximum is the plan's average outgoing quality limit).
-- **For an agent that turns bad after clearance**, it is worse until the first caught error revokes the clearance:
-  at most about 14 % of its actions with the balanced low-stakes settings. Spot checks are what catch it.
-- The test suite runs the rule against simulated agents and checks the numbers against the theory.
+![Autonomy passport](docs/images/dashboard-passport.png)
 
-`hermes clearance explain` prints these numbers for your own settings.
-
-## Install
+## Install in 60 seconds
 
 ```bash
 hermes plugins install otsoa-dubief/clearance/clearance
@@ -47,83 +38,133 @@ hermes gateway restart          # if a gateway is running
 hermes clearance setup          # the three presets side by side
 ```
 
-Requires Hermes 0.23.0 or later. No network, no LLM call, nothing to configure to start.
+Requires Hermes 0.23.0 or later and Python 3.11 or later. No network, no LLM call, nothing to configure to start.
+Work as usual: `hermes clearance` shows where each action type stands.
 
-## Use
+## How it works
+
+**Tiers.** Each action type of each agent (`model@provider`) is in one of three tiers.
+
+| Tier | What happens |
+|---|---|
+| Ask | Every action of the type asks you first. Everything starts here. |
+| Act, then notify | The agent acts, then tells you, with an undo: the files it touched were saved first (24 hours, 5 MB per action). Only for reversible types at low or medium stakes. |
+| Act alone | The agent acts alone. A random share of actions (one in ten by default) still asks, as a spot check. |
+
+**Proofs.** A type climbs on verified outcomes, judged after the tool has run: an approved action that ran
+cleanly and whose automatic check passed (the written file still parses, the exit code is zero) is a success. A
+refusal, a failed check, an undo or an error you flag is a fault. What nobody verified (a timeout, a tool that
+failed, an answer from no person, an action taken alone) counts for nothing. A fault resets the series; a medium
+or high fault sends the type back to asking, lengthens the next climb, and opens a trial of 3 verified
+successes. Asked-but-never-run actions are never counted as successes.
+
+**Two sessions.** The series that reaches "act alone" must hold successes from at least two distinct sessions.
+
+**Suspension after external content.** A session that read text written by someone else asks for everything,
+until it ends. That covers `web_search`, `web_extract`, the `browser_*` tools, `read_file` outside the project,
+`curl` and `wget` (also inside `$(...)`, `bash -c`, `xargs`), `gh` reads of issues, PRs and the API, and MCP read
+tools of servers whose name suggests mail, chat or the web (mail, gmail, outlook, imap, slack, discord, telegram,
+whatsapp, web, fetch, browser, rss, reddit, twitter, x, brave, search, exa, tavily, serp, playwright, puppeteer,
+firecrawl, crawl, scrape, github). A session that runs code through `execute_code` is suspended too, and a child
+agent that read external content suspends its parent.
+
+**Model change.** A new model inherits half of the previous model's record, on trial, unless a public benchmark
+vetoes it (5 points lower on the same benchmark). Strict mode (`hermes clearance strict on`) starts every type
+over instead. A returning model keeps its own record.
+
+## The guarantee
+
+You pick the risk you accept per stakes level. clearance picks the smallest number of approvals in a row that keeps
+the share of unapproved errors under it (Dodge's continuous sampling plan CSP-1, with one spot check in ten). The
+table is generated from the same code that decides (`params.describe`), and a test checks it.
+
+Cell: approvals in a row, guarantee (errors that run unapproved, as a share of all actions of the type, for a
+stable agent), worst case (for an agent that turns bad after clearance, until a caught error revokes it).
+
+| Preset | Low stakes (files in the project, memory) | Medium (commands, code, files elsewhere) | High (leaves the machine, money) |
+|---|---|---|---|
+| careful | 105 approvals · 1.0% · worst 7.8% | 210 approvals · 0.5% · worst 4.1% | 1052 approvals · 0.1% · worst 0.8% |
+| **balanced** (default) | 52 approvals · 2.1% · worst 14.5% | 105 approvals · 1.0% · worst 7.8% | always asks |
+| fast | 21 approvals · 5.0% · worst 29.0% | 52 approvals · 2.1% · worst 14.5% | always asks |
+
+Errors you catch never run: a refused action is blocked. `hermes clearance explain` prints the numbers for your own
+settings.
+
+## The study behind the rule
+
+clearance uses the same rule as a preregistered study, simulated on 6,000+ agents. See [docs/the-study.md](docs/the-study.md).
+
+What clearance adds to the study's rule:
+
+- spot checks on a cleared type (one in ten by default);
+- the requirement of two distinct sessions;
+- suspension after external content;
+- one trial covers the faults that happen during the wait and the inherited faults;
+- evidence is re-based when the stakes of a type change;
+- human approval plus clean execution counts as proof, an adaptation of the study's automatic control;
+- the middle tier (act, then notify with an undo).
+
+Carry-over is our addition; strict mode is the study.
+
+## Commands
 
 | Command | What it does |
 |---|---|
-| `hermes clearance` · `/clearance` | What the agent has earned, per action type, for the current model |
+| `hermes clearance` · `hermes clearance status [--profile P] [--model M] [--all]` · `/clearance` | What each agent has earned, per action type |
 | `hermes clearance setup [careful\|balanced\|fast]` | The presets side by side; with a name, use it |
 | `hermes clearance explain` | How it decides, and the guarantee for your settings |
+| `hermes clearance models [--type T]` | Each model's verified record on your own work |
+| `hermes clearance undo ID` | Restore the files of an action taken alone |
 | `hermes clearance flag TYPE [note]` | Report an error the agent made on its own: revokes that type |
-| `hermes clearance revoke TYPE\|all` | Take a clearance back |
-| `hermes clearance export [PATH]` | Write the evidence: one hash-chained JSON line per decision |
-| `hermes clearance verify [PATH]` | Check that an evidence file was not edited |
+| `hermes clearance revoke TYPE\|--all` | Take a clearance back |
+| `hermes clearance passport [--agent A] [--out FILE] [--no-redact]` | Write the signed passport of an agent |
+| `hermes clearance verify PASSPORT [LEDGER]` | Check a passport, against the exported ledger when given |
+| `hermes clearance anchor` | One line to publish: the ledger's head, date and length |
+| `hermes clearance export [PATH]` | Write the evidence ledger as hash-chained JSON lines |
+| `hermes clearance strict on\|off` | Strict mode: a new model starts with an empty record |
+| `hermes clearance cleanup` | List dead clearance keys in Hermes' permanent allowlist (prints, never edits) |
 
-## Settings
-
-In `config.yaml`, under `plugins.entries.clearance.settings`:
+Settings, in `config.yaml` under `plugins.entries.clearance.settings`:
 
 ```yaml
 preset: balanced            # careful | balanced | fast
-risks:                      # your own, over the preset
-  low: 1/50
-  medium: 1%
-  high: cap                 # always ask
+risks: {low: 1/50, medium: 1%, high: cap}   # your own, over the preset
 spot_check: 0.1             # share of a cleared type's actions that still ask
-types:                      # reclassify action types
-  "mcp:notion:*": medium
-  "shell:git:push": cap
+strict: false
+types: {"mcp:notion:*": medium, "shell:git:push": cap}   # reclassify action types
 enabled: true
 ```
 
-## Action types
-
-| Stakes | Types |
-|---|---|
-| free (never asks) | reads: files, search, web, `git status`/`log`/`diff`, `ls`, `cat`, `curl` without a payload… |
-| low | `file:write` (inside the session's project), `memory:write`, `message:react`, `kanban:*`, `media:generate` |
-| medium | `shell:<program>` (one type per program, and per subcommand when it changes the stakes), `code:execute`, `delegate:task`, `browser:*`, `file:write-outside`, MCP tools that create or update |
-| high | `shell:git:push`, `shell:npm:publish`, `shell:curl:send`, `ssh`, `scp`, `message:send`, `cron:manage`, MCP tools that send, post or pay, and **any tool whose effect cannot be read** |
-| cap (always asks) | `secrets:vault`, `self:skills`, `self:plugins`, `file:sensitive` (`.env`, keys, `~/.ssh`, Hermes' own config…) |
-
-A shell chain takes its riskiest part: `pytest && git push` is `shell:git:push`.
-
-## How it fits with the rest of Hermes
-
-- **With airlock** (walls that follow untrusted content): any plugin's block wins, then any request to ask.
-  clearance never blocks; it only asks or lets a cleared type through.
-- **Hermes' own "always" button** on a clearance prompt clears the type by hand, until its next refusal.
-- **Cron**: cleared types run unattended, without spot checks; anything else follows `approvals.cron_mode` (deny
-  by default). Only a person's answers count: when Hermes settles an ask itself (cron, `--yolo`,
-  `approvals.mode: off`, a smart-mode verdict), nothing is learned.
-- **Evidence**: decisions are kept in `plugin-data/clearance/clearance.db` as a hash chain, with action types,
-  stakes, outcomes and models, never commands, paths or message contents.
-
-## Dashboard tab
-
-The Hermes dashboard gets a Clearance tab (API under `/api/plugins/clearance/`, behind the dashboard's own
-authentication). Disclosed, as the catalog asks: to show every profile on the machine, the tab **reads, read-only**,
-the `plugin-data/clearance/clearance.db` of the Hermes root and of each `profiles/*` folder, which are outside this
-plugin's folder; it also reads the passport key file's presence, never its content, and writes nothing on a read.
-Revoke, flag, undo and settings act on the dashboard's current profile only.
-
 ## Limits
 
+- **It over-asks by design.** Shell constructs outside the supported grammar (`if`, `for`, functions, globs in a
+  write target), write targets it cannot resolve, and any name that looks sensitive are classified as high stakes
+  or always-ask. A wrong guess costs you a question, never a silent action.
+- **Granularity is per action type.** A cleared `shell:python` can run any Python. Reclassify broad types as `cap`
+  if that matters to you.
+- **The passport is tamper-evident; it cannot prevent tampering.** It is signed by the owner's own key, so the owner can
+  rewrite a whole history and re-sign it. Anchor its head (`hermes clearance anchor`) somewhere public to fix a point in time.
+- **Redaction uses unsalted hashes.** A redacted passport hides a type name from a casual reader, not from
+  someone who guesses it.
+- **SQLite side files.** The dashboard opens each database read-only; on a database in WAL mode SQLite may still
+  create or touch the `-wal` and `-shm` files next to it. No table or row is written by a read.
+- **Settings from the dashboard** (`/settings`) may not reach the plugin from the dashboard process; the tab then
+  shows the CLI command to run.
+- **Learning pauses unless `approvals.mode` is `manual`.** With `--yolo`, `off`, cron, or a smart-mode verdict,
+  Hermes settles the ask itself and nothing is learned.
+- Approvals count only when a person answers. Records are per model and per Hermes profile.
 - The guarantee covers errors you would refuse when asked. An error nobody would notice cannot be counted.
-- Types follow tools and programs, not intent: a cleared `shell:python` can run any Python. Reclassify broad
-  types as `cap` if that matters to you.
-- Approvals count only when a person answers: timeouts, cancellations and smart (model) approvals do not.
-- Records are per model and per Hermes profile.
-- The dashboard opens each database read-only (SQLite `mode=ro`). On a database in WAL mode, SQLite may still create
-  or touch the `-wal` and `-shm` side files next to it; no table, row or other file is written by a read.
 
-## Where it comes from
+## Privacy
 
-clearance is the runtime side of a research protocol on progressive delegation to AI agents ("earned autonomy"),
-whose rule was tested on simulated agents before any real one.
+Stored, in `plugin-data/clearance/clearance.db` of each Hermes profile: action types and stakes, outcomes, tiers,
+the agent string `model@provider`, sessions as `sha256(session id)[:12]`, timestamps, and a hash chain over all of
+it. Undo snapshots of files the agent changed alone are kept locally for 24 hours.
+
+Never stored: a command, a path, an argument, file content, a message, or a secret. Nothing leaves your machine:
+no network access, no LLM call, no telemetry. clearance does not read `.env`, `auth.json` or any credential
+store. The dashboard tab reads, read-only, the databases of the other profiles under the Hermes root.
 
 ## License
 
-Apache-2.0 · © 2026 Otsoa Dubief
+Apache-2.0 · © 2026 Otsoa Dubief. Benchmark data: Epoch AI, CC BY 4.0, see [NOTICE](clearance/NOTICE).
