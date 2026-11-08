@@ -1020,7 +1020,7 @@ FIND_EXEC = {"-exec", "-execdir", "-ok", "-okdir"}
 SEDS = {"sed", "gsed"}
 RUNS = {"xargs", "parallel", "watch"} | FINDS            # programs whose arguments are a command
 MAX_VARIANTS = 32                                        # beyond, what runs is not read: shell:complex
-MAX_COMMAND = 64 * 1024                                  # a longer command is not lexed (quadratic cost): complex
+MAX_COMMAND = 64 * 1024                                  # a command this long or longer is not lexed: complex
 
 
 def _top(results: list[tuple[str, str]]) -> tuple[str, str]:
@@ -1521,8 +1521,9 @@ def _complex_floor(command: str) -> bool:
 def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str, bool]:
     """The precise reading (typed twice, the riskier wins: by lines, then the whole command tokenised) may lower
     stakes only for commands it fully understands. Two floors are checked independently of it: a sensitive name
-    (cap) and constructs outside the grammar (shell:complex, high). A command over MAX_COMMAND is not read at all."""
-    if len(command or "") > MAX_COMMAND:
+    (cap) and constructs outside the grammar (shell:complex, high). A command of MAX_COMMAND characters or more is
+    not read at all."""
+    if len(command or "") >= MAX_COMMAND:
         return "shell:complex", HIGH, False
     home = _norm(home or os.path.expanduser("~"))
     command = _join_lines(command)

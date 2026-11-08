@@ -1,34 +1,49 @@
 """End-to-end check inside a real Hermes install: clearance is discovered, enabled and called through Hermes' own
-hook dispatch and approval gate (the path a live agent uses), with a scripted owner answering the prompts, and the
-post_tool_call hook fired after each call the way model_tools.py fires it.
+approval gate (``resolve_pre_tool_block``, the path a live agent uses), with a scripted owner answering the prompts.
+File tools really run, through ``model_tools.handle_function_call``, in a throwaway project directory, and
+``post_tool_call`` is fired by Hermes' own emitter, as model_tools.py fires it. Undo, passport, export and verify go
+through the ``hermes clearance`` command line.
 
     HERMES_AGENT_DIR=/path/to/hermes-agent /path/to/hermes/python tests/integration/run_in_hermes.py
 
-Uses a throwaway HERMES_HOME; your own profiles are never touched. Exit code 0 when every check passes.
+Uses a throwaway HERMES_HOME; your own profiles are never touched. No network. Exit code 0 when every check passes.
 """
+import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 home = tempfile.mkdtemp(prefix="clearance-it-")
+project = os.path.realpath(tempfile.mkdtemp(prefix="clearance-project-"))
 os.environ["HERMES_HOME"] = home
 os.environ["HERMES_INTERACTIVE"] = "1"          # a person at the CLI answers approvals
-os.environ.pop("HERMES_YOLO_MODE", None)
+os.environ["TERMINAL_CWD"] = project
+for name in ("HERMES_YOLO_MODE", "HERMES_CRON_SESSION", "ANTHROPIC_API_KEY"):
+    os.environ.pop(name, None)
+os.chdir(project)
 os.makedirs(os.path.join(home, "plugins"))
 shutil.copytree(os.path.join(REPO, "clearance"), os.path.join(home, "plugins", "clearance"),
                 ignore=shutil.ignore_patterns("__pycache__"))
+# low 1/20: a series of 21, longer than the 12 successes of the middle tier, so the climb shows T2 before T3.
+# cron_mode approve: a cron job runs its asks unattended, so its automatic check is what judges them.
 with open(os.path.join(home, "config.yaml"), "w") as f:
-    f.write("plugins:\n  enabled: [clearance]\n  entries:\n    clearance:\n      settings:\n"
-            "        risks: {low: 1/4, medium: 1/5, high: cap}\n")
+    f.write("approvals:\n  cron_mode: approve\n"
+            "plugins:\n  enabled: [clearance]\n  entries:\n    clearance:\n      settings:\n"
+            "        risks: {low: 1/20, medium: 1/5, high: cap}\n")
 
 sys.path.insert(0, os.environ.get("HERMES_AGENT_DIR") or os.path.expanduser("~/.hermes/hermes-agent"))
-from hermes_cli import lifecycle, plugins  # noqa: E402
+from hermes_cli import plugin_messages, plugins  # noqa: E402
+import model_tools  # noqa: E402
 import tools.approval as approval  # noqa: E402
+from cron import execution_identity  # noqa: E402
 
-asked = []
-answers = []
+HERMES = os.path.join(os.path.dirname(sys.executable), "hermes")      # the CLI of this very Hermes environment
+if not os.path.exists(HERMES):
+    HERMES = shutil.which("hermes") or HERMES
+asked, answers, posted = [], [], []
 
 
 def scripted_owner(command, description, **kwargs):
@@ -36,7 +51,13 @@ def scripted_owner(command, description, **kwargs):
     return answers.pop(0) if answers else "deny"
 
 
+def capture_post(ctx, text):
+    posted.append(text)
+    return None
+
+
 approval.prompt_dangerous_approval = scripted_owner
+plugin_messages.post = capture_post               # what the plugin would post into the conversation
 plugins.discover_plugins(force=True)
 core = next((m for m in list(sys.modules.values()) if getattr(m, "PREFIX", None) == "clearance"
              and hasattr(m, "pre_tool_call")), None)
@@ -45,7 +66,7 @@ failures = []
 
 def check(label, got, want):
     ok = got == want
-    print(f"{'ok  ' if ok else 'FAIL'} {label}: {got!r}")
+    print(f"{'ok  ' if ok else 'FAIL'} {label}: {got!r}" + ("" if ok else f" (wanted {want!r})"))
     if not ok:
         failures.append(label)
 
@@ -61,63 +82,226 @@ class Picks:
 counter = [0]
 
 
-def run(tool, args, answer=None, session="it-1", call_id=None):
-    """What happens to one tool call: 'ran' (no prompt), 'approved', 'refused'. Then post_tool_call, as Hermes emits
-    it: status "blocked" for a call the gate stopped, "ok" otherwise."""
+def run(tool, args, answer=None, session="it-1", call_id=None, real=True):
+    """One tool call through Hermes' gate: 'ran' (no prompt), 'approved', 'refused'. When the gate lets it through,
+    a real call executes the tool through model_tools.handle_function_call (which fires post_tool_call itself); a
+    shell call that must not really run gets a synthetic clean result. A blocked call reports "blocked", as Hermes
+    does."""
     counter[0] += 1
     before = len(asked)
     if answer:
         answers.append(answer)
-    ids = dict(session_id=session, task_id=session, tool_call_id=call_id or f"tc-{counter[0]}")
+    call = call_id or f"tc-{counter[0]}"
+    ids = dict(session_id=session, task_id=session, tool_call_id=call)
     msg = plugins.resolve_pre_tool_block(tool, args, **ids)
-    lifecycle.invoke_hook("post_tool_call", tool_name=tool, args=args, result='{"success": true}', **ids,
-                          duration_ms=1, status="ok" if msg is None else "blocked",
-                          error_type=None if msg is None else "plugin_block", error_message=msg)
+    if msg is not None:
+        model_tools._emit_post_tool_call_hook(function_name=tool, function_args=args, result=json.dumps(
+            {"error": msg}), **ids, status="blocked", error_type="plugin_block", error_message=msg)
+    elif real:
+        out = model_tools.handle_function_call(tool, dict(args), skip_pre_tool_call_hook=True, **ids)
+        if '"error"' in str(out):
+            print(f"     ({tool} result: {str(out)[:200]})")
+    else:
+        model_tools._emit_post_tool_call_hook(function_name=tool, function_args=args,
+                                              result='{"output": "", "exit_code": 0}', **ids, duration_ms=1)
     if len(asked) == before:
         answers.clear()
         return "ran" if msg is None else f"blocked without asking: {msg}"
     return "approved" if msg is None else "refused"
 
 
+def write(content, answer=None, session="it-1", name="notes.md"):
+    """Read then write, as an agent does: Hermes refuses to overwrite a file this session has not read since it last
+    changed. The read is free: it never asks and never counts."""
+    path = os.path.join(project, name)
+    if os.path.exists(path):
+        model_tools.handle_function_call("read_file", {"path": path}, session_id=session, task_id=session,
+                                         tool_call_id=f"rd-{counter[0]}")
+    return run("write_file", {"path": os.path.join(project, name), "content": content}, answer, session=session)
+
+
+def tier(agent="model-a@test", key="file:write"):
+    s = core.store_().recorded(agent, key)
+    return None if s is None else (s.tier, s.series, len(s.sessions))
+
+
+def cli(*argv):
+    """``hermes clearance ...`` in a child process: Hermes' own argparse, the same home and project."""
+    p = subprocess.run([HERMES, "clearance", *argv], capture_output=True, text=True, cwd=project,
+                       env={**os.environ}, timeout=120)
+    return p.returncode, (p.stdout + p.stderr).strip()
+
+
+def read(name="notes.md"):
+    with open(os.path.join(project, name), encoding="utf-8") as f:
+        return f.read()
+
+
+def since(mark):
+    return posted[mark:]
+
+
+# ---------------------------------------------------------------------------------------------- loaded
 check("clearance loaded", core is not None, True)
 check("five hooks registered", sorted(h for h in ("pre_api_request", "pre_tool_call", "post_approval_response",
                                                   "post_tool_call", "subagent_stop") if plugins.has_hook(h)),
       ["post_approval_response", "post_tool_call", "pre_api_request", "pre_tool_call", "subagent_stop"])
 core.ST.rng = Picks()
 plugins.invoke_hook("pre_api_request", model="model-a", provider="test", session_id="it-1")
-check("read: never asks", run("read_file", {"path": "README.md"}), "ran")
-check("git status: never asks", run("terminal", {"command": "git status"}), "ran")
+with open(os.path.join(project, "README.md"), "w") as f:
+    f.write("# throwaway\n")
+check("read: never asks", run("read_file", {"path": os.path.join(project, "README.md")}), "ran")
+check("git status: never asks", run("terminal", {"command": "git status"}, real=False), "ran")
+
+# ---------------------------------------------------------------------------------- climb to NOTIFY, undo
 n = core.params.required_n(core.settings()["risks"], "low")
-for k in range(n):                             # verified successes from two sessions: the series that reaches T3
-    check(f"file write {k + 1}/{n}: asks", run("write_file", {"path": "notes.md", "content": "x"}, "once",
-                                                session="it-1" if k < n // 2 else "it-2"), "approved")
-check("file write after the series: acts alone", run("write_file", {"path": "notes.md", "content": "x"}), "ran")
+check("series length at low stakes, 1/20", n, 21)
+for k in range(12):                            # the middle tier's test: 12 verified successes at low stakes
+    check(f"file write {k + 1}/12: asks", write(f"v{k + 1}", "once"), "approved")
+check("file written for real", read(), "v12")
+check("after 12 successes: T2", tier(), ("notify", 12, 1))
+mark = len(posted)
+check("T2: acts without asking", write("notified"), "ran")
+check("T2: the file really changed", read(), "notified")
+undo_posts = [p for p in since(mark) if "/clearance undo" in p]
+check("T2: the owner is notified with an undo", len(undo_posts), 1)
+undo_id = undo_posts[0].rsplit(" ", 1)[1] if undo_posts else "0"
+code, out = cli("undo", undo_id)
+print("     " + out.replace("\n", "\n     "))
+check("hermes clearance undo: exit code", code, 0)
+check("undo: the file is back as before the action", read(), "v12")
+check("undo: counted as a fault, back to T1, series reset", tier(), ("ask", 0, 0))
+code, out = cli("undo", undo_id)
+check("undo twice: refused", (code, "already undone" in out), (1, True))
+
+# --------------------------------------------------------------------------------- ALLOW after two sessions
+k = 0
+while tier()[0] != "notify" and k < 10:        # the score climbs back over the fault
+    k += 1
+    check(f"after the undo, write {k}: asks", write(f"w{k}", "once"), "approved")
+check("back to T2 after the undo", tier()[0], "notify")
+for _ in range(n):                             # the rest of the series acts then notifies, all in session it-1
+    if tier()[1] >= n:
+        break
+    check(f"T2 write, series {tier()[1] + 1}/{n}: acts", write(f"s{tier()[1]}"), "ran")
+check("full series from one session: still T2", tier(), ("notify", n, 1))
+check("one session only: still notifies", write("one-session"), "ran")
+check("a second session completes the series: T3", (write("second", session="it-2"), tier()),
+      ("ran", ("alone", n, 2)))
+mark = len(posted)
+check("T3: acts alone", write("alone", session="it-2"), "ran")
+check("T3: no undo notice (acting alone)", [p for p in since(mark) if "/clearance undo" in p], [])
+check("T3: the file really changed", read(), "alone")
+
+# --------------------------------------------------------------------------------- spot check and descent
 core.ST.rng = Picks([0.0])
-check("spot check: asks", run("write_file", {"path": "notes.md", "content": "y"}, "deny"), "refused")
-# One tier down at low stakes, but T3 came from the series (4 here) before the middle tier's test passed: acting then
-# notifying needs that test's evidence, so it asks.
-check("after a refused spot check: asks again", run("write_file", {"path": "notes.md", "content": "z"}, "once"),
+mark = len(posted)
+check("spot check: asks", write("spotted", "deny", session="it-2"), "refused")
+check("a refused spot check never wrote the file", read(), "alone")
+check("descent: one tier down, series reset", tier()[:2], ("notify", 0))
+check("descent is announced", any("is back at T2" in p and "after a fault" in p for p in since(mark)), True)
+
+# ------------------------------------------------------------------------------------------------- taint
+model_tools._emit_post_tool_call_hook(function_name="web_extract", function_args={"urls": ["https://example.com"]},
+                                      result='{"results": []}', session_id="it-5", task_id="it-5",
+                                      tool_call_id="tc-web", duration_ms=1, status="ok")
+before = len(asked)
+check("suspended session: a write asks", write("tainted", "once", session="it-5"), "approved")
+check("the ask says why", "suspended: external content read" in (asked[before] if len(asked) > before else ""),
+      True)
+check("other sessions are not suspended", write("clean", session="it-2"), "ran")
+
+# --------------------------------------------------------------------------------- 'always' never bypasses
+check("git push: high stakes, capped by the settings",
+      run("terminal", {"command": "git push origin main"}, "always", real=False), "approved")
+check("git push again: 'always' did not silence it",
+      run("terminal", {"command": "git push origin main"}, "once", real=False), "approved")
+check(".env: capped", run("write_file", {"path": os.path.join(project, ".env"), "content": "K=1"}, "deny"),
+      "refused")
+check(".env never written", os.path.exists(os.path.join(project, ".env")), False)
+check("npm test: asks", run("terminal", {"command": "npm test"}, "always", real=False), "approved")
+check("npm after 'always': still asks (one-off keys)", run("terminal", {"command": "npm test"}, "once", real=False),
       "approved")
-check("git push: high stakes, capped by the settings", run("terminal", {"command": "git push origin main"}, "always"),
-      "approved")
-check("git push again: 'always' did not silence it", run("terminal", {"command": "git push origin main"}, "once"),
-      "approved")
-check(".env: capped", run("write_file", {"path": ".env", "content": "K=1"}, "deny"), "refused")
-check("npm test: asks", run("terminal", {"command": "npm test"}, "always"), "approved")
-check("npm after 'always': still asks (one-off keys)", run("terminal", {"command": "npm test"}, "once"), "approved")
+check("'always' on call_0 in one session",
+      run("terminal", {"command": "make build"}, "always", session="it-3", call_id="call_0", real=False), "approved")
+check("the same call_0 in another session still asks",
+      run("terminal", {"command": "make build"}, "once", session="it-4", call_id="call_0", real=False), "approved")
+check("timeout counts for nothing", run("terminal", {"command": "npm test"}, "timeout", real=False), "refused")
+
+# --------------------------------------------------------------------------------------------- model switch
+a_state = tier()
+mark = len(posted)
 plugins.invoke_hook("pre_api_request", model="model-b", provider="test", session_id="it-1")
-check("new model: npm asks again", run("terminal", {"command": "npm test"}, "once"), "approved")
-check("timeout counts for nothing", run("write_file", {"path": "a.md", "content": "x"}, "timeout"), "refused")
-check("'always' on call_0 in one session", run("terminal", {"command": "make build"}, "always", session="it-3",
-                                                 call_id="call_0"), "approved")
-check("the same call_0 in another session still asks (Hermes' permanent allowlist)",
-      run("terminal", {"command": "make build"}, "once", session="it-4", call_id="call_0"), "approved")
+switch = [p for p in since(mark) if "new agent model-b@test" in p]
+print("     " + (switch[0] if switch else "(no announcement)"))
+check("model switch announced", len(switch), 1)
+check("the announcement names the carry-over", any("carried over on trial" in p for p in switch), True)
+b_state = tier("model-b@test")
+check("model-b inherits half the series, provisional", (b_state[1], core.store_().recorded(
+    "model-b@test", "file:write").provisional), (a_state[1] // 2, a_state[1] // 2))
+check("new model: npm asks again", run("terminal", {"command": "npm test"}, "once", real=False), "approved")
+
+# --------------------------------------------------------------------------------- cron: the check judges
+token = execution_identity._CURRENT.set(execution_identity.CronExecution(
+    job_id="job-1", job_name="nightly", execution_id="ex-1", source="builtin", scheduled_instant=None,
+    started_at=None, profile="default"))
+os.environ["HERMES_CRON_SESSION"] = "1"
+try:
+    check("cron: nobody answers", core.nobody_answers(), "cron")
+    before_faults = core.store_().recorded("model-b@test", "file:write").faults
+    mark = len(posted)
+    # Hermes itself refuses a JSON or TOML write that does not parse; Python with a syntax error is written.
+    check("cron: a broken Python write runs unattended",
+          run("write_file", {"path": os.path.join(project, "job.py"), "content": "def broken(:\n"},
+              session="cron-1"), "ran")
+    check("cron: the file was written", read("job.py"), "def broken(:\n")
+    check("cron: the automatic check counts a fault",
+          core.store_().recorded("model-b@test", "file:write").faults, before_faults + 1)
+    check("cron: the fault is announced", any("python syntax error" in p for p in since(mark)), True)
+finally:
+    os.environ.pop("HERMES_CRON_SESSION", None)
+    execution_identity._CURRENT.reset(token)
+
+# ----------------------------------------------------------------------------------------- the evidence
 rows = core.store_().ledger()
 kinds = [r["event"]["event"] for r in rows]
+outcomes = [r["event"] for r in rows if r["event"]["event"] == "outcome"]
 check("evidence chain intact", core.store.verify(rows), [])
-check("evidence holds no content", any("notes.md" in str(r) or "K=1" in str(r) for r in rows), False)
-check("every verified outcome is a ledger input", kinds.count("outcome"), n + 11)
+check("evidence holds no content", any(x in json.dumps(rows) for x in ("notes.md", "K=1", "broken(", project,
+                                                                       "it-1", "make build")), False)
 check("the model change is a ledger input", kinds.count("agent"), 1)
-print(core.cli.status_text("model-a@test"))
+check("sources seen", sorted({o["source"] for o in outcomes}),
+      sorted({"approval", "notify", "undo", "alone", "spot", "check", "timeout"}))
+
+# --------------------------------------------------------------------------------- passport, export, verify
+pp, ledger = os.path.join(project, "passport.json"), os.path.join(project, "ledger.jsonl")
+code, out = cli("passport", "--agent", "model-a@test", "--out", pp)
+print("     " + out.replace("\n", "\n     "))
+check("hermes clearance passport: exit code", code, 0)
+code, out = cli("export", ledger)
+check("hermes clearance export: exit code", code, 0)
+code, out = cli("verify", pp, ledger)
+print("     " + out)
+check("verify with the ledger: OK", (code, out.startswith("OK:")), (0, True))
+with open(pp, encoding="utf-8") as f:
+    forged = json.load(f)
+forged["types"][0]["series"] = forged["types"][0]["series"] + 5
+bad = os.path.join(project, "passport-tampered.json")
+with open(bad, "w", encoding="utf-8") as f:
+    json.dump(forged, f)
+code, out = cli("verify", bad, ledger)
+print("     " + out.replace("\n", "\n     "))
+check("a tampered passport FAILS", (code, out.startswith("OK")), (1, False))
+with open(ledger, encoding="utf-8") as f:
+    lines = f.read().splitlines()
+cut = os.path.join(project, "ledger-tampered.jsonl")
+with open(cut, "w", encoding="utf-8") as f:
+    f.write("\n".join(lines[:5] + lines[6:]) + "\n")
+code, out = cli("verify", pp, cut)
+check("a tampered ledger FAILS", (code, out.startswith("OK")), (1, False))
+
+print("\n" + core.cli.status_text("model-a@test"))
+shutil.rmtree(home, ignore_errors=True)
+shutil.rmtree(project, ignore_errors=True)
 print("\n" + ("ALL CHECKS PASSED" if not failures else f"{len(failures)} FAILED: {failures}"))
 sys.exit(1 if failures else 0)

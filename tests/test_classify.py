@@ -880,3 +880,13 @@ def test_runner_parsing_does_not_raise():
                     "awk 'BEGIN{" + "system(\"x\");" * 300 + "}'", "find " + "d " * 300 + "-exec rm {} +",
                     "parallel echo " + "::: a b c " * 10]:
         C.classify("terminal", {"command": command}, cwd=CWD, home=HOME)
+
+
+def test_a_command_of_max_command_bytes_is_not_read():
+    """The limit is inclusive: a command of exactly MAX_COMMAND characters is already too long to lex."""
+    head = "echo "
+    under = head + "a" * (C.MAX_COMMAND - 1 - len(head))
+    at = head + "a" * (C.MAX_COMMAND - len(head))
+    assert len(under) == C.MAX_COMMAND - 1 and len(at) == C.MAX_COMMAND
+    assert cmd(under)[0] != "shell:complex"
+    assert cmd(at)[:2] == ("shell:complex", C.HIGH)

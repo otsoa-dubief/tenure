@@ -80,8 +80,11 @@ def _name(core, key: str, raw: bool) -> str:
 
 
 def _wanted(core, states: dict, wanted: str) -> list:
-    """The types of ``states`` the caller means: the exact name, or the redacted name the dashboard showed."""
-    return [k for k in states if k == wanted or core.passport.redact_type(k) == wanted]
+    """The types of ``states`` the caller means: the exact raw name when one matches, else every type whose redacted
+    name (the one the dashboard showed) is ``wanted``. More than one is ambiguous: the caller answers 409."""
+    if wanted in states:
+        return [wanted]
+    return [k for k in states if core.passport.redact_type(k) == wanted]
 
 
 # ------------------------------------------------------------------------------------------------------ profiles
@@ -463,6 +466,8 @@ def _revoke(body: RevokeBody, raw: bool) -> dict:
         keys = list(known) if every else _wanted(core, known, body.type)
         if not keys:
             raise HTTPException(404, f"no record of {body.type} for {body.agent}")
+        if len(keys) > 1:
+            raise HTTPException(409, f"{body.type} names {len(keys)} action types: use the raw names (raw=1)")
         for key in keys:
             s = known[key]
             if every and s.tier == core.rule.T1 and not s.series and not s.provisional and s.wald >= 0:

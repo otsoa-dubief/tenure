@@ -7,6 +7,7 @@ import os
 import sqlite3
 import sys
 import time
+import warnings
 from pathlib import Path
 
 import pytest
@@ -14,7 +15,11 @@ import pytest
 pytest.importorskip("fastapi")
 pytest.importorskip("httpx")
 from fastapi import FastAPI                      # noqa: E402
-from fastapi.testclient import TestClient        # noqa: E402
+with warnings.catch_warnings():
+    # Recent starlette prefers the httpx2 package and warns once, at import, when it falls back on httpx; both drive
+    # the same test client, and CI installs httpx for every supported Python.
+    warnings.filterwarnings("ignore", message="Using `httpx` with `starlette.testclient` is deprecated")
+    from fastapi.testclient import TestClient    # noqa: E402
 
 PKG = "clearance"
 A, B = "model-a@nous", "model-b@nous"
@@ -249,6 +254,34 @@ def test_post_flag_records_a_flag_fault(env):
     assert "wrong file" not in json.dumps(ledger)
     assert core.store_().totals(A)["faults"] == 1
     assert client.post(client.base + "/flag", json={"agent": A, "type": "zzz"}).status_code == 404
+
+
+def test_ambiguous_shown_name_is_409_for_revoke_and_flag(env, monkeypatch):
+    core, api, client, root = env
+    seed(core, root, A, 12, key="shell:git:one", stakes="medium")
+    seed(core, root, A, 12, key="shell:git:two", stakes="medium")
+    monkeypatch.setattr(core.passport, "redact_type", lambda k: "shell:git:same" if k.startswith("shell:git:") else k)
+    before = {k: core.store_().recorded(A, k).to_dict() for k in ("shell:git:one", "shell:git:two")}
+    for path in ("/revoke", "/flag"):
+        r = client.post(client.base + path, json={"agent": A, "type": "shell:git:same"})
+        assert r.status_code == 409, (path, r.text)
+        assert "raw" in r.json()["detail"]
+    assert {k: core.store_().recorded(A, k).to_dict() for k in before} == before
+
+
+def test_an_exact_raw_name_wins_over_a_shown_name(env):
+    core, api, client, root = env
+    plain = "shell:git:my-alias"
+    lookalike = core.passport.redact_type(plain)      # another type whose raw name is plain's shown name
+    assert lookalike != plain
+    seed(core, root, A, 12, key=plain, stakes="medium")
+    seed(core, root, A, 12, key=lookalike, stakes="medium")
+    r = client.post(client.base + "/revoke", json={"agent": A, "type": lookalike}, params={"raw": True})
+    assert r.status_code == 200 and r.json()["revoked"] == [lookalike]
+    assert core.store_().recorded(A, plain).series > 0
+    r = client.post(client.base + "/flag", json={"agent": A, "type": lookalike}, params={"raw": True})
+    assert r.status_code == 200 and r.json()["type"] == lookalike
+    assert core.store_().recorded(A, plain).faults == 0
 
 
 def test_post_undo_restores_and_counts_a_fault(env):
@@ -496,7 +529,24 @@ def test_large_ledger_is_fast(tmp_path, monkeypatch, layout):
     print(layout, "repeat call ms:", {k: round(v, 1) for k, v in timings.items()})
     assert all(v < 300 for v in timings.values()), timings
     assert all(v < 300 for k, v in cold.items() if k != "/passport"), cold
-    assert cold["/passport"] < 300, cold                  # even one 50,000-row ledger, verified cold
+    assert cold["/passport"] < 300 * perf_slack(), cold     # even one 50,000-row ledger, verified cold
+
+
+def perf_slack() -> float:
+    """CLEARANCE_PERF_SLACK multiplies the cold-passport budget on slow shared runners (CI sets 3); 1 by default, and
+    for anything that is not a number of at least 1."""
+    try:
+        return max(1.0, float(os.environ.get("CLEARANCE_PERF_SLACK", "1")))
+    except ValueError:
+        return 1.0
+
+
+def test_perf_slack_reads_the_environment(monkeypatch):
+    monkeypatch.delenv("CLEARANCE_PERF_SLACK", raising=False)
+    assert perf_slack() == 1
+    for value, want in (("3", 3), ("2.5", 2.5), ("0.1", 1), ("lots", 1)):
+        monkeypatch.setenv("CLEARANCE_PERF_SLACK", value)
+        assert perf_slack() == want
 
 
 def test_passport_is_signed_when_the_key_already_exists(env):
