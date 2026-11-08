@@ -94,14 +94,22 @@ different fingerprint means the replay of this implementation may not apply to t
   - `guarantee`: computed from the series length and the spot-check rate by `params`, or `{"capped": true}`. The
     example's numbers are placeholders.
 - `ledger`: the number of rows and the hash of the last one when the passport was made.
-- `signature`: Ed25519 over the canonical JSON of the passport without the `signature` field. The key is created at
-  first use in the plugin's data directory with mode 0600. Without the `cryptography` library, `public_key` and
-  `signature` are `null` and the passport says so when verified (`unsigned`).
+- `signature`: Ed25519 over the canonical JSON of the passport without the `signature` field, as 128 lowercase hex
+  digits; `public_key` is 64 lowercase hex digits. The key is created at first use in the plugin's data directory
+  with mode 0600: written whole to a temporary file, then linked into place without replacing a key already there.
+  A key file that cannot be read stops the passport with an error naming it; move that file away to create a new key.
+  Without the `cryptography` library, `public_key` and `signature` are `null` and the passport says so when verified
+  (`unsigned`).
+
+The schema is strict: exactly the keys above at the root, in `agent`, `rule` and `ledger`, and in each type entry.
+A verifier reports any extra or missing field, a type listed twice, and any value of the wrong form
+(`ledger.count` a whole number, not a boolean; `ledger.head` 64 lowercase hex digits).
 
 ### 3.1 Redaction
 
-Type names can carry names taken from arguments: a script, a make target, an npm script, a Python module. By default
-every type segment after the program and its subcommand is replaced by the first 8 hex digits of its sha256:
+Type names can carry names taken from arguments: a script, a make target, an npm script, a Python module, a git
+alias. By default, every segment after the program and a known subcommand is replaced by the first 8 hex digits of
+its sha256, and so is a third segment that is not a known subcommand:
 
 | Type | Redacted |
 |---|---|
@@ -109,19 +117,26 @@ every type segment after the program and its subcommand is replaced by the first
 | `shell:python3:deploy.py` | `shell:python3:<sha8("deploy.py")>` |
 | `shell:python3:-m:pytest` | `shell:python3:-m:<sha8("pytest")>` |
 | `shell:make:release` | `shell:make:<sha8("release")>` |
-| `shell:git:commit`, `file:write`, `mcp:server:tool` | unchanged |
+| `shell:git:my-alias` | `shell:git:<sha8("my-alias")>` |
+| `shell:git:commit`, `shell:kubectl:apply`, `shell:aws:s3`, `file:write`, `mcp:server:tool` | unchanged |
 
-The third segment of a `shell:` type is hashed after a script runner (shells, interpreters, `npx`, `make` and its
-kin) unless it is a fixed word of the classifier (`inline`, `default`); any segment beyond the third is hashed. Other
+The third segment of a `shell:` type stays readable only when it is in the allow-list of known subcommands
+(`passport.SUBCOMMANDS`: git, npm and its kin, docker, kubectl, gh, terraform, the aws, gcloud and az groups...).
+After a script runner (shells, interpreters, `npx`, `make` and its kin) only the classifier's fixed words stay
+(`inline`, `default`, `-m`). Any segment beyond the third is hashed. The program itself stays, even a script run
+directly (`shell:deploy.sh`). The classifier never takes the value of an option for the subcommand
+(`kubectl -n <namespace> get` is `shell:kubectl:get`, `aws --profile <name> s3 ls` is `shell:aws:s3`). Other
 namespaces are unchanged. `"redacted": true` tells the verifier to apply the same function to the replayed states
 before comparing. The hash is not salted: it keeps a name out of a casual reading, it does not stop someone who
 guesses the name. The ledger itself holds the plain type names.
 
 ## 4. Verification
 
-`verify(passport, rows)` returns a list of problems; an empty list means everything checks. An unsigned passport that
-is otherwise right returns `["unsigned"]`. Steps, in order:
+`verify(passport, rows)` returns a list of problems, never an exception: malformed input gives problems that start
+with `malformed passport:` or `malformed ledger:`. An empty list means everything checks. An unsigned passport that is
+otherwise right returns `["unsigned"]`. Steps, in order:
 
+0. **Structure.** The strict schema of section 3.
 1. **Signature.** Rebuild the canonical JSON without `signature` and check it against `public_key`.
 2. **Rule.** The passport's rule fingerprint must equal the verifier's.
 3. **Chain.** Every row of the ledger: `seq` in order, `prev` equal to the previous `hash`, `hash` recomputed.
@@ -131,7 +146,8 @@ is otherwise right returns `["unsigned"]`. Steps, in order:
    the passport's agent (redacted if the passport is) and compare every field. Each difference is reported:
    `type file:write: tier 'alone' in the passport, 'notify' by replay`.
 
-Without the ledger, only steps 1 and 2 run.
+Without the ledger, only steps 0 to 2 run and the list ends with `ledger not provided: types not checked`: it is
+never empty, since a valid signature alone says nothing about the types (anyone can sign anything with a fresh key).
 
 To anchor a ledger in time, publish the line `clearance ledger head <hash> at <ISO date> (<n> events)` anywhere (a
 post, a gist). The plugin makes no network call.
@@ -140,10 +156,10 @@ post, a gist). The plugin makes no network call.
 
 It proves:
 
-- the passport was not changed after it was signed by the holder of `public_key`;
+- the passport was not changed after it was signed by the holder of `public_key` (step 1);
 - the ledger rows were not changed, reordered, inserted or removed before row `count`, once its head is known;
-- the tiers in the passport follow from the ledger's input events by this rule, under the settings recorded in the
-  ledger at the time, not today's.
+- with the ledger only: the tiers in the passport follow from the ledger's input events by this rule, under the
+  settings recorded in the ledger at the time, not today's. Without the ledger, nothing about the types is proven.
 
 It does not prove:
 

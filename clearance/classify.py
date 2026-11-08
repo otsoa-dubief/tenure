@@ -342,6 +342,9 @@ RUNNERS = {"npm", "pnpm", "yarn", "bun"}
 MAKES = {"make", "gmake", "just", "task"}
 GIT_VALUE_OPTS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--config-env"}
 GH_VALUE_OPTS = {"-R", "--repo", "--hostname"}
+# Options whose value comes before the subcommand (kubectl -n ns get, aws --profile p s3, gcloud --project p compute):
+# the value is a name of the user's (a namespace, an account), never the subcommand.
+SUB_VALUE_OPTS = {"-n", "--namespace", "--profile", "--project", "--context", "--region", "-C", "--kubeconfig"}
 MAX_DEPTH = 3
 
 
@@ -1321,7 +1324,8 @@ def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
         return _parallel(args, cwd, home, depth)
     if prog == "watch":
         return _watch(args, cwd, home, depth)
-    sub = next((a for a in args if not a.startswith("-")), "")
+    plain = _strip(args, SUB_VALUE_OPTS)
+    sub = plain[0] if plain else ""
     if prog in OUTSIDE:
         return OUTSIDE[prog], HIGH
     if prog == "git":

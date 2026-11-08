@@ -6,15 +6,16 @@ can check again by replaying the ledger (Earned Autonomy Protocol v0.1, ``docs/p
 ``replay`` is the single reading of the ledger contract of ``store``: it applies the input events (settings,
 outcome, agent, revoke) in ledger order with the functions of ``rule``, exactly as the hooks do, and must find the
 states the hooks recorded. ``build`` writes the passport of one agent from the recorded states, ``verify`` checks
-its signature, then the ledger's hash chain, then recomputes every type by replay.
+its structure and signature, then the ledger's hash chain, then recomputes every type by replay; without the
+ledger it says the types were not checked.
 
 What it proves, and what it does not: the owner holds the signing key and could build a whole new history and sign
 it. A third party detects a change to a passport or a ledger once published (the signature, the chain, the head
 anchored with ``anchor_line``), not a complete rewrite by its author.
 
-Type names can carry names taken from the arguments (a script, a make target, an npm script). By default, ``build``
-replaces every type segment after the program and its subcommand by the first 8 hex digits of its sha256
-(``redact_type``). ``verify`` applies the same function to the replayed states, so a redacted passport verifies with
+Type names can carry names taken from the arguments (a script, a make target, an npm script, a git alias). By default,
+``build`` replaces every type segment after the program and a known subcommand, and a third segment that is not a
+known subcommand, by the first 8 hex digits of its sha256 (``redact_type``). ``verify`` applies the same function to the replayed states, so a redacted passport verifies with
 the plain ledger. The hash is not salted: it hides a name from a casual reader, not from someone who guesses it.
 """
 from __future__ import annotations
@@ -23,6 +24,7 @@ import hashlib
 import json
 import os
 import re
+import tempfile
 import time
 from fractions import Fraction
 
@@ -32,7 +34,46 @@ PROTOCOL = "earned-autonomy/0.1"
 RULE_NAME = "study-rule-B"
 KEY_FILE = "passport-ed25519.pem"
 TYPE_FIELDS = ("type", "stakes", "tier", "series", "required", "sessions", "provisional", "guarantee")
-KEPT_WORDS = frozenset({"inline", "default"})       # fixed words of classify, never taken from an argument
+ROOT_KEYS = ("protocol", "generated_at", "agent", "rule", "settings_fingerprint", "redacted", "types", "ledger",
+             "public_key", "signature")
+PART_KEYS = {"agent": ("model", "provider", "profile"), "rule": ("name", "fingerprint"), "ledger": ("count", "head")}
+NO_LEDGER = "ledger not provided: types not checked"
+HEX64, HEX128 = re.compile(r"[0-9a-f]{64}"), re.compile(r"[0-9a-f]{128}")
+RUNNER_WORDS = frozenset({"inline", "default", "-m"})   # fixed words classify puts after a script runner
+# Subcommands that stay readable in a redacted type (``shell:<program>:<subcommand>``). Any other third segment, and
+# every segment after it, is hashed: it may be a name of the user's (a git alias, a namespace, a script).
+SUBCOMMANDS = frozenset(
+    classify.GIT_READ | classify.KUBE_WRITE | {sub for _, sub in classify.PUBLISH} | {
+        # fixed words of classify
+        "run", "send", "api", "unknown", "default", "inline",
+        # git
+        "add", "commit", "pull", "merge", "rebase", "checkout", "switch", "branch", "tag", "remote", "reset",
+        "restore", "stash", "clone", "init", "cherry-pick", "revert", "clean", "rm", "mv", "config", "worktree",
+        "submodule", "bisect", "am", "apply", "push",
+        # npm, pnpm, yarn, bun, cargo, pip
+        "install", "i", "ci", "test", "remove", "uninstall", "update", "exec", "start", "build", "link", "pack",
+        "audit", "version", "dlx", "check", "clippy", "fmt",
+        # docker, podman
+        "compose", "ps", "images", "rmi", "stop", "logs", "inspect", "network", "volume", "system", "login",
+        # kubectl
+        "get", "describe", "top", "explain", "port-forward", "label", "annotate", "api-resources", "cp", "auth",
+        "wait", "diff", "kustomize", "set",
+        # gh
+        "pr", "issue", "repo", "release", "workflow", "gist", "secret", "variable", "search", "browse", "codespace",
+        # terraform
+        "plan", "validate", "output", "show", "state", "workspace", "refresh", "taint", "untaint", "providers",
+        "graph", "console", "destroy", "import",
+        # aws services
+        "s3", "s3api", "ec2", "iam", "lambda", "sts", "cloudformation", "ecs", "ecr", "eks", "rds", "dynamodb", "sqs",
+        "sns", "cloudwatch", "route53", "ssm", "secretsmanager", "kms", "cloudfront", "apigateway", "elbv2",
+        "autoscaling", "configure", "sso",
+        # gcloud groups
+        "compute", "functions", "storage", "container", "projects", "sql", "app", "pubsub", "secrets", "artifacts",
+        "builds", "dns", "logging", "services",
+        # az groups
+        "group", "vm", "webapp", "functionapp", "aks", "acr", "account", "keyvault", "resource", "ad", "role",
+        "monitor",
+    })
 
 
 def _canon(obj) -> str:
@@ -57,7 +98,7 @@ def rule_fingerprint() -> str:
     return _sha(_canon(rule_spec()))
 
 
-def settings_fingerprint(event: dict | None) -> str | None:
+def settings_event_fingerprint(event: dict | None) -> str | None:
     """sha256 of a ``settings`` ledger event's canonical JSON (the settings a replay uses), or None."""
     if event is None:
         return None
@@ -117,6 +158,8 @@ def _replay(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState], di
                 rule.count_action(s)
             states[key] = s
         elif kind == "agent":
+            if e.get("mode") not in ("carry", "strict"):
+                raise ValueError(f"row {i}: agent event with mode {e.get('mode')!r}, expected carry or strict")
             have = {k for (a, k) in states if a == e["new"]}
             vetoed = set(e.get("vetoed") or ())
             for (a, k), s in sorted(states.items()):
@@ -141,12 +184,14 @@ def replay(rows: list[dict]) -> dict[str, dict[str, rule.TypeState]]:
 
 # --------------------------------------------------------------------------------------------------- redaction
 def redact_type(key: str) -> str:
-    """Hash the segments of a type taken from the arguments: everything after the program and its subcommand.
+    """Hash the segments of a type that may be a name of the user's: everything after the program and a known
+    subcommand.
 
     ``shell:npm:run:build`` -> ``shell:npm:run:<sha8>``, ``shell:python3:deploy.py`` -> ``shell:python3:<sha8>``,
-    ``shell:python3:-m:pytest`` -> ``shell:python3:-m:<sha8>``. A segment after a script runner (shells,
-    interpreters, npx, make and its kin) is a name from the arguments; any segment beyond the third is too. Other
-    namespaces (file, memory, mcp...) carry no argument and stay as they are."""
+    ``shell:kubectl:apply`` stays, ``shell:git:my-alias`` -> ``shell:git:<sha8>``. The third segment stays readable
+    only when it is in ``SUBCOMMANDS`` (after a script runner, only one of classify's fixed words: ``inline``,
+    ``default``, ``-m``); every later segment is hashed. Other namespaces (file, memory, mcp...) carry no argument
+    and stay as they are; so does the program, even when it is a script run directly (``shell:deploy.sh``)."""
     parts = key.split(":")
     if len(parts) < 3 or parts[0] != "shell":
         return key
@@ -154,8 +199,10 @@ def redact_type(key: str) -> str:
     base = re.sub(r"\d+(\.\d+)*$", "", prog)
     runs_scripts = (prog in classify.SHELLS or prog in classify.INTERPRETERS or base in classify.INTERPRETERS
                     or prog == "npx" or prog in classify.MAKES)
-    keep = 3 if len(parts) > 3 or not runs_scripts else 2
-    out = parts[:keep] + [p if p in KEPT_WORDS and i == 2 else _sha(p)[:8] for i, p in enumerate(parts[keep:], keep)]
+    known = parts[2] in (RUNNER_WORDS if runs_scripts else SUBCOMMANDS)
+    if runs_scripts and parts[2] == "-m" and len(parts) == 3:
+        known = False
+    out = parts[:2] + [parts[2] if known else _sha(parts[2])[:8]] + [_sha(p)[:8] for p in parts[3:]]
     return ":".join(out)
 
 
@@ -177,7 +224,9 @@ def _entries(states: dict[str, rule.TypeState], cfg: dict | None, redact: bool) 
 
 def keypair(data_dir: str) -> tuple[object | None, str | None]:
     """(Ed25519 private key, public key in hex), created at first use in ``data_dir`` with mode 0600; (None, None)
-    when ``cryptography`` cannot be imported."""
+    when ``cryptography`` cannot be imported. A new key is written whole to a temporary file, then linked into place
+    without replacing a key another process put there first; every caller then reads the one in place. A key file
+    that cannot be read raises RuntimeError naming it: move it away and a new key is made."""
     try:
         from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -185,16 +234,33 @@ def keypair(data_dir: str) -> tuple[object | None, str | None]:
         return None, None
     os.makedirs(data_dir, exist_ok=True)
     path = os.path.join(data_dir, KEY_FILE)
+    if not os.path.exists(path):
+        pem = Ed25519PrivateKey.generate().private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                                                         serialization.NoEncryption())
+        fd, tmp = tempfile.mkstemp(prefix=KEY_FILE + ".", dir=data_dir)      # mode 0600
+        try:
+            with os.fdopen(fd, "wb") as f:
+                f.write(pem)
+                f.flush()
+                os.fsync(f.fileno())
+            try:
+                os.link(tmp, path)                   # fails if a key is already there: never replaced
+            except FileExistsError:
+                pass
+            except OSError:                          # no hard links on this file system
+                if not os.path.exists(path):
+                    os.rename(tmp, path)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
     try:
-        key = Ed25519PrivateKey.generate()
-        pem = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
-                                serialization.NoEncryption())
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        with os.fdopen(fd, "wb") as f:
-            f.write(pem)
-    except FileExistsError:
         with open(path, "rb") as f:
             key = serialization.load_pem_private_key(f.read(), password=None)
+        if not isinstance(key, Ed25519PrivateKey):
+            raise ValueError("not an Ed25519 private key")
+    except Exception as exc:
+        raise RuntimeError(f"clearance: the passport key {path} cannot be read ({exc}). Move that file away and a "
+                           f"new key will be created; passports signed with the old key keep its public key.") from exc
     if os.name == "posix":
         os.chmod(path, 0o600)
     raw = key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
@@ -235,7 +301,7 @@ def build(st, agent: str, settings: dict, data_dir: str, redact: bool = True) ->
          "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
          "agent": {"model": model, "provider": provider, "profile": _sha(profile)[:12]},
          "rule": {"name": RULE_NAME, "fingerprint": rule_fingerprint()},
-         "settings_fingerprint": settings_fingerprint(cfg),
+         "settings_fingerprint": settings_event_fingerprint(cfg),
          "redacted": bool(redact),
          "types": _entries({s.key: s for _, s in st.states(agent)}, cfg, redact),
          "ledger": {"count": len(rows), "head": _head(rows)}}
@@ -243,6 +309,62 @@ def build(st, agent: str, settings: dict, data_dir: str, redact: bool = True) ->
     p["public_key"] = public
     p["signature"] = None if key is None else sign(p, key)
     return p
+
+
+def _shape(passport) -> tuple[list[str], dict]:
+    """Structure problems, and which parts are sound enough to check: exactly the documented keys at the root, in
+    ``agent``, ``rule`` and ``ledger``, and ``TYPE_FIELDS`` in each type; each type listed once."""
+    bad = "malformed passport: "
+    if not isinstance(passport, dict):
+        return [bad + "not a JSON object"], {}
+    problems, ok = [], {}
+    problems += [bad + f"extra field {k}" for k in sorted(set(passport) - set(ROOT_KEYS), key=str)]
+    problems += [bad + f"missing field {k}" for k in ROOT_KEYS if k not in passport]
+    for name, keys in PART_KEYS.items():
+        part = passport.get(name)
+        if not isinstance(part, dict):
+            problems.append(bad + f"{name} is not an object")
+            continue
+        extra, missing = sorted(set(part) - set(keys), key=str), [k for k in keys if k not in part]
+        problems += [bad + f"extra field {name}.{k}" for k in extra] + [bad + f"missing field {name}.{k}" for k in missing]
+        ok[name] = not extra and not missing
+    led = passport.get("ledger") if ok.get("ledger") else {}
+    if ok.get("ledger"):
+        count = led["count"]
+        if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+            problems.append(bad + "ledger.count must be a whole number")
+            ok["ledger"] = False
+        if not isinstance(led["head"], str) or not HEX64.fullmatch(led["head"]):
+            problems.append(bad + "ledger.head must be 64 lowercase hex digits")
+            ok["ledger"] = False
+    if ok.get("agent") and not all(isinstance(passport["agent"][k], str) for k in PART_KEYS["agent"]):
+        problems.append(bad + "agent fields must be text")
+        ok["agent"] = False
+    if "redacted" in passport and not isinstance(passport["redacted"], bool):
+        problems.append(bad + "redacted must be true or false")
+    for field, pattern, size in (("signature", HEX128, 128), ("public_key", HEX64, 64)):
+        v = passport.get(field)
+        if v is not None and not (isinstance(v, str) and pattern.fullmatch(v)):
+            problems.append(bad + f"{field.replace('_', ' ')} must be {size} lowercase hex digits")
+            ok["signature_shape_bad"] = True
+    types = passport.get("types")
+    ok["types"] = isinstance(types, list)
+    if not ok["types"]:
+        problems.append(bad + "types is not a list")
+        return problems, ok
+    seen = set()
+    for i, e in enumerate(types):
+        if not isinstance(e, dict) or not isinstance(e.get("type"), str):
+            problems.append(bad + f"types[{i}] is not an object with a type name")
+            ok["types"] = False
+            continue
+        key = e["type"]
+        if key in seen:
+            problems.append(f"type {key}: listed twice")
+        seen.add(key)
+        problems += [f"type {key}: extra field {k}" for k in sorted(set(e) - set(TYPE_FIELDS), key=str)]
+        problems += [f"type {key}: missing field {k}" for k in TYPE_FIELDS if k not in e]
+    return problems, ok
 
 
 def _check_signature(passport: dict) -> list[str]:
@@ -256,54 +378,68 @@ def _check_signature(passport: dict) -> list[str]:
         return ["signature not checked: the cryptography library is not installed"]
     try:
         Ed25519PublicKey.from_public_bytes(bytes.fromhex(pub)).verify(bytes.fromhex(sig), _payload(passport))
-    except (InvalidSignature, ValueError):
+    except (InvalidSignature, ValueError, TypeError):
         return ["signature does not match the passport's content"]
     return []
 
 
 def verify(passport: dict, rows: list[dict] | None = None) -> list[str]:
-    """Problems found, in order: signature, rule, then with ``rows``: the hash chain, the passport's place in it, and
-    every type recomputed by replay of the first ``ledger.count`` rows. An empty list means everything checks; an
-    unsigned passport that is otherwise right gives ``["unsigned"]``. A ledger longer than the passport's count is
-    fine: the passport describes the ledger as it was then."""
-    problems = _check_signature(passport)
+    """Problems found, never an exception. In order: structure, signature, protocol and rule, then with ``rows``: the
+    hash chain, the passport's place in it, and every type recomputed by replay of the first ``ledger.count`` rows.
+    An empty list means everything checks. An unsigned passport that is otherwise right gives ``["unsigned"]``;
+    without ``rows`` the types are not checked and the list ends with ``NO_LEDGER``, so it is never empty. A ledger
+    longer than the passport's count is fine: the passport describes the ledger as it was then."""
+    shape, ok = _shape(passport)
+    if not isinstance(passport, dict):
+        return shape
+    problems = ([] if ok.get("signature_shape_bad") else _check_signature(passport)) + shape
     if passport.get("protocol") != PROTOCOL:
         problems.append(f"protocol {passport.get('protocol')!r}, expected {PROTOCOL!r}")
-    if (passport.get("rule") or {}).get("fingerprint") != rule_fingerprint():
+    if not ok.get("rule") or passport["rule"].get("fingerprint") != rule_fingerprint():
         problems.append("rule fingerprint differs from this plugin's rule: the replay below may not apply")
     if rows is None:
+        return problems + [NO_LEDGER]
+    if not isinstance(rows, list) or not all(isinstance(r, dict) and isinstance(r.get("event"), dict) for r in rows):
+        return problems + ["malformed ledger: every row must be an object with an event object"]
+    try:
+        problems += [f"ledger: {p}" for p in store.verify(rows)]
+    except (TypeError, ValueError, AttributeError) as exc:
+        return problems + [f"malformed ledger: {exc}"]
+    if not ok.get("ledger"):
         return problems
-    problems += [f"ledger: {p}" for p in store.verify(rows)]
-    led = passport.get("ledger") or {}
-    count = led.get("count")
-    if not isinstance(count, int) or count < 0 or count > len(rows):
+    count = passport["ledger"]["count"]
+    if count > len(rows):
         return problems + [f"ledger: the passport counts {count} events, the ledger has {len(rows)}"]
     head = _head(rows[:count])
-    if led.get("head") != head:
-        problems.append(f"ledger: head {led.get('head')} in the passport, {head} at event {count}")
+    if passport["ledger"]["head"] != head:
+        problems.append(f"ledger: head {passport['ledger']['head']} in the passport, {head} at event {count}")
     try:
         states, cfg = _replay(rows[:count])
-    except (KeyError, TypeError, ValueError) as exc:
+    except (KeyError, TypeError, ValueError, AttributeError) as exc:
         return problems + [f"replay: {exc}"]
-    if passport.get("settings_fingerprint") != settings_fingerprint(cfg):
+    if passport.get("settings_fingerprint") != settings_event_fingerprint(cfg):
         problems.append("settings fingerprint differs from the ledger's last settings")
-    agent = passport.get("agent") or {}
-    name = f"{agent.get('model')}@{agent.get('provider') or 'unknown'}"
+    if not ok.get("agent") or not ok.get("types"):
+        return problems
+    agent = passport["agent"]
+    name = f"{agent['model']}@{agent['provider'] or 'unknown'}"
     mine = {k: s for (a, k), s in states.items() if a == name}
     try:
-        expected = {e["type"]: e for e in _entries(mine, cfg, bool(passport.get("redacted")))}
-    except ValueError as exc:
+        expected = {e["type"]: e for e in _entries(mine, cfg, passport.get("redacted") is True)}
+    except (ValueError, TypeError) as exc:
         return problems + [f"replay: {exc}"]
-    claimed = {e.get("type"): e for e in passport.get("types") or []}
-    for key in sorted(set(expected) | set(claimed), key=str):
+    claimed = {}
+    for e in passport["types"]:
+        claimed.setdefault(e["type"], e)
+    for key in sorted(set(expected) | set(claimed)):
         if key not in claimed:
             problems.append(f"type {key}: found by replay, missing from the passport")
         elif key not in expected:
             problems.append(f"type {key}: in the passport, not found by replay")
         else:
             for f in TYPE_FIELDS[1:]:
-                if claimed[key].get(f) != expected[key][f]:
-                    problems.append(f"type {key}: {f} {claimed[key].get(f)!r} in the passport, "
+                if f in claimed[key] and claimed[key][f] != expected[key][f]:
+                    problems.append(f"type {key}: {f} {claimed[key][f]!r} in the passport, "
                                     f"{expected[key][f]!r} by replay")
     return problems
 

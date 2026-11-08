@@ -18,6 +18,10 @@ except ImportError:
 signing = pytest.mark.skipif(not HAS_CRYPTO, reason="cryptography is not installed: passports are unsigned")
 
 
+NO_LEDGER = "ledger not provided: types not checked"
+HIGH_OK = {"risks": {"low": 0.25, "medium": 0.2, "high": 0.1}}          # high stakes recorded, not capped
+
+
 def sha8(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
 
@@ -151,7 +155,7 @@ def test_build_and_verify_ok(plugin, monkeypatch, tmp_path):
                                     "guarantee"}
     assert t["memory:write"]["required"] == 4 and t["file:write-outside"]["stakes"] == "medium"
     assert re.fullmatch(r"[0-9a-f]{128}", p["signature"]) and re.fullmatch(r"[0-9a-f]{64}", p["public_key"])
-    assert mod.passport.verify(p) == []
+    assert mod.passport.verify(p) == [NO_LEDGER]
     assert mod.passport.verify(p, rows) == []
     assert mod.passport.verify(make_passport(mod, B), rows) == []
     assert mod.passport.verify(json.loads(json.dumps(p)), rows) == []     # survives a JSON round trip
@@ -179,7 +183,7 @@ def test_tampered_type_is_detected(plugin, monkeypatch, tmp_path):
     resigned = copy.deepcopy(forged)                                      # the owner re-signs a forged record
     key, _ = mod.passport.keypair(mod.data_dir())
     resigned["signature"] = mod.passport.sign(resigned, key)
-    assert mod.passport.verify(resigned) == []                            # alone, the signature cannot tell
+    assert mod.passport.verify(resigned) == [NO_LEDGER]                   # alone, the signature cannot tell
     problems = mod.passport.verify(resigned, mod.store_().ledger())
     assert any("file:write" in p and "tier" in p for p in problems)       # the replay can
 
@@ -213,7 +217,7 @@ def test_unsigned_passport_says_so(plugin, monkeypatch):
     monkeypatch.setattr(mod.passport, "keypair", lambda data_dir: (None, None))
     p = make_passport(mod)
     assert p["signature"] is None and p["public_key"] is None
-    assert mod.passport.verify(p) == ["unsigned"]
+    assert mod.passport.verify(p) == ["unsigned", NO_LEDGER]
     assert mod.passport.verify(p, mod.store_().ledger()) == ["unsigned"]
 
 
@@ -249,7 +253,8 @@ def test_unsigned_tampered_passport_still_fails_the_replay(plugin, monkeypatch):
     ("shell:make:release", "shell:make:" + sha8("release")),
     ("shell:make:default", "shell:make:default"),
     ("shell:npx:prettier", "shell:npx:" + sha8("prettier")),
-    ("shell:tool:sub:a:b", "shell:tool:sub:" + sha8("a") + ":" + sha8("b")),
+    ("shell:tool:sub:a:b", "shell:tool:" + sha8("sub") + ":" + sha8("a") + ":" + sha8("b")),
+    ("shell:docker:build:x", "shell:docker:build:" + sha8("x")),
 ])
 def test_redaction_hashes_the_segments_after_the_program_and_its_subcommand(plugin, raw, redacted):
     mod, _ = plugin(FAST)
@@ -277,3 +282,183 @@ def test_anchor_line(plugin):
     m = re.fullmatch(r"clearance ledger head ([0-9a-f]{64}) at (\S+) \((\d+) events\)", line)
     assert m and m.group(1) == rows[-1]["hash"] and int(m.group(3)) == len(rows)
     assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", m.group(2))
+
+
+# ------------------------------------------------------------------------------------------- review, round 1
+def resign(mod, p):
+    if HAS_CRYPTO:
+        key, _ = mod.passport.keypair(mod.data_dir())
+        p["signature"] = mod.passport.sign(p, key)
+    return p
+
+
+def small(plugin, monkeypatch=None):
+    mod, ctx = plugin(FAST)
+    to_t3(ctx)
+    return mod, mod.store_(), make_passport(mod)
+
+
+def test_a_type_listed_twice_is_reported(plugin):
+    mod, st, p = small(plugin)
+    real = p["types"][0]
+    p["types"] = [dict(real, tier="alone", series=999, required=0)] + p["types"]
+    problems = mod.passport.verify(resign(mod, p), st.ledger())
+    assert f"type {real['type']}: listed twice" in problems
+
+
+def test_extra_and_missing_fields_are_reported(plugin):
+    mod, st, p = small(plugin)
+    p["certified_by"] = "ACME audit"
+    p["types"][0]["note"] = "never failed"
+    del p["types"][0]["sessions"]
+    del p["generated_at"]
+    problems = mod.passport.verify(resign(mod, p), st.ledger())
+    key = p["types"][0]["type"]
+    for want in ("malformed passport: extra field certified_by", "malformed passport: missing field generated_at",
+                 f"type {key}: extra field note", f"type {key}: missing field sessions"):
+        assert want in problems, (want, problems)
+
+
+@pytest.mark.parametrize("change", [
+    lambda p: p["types"].append("x"),
+    lambda p: p.__setitem__("agent", "x"),
+    lambda p: p.__setitem__("ledger", []),
+    lambda p: p.__setitem__("types", {"a": 1}),
+    lambda p: p.__setitem__("rule", None),
+    lambda p: p.__setitem__("ledger", {"count": True, "head": "0" * 64}),
+    lambda p: p.__setitem__("ledger", {"count": "3", "head": "0" * 64}),
+])
+def test_a_malformed_passport_gives_problems_not_exceptions(plugin, change):
+    mod, st, p = small(plugin)
+    change(p)
+    problems = mod.passport.verify(resign(mod, p), st.ledger())
+    assert any(x.startswith("malformed passport: ") for x in problems), problems
+
+
+@pytest.mark.parametrize("field, value", [
+    ("signature", 5), ("signature", "zz"), ("public_key", "ab"), ("public_key", 7),
+])
+def test_signature_and_key_must_be_lowercase_hex_of_the_right_length(plugin, field, value):
+    mod, st, p = small(plugin)
+    p[field] = value
+    problems = mod.passport.verify(p, st.ledger())
+    assert any(x.startswith("malformed passport: ") and field.replace("_", " ") in x for x in problems), problems
+
+
+@signing
+def test_signature_encodings_other_than_lowercase_hex_are_refused(plugin):
+    mod, st, p = small(plugin)
+    s = p["signature"]
+    for v in (s.upper(), " ".join(s[i:i + 2] for i in range(0, len(s), 2)), s + " "):
+        problems = mod.passport.verify(dict(p, signature=v), st.ledger())
+        assert any(x.startswith("malformed passport: signature") for x in problems), (v, problems)
+
+
+def test_not_a_passport_at_all(plugin):
+    mod, st, _ = small(plugin)
+    assert mod.passport.verify("x", st.ledger())[0].startswith("malformed passport: ")
+    assert mod.passport.verify(None)[0].startswith("malformed passport: ")
+
+
+def test_malformed_ledger_rows_give_problems(plugin):
+    mod, st, p = small(plugin)
+    rows = st.ledger()
+    for bad in (["x"] + rows, rows[:1] + [{"seq": 2}], None):
+        problems = mod.passport.verify(p, bad) if bad is not None else mod.passport.verify(p, "rows")
+        assert problems and all(isinstance(x, str) for x in problems)
+
+
+def test_an_agent_event_with_an_unknown_mode_is_refused(plugin):
+    mod, ctx = plugin(FAST)
+    to_t3(ctx)
+    mod.pre_api_request(model="model-b", provider="nous", session_id="s1")
+    rows = [dict(r, event=dict(r["event"])) for r in mod.store_().ledger()]
+    next(r for r in rows if r["event"]["event"] == "agent")["event"]["mode"] = "lenient"
+    with pytest.raises(ValueError, match="mode"):
+        mod.passport.replay(rows)
+
+
+def test_count_zero_on_an_empty_ledger(plugin):
+    mod, st, p = small(plugin)
+    q = resign(mod, dict(p, ledger={"count": 0, "head": "0" * 64}, types=[], settings_fingerprint=None))
+    expected = [] if HAS_CRYPTO else ["unsigned"]
+    assert mod.passport.verify(q, []) == expected
+    assert mod.passport.verify(q, st.ledger()) == expected
+
+
+@pytest.mark.parametrize("command, kind", [
+    ("kubectl -n acme-prod get pods", "shell:kubectl:get"),
+    ("kubectl --namespace acme-prod --context acme-ctx apply -f x.yaml", "shell:kubectl:apply"),
+    ("kubectl --kubeconfig /k/acme.yaml delete pod x", "shell:kubectl:delete"),
+    ("aws --profile client-acme s3 ls", "shell:aws:s3"),
+    ("aws --region eu-west-3 --profile client-acme s3 cp a s3://b", "shell:aws:s3"),
+    ("gcloud --project acme-secret compute list", "shell:gcloud:compute"),
+])
+def test_value_options_never_become_the_subcommand(plugin, command, kind):
+    mod, _ = plugin(FAST)
+    assert mod.classify.classify("terminal", {"command": command}, cwd="/tmp").type == kind
+
+
+def test_kubectl_writes_behind_a_namespace_stay_high(plugin):
+    mod, _ = plugin(FAST)
+    act = mod.classify.classify("terminal", {"command": "kubectl -n acme-prod apply -f x.yaml"}, cwd="/tmp")
+    assert (act.type, act.stakes) == ("shell:kubectl:apply", "high")
+
+
+@pytest.mark.parametrize("raw, redacted", [
+    ("shell:kubectl:acme-prod", "shell:kubectl:" + sha8("acme-prod")),
+    ("shell:aws:client-acme", "shell:aws:" + sha8("client-acme")),
+    ("shell:git:my-secret-alias", "shell:git:" + sha8("my-secret-alias")),
+    ("shell:kubectl:apply", "shell:kubectl:apply"),
+    ("shell:aws:s3", "shell:aws:s3"),
+    ("shell:docker:push", "shell:docker:push"),
+    ("shell:gh:pr", "shell:gh:pr"),
+    ("shell:terraform:apply", "shell:terraform:apply"),
+])
+def test_only_known_subcommands_stay_readable(plugin, raw, redacted):
+    mod, _ = plugin(FAST)
+    assert mod.passport.redact_type(raw) == redacted
+
+
+def test_no_client_name_in_a_redacted_passport(plugin):
+    mod, ctx = plugin(HIGH_OK)
+    for cmd in ("kubectl -n acme-prod apply -f x.yaml", "aws --profile client-acme s3 cp a s3://b",
+                "gcloud --project acme-secret compute instances create x", "npm run deploy-acme",
+                "make acme-release", "python3 /x/acme/deploy.py"):
+        ctx.call("terminal", {"command": cmd})
+    p = make_passport(mod)
+    assert len(p["types"]) == 6 and "acme" not in json.dumps(p)
+    assert mod.passport.verify(p, mod.store_().ledger()) in ([], ["unsigned"])
+
+
+@signing
+def test_a_corrupt_or_empty_key_file_names_the_path(plugin):
+    mod, _ = plugin(FAST)
+    d = mod.data_dir()
+    mod.passport.keypair(d)
+    path = os.path.join(d, mod.passport.KEY_FILE)
+    for content in (b"", b"not a key"):
+        with open(path, "wb") as f:
+            f.write(content)
+        with pytest.raises(RuntimeError) as err:
+            mod.passport.keypair(d)
+        assert path in str(err.value) and "move that file away" in str(err.value).lower()
+
+
+@signing
+def test_the_key_is_written_whole_then_put_in_place(plugin, monkeypatch):
+    mod, _ = plugin(FAST)
+    d = mod.data_dir()
+    real = os.fdopen
+
+    def failing(fd, *a, **k):
+        f = real(fd, *a, **k)
+        f.write = lambda data: (_ for _ in ()).throw(OSError("disk full"))
+        return f
+    monkeypatch.setattr(mod.passport.os, "fdopen", failing)
+    with pytest.raises(OSError):
+        mod.passport.keypair(d)
+    assert not os.path.exists(os.path.join(d, mod.passport.KEY_FILE))      # no half-written key left in place
+    assert [n for n in os.listdir(d) if n.startswith(mod.passport.KEY_FILE)] == []
+    monkeypatch.setattr(mod.passport.os, "fdopen", real)
+    assert mod.passport.keypair(d)[0] is not None
