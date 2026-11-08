@@ -844,6 +844,8 @@ def replay(rows, rule, params, store):
                 rule.reevaluate(s, params.required_n(cfg["risks"], s.stakes))
         elif e["event"] == "outcome":
             s = states.get((e["agent"], e["type"])) or rule.TypeState(key=e["type"], stakes=e["stakes"])
+            if s.stakes != e["stakes"]:
+                rule.rebase(s)                       # evidence counts only at the stakes it was earned at
             s.stakes, s.reversible = e["stakes"], e["reversible"]
             n = params.required_n(cfg["risks"], e["stakes"])
             if e["result"] == "neutral":
@@ -970,7 +972,8 @@ def test_an_override_raising_the_stakes_asks_again(plugin):
         assert ctx.call("write_file", write(f"m{i}")) == "approved"
     assert len(ledger(mod, "settings")) == logged + 1                  # an override is a settings change
     s = state(mod, "file:write")
-    assert s.stakes == "medium" and s.series == 7
+    assert s.stakes == "medium" and s.series == 3                      # re-based at medium stakes
+    assert [e["reason"] for e in ledger(mod, "tier") if e["type"] == "file:write"][-1] == "stakes"
 
 
 def test_a_tier_earned_at_lower_stakes_asks_at_higher_stakes(plugin):
@@ -983,8 +986,9 @@ def test_a_tier_earned_at_lower_stakes_asks_at_higher_stakes(plugin):
     assert ctx.call("terminal", local, session="s2", result=ok) == "ran"
     assert ctx.call("terminal", remote, session="s2", result=ok) == "approved"    # high stakes, 10 needed
     assert ctx.call("terminal", remote, session="s2", result=ok) == "approved"    # 5/10 at high stakes: asks
-    assert ctx.call("terminal", local, session="s2", result=ok) == "approved"     # recorded at high: asks once
-    assert ctx.call("terminal", local, session="s2", result=ok) == "ran"
+    assert ctx.call("terminal", local, session="s2", result=ok) == "approved"     # back to medium: re-based
+    assert ctx.call("terminal", local, session="s2", result=ok) == "approved"     # 2/4: the medium climb restarts
+    assert state(mod, "shell:rsync").series == 2
 
 
 def test_the_suspension_survives_a_failure_while_settling(plugin, monkeypatch):
@@ -1129,3 +1133,97 @@ def test_a_t2_write_failing_its_check_keeps_an_undo(plugin):
     assert mod.undo.restore(entry["snap_id"], mod.data_dir()) == 1
     with open(target) as f:
         assert f.read() == "good = 1\n"
+
+
+# ---------------------------------------------------------------------------------------------- fix round 2
+def sessionless(mod, fn, tool, args, call, **kw):
+    return fn(tool_name=tool, args=args, session_id=None, task_id=None, tool_call_id=call, **kw)
+
+
+def test_sessionless_calls_never_settle_another_calls_row(plugin):
+    """Hermes passes session_id=None outside a session: rows of different calls share ("", call_0)."""
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)                                                       # file:write at T2
+    broken = {"path": "src/b.py", "content": "def broken(:\n"}
+    d_a = sessionless(mod, mod.pre_tool_call, "terminal", NPM, "call_0")
+    mod.post_approval_response(pattern_key=f"plugin_rule:{d_a['rule_key']}", tool_call_id="call_0", choice="once")
+    assert sessionless(mod, mod.pre_tool_call, "write_file", broken, "call_0") is None
+    sessionless(mod, mod.post_tool_call, "terminal", NPM, "call_0", result='{"exit_code": 0}', status="ok")
+    assert [(e["type"], e["result"], e["source"]) for e in outcomes(mod)][-1] == ("shell:npm", "success", "approval")
+    with open(os.path.join(ctx.cwd, "src", "b.py"), "w") as f:
+        f.write(broken["content"])
+    sessionless(mod, mod.post_tool_call, "write_file", broken, "call_0", result="{}", status="ok")
+    assert [(e["type"], e["result"], e["source"]) for e in outcomes(mod)][-1] == ("file:write", "fault", "check")
+
+
+def test_two_live_sessionless_rows_of_one_type_are_ambiguous(plugin):
+    mod, ctx = plugin(FAST)
+    for _ in range(2):
+        d = sessionless(mod, mod.pre_tool_call, "terminal", NPM, "call_0")
+        mod.post_approval_response(pattern_key=f"plugin_rule:{d['rule_key']}", tool_call_id="call_0", choice="once")
+    sessionless(mod, mod.post_tool_call, "terminal", NPM, "call_0", result='{"exit_code": 0}', status="ok")
+    assert [(e["result"], e["source"]) for e in outcomes(mod)] == [("neutral", "ambiguous")] * 2
+    assert state(mod, "shell:npm").successes == 0 and row(mod, "call_0", "") is None
+
+
+def test_a_stakes_change_rebases_the_evidence(plugin):
+    """R26b: a low-stakes record does not count at medium stakes; the medium climb starts from zero (18 for T2)."""
+    mod, ctx = plugin({"risks": {"low": 0.25, "medium": 0.1}})
+    climb(ctx, 12)
+    assert state(mod, "file:write").tier == mod.rule.T2
+    ctx.call("terminal", NPM, answer="deny")                             # an unrelated medium fault on record
+    ctx.settings["types"] = {"file:write": "medium"}
+    for i in range(17):
+        assert ctx.call("write_file", write(f"m{i}"), session="s3") == "approved"
+    s = state(mod, "file:write")
+    assert (s.stakes, s.series, s.tier) == ("medium", 10, mod.rule.T1)
+    assert ctx.call("write_file", write("m17"), session="s3") == "approved"
+    assert state(mod, "file:write").tier == mod.rule.T2
+    rebased = [e for e in ledger(mod, "tier") if e["reason"] == "stakes"]
+    assert [(e["type"], e["from"], e["to"]) for e in rebased] == [("file:write", "notify", "ask")]
+
+
+def test_rebase_keeps_trial_and_fault_memory(plugin):
+    mod, ctx = plugin({"risks": {"low": 0.25, "medium": 0.2, "high": 0.1}})
+    local, remote = {"command": "rsync -a src/ backup/"}, {"command": "rsync -a src/ prod-host:/srv/app/"}
+    ctx.call("terminal", local, answer="deny")                           # medium fault: trial of 3, in memory
+    ctx.call("terminal", remote, result='{"exit_code": 0}')             # high stakes: re-based
+    s = state(mod, "shell:rsync")
+    assert (s.stakes, s.trial_left, s.unresolved_fault, s.lengthened, s.faults) == ("high", 2, True, True, 1)
+
+
+def test_pre_tool_call_answers_within_its_time_budget(plugin, monkeypatch):
+    mod, ctx = plugin(FAST)
+    to_t3(ctx)
+    monkeypatch.setattr(mod, "HOOK_BUDGET", 0.6)
+    monkeypatch.setattr(mod, "LOCK_TIMEOUT", 10.0)
+    with mod.ST.mem:
+        mod.ST.agents.clear()
+        mod.ST.last_agent = ""                                           # agent_of falls back to the store
+    held, release = threading.Event(), threading.Event()
+
+    def holder():
+        with mod.ST.lock:
+            held.set()
+            release.wait(10)
+    threading.Thread(target=holder, daemon=True).start()
+    assert held.wait(5)
+    try:
+        start = time.monotonic()
+        d = pre(mod, "write_file", write(), "c1", session="new")
+        elapsed = time.monotonic() - start
+    finally:
+        release.set()
+    assert d["action"] == "approve" and "internal error" in d["message"] and elapsed < 1.5
+
+
+def test_a_sessionless_read_suspends_only_this_process_for_an_hour(plugin):
+    mod, ctx = plugin(FAST)
+    to_t3(ctx)
+    sessionless(mod, mod.post_tool_call, "web_extract", {"urls": ["https://x.example"]}, "w1", result="{}",
+                status="ok")
+    assert not mod.store_().is_tainted("")                              # never in the store as a whole
+    assert sessionless(mod, mod.pre_tool_call, "write_file", write("a"), "c1")["action"] == "approve"
+    with mod.ST.mem:
+        mod.ST.tainted[""] -= 3601
+    assert sessionless(mod, mod.pre_tool_call, "write_file", write("b"), "c2") is None

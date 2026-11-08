@@ -58,8 +58,9 @@ PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible"
 #       The settings in force from here on: logged before the first outcome, then whenever they change. Replay:
 #       rule.reevaluate(state, params.required_n(risks, state.stakes)) on every type of every agent known so far.
 #   {"event": "outcome", "agent", "type", "stakes", "reversible", "result": success|fault|neutral, "source", "session"}
-#       Replay: the agent's type (a new one is TypeState(type, stakes, reversible)) takes the event's stakes and
-#       reversibility, then on_success / on_fault(n from the settings, session, source) or on_neutral(source), then
+#       Replay: the agent's type (a new one is TypeState(type, stakes, reversible)); when its stakes differ from the
+#       event's, rule.rebase first (evidence counts only at the stakes it was earned at); it takes the event's stakes
+#       and reversibility, then on_success / on_fault(n from the settings, session, source) or on_neutral(source), then
 #       rule.count_action when (result, source) is in COUNTED, unless that fault failed the trial (the rule returned
 #       a "trial" event with the reason "failed"). Sources (OUTCOME_SOURCES):
 #         success: approval (an approved ask ran cleanly), spot (an approved spot check ran cleanly), notify (a T2
@@ -67,7 +68,8 @@ PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible"
 #         fault:   refusal (an ask refused), spot (a spot check refused, or approved but failing its automatic
 #                  check), check (an action that ran failed its automatic check, whoever let it run: a person, an
 #                  earned tier, or nobody), undo, flag (after the fact);
-#         neutral: error (an action a person or an earned tier let run, whose tool failed), alone (a T3 action
+#         neutral: ambiguous (several live rows of one tool call id and type outside any session: none is
+#                  settled as a success), error (an action a person or an earned tier let run, whose tool failed), alone (a T3 action
 #                  ran, unverified), blocked (stopped by another guard after our decision, never ran), timeout (no
 #                  answer from a person: timeout, cancellation, smart approval), nobody (nobody answered: cron,
 #                  yolo, approvals off, another plugin's approval; the action did not fail its automatic check, or
@@ -80,7 +82,7 @@ PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible"
 OUTCOME_SOURCES = {
     "success": frozenset({"approval", "spot", "notify"}),
     "fault": frozenset({"refusal", "spot", "check", "undo", "flag"}),
-    "neutral": frozenset({"error", "alone", "blocked", "timeout", "nobody", "expired"}),
+    "neutral": frozenset({"error", "alone", "blocked", "timeout", "nobody", "expired", "ambiguous"}),
 }
 # Outcomes of an action that ran: the wait after a failed trial counts them (rule.count_action). A failed automatic
 # check counts even when nobody answered: the action ran and the check judged it. A refused spot check never ran; an
@@ -134,7 +136,9 @@ class Store:
         return self
 
     def _ensure_schema(self) -> None:
-        """Create the v2 tables; a file from an older schema is dropped and recreated (there are no v1 users)."""
+        """Create the current tables. A file from an older schema (v1, v2: never released) is copied to
+        ``<file>.bak-<version>`` (``unknown`` without a version), then its tables are dropped and recreated; a newer
+        schema raises instead of being downgraded."""
         def stored() -> str | None:
             try:
                 row = self.db.execute("SELECT value FROM meta WHERE key = 'schema'").fetchone()
@@ -150,6 +154,7 @@ class Store:
             return v == SCHEMA_VERSION
         if current():
             return
+        self._backup(stored())
         self.db.execute("BEGIN IMMEDIATE")
         try:
             if not current():
@@ -163,6 +168,18 @@ class Store:
             self.db.execute("ROLLBACK")
             raise
         self.db.execute("COMMIT")
+
+    def _backup(self, version: str | None) -> None:
+        """Copy a database about to be dropped, when it holds any table, before anything is lost."""
+        if not self.db.execute("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table'").fetchone()[0]:
+            return
+        target = sqlite3.connect(f"{self.path}.bak-{version or 'unknown'}")
+        try:
+            self.db.backup(target)
+        finally:
+            target.close()
+        if os.name == "posix":
+            os.chmod(f"{self.path}.bak-{version or 'unknown'}", 0o600)
 
     def _write(self) -> None:
         if not self.db.in_transaction:
@@ -231,9 +248,14 @@ class Store:
 
     def find_pending(self, session: str, call: str) -> dict | None:
         """The newest pending row of a tool call id in a session."""
-        row = self.db.execute("SELECT %s FROM pending WHERE session = ? AND call = ? ORDER BY at DESC, rowid DESC "
-                              "LIMIT 1" % ", ".join(PENDING_COLS), (session, call)).fetchone()
-        return None if row is None else self._pending(row)
+        rows = self.pending_rows(session, call)
+        return rows[0] if rows else None
+
+    def pending_rows(self, session: str, call: str) -> list[dict]:
+        """Every live row of a tool call id in a session, newest first."""
+        rows = self.db.execute("SELECT %s FROM pending WHERE session = ? AND call = ? ORDER BY at DESC, rowid DESC"
+                               % ", ".join(PENDING_COLS), (session, call)).fetchall()
+        return [self._pending(r) for r in rows]
 
     def set_phase(self, id: str, phase: str) -> None:
         self._write()

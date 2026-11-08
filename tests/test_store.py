@@ -203,6 +203,8 @@ def test_v1_database_is_recreated(tmp_path):
     db.close()
     s = store.Store(str(path))
     assert s.get_meta("schema") == "3" and s.agents() == []
+    bak = sqlite3.connect(str(path) + ".bak-unknown")
+    assert bak.execute("SELECT model FROM types").fetchall() == [("m",)]
 
 
 def test_schema_2_database_is_recreated(tmp_path):
@@ -215,6 +217,8 @@ def test_schema_2_database_is_recreated(tmp_path):
     w.db.close()
     s = store.Store(path)
     assert s.get_meta("schema") == "3" and s.totals(A)["actions"] == 0
+    old = sqlite3.connect(path + ".bak-2")                              # the dropped file is kept as a copy
+    assert old.execute("SELECT SUM(actions) FROM stats").fetchone()[0] == 1
 
 
 def test_database_is_private(tmp_path):

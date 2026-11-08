@@ -22,6 +22,9 @@ Hooks:
   suspended first, in a transaction of its own.
 - ``subagent_stop``: a child agent that read external content suspends its parent, whose context gets its summary.
 
+Calls outside any session (Hermes passes no session id) share the empty session: their pending rows are matched by
+call id and type, and an external read suspends them in this process only, for an hour, never in the store.
+
 Every outcome, settings change, agent change and revocation is written to the hash-chained ledger as an input event
 (``store``), in the transaction that applies it, so that replaying the ledger recomputes the same tiers. CLI:
 ``hermes clearance``. Slash command: ``/clearance``. Local only: no network, no LLM call.
@@ -47,6 +50,8 @@ RULE = "study-rule-B/1"          # the rule named in settings events; the passpo
 PURGE_EVERY = 3600               # seconds between two clean-ups of undo snapshots past their window, per process
 MAX_SESSIONS = 4096              # sessions whose agent, or suspension, this process remembers
 LOCK_TIMEOUT = 10.0              # seconds a hook waits for another thread's transaction before giving up
+HOOK_BUDGET = 25.0               # seconds pre_tool_call may take in all (Hermes stops waiting at 30)
+SESSIONLESS_TAINT = 3600         # seconds a read outside any session suspends sessionless calls of this process
 _TIER = {rule.T1: "T1, asking first", rule.T2: "T2, acting then notifying you with an undo",
          rule.T3: "T3, acting alone"}
 
@@ -71,7 +76,7 @@ class _State:
         self.mem = threading.Lock()              # the in-memory maps below; never held during I/O
         self.opening = threading.Lock()          # opening the store
         self.agents: OrderedDict[str, str] = OrderedDict()     # session id -> agent of its latest API request
-        self.tainted: OrderedDict[str, bool] = OrderedDict()   # suspended sessions (anonymised), also in the store
+        self.tainted: OrderedDict[str, float] = OrderedDict()  # suspended sessions (anonymised) -> since when
         self.last_agent = ""
         self.rng = random.SystemRandom()
         self.purged_at = 0.0
@@ -107,10 +112,12 @@ def store_() -> store.Store:
 
 
 @contextmanager
-def _locked():
-    """This process's store lock, waited for at most LOCK_TIMEOUT seconds (then LockTimeout)."""
-    if not ST.lock.acquire(timeout=LOCK_TIMEOUT):
-        raise LockTimeout(f"clearance: the store stayed busy for {LOCK_TIMEOUT:g} s")
+def _locked(deadline: float | None = None):
+    """This process's store lock, waited for at most LOCK_TIMEOUT seconds, and never past ``deadline`` (a
+    time.monotonic() value), else LockTimeout."""
+    wait = LOCK_TIMEOUT if deadline is None else min(LOCK_TIMEOUT, deadline - time.monotonic())
+    if wait <= 0 or not ST.lock.acquire(timeout=wait):
+        raise LockTimeout("clearance: the store stayed busy")
     try:
         yield
     finally:
@@ -118,9 +125,9 @@ def _locked():
 
 
 @contextmanager
-def txn():
+def txn(deadline: float | None = None):
     """The store inside one write transaction, one thread at a time: every write of a hook happens here."""
-    with _locked():
+    with _locked(deadline):
         st = store_()
         with st.transaction():
             yield st
@@ -237,14 +244,14 @@ def _remember(cache: OrderedDict, key: str, value) -> None:
         cache.popitem(last=False)
 
 
-def agent_of(session_id="") -> str:
+def agent_of(session_id="", deadline: float | None = None) -> str:
     """The agent acting in a session: the model and provider of the session's latest API request in this process,
     else of this process's latest API request, else the profile's last active agent."""
     with ST.mem:
         agent = ST.agents.get(str(session_id or "")) or ST.last_agent
     if not agent:
         try:
-            with _locked():
+            with _locked(deadline):
                 agent = store_().get_meta("agent:last")
         except Exception:
             agent = None
@@ -253,16 +260,20 @@ def agent_of(session_id="") -> str:
 
 def _suspended(st: store.Store, session: str) -> bool:
     with ST.mem:
-        if session in ST.tainted:
-            return True
-    return st.is_tainted(session)
+        since = ST.tainted.get(session)
+    if not session:                         # outside any session: this process only, for SESSIONLESS_TAINT
+        return since is not None and time.time() - since < SESSIONLESS_TAINT
+    return since is not None or st.is_tainted(session)
 
 
 def _taint(session: str) -> None:
     """Suspend a session: in this process at once, then in the store in a transaction of its own, so that nothing
-    that fails later (or a busy store) can take it back."""
+    that fails later (or a busy store) can take it back. The empty session (calls outside any session) is never
+    suspended as a whole: only in this process, for an hour."""
     with ST.mem:
-        _remember(ST.tainted, session, True)
+        _remember(ST.tainted, session, time.time())
+    if not session:
+        return
     try:
         with txn() as st:
             st.taint(session)
@@ -312,7 +323,10 @@ def _say(events: list[dict], spot: float) -> list[str]:
     out = []
     for ev in events:
         t, kind, reason = ev.get("type"), ev.get("event"), ev.get("reason")
-        if kind == "tier" and reason == "series":
+        if kind == "tier" and reason == "stakes":
+            out.append(f"clearance: {t} now has {ev.get('stakes')} stakes: its record starts over at these stakes "
+                       f"(a trial and the faults on record stay).")
+        elif kind == "tier" and reason == "series":
             out.append(f"clearance: {t} now acts alone, after {ev.get('required')} verified successes in a row from "
                        f"{ev.get('sessions')} sessions. 1 action in {round(1 / spot)} is still spot-checked, and a "
                        f"fault sends it back down.")
@@ -360,8 +374,10 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
     except for the fault that failed the trial. Returns the derived events."""
     if source not in store.OUTCOME_SOURCES.get(result, ()):
         raise ValueError(f"clearance: unknown outcome {result!r} from {source!r}")
+    recorded = st.recorded(agent, type_key)
     s = st.get_state(agent, type_key, stakes, reversible)
     n = params.required_n(cfg["risks"], stakes)
+    rebased = rule.rebase(s) if recorded is not None and recorded.stakes != stakes else []
     if result == "success":
         events = rule.on_success(s, n, session=session, source=source)
     elif result == "fault":
@@ -369,6 +385,7 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
     else:
         events = rule.on_neutral(s, source)
     failed_trial = any(ev["event"] == "trial" and ev.get("reason") == "failed" for ev in events)
+    events = rebased + events
     if (result, source) in store.COUNTED and not failed_trial:
         events += rule.count_action(s)
     st.put_state(agent, s)
@@ -575,6 +592,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
     included, asks, unless the call was already classified free. Every call that reaches the record first expires
     stale pending rows. Files are saved before the transaction, and the decision is checked again inside it."""
     act, taken = None, None
+    deadline = time.monotonic() + HOOK_BUDGET
     try:
         cfg = settings()
         if not cfg["enabled"]:
@@ -590,16 +608,16 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             return {"action": "approve", "rule_key": f"{PREFIX}:cap:{act.type}:{uid}",
                     "message": f"clearance — {act.summary}\n{act.type} is capped: always asked."}
         call, sid = str(tool_call_id or ""), str(session_id or task_id or "")
-        session, agent, nobody = anon(sid), agent_of(sid), nobody_answers()
+        session, agent, nobody = anon(sid), agent_of(sid, deadline), nobody_answers()
         n = params.required_n(cfg["risks"], act.stakes)
         if call:                                            # an undo is only wired through a call id
-            with _locked():
+            with _locked(deadline):
                 preview = _decide(store_(), agent, act, n, cfg, session, nobody, _NoSpot)[2]
             if preview == rule.NOTIFY:
                 paths = classify.files_written(tool, args, cwd)
                 taken = undo.snapshot(paths, data_dir()) if paths else None
         posts, directive, snap = [], None, taken
-        with txn() as st:
+        with txn(deadline) as st:
             posts += _say(sync_settings(st, cfg), cfg["spot"])
             posts += _say(_expire(st, cfg), cfg["spot"])
             recorded, s, decision, suspended = _decide(st, agent, act, n, cfg, session, nobody, ST.rng)
@@ -697,9 +715,16 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         if not call:
             return None
         with _locked():
-            p = store_().find_pending(session, call)
-        if p is None:
+            rows = store_().pending_rows(session, call)
+        if not session and rows:            # outside any session, call ids recur: the type must match too
+            kind = classify.classify(tool, args, cwd=cwd, overrides=settings()["overrides"]).type
+            rows = [r for r in rows if r["type"] == kind]
+            if len(rows) > 1:
+                _ambiguous(rows)
+                return None
+        if not rows:
             return None
+        p = rows[0]
         blocked = str(status or "").strip().lower() == "blocked"
         failed = not blocked and proofs.execution(tool, status, error_type, result) == "failed"
         reason = None
@@ -720,6 +745,21 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
     except Exception:
         log.exception("clearance: post_tool_call failed")
     return None
+
+
+def _ambiguous(rows: list[dict]) -> None:
+    """Several live rows outside any session for one call id and type: none can be told apart, so none is settled as
+    a success; each is recorded as neutral."""
+    cfg, posts = settings(), []
+    with txn() as st:
+        posts += _say(sync_settings(st, cfg), cfg["spot"])
+        for r in rows:
+            if st.pop_pending(r["id"]) is not None:
+                record_outcome(st, cfg, agent=r["agent"], type_key=r["type"], stakes=r["stakes"],
+                               reversible=r["reversible"], result="neutral", source="ambiguous", session=r["session"])
+                _bump(st, r["agent"], "neutral")
+    for text in posts:
+        _announce(text)
 
 
 def subagent_stop(parent_session_id="", child_session_id="", **kwargs):
