@@ -389,12 +389,13 @@ def _check_signature(passport: dict) -> list[str]:
     return []
 
 
-def verify(passport: dict, rows: list[dict] | None = None) -> list[str]:
+def verify(passport: dict, rows: list[dict] | None = None, chain_ok: bool = False) -> list[str]:
     """Problems found, never an exception. In order: structure, signature, protocol and rule, then with ``rows``: the
     hash chain, the passport's place in it, and every type recomputed by replay of the first ``ledger.count`` rows.
     An empty list means everything checks. An unsigned passport that is otherwise right gives ``["unsigned"]``;
     without ``rows`` the types are not checked and the list ends with ``NO_LEDGER``, so it is never empty. A ledger
-    longer than the passport's count is fine: the passport describes the ledger as it was then."""
+    longer than the passport's count is fine: the passport describes the ledger as it was then. ``chain_ok``: the
+    caller already checked the hash chain (the dashboard does, from the stored text); it is not checked again."""
     shape, ok = _shape(passport)
     if not isinstance(passport, dict):
         return shape
@@ -408,7 +409,8 @@ def verify(passport: dict, rows: list[dict] | None = None) -> list[str]:
     if not isinstance(rows, list) or not all(isinstance(r, dict) and isinstance(r.get("event"), dict) for r in rows):
         return problems + ["malformed ledger: every row must be an object with an event object"]
     try:
-        problems += [f"ledger: {p}" for p in store.verify(rows)]
+        if not chain_ok:
+            problems += [f"ledger: {p}" for p in store.verify(rows)]
     except (TypeError, ValueError, AttributeError) as exc:
         return problems + [f"malformed ledger: {exc}"]
     if not ok.get("ledger"):

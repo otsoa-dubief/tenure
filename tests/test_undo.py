@@ -136,3 +136,14 @@ def test_partial_restore_reports_failures_and_keeps_the_snapshot(tmp_path, monke
     assert a.read_bytes() == b"a0" and os.path.isdir(os.path.join(root, "undo", sid))
     monkeypatch.setattr(undo, "_atomic_write", real)
     assert undo.restore(sid, root) == (2, 0) and b.read_bytes() == b"b0"
+
+
+def test_restore_can_keep_the_snapshot_for_the_caller_to_discard(tmp_path):
+    f = tmp_path / "k.txt"
+    f.write_bytes(b"v1")
+    root = str(tmp_path / "data")
+    sid = undo.snapshot([str(f)], root)
+    f.write_bytes(b"v2")
+    assert undo.restore(sid, root, keep=True) == (1, 0) and f.read_bytes() == b"v1"
+    assert os.path.isdir(os.path.join(root, "undo", sid))
+    assert undo.discard(sid, root) is True

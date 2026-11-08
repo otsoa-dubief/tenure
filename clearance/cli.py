@@ -289,7 +289,9 @@ def undo_action(entry_id: int) -> str:
     returned text's ``ok`` attribute is False when nothing was undone."""
     core = _core()
     with core.txn() as st:
-        return core.undo_entry(st, entry_id)
+        msg = core.undo_entry(st, entry_id)
+    msg.cleanup()                                   # the snapshot goes only once the transaction has committed
+    return msg
 
 
 # ------------------------------------------------------------------------------------------------ passport

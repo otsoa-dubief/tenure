@@ -100,9 +100,10 @@ def _atomic_write(target: str, data: bytes, mode: int) -> None:
         raise
 
 
-def restore(snap_id: str, root: str) -> tuple[int, int]:
+def restore(snap_id: str, root: str, keep: bool = False) -> tuple[int, int]:
     """Put files back (delete those that did not exist). Return (files restored, files that failed). A snapshot that
-    cannot be read gives (0, 0); one with failures is kept, so the restore can be retried."""
+    cannot be read gives (0, 0); one with failures is kept, so the restore can be retried. With ``keep``, a complete
+    restore keeps the snapshot too: the caller discards it once its own transaction has committed."""
     if not isinstance(snap_id, str) or not _ID_RE.match(snap_id):
         return 0, 0
     d = os.path.join(_undo_dir(root), snap_id)
@@ -126,7 +127,7 @@ def restore(snap_id: str, root: str) -> tuple[int, int]:
             count += 1
         except (OSError, KeyError, TypeError):
             failed += 1
-    if not failed:
+    if not failed and not keep:
         shutil.rmtree(d, ignore_errors=True)
     return count, failed
 

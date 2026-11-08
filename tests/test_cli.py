@@ -381,8 +381,43 @@ def test_partial_undo_keeps_the_entry_open_and_records_no_fault(plugin, monkeypa
     ctx.call("write_file", write("p"))
     uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
     faults, n = state(mod, "file:write").faults, len(ledger(mod))
-    monkeypatch.setattr(mod.undo, "restore", lambda snap, root: (1, 2))
+    monkeypatch.setattr(mod.undo, "restore", lambda snap, root, keep=False: (1, 2))
     text, code = run_line(mod, f"undo {uid}")
     assert code == 1 and "2 file(s) could not be restored" in text and "try again" in text
     assert mod.store_().get_undo(uid)["undone"] is False
     assert state(mod, "file:write").faults == faults and len(ledger(mod)) == n
+
+
+def test_snapshot_is_discarded_only_after_the_transaction_commits(plugin, monkeypatch):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    ctx.call("write_file", write("d"))
+    uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    snap = mod.store_().get_undo(uid)["snap_id"]
+    folder = os.path.join(mod.data_dir(), "undo", snap)
+    # a failure after the files are back (recording the fault) rolls everything back and keeps the snapshot
+    with monkeypatch.context() as m:
+        m.setattr(mod, "record_outcome", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
+        with pytest.raises(RuntimeError):
+            mod.cli.undo_action(uid)
+    assert os.path.isdir(folder) and mod.store_().get_undo(uid)["undone"] is False
+    with mod.txn() as st:
+        msg = mod.undo_entry(st, uid)
+        assert msg.ok and os.path.isdir(folder)                          # still there inside the transaction
+    msg.cleanup()
+    assert not os.path.exists(folder) and mod.store_().get_undo(uid)["undone"] is True
+
+
+def test_settings_come_from_hermes_config_without_a_plugin_context(plugin, monkeypatch):
+    mod, ctx = plugin(FAST)
+    mod.ST.ctx = None
+    assert mod.settings()["risks"]["low"] == mod.params.PRESETS["balanced"]["low"]      # nothing to read: defaults
+    fake = types.ModuleType("hermes_cli.config")
+    fake.load_config = lambda: {"plugins": {"entries": {"clearance": {"settings": {
+        "preset": "fast", "strict": True, "spot_check": 0.2}}}}}
+    pkg = types.ModuleType("hermes_cli")
+    pkg.config = fake
+    monkeypatch.setitem(sys.modules, "hermes_cli", pkg)
+    monkeypatch.setitem(sys.modules, "hermes_cli.config", fake)
+    cfg = mod.settings()
+    assert (cfg["preset"], cfg["strict"], cfg["spot"]) == ("fast", True, 0.2)

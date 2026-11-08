@@ -462,3 +462,15 @@ def test_the_key_is_written_whole_then_put_in_place(plugin, monkeypatch):
     assert [n for n in os.listdir(d) if n.startswith(mod.passport.KEY_FILE)] == []
     monkeypatch.setattr(mod.passport.os, "fdopen", real)
     assert mod.passport.keypair(d)[0] is not None
+
+
+def test_verify_can_skip_a_chain_the_caller_already_checked(plugin):
+    mod, ctx = plugin(FAST)
+    ctx.call("write_file", write("v"))
+    st = mod.store_()
+    rows = st.ledger()
+    doc = mod.passport.build(st, A, {}, mod.data_dir(), create_key=False, rows=rows)
+    assert mod.passport.verify(doc, rows) == mod.passport.verify(doc, rows, chain_ok=True)
+    rows[0]["hash"] = "0" * 64
+    assert any("ledger:" in p for p in mod.passport.verify(doc, rows))
+    assert not any("content changed" in p for p in mod.passport.verify(doc, rows, chain_ok=True))

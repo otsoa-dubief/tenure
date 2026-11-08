@@ -116,6 +116,8 @@ Revoke, flag, undo and settings act on the dashboard's current profile only.
   types as `cap` if that matters to you.
 - Approvals count only when a person answers: timeouts, cancellations and smart (model) approvals do not.
 - Records are per model and per Hermes profile.
+- The dashboard opens each database read-only (SQLite `mode=ro`). On a database in WAL mode, SQLite may still create
+  or touch the `-wal` and `-shm` side files next to it; no table, row or other file is written by a read.
 
 ## Where it comes from
 

@@ -134,9 +134,24 @@ def txn(deadline: float | None = None):
             yield st
 
 
-def _get(key, default=None):
+def _config_setting(key, default=None):
+    """One of this plugin's settings read from Hermes' config (``plugins.entries.clearance.settings``), for a process
+    without the plugin context (the dashboard). Hermes' public ``hermes_cli.config``; the defaults when unreadable."""
     try:
-        return ST.ctx.get_config(key, default) if ST.ctx is not None else default
+        from hermes_cli import config as hermes_config
+        node = hermes_config.load_config() or {}
+        for part in ("plugins", "entries", PREFIX, "settings"):
+            node = node[part]
+        return node.get(key, default)
+    except Exception:
+        return default
+
+
+def _get(key, default=None):
+    if ST.ctx is None:
+        return _config_setting(key, default)
+    try:
+        return ST.ctx.get_config(key, default)
     except Exception:
         return default
 
@@ -401,22 +416,29 @@ UNDO_WINDOW = 24 * 3600          # seconds an act-then-notify action can be undo
 
 
 class UndoMessage(str):
-    """The owner's message about an undo; ``ok`` is False when nothing was undone (a refusal or a failure)."""
+    """The owner's message about an undo; ``ok`` is False when nothing was undone (a refusal or a failure).
+    ``cleanup()`` deletes the restored snapshot: call it after the transaction that ran ``undo_entry`` has committed."""
     ok = True
+    snap_id: str | None = None
 
-    def __new__(cls, text: str, ok: bool = True):
+    def __new__(cls, text: str, ok: bool = True, snap_id: str | None = None):
         self = super().__new__(cls, text)
-        self.ok = ok
+        self.ok, self.snap_id = ok, snap_id
         return self
 
+    def cleanup(self) -> None:
+        if self.snap_id:
+            undo.discard(self.snap_id, data_dir())
+            self.snap_id = None
 
-def undo_entry(st: store.Store, id: int, cfg: dict | None = None) -> UndoMessage:
+
+def undo_entry(st: store.Store, id: int) -> UndoMessage:
     """Revert one act-then-notify action (files back to their snapshot) and count it as a fault of its type, unless
     its automatic check already did. The one implementation, used by the CLI, the slash command and the dashboard.
-    Call it inside ``txn()``. Returns a message (a ``str`` whose ``ok`` is False when nothing was undone). A partial
-    restore marks nothing undone and records no fault: the snapshot is kept, so the owner can try again.
-    ``cfg`` is for a caller outside the hooks (the dashboard) that has the settings in force from the ledger: they
-    are then used as they are, with no sync; by default, the configured settings are synced."""
+    Call it inside ``txn()``, then call ``cleanup()`` on the result once the transaction has committed: the snapshot
+    is only deleted then, so a failure before the commit leaves the action retryable. Returns a message (a ``str``
+    whose ``ok`` is False when nothing was undone). A partial restore marks nothing undone and records no fault: the
+    snapshot is kept, so the owner can try again. The settings are the configured ones, synced into the ledger."""
     entry = st.get_undo(id)
     if entry is None:
         return UndoMessage(f"No undo entry {id}.", False)
@@ -426,7 +448,7 @@ def undo_entry(st: store.Store, id: int, cfg: dict | None = None) -> UndoMessage
         return UndoMessage(f"Undo {id} is older than {UNDO_WINDOW // 3600} h: the snapshot is no longer kept.", False)
     if not entry["snap_id"]:
         return UndoMessage(f"Undo {id}: no snapshot was saved for this action, nothing to restore.", False)
-    restored, failed = undo.restore(entry["snap_id"], data_dir())
+    restored, failed = undo.restore(entry["snap_id"], data_dir(), keep=True)
     if failed:
         return UndoMessage(f"Undo {id}: {failed} file(s) could not be restored ({restored} were). Nothing is marked "
                            f"undone and no fault is recorded: fix the cause (permissions, a locked file) and try "
@@ -437,18 +459,17 @@ def undo_entry(st: store.Store, id: int, cfg: dict | None = None) -> UndoMessage
     st.mark_undone(id)
     if entry["fault"]:
         return UndoMessage(f"Undo {id}: files restored. The automatic check had already counted this action as a "
-                           f"fault of {key}; no second fault is recorded.")
+                           f"fault of {key}; no second fault is recorded.", True, entry["snap_id"])
     recorded = st.recorded(agent, key)
     stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
-    if cfg is None:
-        cfg = settings()
-        sync_settings(st, cfg)
+    cfg = settings()
+    sync_settings(st, cfg)
     record_outcome(st, cfg, agent=agent, type_key=key, stakes=stakes, reversible=reversible,
                    result="fault", source="undo")
     st.bump(agent, "faults")
     s = st.get_state(agent, key, stakes, reversible)
     return UndoMessage(f"Undo {id}: files restored. Counted as a fault of {key} for {agent}; it is now at "
-                       f"{_TIER_NAMES[s.tier]}.")
+                       f"{_TIER_NAMES[s.tier]}.", True, entry["snap_id"])
 
 
 def _bump(st: store.Store, agent: str, result: str, *, checked: bool = False, alone: bool = False) -> None:

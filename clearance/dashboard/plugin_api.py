@@ -9,23 +9,30 @@ GETs open each profile's database read-only (``Store.open_readonly``), skip a pr
 thread (``asyncio.to_thread``) so the dashboard's event loop never waits on SQLite, and use ``LIMIT``ed queries. They
 never write: not a row, not a file (the passport is unsigned when its key does not exist yet).
 
-POSTs act on the dashboard's current profile only (the process's Hermes home; a ``?profile=`` naming another one is
+POSTs act on the dashboard's current profile only (the process's Hermes home; an ``of=`` naming another one is
 refused) and go through the same functions as the hooks and the CLI, so the ledger gets the same input events.
 """
 from __future__ import annotations
 
 import asyncio
 import contextlib
+import hashlib
 import importlib.util
 import json
 import os
 import sqlite3
 import sys
+import threading
 import time
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
+
+# Our cross-profile selector is `of`, never `profile`: Hermes' own ``?profile=`` scopes a request to a served profile
+# (it is stripped before the plugin sees it, and a secondary profile's request for this plugin then gets "Plugin not
+# found"), so a parameter of that name would collide with it. tests/test_dashboard_api.py pins the name.
+SELECTOR = "of"
 
 router = APIRouter()
 
@@ -36,19 +43,45 @@ _FOLDER = ("plugin-data", "clearance")
 _DB = "clearance.db"
 
 
+_CORE = None
+_CORE_LOCK = threading.Lock()
+
+
 def _core():
-    """The plugin package as Hermes loaded it (the hooks' ``ST`` lives there), else imported from this file's place."""
-    for name in ("hermes_plugins.clearance", "clearance"):
-        mod = sys.modules.get(name)
-        if mod is not None and hasattr(mod, "ST"):
-            return mod
-    root = Path(__file__).resolve().parents[1]
-    spec = importlib.util.spec_from_file_location("clearance", root / "__init__.py",
-                                                  submodule_search_locations=[str(root)])
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules["clearance"] = mod
-    spec.loader.exec_module(mod)
-    return mod
+    """The plugin package, the same module object on every call (so one ``ST.lock``): as Hermes loaded it (the hooks'
+    ``ST`` lives there), else imported once from this file's place."""
+    global _CORE
+    if _CORE is None:
+        with _CORE_LOCK:
+            if _CORE is None:
+                for name in ("hermes_plugins.clearance", "clearance"):
+                    mod = sys.modules.get(name)
+                    if mod is not None and hasattr(mod, "ST"):
+                        _CORE = mod
+                        break
+                else:
+                    root = Path(__file__).resolve().parents[1]
+                    spec = importlib.util.spec_from_file_location("clearance", root / "__init__.py",
+                                                                  submodule_search_locations=[str(root)])
+                    mod = importlib.util.module_from_spec(spec)
+                    sys.modules["clearance"] = mod
+                    spec.loader.exec_module(mod)
+                    _CORE = mod
+    return _CORE
+
+
+class _Unreadable(Exception):
+    """A profile's database exists but cannot be read."""
+
+
+def _name(core, key: str, raw: bool) -> str:
+    """A type as shown: hashed after the program and subcommand, as in the passport, unless ``raw`` (the owner asks)."""
+    return key if raw else core.passport.redact_type(key)
+
+
+def _wanted(core, states: dict, wanted: str) -> list:
+    """The types of ``states`` the caller means: the exact name, or the redacted name the dashboard showed."""
+    return [k for k in states if k == wanted or core.passport.redact_type(k) == wanted]
 
 
 # ------------------------------------------------------------------------------------------------------ profiles
@@ -90,13 +123,16 @@ def _data_dir(p: dict) -> str:
 
 @contextlib.contextmanager
 def _open(core, p: dict):
-    """The profile's store, read-only; None when it has no usable database yet (nothing is created)."""
+    """The profile's store, read-only; None when it has no database yet (nothing is created); ``_Unreadable`` when it
+    has one that cannot be opened."""
     path = os.path.join(_data_dir(p), _DB)
     try:
         st = core.store.Store.open_readonly(path)
-    except (FileNotFoundError, RuntimeError, sqlite3.Error, OSError):
+    except FileNotFoundError:
         yield None
         return
+    except (RuntimeError, sqlite3.Error, OSError):
+        raise _Unreadable(p["name"])
     try:
         yield st
     finally:
@@ -104,6 +140,7 @@ def _open(core, p: dict):
 
 
 def _profile(name: str | None, core) -> dict:
+    """The profile named by ``of`` (default: this process's own)."""
     name = name or _current(core)
     for p in _profiles():
         if p["name"] == name:
@@ -121,15 +158,17 @@ def _settings(core, st) -> dict:
     risks = dict(params.PRESETS[params.DEFAULT_PRESET])
     risks.update({k: v for k, v in (ev.get("risks") or {}).items() if k in params.LEVELS})
     spot = ev.get("spot")
-    return {"preset": "custom" if row else params.DEFAULT_PRESET, "risks": risks,
+    preset = next((n for n, r in params.PRESETS.items() if all(risks.get(lv) == r[lv] for lv in params.LEVELS)),
+                  "custom")
+    return {"preset": preset, "risks": risks,
             "spot": spot if isinstance(spot, (int, float)) and 0 < spot < 1 else params.DEFAULT_SPOT,
             "strict": bool(ev.get("strict")), "overrides": {}, "enabled": True}
 
 
-def _type_row(core, cfg: dict, s) -> dict:
+def _type_row(core, cfg: dict, s, raw: bool = False) -> dict:
     rule, params = core.rule, core.params
     n = params.required_n(cfg["risks"], s.stakes)
-    return {"type": s.key, "stakes": s.stakes, "reversible": s.reversible,
+    return {"type": _name(core, s.key, raw), "stakes": s.stakes, "reversible": s.reversible,
             "tier": s.tier, "effective_tier": rule.effective_tier(s, n, s.stakes),
             "capped": n is None, "required": None if n is None else rule.required(s, n),
             "series": s.series, "sessions": len(s.sessions), "wald": s.wald,
@@ -139,14 +178,14 @@ def _type_row(core, cfg: dict, s) -> dict:
             "guarantee": rule.guarantee(s, n, cfg["spot"])}
 
 
-def _agent_rows(core, st, cfg: dict, suspended: int) -> list[dict]:
+def _agent_rows(core, st, cfg: dict, suspended: int, raw: bool) -> list[dict]:
     by_agent: dict[str, list] = {}
     for agent, s in st.states():
         by_agent.setdefault(agent, []).append(s)
     out = []
     for agent, states in by_agent.items():
         model, provider = core.personal.split_agent(agent)
-        types = [_type_row(core, cfg, s) for s in states]
+        types = [_type_row(core, cfg, s, raw) for s in states]
         out.append({"agent": agent, "model": model, "provider": provider, "types": types,
                     "provisional": any(t["provisional"] for t in types),
                     "trial": any(t["trial_left"] or t["trial_wait"] for t in types),
@@ -157,61 +196,76 @@ def _agent_rows(core, st, cfg: dict, suspended: int) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------------------------------------- GETs
-def _agents() -> dict:
+def _agents(raw: bool) -> dict:
     core = _core()
     current = _current(core)
     out = []
     for p in _profiles():
-        with _open(core, p) as st:
-            if st is None:
-                continue
-            cfg = _settings(core, st)
-            # Sessions are stored without their agent: the suspended count is the profile's, repeated on each agent.
-            suspended = st.db.execute("SELECT COUNT(*) FROM sessions WHERE tainted = 1").fetchone()[0]
-            out.append({"profile": p["name"], "current": p["name"] == current, "suspended": suspended,
-                        "settings": {"preset": cfg["preset"], "risks": cfg["risks"], "spot": cfg["spot"],
-                                     "strict": cfg["strict"]},
-                        "agents": _agent_rows(core, st, cfg, suspended)})
+        try:
+            with _open(core, p) as st:
+                if st is None:
+                    continue
+                cfg = _settings(core, st)
+                # Sessions are stored without their agent: the suspended count is the profile's, repeated on each agent.
+                suspended = st.db.execute("SELECT COUNT(*) FROM sessions WHERE tainted = 1").fetchone()[0]
+                out.append({"profile": p["name"], "current": p["name"] == current, "suspended": suspended,
+                            "settings": {"preset": cfg["preset"], "risks": cfg["risks"], "spot": cfg["spot"],
+                                         "strict": cfg["strict"]},
+                            "agents": _agent_rows(core, st, cfg, suspended, raw)})
+        except (_Unreadable, sqlite3.Error):
+            out.append({"profile": p["name"], "current": p["name"] == current, "error": "unreadable"})
     return {"current": current, "profiles": out}
 
 
-def _activity(since: float) -> dict:
+def _activity(since: float, raw: bool) -> dict:
     core = _core()
     now = time.time()
     total = dict.fromkeys(core.store.STAT_FIELDS, 0)
     profiles, undoable = [], []
     for p in _profiles():
-        with _open(core, p) as st:
-            if st is None:
-                continue
-            t = st.totals(since=since)
-            for k, v in t.items():
-                total[k] += v
-            profiles.append({"profile": p["name"], "totals": t})
-            rows = st.db.execute("SELECT id, agent, type, at, fault FROM undo WHERE undone = 0 AND snap_id IS NOT NULL "
-                                 "AND at > ? ORDER BY id DESC LIMIT ?", (now - core.UNDO_WINDOW, UNDOABLE_LIMIT)).fetchall()
-            undoable += [{"profile": p["name"], "id": r[0], "agent": r[1], "type": r[2], "age": round(now - r[3], 1),
-                          "counts_as_fault": not r[4]} for r in rows]
+        try:
+            with _open(core, p) as st:
+                if st is None:
+                    continue
+                t = st.totals(since=since)
+                rows = st.db.execute("SELECT id, agent, type, at, fault FROM undo WHERE undone = 0 "
+                                     "AND snap_id IS NOT NULL AND at > ? ORDER BY id DESC LIMIT ?",
+                                     (now - core.UNDO_WINDOW, UNDOABLE_LIMIT)).fetchall()
+        except (_Unreadable, sqlite3.Error):
+            profiles.append({"profile": p["name"], "error": "unreadable"})
+            continue
+        for k, v in t.items():
+            total[k] += v
+        profiles.append({"profile": p["name"], "totals": t})
+        undoable += [{"profile": p["name"], "id": r[0], "agent": r[1], "type": _name(core, r[2], raw),
+                      "age": round(now - r[3], 1), "counts_as_fault": not r[4]} for r in rows]
     return {"since": since, "totals": total, "profiles": profiles, "undoable": undoable}
 
 
-def _models(type_key: str | None) -> dict:
+def _models(type_key: str | None, raw: bool) -> dict:
     core = _core()
-    rows = []
+    rows, unreadable = [], []
     for p in _profiles():
-        with _open(core, p) as st:
-            if st is None:
+        try:
+            with _open(core, p) as st:
+                if st is None:
+                    continue
+                table = core.personal.model_table(st)
+        except (_Unreadable, sqlite3.Error):
+            unreadable.append({"profile": p["name"], "error": "unreadable"})
+            continue
+        for r in table:
+            if type_key is not None and type_key not in (r["type"], core.passport.redact_type(r["type"])):
                 continue
-            for r in core.personal.model_table(st, type_key):
-                r["profile"] = p["name"]
-                r["public"] = core.benchmarks.card(None, r["model"], r["type"])
-                rows.append(r)
+            public = core.benchmarks.card(None, r["model"], r["type"])
+            r.update(profile=p["name"], public=public, benchmark=core.benchmarks.benchmark_for(r["type"]),
+                     type=_name(core, r["type"], raw))
+            rows.append(r)
     rows.sort(key=lambda r: (r["type"], r["high"], r["agent"], r["profile"]))
-    types = sorted({r["type"] for r in rows})
-    return {"rows": rows, "benchmarks": {t: core.benchmarks.benchmark_for(t) for t in types}}
+    return {"rows": rows, "benchmarks": {r["type"]: r["benchmark"] for r in rows}, "unreadable": unreadable}
 
 
-def _preview(agent: str, to: str, profile: str | None) -> dict:
+def _preview(agent: str, to: str, profile: str | None, raw: bool) -> dict:
     core = _core()
     p = _profile(profile, core)
     if "@" not in to:
@@ -237,82 +291,118 @@ def _preview(agent: str, to: str, profile: str | None) -> dict:
                 veto = bool(eligible and core.benchmarks.veto(old_model, new_model, key))
                 status = "vetoed" if veto else "carried" if eligible else "reset"
                 new = core.rule.carry_over(s, n_new=n_new, veto=veto, strict=cfg["strict"])
-            types.append({"type": key, "stakes": s.stakes, "status": status,
-                          "old": _type_row(core, cfg, s), "new": _type_row(core, cfg, new),
+            types.append({"type": _name(core, key, raw), "stakes": s.stakes, "status": status,
+                          "old": _type_row(core, cfg, s, raw), "new": _type_row(core, cfg, new, raw),
                           "card": core.benchmarks.card(old_model, new_model, key),
-                          "personal": [personal[(a, key)] for a in (agent, to) if (a, key) in personal]})
+                          "personal": [{**personal[(a, key)], "type": _name(core, key, raw)}
+                                       for a in (agent, to) if (a, key) in personal]})
     return {"profile": p["name"], "from": agent, "to": to, "strict": cfg["strict"], "types": types}
 
 
-_PASSPORTS: dict = {}          # (database, agent, ledger head, key present) -> response; verifying replays the whole ledger
+_PASSPORTS: dict = {}          # (database, agent, ledger head, key present, raw) -> response; verifying replays the ledger
 _PASSPORTS_MAX = 64
 
 
-def _passport(agent: str, profile: str | None) -> dict:
+def _checked_ledger(st) -> tuple[list[dict], bool]:
+    """The ledger rows, and whether the hash chain holds, in one pass over the stored text. The chain hash is taken over
+    the canonical text the store wrote (``store.chain_hash``), so hashing that text as stored gives the same digest
+    without serialising every event again; any mismatch just reports False and the caller runs the full check."""
+    rows, ok, prev = [], True, _core().store.GENESIS
+    for seq, at, text, p, h in st.db.execute("SELECT seq, at, event, prev, hash FROM ledger ORDER BY seq"):
+        if ok and (seq != len(rows) + 1 or p != prev or
+                   h != hashlib.sha256(f"{p}|{seq}|{at!r}|{text}".encode("utf-8")).hexdigest()):
+            ok = False
+        rows.append({"seq": seq, "at": at, "event": json.loads(text), "prev": p, "hash": h})
+        prev = h
+    return rows, ok
+
+
+def _passport(agent: str, profile: str | None, raw: bool) -> dict:
     core = _core()
     p = _profile(profile, core)
     with _open(core, p) as st:
         if st is None or not st.states(agent):
             raise HTTPException(404, f"no record for {agent} in profile {p['name']}")
         head = st.db.execute("SELECT seq, hash FROM ledger ORDER BY seq DESC LIMIT 1").fetchone()
-        key = (st.path, agent, tuple(head or ()), os.path.exists(os.path.join(_data_dir(p), core.passport.KEY_FILE)))
+        key = (st.path, agent, tuple(head or ()), os.path.exists(os.path.join(_data_dir(p), core.passport.KEY_FILE)),
+               raw)
         hit = _PASSPORTS.get(key)
         if hit is not None:                           # the ledger has not moved: same passport, same verdict
             return hit
-        rows = st.ledger()
+        rows, chain_ok = _checked_ledger(st)
         cfg = _settings(core, st)
         doc = core.passport.build(st, agent, {"profile": p["name"], "risks": cfg["risks"], "spot": cfg["spot"],
-                                              "strict": cfg["strict"]}, _data_dir(p), redact=True, create_key=False,
-                                  rows=rows)
-    out = {"profile": p["name"], "passport": doc, "verify": core.passport.verify(doc, rows)}
+                                              "strict": cfg["strict"]}, _data_dir(p), redact=not raw,
+                                  create_key=False, rows=rows)
+    out = {"profile": p["name"], "passport": doc, "verify": core.passport.verify(doc, rows, chain_ok=chain_ok)}
     if len(_PASSPORTS) >= _PASSPORTS_MAX:
         _PASSPORTS.clear()
     _PASSPORTS[key] = out
     return out
 
 
-def _timeline(agent: str, profile: str | None) -> dict:
+def _timeline(agent: str, profile: str | None, raw: bool) -> dict:
     core = _core()
     p = _profile(profile, core)
-    needle = json.dumps(agent)[1:-1].replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    # The event text is canonical JSON (ensure_ascii=False, like store._canon): match the agent the same way.
+    needle = json.dumps(agent, ensure_ascii=False)[1:-1].replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     with _open(core, p) as st:
         if st is None:
             raise HTTPException(404, f"profile {p['name']} has no clearance database yet")
         rows = st.db.execute("SELECT seq, at, event FROM ledger WHERE event LIKE ? ESCAPE '\\' "
                              "ORDER BY seq DESC LIMIT ?", (f'%"agent":"{needle}"%', TIMELINE_LIMIT)).fetchall()
-    return {"profile": p["name"], "agent": agent,
-            "events": [{"seq": r[0], "at": r[1], "input": json.loads(r[2]).get("event") in core.store.INPUT_KINDS,
-                        **json.loads(r[2])} for r in rows]}
+    events = []
+    for seq, at, text in rows:
+        e = json.loads(text)
+        if isinstance(e.get("type"), str):
+            e["type"] = _name(core, e["type"], raw)
+        events.append({"seq": seq, "at": at, "input": e.get("event") in core.store.INPUT_KINDS, **e})
+    return {"profile": p["name"], "agent": agent, "events": events}
+
+
+def _get(fn, *args):
+    """A GET's work, in a worker thread: an unreadable profile answers 503 instead of an error page."""
+    try:
+        return fn(*args)
+    except _Unreadable as e:
+        raise HTTPException(503, f"profile {e} has a clearance database that cannot be read")
+    except sqlite3.Error:
+        raise HTTPException(503, "the clearance database could not be read, try again")
+
+
+_RAW = Query(False, description="1 shows raw action type names (default: redacted like the passport)")
+_OF = Query(None, description="profile name (default: the dashboard's current profile)")
 
 
 @router.get("/agents")
-async def agents():
-    return await asyncio.to_thread(_agents)
+async def agents(raw: bool = _RAW):
+    return await asyncio.to_thread(_get, _agents, raw)
 
 
 @router.get("/activity")
-async def activity(since: float | None = Query(None, description="epoch seconds; default: the last 24 h")):
-    return await asyncio.to_thread(_activity, time.time() - DAY if since is None else since)
+async def activity(since: float | None = Query(None, description="epoch seconds; default: the last 24 h"),
+                   raw: bool = _RAW):
+    return await asyncio.to_thread(_get, _activity, time.time() - DAY if since is None else since, raw)
 
 
 @router.get("/models")
-async def models(type: str | None = Query(None)):
-    return await asyncio.to_thread(_models, type)
+async def models(type: str | None = Query(None), raw: bool = _RAW):
+    return await asyncio.to_thread(_get, _models, type, raw)
 
 
 @router.get("/preview")
-async def preview(agent: str, to: str, profile: str | None = None):
-    return await asyncio.to_thread(_preview, agent, to, profile)
+async def preview(agent: str, to: str, of: str | None = _OF, raw: bool = _RAW):
+    return await asyncio.to_thread(_get, _preview, agent, to, of, raw)
 
 
 @router.get("/passport")
-async def passport(agent: str, profile: str | None = None):
-    return await asyncio.to_thread(_passport, agent, profile)
+async def passport(agent: str, of: str | None = _OF, raw: bool = _RAW):
+    return await asyncio.to_thread(_get, _passport, agent, of, raw)
 
 
 @router.get("/timeline")
-async def timeline(agent: str, profile: str | None = None):
-    return await asyncio.to_thread(_timeline, agent, profile)
+async def timeline(agent: str, of: str | None = _OF, raw: bool = _RAW):
+    return await asyncio.to_thread(_get, _timeline, agent, of, raw)
 
 
 # --------------------------------------------------------------------------------------------------------- POSTs
@@ -339,18 +429,20 @@ class SettingsBody(BaseModel):
     strict: bool | None = None
 
 
-def _mine(core, profile: str | None) -> None:
+def _mine(core, of: str | None) -> None:
     """POSTs write to this process's own profile: any other one is refused."""
-    if profile is not None and profile != _current(core):
-        raise HTTPException(409, f"{profile} is not the dashboard's current profile ({_current(core)})")
+    if of is not None and of != _current(core):
+        raise HTTPException(409, f"{of} is not the dashboard's current profile ({_current(core)})")
 
 
-def _cfg(core, st) -> tuple[dict, bool]:
-    """(settings, synced). With the plugin context (hooks registered in this process) the configured settings are
-    used and synced into the ledger; without it, the ones the ledger already holds, so nothing is re-logged."""
-    if core.ST.ctx is not None:
-        return core.settings(), True
-    return _settings(core, st), False
+def _post(fn, body, of: str | None, raw: bool):
+    """A POST's work, in a worker thread: the profile check, then ``fn``; a busy store answers 503."""
+    core = _core()
+    _mine(core, of)
+    try:
+        return fn(body, raw)
+    except (core.LockTimeout, sqlite3.OperationalError):
+        raise HTTPException(503, "the store is busy, try again")
 
 
 def _known(st, agent: str) -> dict:
@@ -360,75 +452,69 @@ def _known(st, agent: str) -> dict:
     return known
 
 
-def _revoke(body: RevokeBody) -> dict:
+def _revoke(body: RevokeBody, raw: bool) -> dict:
     core = _core()
     if body.type is None and not body.all:
         raise HTTPException(422, "give a type, or all")
-    key = "all" if body.all or body.type == "all" else body.type
+    every = body.all or body.type == "all"
     done = []
-    try:
-        with core.txn() as st:
-            _known(st, body.agent)
-            for _, s in st.states(body.agent):
-                if key not in ("all", s.key):
-                    continue
-                if key == "all" and s.tier == core.rule.T1 and not s.series and not s.provisional and s.wald >= 0:
-                    continue                                       # nothing earned to take back
-                events = core.rule.revoke(s)
-                st.put_state(body.agent, s)
-                st.log({"event": "revoke", "agent": body.agent, "type": s.key})
-                for ev in events:
-                    st.log({**ev, "agent": body.agent})
-                done.append(s.key)
-    except core.LockTimeout:
-        raise HTTPException(503, "the store is busy, try again")
-    if key != "all" and not done:
-        raise HTTPException(404, f"no record of {key} for {body.agent}")
+    with core.txn() as st:
+        known = _known(st, body.agent)
+        keys = list(known) if every else _wanted(core, known, body.type)
+        if not keys:
+            raise HTTPException(404, f"no record of {body.type} for {body.agent}")
+        for key in keys:
+            s = known[key]
+            if every and s.tier == core.rule.T1 and not s.series and not s.provisional and s.wald >= 0:
+                continue                                       # nothing earned to take back
+            events = core.rule.revoke(s)
+            st.put_state(body.agent, s)
+            st.log({"event": "revoke", "agent": body.agent, "type": s.key})
+            for ev in events:
+                st.log({**ev, "agent": body.agent})
+            done.append(_name(core, s.key, raw))
     return {"agent": body.agent, "revoked": done}
 
 
-def _flag(body: FlagBody) -> dict:
+def _flag(body: FlagBody, raw: bool) -> dict:
     core = _core()
-    try:
-        with core.txn() as st:
-            s = _known(st, body.agent).get(body.type)
-            if s is None:
-                raise HTTPException(404, f"no record of {body.type} for {body.agent}")
-            cfg, synced = _cfg(core, st)
-            if synced:
-                core.sync_settings(st, cfg)
-            core.record_outcome(st, cfg, agent=body.agent, type_key=body.type, stakes=s.stakes,
-                                reversible=s.reversible, result="fault", source="flag")
-            st.bump(body.agent, "faults")
-            s = st.get_state(body.agent, body.type, s.stakes, s.reversible)
-            row = _type_row(core, cfg, s)
-    except core.LockTimeout:
-        raise HTTPException(503, "the store is busy, try again")
-    return {"agent": body.agent, "type": body.type, "tier": s.tier, "state": row}
+    with core.txn() as st:
+        known = _known(st, body.agent)
+        keys = _wanted(core, known, body.type)
+        if not keys:
+            raise HTTPException(404, f"no record of {body.type} for {body.agent}")
+        if len(keys) > 1:
+            raise HTTPException(409, f"{body.type} names {len(keys)} action types: use the raw names (raw=1)")
+        key = keys[0]
+        s = known[key]
+        cfg = core.settings()
+        core.sync_settings(st, cfg)
+        core.record_outcome(st, cfg, agent=body.agent, type_key=key, stakes=s.stakes, reversible=s.reversible,
+                            result="fault", source="flag")
+        st.bump(body.agent, "faults")
+        s = st.get_state(body.agent, key, s.stakes, s.reversible)
+        row = _type_row(core, cfg, s, raw)
+    return {"agent": body.agent, "type": _name(core, key, raw), "tier": s.tier, "state": row}
 
 
-def _undo(body: UndoBody) -> dict:
+def _undo(body: UndoBody, raw: bool) -> dict:
     core = _core()
-    try:
-        with core.txn() as st:
-            entry = st.get_undo(body.id)
-            if entry is None:
-                raise HTTPException(404, f"no action #{body.id} to undo")
-            cfg, synced = _cfg(core, st)
-            message = core.undo_entry(st, body.id, None if synced else cfg)
-            done = st.get_undo(body.id)["undone"]
-            ok = message.ok
-    except core.LockTimeout:
-        raise HTTPException(503, "the store is busy, try again")
-    return {"id": body.id, "undone": done, "ok": ok, "message": str(message)}
+    with core.txn() as st:
+        message = core.undo_entry(st, body.id)
+        entry = st.get_undo(body.id)
+    message.cleanup()                                 # the transaction has committed: the snapshot can go
+    if entry is None:
+        raise HTTPException(404, f"no action #{body.id} to undo")
+    return {"id": body.id, "undone": entry["undone"], "ok": message.ok, "message": str(message)}
 
 
-def _set_settings(body: SettingsBody) -> dict:
+def _set_settings(body: SettingsBody, raw: bool) -> dict:
     core = _core()
     ctx = core.ST.ctx
     if ctx is None or not callable(getattr(ctx, "set_config", None)):
-        raise HTTPException(501, "this process cannot write settings: set them in config.yaml "
-                                 "(plugins.entries.clearance.settings)")
+        raise HTTPException(501, "this process cannot write settings (Hermes offers plugins no other public writer): "
+                                 "run `hermes clearance setup`, or set plugins.entries.clearance.settings in "
+                                 "config.yaml")
     changes = {}
     if body.preset is not None:
         if body.preset.strip().lower() not in core.params.PRESETS:
@@ -454,34 +540,27 @@ def _set_settings(body: SettingsBody) -> dict:
     except Exception as e:
         raise HTTPException(501, f"could not save the settings ({type(e).__name__})")
     cfg = core.settings()
-    try:
-        with core.txn() as st:
-            core.sync_settings(st, cfg)           # logs the settings event now, as the next hook would
-    except core.LockTimeout:
-        raise HTTPException(503, "the store is busy: saved, logged at the next action")
+    with core.txn() as st:
+        core.sync_settings(st, cfg)           # logs the settings event now, as the next hook would
     return {"saved": sorted(changes), "settings": {"preset": cfg["preset"], "risks": cfg["risks"],
                                                     "spot": cfg["spot"], "strict": cfg["strict"]}}
 
 
 @router.post("/revoke")
-async def revoke(body: RevokeBody, profile: str | None = None):
-    _mine(_core(), profile)
-    return await asyncio.to_thread(_revoke, body)
+async def revoke(body: RevokeBody, of: str | None = _OF, raw: bool = _RAW):
+    return await asyncio.to_thread(_post, _revoke, body, of, raw)
 
 
 @router.post("/flag")
-async def flag(body: FlagBody, profile: str | None = None):
-    _mine(_core(), profile)
-    return await asyncio.to_thread(_flag, body)
+async def flag(body: FlagBody, of: str | None = _OF, raw: bool = _RAW):
+    return await asyncio.to_thread(_post, _flag, body, of, raw)
 
 
 @router.post("/undo")
-async def undo(body: UndoBody, profile: str | None = None):
-    _mine(_core(), profile)
-    return await asyncio.to_thread(_undo, body)
+async def undo(body: UndoBody, of: str | None = _OF, raw: bool = _RAW):
+    return await asyncio.to_thread(_post, _undo, body, of, raw)
 
 
 @router.post("/settings")
-async def settings(body: SettingsBody, profile: str | None = None):
-    _mine(_core(), profile)
-    return await asyncio.to_thread(_set_settings, body)
+async def settings(body: SettingsBody, of: str | None = _OF, raw: bool = _RAW):
+    return await asyncio.to_thread(_post, _set_settings, body, of, raw)

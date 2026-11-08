@@ -205,7 +205,7 @@ def test_unknown_profile_404_and_profile_without_database_is_skipped(env):
     core, api, client, root = env
     (root / "profiles" / "empty").mkdir(parents=True)
     assert {p["profile"] for p in get(client, "/agents").json()["profiles"]} == {"default", "work"}
-    assert get(client, "/passport", agent=A, profile="nope").status_code == 404
+    assert get(client, "/passport", agent=A, of="nope").status_code == 404
     assert not (root / "profiles" / "empty" / "plugin-data").exists()
 
 
@@ -284,9 +284,9 @@ def test_undo_entry_in_hooks_module(env):
 
 def test_posts_only_on_the_current_profile(env):
     core, api, client, root = env
-    r = client.post(client.base + "/revoke", params={"profile": "work"}, json={"agent": B, "all": True})
+    r = client.post(client.base + "/revoke", params={"of": "work"}, json={"agent": B, "all": True})
     assert r.status_code == 409
-    assert client.post(client.base + "/revoke", params={"profile": "default"},
+    assert client.post(client.base + "/revoke", params={"of": "default"},
                        json={"agent": A, "all": True}).status_code == 200
 
 
@@ -311,13 +311,137 @@ def test_post_settings_is_501_without_set_config(env):
     assert client.post(client.base + "/settings", json={"preset": "fast"}).status_code == 501
 
 
-def test_post_flag_without_plugin_context_uses_the_ledger_settings(env):
+def fake_hermes_config(monkeypatch, settings):
+    import types
+    fake = types.ModuleType("hermes_cli.config")
+    fake.load_config = lambda: {"plugins": {"entries": {"clearance": {"settings": settings}}}}
+    pkg = types.ModuleType("hermes_cli")
+    pkg.config = fake
+    monkeypatch.setitem(sys.modules, "hermes_cli", pkg)
+    monkeypatch.setitem(sys.modules, "hermes_cli.config", fake)
+
+
+def test_post_flag_without_plugin_context_reads_hermes_config_and_syncs(env, monkeypatch):
     core, api, client, root = env
     core.ST.ctx = None
-    before = [e for e in core.store_().ledger() if e["event"]["event"] == "settings"]
+    fake_hermes_config(monkeypatch, {"risks": {"low": 0.25, "medium": 0.2}, "spot_check": 0.1})
     r = client.post(client.base + "/flag", json={"agent": A, "type": "file:write"})
     assert r.status_code == 200
-    assert [e for e in core.store_().ledger() if e["event"]["event"] == "settings"] == before
+    logged = [e["event"] for e in core.store_().ledger() if e["event"]["event"] == "settings"]
+    assert logged[-1]["risks"]["low"] == 0.25                     # the configured settings, deterministic
+    n = len(logged)
+    assert client.post(client.base + "/flag", json={"agent": A, "type": "file:write"}).status_code == 200
+    assert len([e for e in core.store_().ledger() if e["event"]["event"] == "settings"]) == n   # synced once
+
+
+def test_settings_501_message_points_to_hermes_clearance_setup(env):
+    core, api, client, root = env
+    core.ST.ctx = None
+    r = client.post(client.base + "/settings", json={"preset": "fast"})
+    assert r.status_code == 501 and "hermes clearance setup" in r.text
+
+
+def test_core_is_one_module_object(env):
+    core, api, client, root = env
+    assert api._core() is api._core() is core
+    other = load_api()
+    assert other._core() is core                         # a second loading of the API shares the one ST.lock
+
+
+def test_selector_is_of_never_profile(env):
+    core, api, client, root = env
+    seen = {}
+    for route in api.router.routes:
+        names = {q.name for q in route.dependant.query_params}
+        seen[route.path] = names
+        assert "profile" not in names, route.path        # Hermes' own ?profile= scoping owns that name
+    for path in ("/preview", "/passport", "/timeline", "/revoke", "/flag", "/undo", "/settings"):
+        assert "of" in seen[path], path
+
+
+def test_unreadable_profile_is_reported_not_dropped(env):
+    core, api, client, root = env
+    bad = root / "profiles" / "broken" / "plugin-data" / "clearance"
+    bad.mkdir(parents=True)
+    (bad / "clearance.db").write_bytes(b"this is not a database" * 50)
+    d = get(client, "/agents").json()
+    by = {p["profile"]: p for p in d["profiles"]}
+    assert by["broken"]["error"] == "unreadable" and "agents" not in by["broken"]
+    assert by["default"]["agents"]
+    assert get(client, "/models").json()["unreadable"] == [{"profile": "broken", "error": "unreadable"}]
+    assert any(p.get("error") for p in get(client, "/activity").json()["profiles"])
+    assert get(client, "/passport", agent=A, of="broken").status_code == 503
+
+
+def test_post_snapshot_removed_after_commit_and_busy_store_is_503(env, monkeypatch):
+    core, api, client, root = env
+    proj = root.parent / "proj2"
+    proj.mkdir()
+    target = proj / "g.txt"
+    target.write_text("one")
+    snap = core.undo.snapshot([str(target)], core.data_dir())
+    target.write_text("two")
+    with core.txn() as st:
+        uid = st.add_undo(A, "file:write", snap)
+    assert client.post(client.base + "/undo", json={"id": uid}).json()["ok"] is True
+    assert not os.path.exists(os.path.join(core.data_dir(), "undo", snap))
+    import sqlite3 as sq
+
+    def locked(*a, **k):
+        raise sq.OperationalError("database is locked")
+    monkeypatch.setattr(core, "txn", locked)
+    for path, body in (("/revoke", {"agent": A, "all": True}), ("/flag", {"agent": A, "type": "file:write"}),
+                       ("/undo", {"id": 1}), ("/settings", {"preset": "fast"})):
+        assert client.post(client.base + path, json=body).status_code == 503, path
+
+
+def test_timeline_finds_a_non_ascii_agent(env):
+    core, api, client, root = env
+    seed(core, root, "modèle-é@nous", 2)
+    d = get(client, "/timeline", agent="modèle-é@nous").json()
+    assert d["events"] and all(e["agent"] == "modèle-é@nous" for e in d["events"] if "agent" in e)
+
+
+SECRET = "shell:python3:secret_deploy.py"
+
+
+def test_types_are_redacted_by_default_and_raw_on_request(env):
+    core, api, client, root = env
+    seed(core, root, A, 4, key=SECRET, stakes="medium")
+    with core.txn() as st:
+        st.add_undo(A, SECRET, "d" * 32)
+    seen = [get(client, "/agents"), get(client, "/models"), get(client, "/timeline", agent=A),
+            get(client, "/preview", agent=A, to="model-c@nous"), get(client, "/passport", agent=A),
+            get(client, "/activity")]
+    for r in seen:
+        assert r.status_code == 200 and "secret_deploy" not in r.text, r.url
+    redact = shown = core.passport.redact_type(SECRET)
+    assert shown != SECRET and shown in seen[0].text and shown.startswith("shell:python3:")
+    raw = [get(client, "/agents", raw=1), get(client, "/models", raw=1), get(client, "/timeline", agent=A, raw=1),
+           get(client, "/preview", agent=A, to="model-c@nous", raw=1), get(client, "/passport", agent=A, raw=1),
+           get(client, "/activity", raw=1)]
+    for r in raw:
+        assert "secret_deploy" in r.text, r.url
+    assert "secret_deploy" not in get(client, "/models", type=redact).text           # filter by the shown name
+    # the dashboard acts on the name it shows
+    r = client.post(client.base + "/flag", json={"agent": A, "type": redact})
+    assert r.status_code == 200 and "secret_deploy" not in r.text
+    r = client.post(client.base + "/revoke", json={"agent": A, "type": redact})
+    assert r.status_code == 200 and r.json()["revoked"] == [redact]
+    assert "secret_deploy" in client.post(client.base + "/revoke", params={"raw": 1},
+                                          json={"agent": A, "type": SECRET}).text
+
+
+def test_preset_name_reported_when_risks_match_a_preset(env):
+    core, api, client, root = env
+    first = get(client, "/agents").json()["profiles"][0]["settings"]
+    assert first["preset"] == "custom"                       # the seeded settings (FAST risks) are no preset
+    for name in ("fast", "careful", "balanced"):
+        st = core.store.Store(os.path.join(str(root), "plugin-data", "clearance", "clearance.db"))
+        with st.transaction():
+            st.log(core.settings_event({**FAST, "risks": dict(core.params.PRESETS[name])}))
+        st.db.close()
+        assert get(client, "/agents").json()["profiles"][0]["settings"]["preset"] == name
 
 
 @pytest.mark.parametrize("layout", ["spread", "one_heavy_profile"])
@@ -372,7 +496,7 @@ def test_large_ledger_is_fast(tmp_path, monkeypatch, layout):
     print(layout, "repeat call ms:", {k: round(v, 1) for k, v in timings.items()})
     assert all(v < 300 for v in timings.values()), timings
     assert all(v < 300 for k, v in cold.items() if k != "/passport"), cold
-    assert cold["/passport"] < (300 if layout == "spread" else 700), cold      # one 50,000-row ledger, replayed once
+    assert cold["/passport"] < 300, cold                  # even one 50,000-row ledger, verified cold
 
 
 def test_passport_is_signed_when_the_key_already_exists(env):
