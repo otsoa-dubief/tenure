@@ -415,8 +415,76 @@ def _inline_cluster(args: list[str]) -> bool:
     return any(re.fullmatch(r"-[A-Za-z]{2,}", a) and ("c" in a or "e" in a) for a in _leading_flags(args))
 
 
+def _positionals(args: list[str]) -> list[str]:
+    return [a for a in args if not a.startswith("-")]
+
+
+def _opt_values(args: list[str], short: str, long: tuple[str, ...]) -> list[str]:
+    """Values of an option given as -o x, -ox, -ro x, --output x or --output=x."""
+    out = []
+    for n, a in enumerate(args):
+        nxt = args[n + 1] if n + 1 < len(args) else ""
+        if a in long:
+            out.append(nxt)
+        elif any(a.startswith(f"{l}=") for l in long):
+            out.append(a.split("=", 1)[1])
+        elif re.match(r"-[A-Za-z]*" + short, a) and not a.startswith("--"):
+            rest = a[a.index(short, 1) + 1:]
+            out.append(rest or nxt)
+    return out
+
+
+AWKS = {"awk", "gawk", "mawk", "nawk"}
+FIND_WRITES = {"-delete", "-exec", "-execdir", "-ok", "-okdir", "-fprint", "-fprint0", "-fprintf", "-fls"}
+
+
+def _ro_writes(prog: str, args: list[str]) -> bool:
+    """A normally read-only program that writes, deletes or runs something through an option of this call."""
+    if prog == "sort":
+        return bool(_opt_values(args, "o", ("--output",))) or any(
+            a.startswith("--compress-program") for a in args) or any(
+            re.match(r"-[A-Za-z]*o", a) and not a.startswith("--") for a in args)
+    if prog == "yq":
+        return any(a == "--inplace" or re.fullmatch(r"-[A-Za-z]*i[A-Za-z]*", a) for a in args)
+    if prog in AWKS:
+        return "-f" in args or any(re.search(r">|\||system\(|getline[^<]*<", a) for a in args)
+    if prog == "find":
+        return bool(FIND_WRITES & set(args))
+    if prog == "git":
+        return any(a == "--output" or a.startswith("--output=") for a in args)
+    if prog == "uniq":
+        return len(_positionals(args)) >= 2
+    if prog == "tree":
+        return bool(_opt_values(args, "o", ()))
+    if prog == "less":
+        return bool(_opt_values(args, "o", ("--log-file",)) or _opt_values(args, "O", ("--LOG-FILE",)))
+    if prog == "date":
+        return any(a in ("-s", "--set") or a.startswith(("--set=", "-s")) for a in args)
+    if prog == "hostname":
+        return bool(_positionals(args)) or "-F" in args
+    if prog == "file":
+        return any(re.fullmatch(r"-[A-Za-z]*C[A-Za-z]*", a) for a in args)
+    if prog in ("rg", "grep", "egrep", "fgrep"):
+        return any(a.startswith(("--pre", "--hostname-bin")) for a in args)
+    if prog == "sed":
+        script = " ".join(a for a in args if not a.startswith("-"))
+        return (any(a.startswith("-i") or a == "--in-place" for a in args)
+                or bool(re.search(r"(?:^|[;{}\n])\s*[0-9$,]*[wWe]\s+\S|/[gpiI0-9]*[we]\s+\S", script)))
+    return False
+
+
 def _write_args(prog: str, args: list[str]) -> list[str]:
     """Paths a write-capable command is given."""
+    if prog == "sort":
+        return _opt_values(args, "o", ("--output",))
+    if prog == "yq" and _ro_writes(prog, args):
+        return _positionals(args)[1:]
+    if prog == "uniq" and _ro_writes(prog, args):
+        return _positionals(args)[1:2]
+    if prog == "tree":
+        return _opt_values(args, "o", ())
+    if prog == "less":
+        return _opt_values(args, "o", ("--log-file",)) + _opt_values(args, "O", ("--LOG-FILE",))
     if prog == "dd":
         return [a[3:] for a in args if a.startswith("of=")]
     if prog in WRITERS:
@@ -551,16 +619,16 @@ def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     if prog in CLOUD:
         return f"shell:{prog}:{sub}", HIGH if CLOUD_WRITE & set(args) else FREE
     if prog == "git":
-        if not writes and (sub in GIT_READ or (sub in ("branch", "tag", "remote") and len(args) <= 2
+        if not writes and not _ro_writes("git", args) and (sub in GIT_READ or (sub in ("branch", "tag", "remote") and len(args) <= 2
                                                 and not any(a in ("-d", "-D", "--delete", "add", "remove", "rm",
                                                                   "set-url", "rename") for a in args))):
             return f"shell:git:{sub}", FREE
         return f"shell:git:{sub or 'unknown'}", MEDIUM
-    if prog == "find" and not writes and not ({"-delete", "-exec", "-execdir", "-ok", "-fprint"} & set(args)):
+    if prog == "find" and not writes and not _ro_writes(prog, args):
         return "shell:find", FREE
-    if prog == "sed" and not writes and not any(a.startswith("-i") or a == "--in-place" for a in args):
+    if prog == "sed" and not writes and not _ro_writes(prog, args):
         return "shell:sed", FREE
-    if prog in READ_ONLY and not writes:
+    if prog in READ_ONLY and not writes and not _ro_writes(prog, args):
         return f"shell:{prog}", FREE
     return f"shell:{prog}", MEDIUM
 
@@ -648,7 +716,8 @@ def _sensitive_floor(command: str) -> bool:
         for seg in _build(tokens):
             toks = _unwrap(seg.tokens)
             prog = os.path.basename(toks[0]) if toks else ""
-            if prog not in READ_ONLY or _redirects(seg.tokens) or "<(" in seg.tokens or ">(" in seg.tokens:
+            if (prog not in READ_ONLY or _redirects(seg.tokens) or "<(" in seg.tokens or ">(" in seg.tokens
+                    or _ro_writes(prog, toks[1:])):
                 pure = False
             ws = list(seg.tokens)
             if toks and toks[0] in ws:
@@ -849,15 +918,15 @@ FLOORS = {"file:unknown", "shell:complex", "file:unreadable"}   # fail-safe type
 def _override(t: str, stakes: str, overrides: dict | None) -> str:
     if not overrides or (stakes == CAP and t.startswith(PROTECTED)):
         return stakes
-    if t in FLOORS:
-        raised = _override(t + "\0", stakes, overrides)       # what an override would give if it could
-        return raised if RANK[raised] > RANK[stakes] else stakes
+    new = stakes
     if t in overrides:
-        return _valid(overrides[t], stakes)
-    for pat, val in overrides.items():
-        if fnmatch.fnmatchcase(t, pat):
-            return _valid(val, stakes)
-    return stakes
+        new = _valid(overrides[t], stakes)
+    else:
+        for pat, val in overrides.items():
+            if fnmatch.fnmatchcase(t, pat):
+                new = _valid(val, stakes)
+                break
+    return stakes if t in FLOORS and RANK[new] < RANK[stakes] else new   # a floor can be raised, never lowered
 
 
 def _valid(val, default):

@@ -566,3 +566,52 @@ def test_unusual_paths_do_not_raise():
 
 def test_complex_command_naming_a_sensitive_file_is_capped_from_raw_text():
     assert cmd("echo $'\\'' > /dev/null; echo k >> ~/.ssh/authorized_keys; echo \\'") == ("file:sensitive", C.CAP)
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Fix round 3: read-only programs that write through an option
+# --------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("command", [
+    "sort -o /home/me/.ssh/authorized_keys f", "sort -o ~/.ssh/authorized_keys f",
+    "sort --output=~/.ssh/authorized_keys f", "sort -ro ~/.ssh/x f", "sort -o~/.ssh/x f",
+    "awk 'BEGIN{print \"k\" > \"/home/me/.ssh/authorized_keys\"}'", "gawk '{print | \"tee ~/.ssh/x\"}' f",
+    "yq -i '.x=1' /home/me/.ssh/config", "yq --inplace '.x=1' ~/.ssh/config",
+    "uniq in ~/.ssh/authorized_keys", "tree -o ~/.ssh/x .", "less -o ~/.ssh/x f",
+    "find . -fprint ~/.ssh/x", "find . -fprintf ~/.ssh/x '%p'", "find . -fls ~/.ssh/x",
+    "git log --output=~/.ssh/x",
+])
+def test_read_only_programs_with_a_write_option_reach_floor_a(command):
+    assert cmd(command) == ("file:sensitive", C.CAP)
+
+
+@pytest.mark.parametrize("command", [
+    "sort -o out.txt f", "yq -i '.x=1' cfg.yaml", "awk '{print > \"o.txt\"}' f", "awk '{print $1 | \"sh\"}' f",
+    "awk 'BEGIN{system(\"ls\")}'", "awk '{ getline x < \"f\" }'", "awk -f prog.awk f", "uniq a b",
+    "tree -o t.txt .", "less -o log f", "date -s 12:00", "hostname newname", "rg --pre ./p x",
+    "find . -okdir rm {} ;", "find . -delete", "find . -exec ls {} ;", "find . -fprint0 o", "git diff --output=o.patch",
+    "sed 's/a/b/w out.txt' f", "sed -n 'w out.txt' f", "sort --compress-program=./x f",
+])
+def test_write_capable_calls_are_not_free(command):
+    assert C.RANK[cmd(command)[1]] >= C.RANK[C.MEDIUM], command
+
+
+def test_unresolved_target_of_a_write_option_is_file_unknown():
+    assert cmd("sort -o $OUT f") == ("file:unknown", C.HIGH)
+    assert cmd("yq -i '.x=1' *.yaml") == ("file:unknown", C.HIGH)
+
+
+@pytest.mark.parametrize("command", ["sort f", "sort -n -r f", "awk '{print $1}' f", "find . -name '*.py'",
+                                     "yq '.x' f", "git log --oneline", "uniq f", "tree -L 2", "less f",
+                                     "date +%s", "hostname", "sed 's/hello/world/' f", "rg x src"])
+def test_plain_uses_of_those_programs_stay_free(command):
+    assert cmd(command)[1] == C.FREE, command
+
+
+def test_exact_floor_key_override_can_raise_but_not_lower():
+    a = C.classify("terminal", {"command": "echo hi > $OUT"}, cwd=CWD, home=HOME, overrides={"file:unknown": "cap"})
+    assert a.stakes == C.CAP
+    a = C.classify("terminal", {"command": "echo hi > $OUT"}, cwd=CWD, home=HOME, overrides={"file:unknown": "free"})
+    assert a.stakes == C.HIGH
+    a = C.classify("terminal", {"command": "while true; do ls; done"}, cwd=CWD, home=HOME,
+                   overrides={"shell:complex": "cap"})
+    assert a.stakes == C.CAP
