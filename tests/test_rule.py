@@ -284,15 +284,15 @@ def test_carry_over_never_for_high_vetoed_or_strict():
                                      (low, None, False, False)]:                         # last: capped now
         new = rule.carry_over(old, n_new=n_new, veto=veto, strict=strict)
         assert fresh(new, old) and new.trial_left == 0 and not new.unresolved_fault     # a clean record owes nothing
-    # Strict mode is the study: every medium or high fault on the old record becomes a trial, even a passed one.
+    # Strict mode without an unresolved fault: no trial, even when a passed one is on the old record.
     m = state("medium", reversible=True)
     succeed(m, 10, MEDIUM)
     fault(m, MEDIUM)
     succeed(m, 3 + 40, MEDIUM)                                  # trial passed, climbing again
     assert m.faults == 1 and not m.unresolved_fault and m.series == 40
-    new = rule.carry_over(m, n_new=MEDIUM, veto=False, strict=True)
-    assert fresh(new, m) and (new.trial_left, new.unresolved_fault) == (3, True)
-    assert rule.carry_over(m, n_new=MEDIUM, veto=True, strict=False).trial_left == 0
+    for veto, strict in ((False, True), (True, False)):
+        new = rule.carry_over(m, n_new=MEDIUM, veto=veto, strict=strict)
+        assert fresh(new, m) and (new.trial_left, new.unresolved_fault) == (0, False)
     # Low faults never become trials.
     lo = state("low")
     succeed(lo, 5, LOW)
@@ -333,15 +333,21 @@ def test_provisional_confirmed_when_own_successes_reach_it():
     assert len(confirmed) == 1 and confirmed[0]["type"] == "file:write" and confirmed[0]["provisional"] == 26
     assert new.provisional == 0
     assert "confirmed" not in kinds(succeed(new, 50, LOW))
-    # The first medium or high fault withdraws the carry-over entirely; a low fault does not.
+    # A medium or high fault withdraws the carry-over entirely: the series and the score's credit.
     m = rule.carry_over(climbed("medium", reversible=True, n=MEDIUM), n_new=MEDIUM, veto=False, strict=False)
     assert m.provisional == 52
     fault(m, MEDIUM)
     assert (m.provisional, m.series) == (0, 0) and m.wald > 0
     assert "confirmed" not in kinds(succeed(m, 200, MEDIUM))
-    lo = rule.carry_over(climbed("low", reversible=True), n_new=LOW, veto=False, strict=False)
-    fault(lo, LOW)
-    assert lo.provisional == 26
+
+
+def test_low_fault_after_carry_over_withdraws_it():
+    new = rule.carry_over(climbed("low", reversible=True), n_new=LOW, veto=False, strict=False)
+    assert new.provisional == 26 and rule.guarantee(new, LOW, 0.1)["conditional"] is True
+    fault(new, LOW)                                             # the credit lived in the series, which restarts
+    assert (new.provisional, new.series) == (0, 0)
+    assert rule.guarantee(new, LOW, 0.1)["conditional"] is False
+    assert "confirmed" not in kinds(succeed(new, 60, LOW))
 
 
 def test_guarantee_conditional_while_provisional():
@@ -400,16 +406,65 @@ def test_revoke_back_to_t1_without_escaping_a_trial():
     assert c.provisional == 0
 
 
-def test_capped_type_learns_from_faults_only():
+def test_capped_type_never_climbs_but_counts_its_successes():
     s = state("high")
     assert succeed(s, 10, None) == []
-    assert (s.series, s.sessions, s.tier, s.successes) == (0, [], rule.T1, 10)
+    assert (s.series, s.tier, s.successes) == (0, rule.T1, 10) and sorted(s.sessions) == ["a", "b"]
+    r = state("low", reversible=True)                           # capped by the user: no middle tier either
+    assert succeed(r, 40, None) == []
+    assert (r.series, r.tier, r.wald, r.successes) == (0, rule.T1, 0.0, 40) and sorted(r.sessions) == ["a", "b"]
+    # Faults still apply in full; the trial runs, without any climb.
     fault(s, None)
-    assert (s.trial_left, s.lengthened, s.unresolved_fault) == (3, True, True)
-    succeed(s, 3, None)
-    assert s.trial_left == 0 and not s.unresolved_fault
+    assert (s.trial_left, s.lengthened, s.unresolved_fault, s.sessions) == (3, True, True, [])
+    assert moves(succeed(s, 3, None)) == [("trial", "open", "none", "passed")] and s.tier == rule.T1
+    strong = rule.TypeState("file:write", "low", reversible=True, wald=-5.0, trial_left=1, unresolved_fault=True)
+    assert moves(succeed(strong, 1, None)) == [("trial", "open", "none", "passed")] and strong.tier == rule.T1
     with pytest.raises(ValueError):
         rule.required(s, None)
+
+
+def test_reevaluate_after_stricter_settings_drops_t3():
+    r = climbed("low", reversible=True)                         # score at its floor
+    events = rule.reevaluate(r, 105)                            # careful preset: 105 in a row at low stakes
+    assert r.tier == rule.T2 and moves(events) == [("tier", rule.T3, rule.T2, "settings")]
+    assert r.series == LOW and events[0]["required"] == 105     # the evidence stays
+    i = climbed("low")
+    assert moves(rule.reevaluate(i, 105)) == [("tier", rule.T3, rule.T1, "settings")]
+    succeed(i, 52, 105)
+    assert i.tier == rule.T1
+    succeed(i, 1, 105)
+    assert i.tier == rule.T3 and i.series == 105
+    # Capped now: down as well.
+    capped_r, capped_i = climbed("low", reversible=True), climbed("low")
+    assert kinds(rule.reevaluate(capped_r, None) + rule.reevaluate(capped_i, None)) == ["tier", "tier"]
+    assert (capped_r.tier, capped_i.tier) == (rule.T2, rule.T1)
+    # A reversible type whose score is above ln B goes to T1 (a short series after faults: fast preset, 21).
+    short = state("low", reversible=True)
+    for _ in range(3):
+        fault(short, 21)
+    succeed(short, 21, 21)
+    assert short.tier == rule.T3
+    rule.reevaluate(short, LOW)
+    assert short.tier == rule.T1
+    # Nothing moves while the series still meets the length, or below T3.
+    t3, t2 = climbed("low"), state("low", reversible=True)
+    succeed(t2, 12, LOW)
+    assert rule.reevaluate(t3, LOW) == [] and rule.reevaluate(t3, 21) == [] and t3.tier == rule.T3
+    assert rule.reevaluate(t2, 105) == [] and rule.reevaluate(t2, None) == [] and t2.tier == rule.T2
+
+
+def test_reevaluate_after_looser_settings_waits_for_the_next_success():
+    s = state("low")
+    succeed(s, 60, 105)                                         # careful preset: 60 of 105
+    assert (s.tier, s.series) == (rule.T1, 60)
+    assert rule.reevaluate(s, LOW) == [] and s.tier == rule.T1  # looser settings never promote by themselves
+    events = succeed(s, 1, LOW)
+    assert moves(events) == [("tier", rule.T1, rule.T3, "series")] and s.series == LOW
+    r = state("low", reversible=True)
+    succeed(r, 60, 105)
+    assert r.tier == rule.T2 and rule.reevaluate(r, LOW) == [] and r.tier == rule.T2
+    succeed(r, 1, LOW)
+    assert r.tier == rule.T3
 
 
 def test_sessions_are_distinct_and_at_most_ten():
@@ -437,6 +492,8 @@ def test_events_hold_only_types_tiers_reasons_and_counts():
     events += rule.revoke(s)
     c = rule.carry_over(climbed("low", reversible=True), n_new=LOW, veto=False, strict=False)
     events += succeed(c, 30, LOW, sessions=(secret, "5b0e8d2a91c4"))
+    events += rule.reevaluate(c, 105)
     assert {"tier", "trial", "confirmed", "revoked"} == set(kinds(events))
+    assert ("tier", rule.T3, rule.T2, "settings") in moves(events)
     for e in events:
         assert set(e) <= allowed and secret not in json.dumps(e)
