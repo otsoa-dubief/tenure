@@ -95,19 +95,14 @@ def worst_case(i: int, spot: float) -> float:
 
 
 def describe(preset_or_risks, spot: float = DEFAULT_SPOT) -> dict:
-    """Per stakes level: accepted risk, series length N, guarantee (aoql) and worst case for that N, or capped.
-
-    ``approvals`` and ``guarantee`` are kept as aliases of ``n`` and ``aoql`` for current callers.
-    """
+    """Per stakes level: accepted risk, series length N, guarantee (aoql) and worst case for that N, or capped."""
     risks = PRESETS[preset_or_risks] if isinstance(preset_or_risks, str) else dict(preset_or_risks)
     out = {}
     for level in LEVELS:
         n = required_n(risks, level)
         if n is None:
-            out[level] = dict(risk=None, capped=True, n=None, aoql=None, worst_case=None,
-                              approvals=None, guarantee=None)
+            out[level] = dict(risk=None, capped=True, n=None, aoql=None, worst_case=None)
             continue
         g = aoql(n, spot)[0]
-        out[level] = dict(risk=risks[level], capped=False, n=n, aoql=g, worst_case=worst_case(n, spot),
-                          approvals=n, guarantee=g)
+        out[level] = dict(risk=risks[level], capped=False, n=n, aoql=g, worst_case=worst_case(n, spot))
     return out

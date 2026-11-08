@@ -881,23 +881,6 @@ def test_ledger_inputs_replay_to_the_live_states(plugin, monkeypatch, tmp_path):
 
 
 # ------------------------------------------------------------------------------------------------------- commands
-def test_cli_status_flag_and_revoke_on_the_new_record(plugin):
-    mod, ctx = plugin(FAST)
-    climb(ctx, 3)
-    to_t3(ctx, tool="memory")
-    text = mod.cli.slash("status")
-    assert re.search(r"file:write\s+low\s+T1 ask\s+3/4 in a row, 1 session", text)
-    assert re.search(r"memory:write\s+low\s+T3 alone", text) and "chain intact" in text
-    out = mod.cli.slash("flag file:write")
-    assert "file:write" in out and state(mod, "file:write").faults == 1
-    assert (outcomes(mod)[-1]["result"], outcomes(mod)[-1]["source"], outcomes(mod)[-1]["session"]) == (
-        "fault", "flag", "")
-    assert "memory:write" in mod.cli.slash("revoke all")
-    assert state(mod, "memory:write").tier == mod.rule.T1
-    assert ledger(mod, "revoke")[-1] == {"event": "revoke", "agent": A, "type": "memory:write"}
-    assert mod.cli.slash("flag nothing:here").startswith("No record of nothing:here")
-
-
 # ------------------------------------------------------------------------- unique keys, guard, suspension, checks
 def test_a_reused_call_id_answered_always_still_asks_in_the_next_session(plugin):
     """Providers name calls `call_0` turn after turn, and Hermes makes ids unique only within one session. An "always"

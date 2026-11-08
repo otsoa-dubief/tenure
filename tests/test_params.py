@@ -77,3 +77,8 @@ def test_describe_shows_the_guarantee_for_the_study_n():
 def test_the_old_clearance_number_is_gone():
     """Series lengths come from the study's formula only (``study_n``); the CSP-1 search for i is removed."""
     assert not hasattr(params, "clearance_number")
+
+
+def test_describe_has_no_alias_keys():
+    for level in params.describe("balanced").values():
+        assert set(level) == {"risk", "capped", "n", "aoql", "worst_case"}

@@ -797,8 +797,8 @@ def register(ctx):
     ctx.register_hook("post_tool_call", post_tool_call)
     ctx.register_hook("subagent_stop", subagent_stop)
     from . import cli
-    ctx.register_cli_command(name="clearance", help="Earned autonomy per action type: status, setup, flag, revoke, "
-                                                     "export and verify the evidence",
+    ctx.register_cli_command(name="clearance", help="Earned autonomy per action type: status, models, undo, flag, "
+                                                     "revoke, passport, verify, export",
                              setup_fn=cli.setup, handler_fn=cli.run)
     ctx.register_command("clearance", handler=_slash,
-                         description="What the agent has earned, per action type; setup, flag, revoke, export")
+                         description="What the agent has earned, per action type; models, undo, flag, revoke, passport, verify")
