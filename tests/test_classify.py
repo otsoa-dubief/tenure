@@ -210,7 +210,7 @@ def test_reads_external_true(tool, args):
 
 @pytest.mark.parametrize("tool,args", [
     ("read_file", {"path": "src/a.py"}), ("terminal", {"command": "ls"}),
-    ("mcp__notion__update_page", {}), ("mcp__notion__search", {}), ("mcp__hubspot__get_contact", {}),
+    ("mcp__notion__update_page", {}), ("mcp__hubspot__search", {}), ("mcp__hubspot__get_contact", {}),
     ("write_file", {"path": "a"})])
 def test_reads_external_false(tool, args):
     assert C.reads_external(tool, args, CWD) is False
@@ -338,7 +338,7 @@ def test_reads_external_second_round_true(tool, args):
 
 
 @pytest.mark.parametrize("tool,args", [
-    ("terminal", {"command": "git clone x"}), ("terminal", {"command": "gh api -X POST repos/a/b"}),
+    ("terminal", {"command": "git commit -m x"}), ("terminal", {"command": "gh api -X POST repos/a/b"}),
     ("terminal", {"command": "gh api repos/a/b -f x=1"}), ("terminal", {"command": "gh pr create"}),
     ("mcp__github__create_issue", {}), ("mcp__gmail__get_and_forward_message", {}),
     ("mcp__hubspot__get_contact", {}),
@@ -527,7 +527,7 @@ def test_clamped_external_server_reads_external():
     name = "mcp__gmail__get_message_" + "a" * 31 + "_deadbeef"
     assert C.reads_external(name, {}, CWD) is True
     assert C.classify(name, {}, cwd=CWD).stakes == C.HIGH
-    name = "mcp__notion__get_page_" + "a" * 33 + "_deadbeef"
+    name = "mcp__hubspot__get_page_" + "a" * 32 + "_deadbeef"
     assert C.reads_external(name, {}, CWD) is False
 
 

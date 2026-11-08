@@ -121,7 +121,109 @@ def _real(full: str) -> str:
     return real
 
 
-SENSITIVE_FRAGMENTS = ("authorized_keys", "known_hosts", "id_ed25519", "id_ecdsa", ".netrc", ".hermes/")
+SENSITIVE_FRAGMENTS = ("authorized_keys", "known_hosts", "id_ed25519", "id_ecdsa", ".netrc", ".hermes/",
+                       "appdata/local/hermes/", "hermes_home")
+
+# ------------------------------------------------------------------------------------ the agent's own guardrails
+# clearance's own data: the database, its data folder (undo snapshots), the passport signing key. Whatever names
+# them, wherever the Hermes home is, is self:clearance (capped; no override lowers it).
+CLEARANCE_NAMES = re.compile(r"clearance\.db|plugin-data/clearance(?![\w.-])|passport-ed25519\.pem")
+# What Hermes keeps at the top of a home or root. A home that holds the project (Docker: HOME, HERMES_HOME and the
+# workspace are all /opt/data) protects these only; any other home is protected whole.
+HERMES_ENTRIES = frozenset({
+    "config.yaml", ".env", "auth.json", "auth.lock", "soul.md", "profile.yaml", "plugins", "plugin-data", "profiles",
+    "skills", "optional-skills", "hooks", "cron", "memories", "sessions", "logs", "plans", "skins", "pairing",
+    "platforms", "bin", "mcp", "secrets", "vault", "backups", "state-snapshots", ".deleted", "gateway.sock",
+    "gateway.pid", "gateway.lock", "node", "cache"})
+HERMES_ENTRY_PREFIXES = ("state.db", "config.yaml", ".env", "auth.")
+PATH_START = " \t'\"`=(:,;[{<>"                             # what may come just before a path in text
+PATH_END = re.compile(r"[\s'\"`;,)\]}<>|&]")
+_NO_HERMES = []                                          # set once hermes_constants is known not to import
+
+
+def _hermes_constants():
+    import sys
+    mod = sys.modules.get("hermes_constants")
+    if mod is not None or _NO_HERMES:
+        return mod
+    try:
+        import hermes_constants as mod                   # public Hermes import
+        return mod
+    except Exception:
+        _NO_HERMES.append(True)
+        return None
+
+
+def hermes_homes() -> list[str]:
+    """Every Hermes home this process can name: Hermes' resolved home, its root (which holds profiles/) and the
+    account's default home when ``hermes_constants`` imports, $HERMES_HOME (and the root above a profiles/<name>
+    home), and the platform default ~/.hermes."""
+    out: list[str] = []
+    hc = _hermes_constants()
+    for name in ("get_hermes_home", "get_default_hermes_root", "account_default_hermes_home"):
+        fn = getattr(hc, name, None) if hc is not None else None
+        if callable(fn):
+            try:
+                out.append(str(fn()))
+            except Exception:
+                pass
+    env = getattr(os, "environ", {}).get("HERMES_HOME", "").strip()
+    if env:
+        env = os.path.expanduser(os.path.expandvars(env))
+        out.append(env)
+        parent = os.path.dirname(os.path.normpath(env))
+        if os.path.basename(parent) == "profiles":
+            out.append(os.path.dirname(parent))
+    out.append(os.path.join(os.path.expanduser("~"), ".hermes"))
+    return out
+
+
+def _roots() -> list[tuple[str, bool]]:
+    """(home, whole) for each Hermes home, lexical and symlink-resolved, lower case. ``whole``: everything under it is
+    protected; else only HERMES_ENTRIES (the home holds the user's home or the working directory)."""
+    cached = getattr(_CACHE, "roots", None)
+    if cached is not None:
+        return cached
+    user = _norm(os.path.normpath(os.path.expanduser("~"))).rstrip("/").lower()
+    cwd = getattr(_CACHE, "cwd", None) or os.getcwd()
+    cwd = cwd if cwd != UNKNOWN else os.getcwd()
+    cwd_lex = _norm(os.path.normpath(os.path.abspath(cwd)))
+    cwds = {cwd_lex.lower().rstrip("/") + "/", _real(cwd_lex).lower().rstrip("/") + "/"}
+    found: dict[str, bool] = {}
+    for h in hermes_homes():
+        try:
+            lex = _norm(os.path.normpath(os.path.abspath(h)))
+        except (OSError, ValueError):
+            continue
+        for p in (lex, _real(lex)):
+            low = p.rstrip("/").lower()
+            if not low or "/" not in low:
+                continue                                  # never the file system root
+            whole = low != user and not any(c.startswith(low + "/") for c in cwds)
+            found[low] = found.get(low, True) and whole
+    _CACHE.roots = list(found.items())
+    return _CACHE.roots
+
+
+def _self_hit(text: str) -> bool:
+    """``text`` (lower case: a path, a word or a code string) names a protected place of a Hermes home."""
+    for root, whole in _roots():
+        i = text.find(root)
+        while i >= 0:
+            after = text[i + len(root):]
+            if (i == 0 or text[i - 1] in PATH_START) and (not after or after[0] == "/" or PATH_END.match(after)):
+                rest = PATH_END.split(after[1:] if after.startswith("/") else "", 1)[0].strip("/")
+                first = rest.split("/", 1)[0]
+                if (whole or first in HERMES_ENTRIES or first.startswith(HERMES_ENTRY_PREFIXES)) if rest else whole:
+                    return True                           # a home that holds the project: only its entries
+            i = text.find(root, i + 1)
+    return False
+
+
+def _above_home(full: str) -> bool:
+    """``full`` is a Hermes home or a folder above one: removing or moving it takes the home with it."""
+    low = full.rstrip("/").lower()
+    return any(root == low or root.startswith(low + "/") for root, _ in _roots())
 
 
 def _sensitive(probe: str) -> bool:
@@ -129,13 +231,16 @@ def _sensitive(probe: str) -> bool:
     return bool(any(f in low for f in SENSITIVE_FRAGMENTS)
                 or any(d.lower() in low + "/" for d in SENSITIVE_DIRS)
                 or low.startswith(tuple(x.lower() for x in SENSITIVE_PREFIXES))
-                or SENSITIVE_NAME.match(low.rstrip("/").rsplit("/", 1)[-1]))
+                or SENSITIVE_NAME.match(low.rstrip("/").rsplit("/", 1)[-1])
+                or _self_hit(low))
 
 
 def _file(path: str, cwd: str | None, home: str) -> tuple[str, str, bool]:
     base = cwd or os.getcwd()
     full = _abs(path, base, home)
     real = _real(full)
+    if CLEARANCE_NAMES.search(full.lower()) or CLEARANCE_NAMES.search(real.lower()):
+        return "self:clearance", CAP, False
     if _sensitive(full) or _sensitive(real):
         return "file:sensitive", CAP, False
     lexroot = _norm(os.path.normpath(base)).rstrip("/") + "/"
@@ -245,6 +350,7 @@ OUT_OPS = {">", ">>", ">|", "&>", "&>>", ">&", "<>"}
 REDIR_OPS = OUT_OPS | {"<", "<<", "<<-", "<<<", "<&"}
 WRITERS = {"tee", "cp", "mv", "install", "ln", "rsync", "touch", "truncate", "rm", "chmod", "chown", "shred",
            "mkdir", "rmdir"}
+REMOVERS = {"rm", "rmdir", "mv", "chmod", "chown", "shred", "rsync", "truncate"}   # can take a whole folder away
 WRAPPER_VALUE_OPTS = {
     "sudo": {"-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U", "--user", "--group", "--host", "--prompt"},
     "doas": {"-u", "-C"}, "env": {"-u", "-C", "-S", "--unset", "--chdir"}, "nice": {"-n", "--adjustment"},
@@ -1117,7 +1223,57 @@ def _find(toks: list[str], cwd, home: str, depth: int, writes: bool) -> tuple[st
     else:
         own, expr = ("shell:find", MEDIUM), toks
     inners = [r for inner in _find_clauses(expr) if (r := _find_inner(inner, cwd, home, depth)) is not None]
-    return _runner(own, inners)
+    hit = _find_home(args, cwd, home) if prog in FINDS and FIND_WRITES & set(args) else None
+    return (hit, CAP) if hit else _runner(own, inners)
+
+
+FIND_NAMES = {"-name", "-iname", "-path", "-ipath", "-wholename", "-iwholename", "-regex", "-iregex"}
+CLEARANCE_FILES = ("plugin-data/clearance/clearance.db", "plugin-data/clearance/passport-ed25519.pem",
+                   "plugin-data/clearance/undo/0/manifest.json")
+HERMES_FILES = ("config.yaml", ".env", "auth.json", "state.db", "plugins/clearance/__init__.py")
+
+
+def _find_home(args: list[str], cwd, home: str) -> str | None:
+    """A find that deletes or runs something, from a starting point inside, at or above a Hermes home (or one that
+    cannot be resolved), and whose name tests may select clearance's data or Hermes' files (no test, a regex, or a
+    pattern that matches them): self:clearance or file:sensitive."""
+    starts = []
+    for a in args:
+        if a.startswith("-") or a in ("(", "!", ","):
+            if a in ("-H", "-L", "-P") and not starts:
+                continue
+            break
+        starts.append(a)
+    base = "/" if cwd == UNKNOWN else cwd
+    reach = False
+    for a in starts or ["."]:
+        a = _expand(a, home)
+        if _computed(a) or (cwd == UNKNOWN and not os.path.isabs(a)):
+            reach = True
+            break
+        full = _abs(a, base, home)
+        if _above_home(full) or _above_home(_real(full)) or _self_hit(full.lower()) or _self_hit(_real(full).lower()):
+            reach = True
+            break
+    if not reach:
+        return None
+    pats = [(args[n], args[n + 1]) for n in range(len(args) - 1) if args[n] in FIND_NAMES]
+
+    def selects(files: tuple[str, ...]) -> bool:
+        if not pats:
+            return True
+        for test, pat in pats:
+            if "regex" in test:
+                return True                              # a regex: not read here, assume it may
+            fold = test.startswith("-i")
+            for f in files:
+                name = f"/h/.hermes/{f}" if "path" in test or "wholename" in test else f.rsplit("/", 1)[-1]
+                if fnmatch.fnmatchcase(name.lower() if fold else name, pat.lower() if fold else pat):
+                    return True
+        return False
+    if selects(CLEARANCE_FILES):
+        return "self:clearance"
+    return "file:sensitive" if selects(HERMES_FILES) else None
 
 
 def _glue_find(segs: list[Seg]) -> list[Seg]:
@@ -1256,11 +1412,17 @@ def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, s
     toks = _unwrap(tokens)
     if toks:
         targets += _write_args(os.path.basename(toks[0]), toks[1:])
+    removes = bool(toks) and os.path.basename(toks[0]) in REMOVERS
     for target in targets:
         target = _expand(target, home)
         if any(c in target for c in UNRESOLVED) or (cwd == UNKNOWN and not os.path.isabs(target)):
             unresolved = True
-        elif _file(target, base, home)[1] == CAP:
+            continue
+        found = _file(target, base, home)
+        if found[1] == CAP:
+            return found[0], CAP
+        full = _abs(target, base, home)
+        if removes and (_above_home(full) or _above_home(_real(full))):
             return "file:sensitive", CAP
     if unresolved:
         return "file:unknown", HIGH
@@ -1282,6 +1444,8 @@ def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
         return "shell:dynamic", HIGH                         # the program is computed: illegible
     prog = os.path.basename(toks[0])
     args = toks[1:]
+    if prog in HERMES_PROGS:
+        return SELF_HERMES if substitution or prog != "hermes" else _hermes(args, cwd, home)
     if substitution:
         return f"shell:{prog}", HIGH
     if prog in ("eval", "source", "."):
@@ -1300,12 +1464,16 @@ def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     base = re.sub(r"\d+(\.\d+)*$", "", prog)
     if prog in INTERPRETERS or base in INTERPRETERS:
         if INLINE_FLAGS & set(args) or _inline_cluster(args):
-            return f"shell:{prog}:inline", HIGH
+            return SELF_HERMES if HERMES_CODE.search(" ".join(args)) else (f"shell:{prog}:inline", HIGH)
         if "-m" in args:
             i = args.index("-m")
             mod = args[i + 1] if i + 1 < len(args) else ""
+            if mod == "hermes" or mod.startswith(("hermes_cli", "hermes.")):
+                return SELF_HERMES                       # Hermes' own CLI, run as a module
             return f"shell:{prog}:-m:{mod}", MEDIUM
         script = next((a for a in args if not a.startswith("-")), "")
+        if os.path.basename(script) in HERMES_PROGS or "hermes_cli" in script:
+            return SELF_HERMES
         return (f"shell:{prog}:{os.path.basename(script)}" if script else f"shell:{prog}"), MEDIUM
     if prog in AWKS:
         w, cmds, _ = _awk_call(args)
@@ -1324,6 +1492,9 @@ def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
         return _parallel(args, cwd, home, depth)
     if prog == "watch":
         return _watch(args, cwd, home, depth)
+    if prog not in READ_ONLY and prog != "git" and any(
+            os.path.basename(a) in HERMES_PROGS or a.startswith("hermes_cli") for a in args):
+        return SELF_HERMES                               # uv run hermes, pipx run hermes, pip install hermes-agent
     plain = _strip(args, SUB_VALUE_OPTS)
     sub = plain[0] if plain else ""
     if prog in OUTSIDE:
@@ -1382,6 +1553,65 @@ def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     if prog in READ_ONLY and not writes and not _ro_writes(prog, args):
         return f"shell:{prog}", FREE
     return f"shell:{prog}", MEDIUM
+
+
+# ------------------------------------------------------------------------------------------- Hermes' own CLI (C1)
+HERMES_PROGS = {"hermes", "hermes-agent", "hermes-acp"}
+SELF_HERMES = ("self:hermes", CAP)
+# Code that calls Hermes' CLI or imports its modules: a quoted "hermes" program, hermes_cli.
+HERMES_CODE = re.compile(r"hermes_cli|['\"](?:[^'\"\s]*/)?hermes(?:-agent|-acp)?(?:['\"]|\s)")
+
+
+def _only_opts(args: list[str], flags: set[str], values: set[str]) -> bool:
+    """Every word is one of ``flags``, or one of ``values`` with its value (next word, or after =)."""
+    n = 0
+    while n < len(args):
+        a = args[n]
+        name = a.split("=", 1)[0]
+        if a in flags:
+            n += 1
+        elif name in values and "=" in a:
+            n += 1
+        elif a in values and n + 1 < len(args) and not args[n + 1].startswith("-"):
+            n += 2
+        else:
+            return False
+    return True
+
+
+def _hermes(args: list[str], cwd, home) -> tuple[str, str]:
+    """Hermes' CLI. Only invocations that read are not capped: ``--version``, ``status``, ``config get|show|path|
+    env-path`` and ``clearance status|models|explain|verify|anchor`` (``export`` writes a file: a low or medium write,
+    or a cap at a sensitive path). Every other subcommand, an unknown one, a flag we do not know, or a top-level
+    flag before the subcommand is self:hermes: capped, and no override lowers it."""
+    if args in (["--version"], ["-V"]):
+        return "shell:hermes:version", FREE
+    sub, rest = (args[0], args[1:]) if args else ("", [])
+    if sub == "status" and _only_opts(rest, {"--full", "--all", "--deep"}, set()):
+        return "shell:hermes:status", FREE
+    if sub == "config" and (rest in (["show"], ["path"], ["env-path"]) or (
+            len(rest) >= 2 and rest[0] == "get" and not rest[1].startswith("-")
+            and _only_opts(rest[2:], {"--json"}, set()))):
+        return "shell:hermes:config", FREE
+    if sub != "clearance":
+        return SELF_HERMES
+    what, more = (rest[0], rest[1:]) if rest else ("status", [])
+    if ((what == "status" and _only_opts(more, {"--all"}, {"--profile", "--model"}))
+            or (what == "models" and _only_opts(more, set(), {"--type"}))
+            or (what in ("explain", "anchor") and not more)
+            or (what == "verify" and 1 <= len(more) <= 2 and not any(m.startswith("-") for m in more))):
+        return "shell:hermes:clearance", FREE
+    if what == "export" and len(more) <= 1 and not any(m.startswith("-") for m in more):
+        if not more:
+            return "shell:hermes:clearance:export", LOW       # into clearance's own folder
+        target = _expand(more[0], home)
+        if any(c in target for c in UNRESOLVED) or (cwd == UNKNOWN and not os.path.isabs(target)):
+            return "file:unknown", HIGH
+        t, stakes, _ = _file(target, "/" if cwd == UNKNOWN else cwd, home)
+        if stakes == CAP:
+            return t, CAP
+        return "shell:hermes:clearance:export", stakes if RANK[stakes] > RANK[LOW] else LOW
+    return SELF_HERMES
 
 
 def _cd_kind(tokens: list[str]):
@@ -1451,17 +1681,28 @@ def _strip_heredocs(command: str) -> str:
 
 
 def _frag(word: str) -> bool:
+    home = getattr(_CACHE, "home", None) or os.path.expanduser("~")
     for cand in {word, word.split("=", 1)[-1], word.lstrip("@")}:
         low = cand.lower().replace("\\", "/")
         if (any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.lower() in "/" + low + "/" for d in SENSITIVE_DIRS)
                 or low.startswith(tuple(x.lower() for x in SENSITIVE_PREFIXES))
-                or SENSITIVE_NAME.match(low.rstrip("/").rsplit("/", 1)[-1])):
+                or SENSITIVE_NAME.match(low.rstrip("/").rsplit("/", 1)[-1])
+                or _self_hit(low) or _self_hit(_norm(_expand(cand, home)).lower())):
             return True
     return False
 
 
-def _sensitive_floor(command: str) -> bool:
-    """A write target, or any argument of a command that is not purely read-only, names a sensitive file."""
+def _text_floor(text: str) -> str | None:
+    """The protected type that a word or a piece of code names, or None: clearance's own data (self:clearance),
+    else a sensitive file or a Hermes home (file:sensitive)."""
+    if CLEARANCE_NAMES.search(text.lower().replace("\\", "/")):
+        return "self:clearance"
+    return "file:sensitive" if _frag(text) else None
+
+
+def _sensitive_floor(command: str) -> str | None:
+    """A write target, or any argument of a command that is not purely read-only, names a sensitive file: the
+    protected type (``_text_floor``), else None."""
     for tokens in (_tokens_lines(command), _tokens_whole(command)):
         pure, words = True, []
         for seg in _build(tokens):
@@ -1474,9 +1715,11 @@ def _sensitive_floor(command: str) -> bool:
             if toks and toks[0] in ws:
                 ws.remove(toks[0])
             words += ws
-        if not pure and any(_frag(w) for w in words):
-            return True
-    return False
+        if not pure:
+            found = {_text_floor(w) for w in words} - {None}
+            if found:
+                return "self:clearance" if "self:clearance" in found else "file:sensitive"
+    return None
 
 
 def _seg_complex(tokens: list[str]) -> bool:
@@ -1533,21 +1776,32 @@ def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str,
     best = whole if RANK[whole[1]] >= RANK[by_lines[1]] else by_lines
     if best[1] == CAP:
         return best[0], best[1], False
-    if _sensitive_floor(command):
-        return "file:sensitive", CAP, False
+    floor = _sensitive_floor(command)
+    if floor:
+        return floor, CAP, False
     if _complex_floor(command):
         low = command.lower()          # quotes cannot be trusted here: look at the raw text
-        if any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.lower() in low for d in SENSITIVE_DIRS):
+        if CLEARANCE_NAMES.search(low):
+            return "self:clearance", CAP, False
+        if (any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.lower() in low for d in SENSITIVE_DIRS)
+                or _self_hit(low)):
             return "file:sensitive", CAP, False
         return "shell:complex", HIGH, False
     return best[0], best[1], False                  # a command is never reversible by Clearance
+
+
+# Programs that bring in content from another host (HTTP clients, text browsers, downloaders, raw sockets), and the
+# git subcommands that bring in someone else's commits. Listed in the README.
+EXTERNAL_PROGRAMS = frozenset({"curl", "wget", "http", "https", "xh", "xhs", "lynx", "w3m", "links", "aria2c", "nc",
+                               "ncat"})
+GIT_EXTERNAL = frozenset({"clone", "pull", "fetch"})
 
 
 def _seg_reads_external(tokens: list[str], depth: int) -> bool:
     if depth > MAX_DEPTH:
         return False
     for n, t in enumerate(tokens):                      # <(curl x), $(curl x), "$(curl x)", `curl x`
-        if t in ("<(", ">(", "(") and n + 1 < len(tokens) and os.path.basename(tokens[n + 1]) in ("curl", "wget"):
+        if t in ("<(", ">(", "(") and n + 1 < len(tokens) and os.path.basename(tokens[n + 1]) in EXTERNAL_PROGRAMS:
             return True
         for inner in re.findall(r"\$\(([^()]*)\)", t):
             if _cmd_reads_external(inner, depth + 1):
@@ -1559,8 +1813,11 @@ def _seg_reads_external(tokens: list[str], depth: int) -> bool:
     if not toks:
         return False
     prog, args = os.path.basename(toks[0]), toks[1:]
-    if prog in ("curl", "wget"):
+    if prog in EXTERNAL_PROGRAMS:
         return True
+    if prog == "git":
+        plain = _strip(args, GIT_VALUE_OPTS)
+        return bool(plain) and plain[0] in GIT_EXTERNAL
     if prog in SHELLS and "-c" in args:
         i = args.index("-c")
         return _cmd_reads_external(args[i + 1] if i + 1 < len(args) else "", depth + 1)
@@ -1611,7 +1868,8 @@ MCP_LEGACY = re.compile(r"^mcp_([A-Za-z0-9-]+)_(.+)$")
 # Servers that bring in text written by other people: reading them is reading untrusted content.
 EXTERNAL_SERVERS = ("mail", "gmail", "outlook", "imap", "slack", "discord", "telegram", "whatsapp", "web", "fetch",
                     "browser", "rss", "reddit", "twitter", "x", "brave", "search", "exa", "tavily", "serp",
-                    "playwright", "puppeteer", "firecrawl", "crawl", "scrape", "github")
+                    "playwright", "puppeteer", "firecrawl", "crawl", "scrape", "github", "gitlab", "notion",
+                    "linear", "jira", "confluence", "asana", "trello", "drive", "docs")
 WHOLE_WORD_SERVERS = {"x", "exa"}                       # too short to match inside another name
 HIGH_VERBS = {"send", "post", "publish", "email", "mail", "sms", "tweet", "message", "notify", "invite", "share", "pay",
               "payment", "payments", "purchase", "buy", "charge", "transfer", "refund", "order", "checkout", "invoice",
@@ -1688,6 +1946,33 @@ def _valid(val, default):
     return v if v in RANK else default
 
 
+CODE_PREFIX = re.compile(r"(?:^|[\s'\"`(=,\[])(?:" + "|".join(re.escape(x) for x in SENSITIVE_PREFIXES) + ")")
+
+
+def _code(code: str) -> tuple[str, str, bool]:
+    """execute_code: the same floors as ``python -c``. Code that calls Hermes' CLI or imports its modules is
+    self:hermes; code naming clearance's data is self:clearance; a sensitive file or a Hermes home, file:sensitive."""
+    if HERMES_CODE.search(code):
+        return "self:hermes", CAP, False
+    low = code.lower().replace("\\\\", "/").replace("\\", "/")
+    if CLEARANCE_NAMES.search(low):
+        return "self:clearance", CAP, False
+    if (any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.lower() in low for d in SENSITIVE_DIRS)
+            or _self_hit(low) or CODE_PREFIX.search(code)):
+        return "file:sensitive", CAP, False
+    return "code:execute", MEDIUM, False
+
+
+def sensitive_path(path: str, cwd: str | None = None) -> bool:
+    """A path classify caps as a write target (a sensitive file, a Hermes home, clearance's data). For callers outside
+    ``classify`` (undo checks a restore target with it)."""
+    _CACHE.memo, _CACHE.roots, _CACHE.cwd, _CACHE.home = {}, None, cwd, os.path.expanduser("~")
+    try:
+        return _file(path, cwd or os.getcwd(), os.path.expanduser("~"))[1] == CAP
+    finally:
+        _CACHE.memo = _CACHE.roots = None
+
+
 def _summary(tool: str, args: dict, t: str) -> str:
     if tool == "terminal":
         what = str(args.get("command", ""))
@@ -1704,13 +1989,15 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
              home: str | None = None) -> Action:
     args = args if isinstance(args, dict) else {}
     home = home or os.path.expanduser("~")
-    _CACHE.memo = {}
+    _CACHE.memo, _CACHE.roots, _CACHE.cwd, _CACHE.home = {}, None, cwd, home
     if tool_name in FREE_TOOLS:
         t, stakes, rev = f"read:{tool_name}", FREE, False
     elif tool_name in ("write_file", "patch"):
         t, stakes, rev = _files(tool_name, args, cwd, home)
     elif tool_name == "terminal":
         t, stakes, rev = _shell(str(args.get("command", "")), cwd, home)
+    elif tool_name == "execute_code":
+        t, stakes, rev = _code(str(args.get("code") or ""))
     elif tool_name in TOOLS:
         t, stakes, rev = TOOLS[tool_name]
     elif tool_name.startswith("kanban_"):
