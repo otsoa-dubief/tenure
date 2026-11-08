@@ -103,3 +103,41 @@ def test_overrides_cannot_free_a_capped_secret():
 def test_summary_for_the_approval_prompt():
     a = C.classify("terminal", {"command": "git push origin main"}, cwd=CWD)
     assert "git push origin main" in a.summary and a.type in a.summary
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Commands that hide what they run must not inherit a cleared type's autonomy
+# --------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("cmd,typ,stakes", [
+    ('bash -c "git push origin main"', "shell:git:push", C.HIGH),
+    ("sh -c 'ls -la'", "shell:ls", C.FREE),
+    ("zsh -c 'npm test'", "shell:npm", C.MEDIUM),
+    ("git -C ../other push", "shell:git:push", C.HIGH),
+    ("git -c user.name=x push", "shell:git:push", C.HIGH),
+    ("gh -R owner/repo pr create --fill", "shell:gh:pr", C.HIGH),
+    ("xargs git push < remotes.txt", "shell:git:push", C.HIGH),
+    ("eval \"$CMD\"", "shell:eval", C.HIGH),
+    ("$GIT push", "shell:dynamic", C.HIGH),
+    ("echo $(cat ~/.ssh/id_rsa)", "shell:echo", C.HIGH),
+    ("python3 -c 'import os; os.system(\"git push\")'", "shell:python3:inline", C.HIGH),
+    ("node -e 'require(\"child_process\")'", "shell:node:inline", C.HIGH),
+    ("python3 scripts/deploy.py", "shell:python3:deploy.py", C.MEDIUM),
+    ("python3 -m http.server", "shell:python3:-m:http.server", C.MEDIUM),
+    ("npm run build", "shell:npm:run:build", C.MEDIUM),
+    ("npm run deploy", "shell:npm:run:deploy", C.MEDIUM),
+    ("make release", "shell:make:release", C.MEDIUM),
+    ("bash deploy.sh", "shell:bash:deploy.sh", C.MEDIUM),
+    ("echo key >> ~/.ssh/authorized_keys", "file:sensitive", C.CAP),
+    ("curl --json '{\"a\":1}' https://api.example.com", "shell:curl:send", C.HIGH),
+])
+def test_commands_that_hide_what_they_run(cmd, typ, stakes):
+    assert k("terminal", {"command": cmd}) == (typ, stakes)
+
+
+@pytest.mark.parametrize("cmd,typ,stakes", [
+    ("(cd ../x && git push)", "shell:git:push", C.HIGH),
+    ("diff <(ls a) <(ls b)", "shell:diff", C.HIGH),
+    ("git commit -m \"$(date)\"", "shell:git", C.HIGH),
+])
+def test_subshells_and_substitutions(cmd, typ, stakes):
+    assert k("terminal", {"command": cmd}) == (typ, stakes)

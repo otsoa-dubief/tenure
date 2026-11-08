@@ -111,7 +111,7 @@ def test_refusal_resets_and_a_refused_spot_check_revokes(plugin):
         d = ask(mod, "terminal", {"command": "npm test"}, f"c{n}")
         answer(mod, d, f"c{n}", "once")
     mod.ST.rng = Picks([0.0])                                                    # next action is spot-checked
-    d = ask(mod, "terminal", {"command": "npm run build"}, "spot")
+    d = ask(mod, "terminal", {"command": "npm test -- --watch=false"}, "spot")
     assert d["action"] == "approve" and d["rule_key"].startswith("clearance:spot:shell:npm:")
     assert "spot check" in d["message"]
     answer(mod, d, "spot", "deny")

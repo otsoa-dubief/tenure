@@ -131,25 +131,127 @@ def _segments(command: str) -> list[list[str]]:
     return segs
 
 
-def _shell_segment(tokens: list[str]) -> tuple[str, str]:
-    writes = any(t in (">", ">>", ">|", "&>") or t.startswith((">", "1>", "2>")) for t in tokens)
-    toks = [t for t in tokens if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", t)]
-    while toks and os.path.basename(toks[0]) in WRAPPERS:
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "fish", "ash", "mksh"}
+INTERPRETERS = {"python", "python2", "python3", "node", "deno", "bun", "perl", "ruby", "php", "osascript", "pwsh",
+                "powershell", "Rscript", "lua", "tclsh"}
+INLINE_FLAGS = {"-c", "-e", "-r", "-Command", "--command", "--eval", "-p", "--print"}
+RUNNERS = {"npm", "pnpm", "yarn", "bun"}
+MAKES = {"make", "gmake", "just", "task"}
+GIT_VALUE_OPTS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--config-env"}
+GH_VALUE_OPTS = {"-R", "--repo", "--hostname"}
+MAX_DEPTH = 3
+
+
+def _strip(tokens: list[str], value_opts: set[str]) -> list[str]:
+    """Arguments without options, skipping the value of options that take one ("-C dir", "--repo x")."""
+    out, skip = [], False
+    for t in tokens:
+        if skip:
+            skip = False
+            continue
+        if t in value_opts:
+            skip = True
+            continue
+        if t.startswith("-"):
+            continue
+        out.append(t)
+    return out
+
+
+def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
+    if depth > MAX_DEPTH:
+        return "shell:nested", HIGH
+    # redirections: a write, and a write into a sensitive file is capped
+    writes = False
+    for n, t in enumerate(tokens):
+        if t in (">", ">>", ">|", "&>", "&>>") or (t.endswith(">") and t[:-1].isdigit()):
+            target = tokens[n + 1] if n + 1 < len(tokens) else ""
+            if target in ("/dev/null", "&1", "&2", ""):
+                continue
+            writes = True
+            if _file(target, cwd, home)[1] == CAP:
+                return "file:sensitive", CAP
+    # command or process substitution ($( ), ` `, <( ), >( )): what runs is computed, so the call is illegible
+    substitution = any("`" in t or "$(" in t or t in ("<(", ">(")
+                       or (t in ("$", "<", ">") and n + 1 < len(tokens) and tokens[n + 1] == "(")
+                       for n, t in enumerate(tokens))
+    toks = [t for t in tokens if t not in (">", ">>", ">|", "&>", "&>>", "<", "<<", "<<<", "(", ")", "$", "<(", ">(")
+            and not re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", t)]
+    while toks and os.path.basename(toks[0]) in WRAPPERS | {"timeout"}:
+        wrapper = os.path.basename(toks[0])
         toks = toks[1:]
         while toks and toks[0].startswith("-"):
             toks = toks[1:]
+        if wrapper == "timeout" and toks:
+            toks = toks[1:]                                  # the duration
     if not toks:
         return "shell:unknown", MEDIUM
+    if toks[0].startswith("$"):
+        return "shell:dynamic", HIGH                         # the program is computed: illegible
     prog = os.path.basename(toks[0])
     args = toks[1:]
+    if substitution:
+        return f"shell:{prog}", HIGH
+    if prog in ("eval", "source", "."):
+        return "shell:eval", HIGH
+    if prog in SHELLS:
+        if "-c" in args:
+            i = args.index("-c")
+            inner = args[i + 1] if i + 1 < len(args) else ""
+            t, st, _ = _shell(inner, cwd, home, depth + 1)
+            return t, st
+        script = next((a for a in args if not a.startswith("-")), "")
+        return (f"shell:{prog}:{os.path.basename(script)}" if script else f"shell:{prog}"), MEDIUM
+    if prog == "xargs":
+        rest, skip = [], False
+        for n, a in enumerate(args):
+            if skip:
+                skip = False
+                continue
+            if not rest and a in ("-I", "-n", "-P", "-L", "-s", "-d", "-E", "-a"):
+                skip = True
+                continue
+            if not rest and a.startswith("-"):
+                continue
+            rest = args[n:]
+            break
+        return _shell_segment(rest, cwd, home, depth + 1) if rest else ("shell:xargs", MEDIUM)
+    base = re.sub(r"\d+(\.\d+)*$", "", prog)
+    if prog in INTERPRETERS or base in INTERPRETERS:
+        if INLINE_FLAGS & set(args):
+            return f"shell:{prog}:inline", HIGH
+        if "-m" in args:
+            i = args.index("-m")
+            mod = args[i + 1] if i + 1 < len(args) else ""
+            return f"shell:{prog}:-m:{mod}", MEDIUM
+        script = next((a for a in args if not a.startswith("-")), "")
+        return (f"shell:{prog}:{os.path.basename(script)}" if script else f"shell:{prog}"), MEDIUM
     sub = next((a for a in args if not a.startswith("-")), "")
     if prog in OUTSIDE:
         return OUTSIDE[prog], HIGH
+    if prog == "git":
+        plain = _strip(args, GIT_VALUE_OPTS)
+        sub = plain[0] if plain else ""
+        if "push" in plain:
+            return "shell:git:push", HIGH
+    if prog == "gh":
+        plain = _strip(args, GH_VALUE_OPTS)
+        sub = plain[0] if plain else ""
     if (prog, sub) in PUBLISH:
         return f"shell:{prog}:{sub}", HIGH
+    if prog in RUNNERS and sub == "run":
+        plain = [a for a in args if not a.startswith("-")]
+        script = plain[1] if len(plain) > 1 else ""
+        return f"shell:{prog}:run:{script}", MEDIUM
+    if prog == "npx":
+        return f"shell:npx:{sub}", MEDIUM
+    if prog in MAKES:
+        plain = _strip(args, {"-C", "-f", "-j", "--directory", "--file", "--jobs"})
+        return f"shell:{prog}:{plain[0] if plain else 'default'}", MEDIUM
     if prog in ("curl", "wget"):
         joined = " ".join(args)
-        sends = (re.search(r"(^|\s)(-d|--data\S*|-F|--form|-T|--upload-file|--post-data|--post-file)(\s|=|$)", joined)
+        sends = (re.search(r"(^|\s)(-d|--data\S*|--json|-F|--form\S*|-T|--upload-file|--post-data|--post-file)"
+                           r"(\s|=|$)", joined)
                  or re.search(r"(-X|--request|--method)[\s=]*(POST|PUT|PATCH|DELETE)", joined, re.I))
         if sends:
             return f"shell:{prog}:send", HIGH
@@ -158,10 +260,12 @@ def _shell_segment(tokens: list[str]) -> tuple[str, str]:
         return "shell:rsync", HIGH if any(re.match(r"^[^/]*:", a) for a in args if not a.startswith("-")) else MEDIUM
     if prog == "gh":
         if sub in ("pr", "issue", "repo", "release", "run", "workflow"):
-            verb = next((a for a in args[args.index(sub) + 1:] if not a.startswith("-")), "")
+            plain = _strip(args, GH_VALUE_OPTS)
+            verb = plain[1] if len(plain) > 1 else ""
             if verb in GH_READ:
                 return f"shell:gh:{sub}", FREE
-        if sub == "api" and not re.search(r"(-X|--method)\s*(POST|PUT|PATCH|DELETE)|-f\s|-F\s|--field|--input", " ".join(args)):
+        if sub == "api" and not re.search(r"(-X|--method)\s*(POST|PUT|PATCH|DELETE)|-f\s|-F\s|--field|--input",
+                                          " ".join(args)):
             return "shell:gh:api", FREE
         return f"shell:gh:{sub or 'unknown'}", HIGH
     if prog == "kubectl":
@@ -185,11 +289,11 @@ def _shell_segment(tokens: list[str]) -> tuple[str, str]:
     return f"shell:{prog}", MEDIUM
 
 
-def _shell(command: str) -> tuple[str, str, bool]:
+def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str, bool]:
     best = ("shell:unknown", MEDIUM)
     first = True
     for seg in _segments(command or ""):
-        t, s = _shell_segment(seg)
+        t, s = _shell_segment(seg, cwd, home or os.path.expanduser("~"), depth)
         if first or RANK[s] > RANK[best[1]]:
             best, first = (t, s), False
     return best[0], best[1], best[1] in (FREE, LOW, MEDIUM)
@@ -255,7 +359,7 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
     elif tool_name in ("write_file", "patch"):
         t, stakes, rev = _file(str(args.get("path") or args.get("file_path") or ""), cwd, home)
     elif tool_name == "terminal":
-        t, stakes, rev = _shell(str(args.get("command", "")))
+        t, stakes, rev = _shell(str(args.get("command", "")), cwd, home)
     elif tool_name in TOOLS:
         t, stakes, rev = TOOLS[tool_name]
     elif tool_name.startswith("kanban_"):
