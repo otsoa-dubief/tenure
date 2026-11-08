@@ -1017,6 +1017,7 @@ FIND_EXEC = {"-exec", "-execdir", "-ok", "-okdir"}
 SEDS = {"sed", "gsed"}
 RUNS = {"xargs", "parallel", "watch"} | FINDS            # programs whose arguments are a command
 MAX_VARIANTS = 32                                        # beyond, what runs is not read: shell:complex
+MAX_COMMAND = 64 * 1024                                  # a longer command is not lexed (quadratic cost): complex
 
 
 def _top(results: list[tuple[str, str]]) -> tuple[str, str]:
@@ -1099,7 +1100,8 @@ def _find_inner(inner: list[str], cwd, home: str, depth: int) -> tuple[str, str]
             or _found_code(os.path.basename(toks[0]), toks[1:])):
         return COMPLEX
     clause = [FOUND if t == "{}" else t for t in inner]
-    return _lit(_shell_segment(clause, cwd, home, depth + 1))
+    r = _lit(_shell_segment(clause, cwd, home, depth + 1))
+    return (f"shell:{os.path.basename(toks[0])}", r[1]) if FOUND in r[0] else r   # the stand-in is not a type
 
 
 def _find(toks: list[str], cwd, home: str, depth: int, writes: bool) -> tuple[str, str]:
@@ -1211,15 +1213,20 @@ def _parallel(args: list[str], cwd, home: str, depth: int) -> tuple[str, str]:
     if not cmd:
         if len(groups) > 1:
             return COMPLEX                               # the arguments of each group are joined into commands
-        lines = groups[0][1]
-    else:
-        combos = list(itertools.islice(itertools.product(*(g for _, g in groups)), MAX_VARIANTS + 1))
-        if len(combos) > MAX_VARIANTS:
-            return COMPLEX
-        line = " ".join(cmd)
-        lines = [PARALLEL_RS.sub(lambda m, c=c: _parallel_value(m, c), line) if PARALLEL_RS.search(line)
-                 else " ".join([line, *c]) for c in combos]
-    return _runner(("shell:parallel", MEDIUM), [_lit(_shell(t, cwd, home, depth + 1)[:2]) for t in dict.fromkeys(lines)])
+        inners = [_lit(_shell(t, cwd, home, depth + 1)[:2]) for t in dict.fromkeys(groups[0][1])]
+        return _runner(("shell:parallel", MEDIUM), inners)
+    combos = list(itertools.islice(itertools.product(*(g for _, g in groups)), MAX_VARIANTS + 1))
+    if len(combos) > MAX_VARIANTS:
+        return COMPLEX
+    rs = any(PARALLEL_RS.search(t) for t in cmd)
+    inners = []
+    for c in combos:
+        # token by token, so a quoted argument (sh -c 'git push') keeps its quoting
+        toks = ([PARALLEL_RS.sub(lambda m, c=c: _parallel_value(m, c), t) for t in cmd] if rs else [*cmd, *c])
+        inners.append(_lit(_shell_segment(toks, cwd, home, depth + 1)))
+        if any(re.search(r"[\s;&|<>()$`'\"\\*?]", t) for t in toks):   # the shell also reads the joined line
+            inners.append(_lit(_shell(" ".join(toks), cwd, home, depth + 1)[:2]))
+    return _runner(("shell:parallel", MEDIUM), inners)
 
 
 def _watch(args: list[str], cwd, home: str, depth: int) -> tuple[str, str]:
@@ -1510,7 +1517,9 @@ def _complex_floor(command: str) -> bool:
 def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str, bool]:
     """The precise reading (typed twice, the riskier wins: by lines, then the whole command tokenised) may lower
     stakes only for commands it fully understands. Two floors are checked independently of it: a sensitive name
-    (cap) and constructs outside the grammar (shell:complex, high)."""
+    (cap) and constructs outside the grammar (shell:complex, high). A command over MAX_COMMAND is not read at all."""
+    if len(command or "") > MAX_COMMAND:
+        return "shell:complex", HIGH, False
     home = _norm(home or os.path.expanduser("~"))
     command = _join_lines(command)
     start = cwd or os.getcwd()
@@ -1652,7 +1661,7 @@ def _external_server(server: str) -> bool:
 
 
 # ----------------------------------------------------------------------------------------------------------- main
-FLOORS = {"file:unknown", "shell:complex", "file:unreadable"}   # fail-safe types: an override can only raise them
+FLOORS = {"file:unknown", "shell:complex", "file:unreadable", "shell:nested"}   # fail-safe: an override only raises
 
 
 def _override(t: str, stakes: str, overrides: dict | None) -> str:

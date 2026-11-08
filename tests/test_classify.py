@@ -850,6 +850,29 @@ def test_ordinary_reads_stay_free_with_runners(command):
     assert cmd(command)[1] == C.FREE, command
 
 
+@pytest.mark.parametrize("command,typ", [
+    ("parallel sh -c 'git push' ::: a", "shell:git:push"),
+    ("parallel -j4 sh -c 'git push' ::: a", "shell:git:push"),
+    ("parallel bash -c 'npm publish' ::: a", "shell:npm:publish"),
+])
+def test_parallel_keeps_the_quoting_of_its_command(command, typ):
+    assert cmd(command) == (typ, C.HIGH)
+
+
+def test_the_found_path_stand_in_does_not_leak_into_the_type():
+    assert cmd("find . -exec git {} \\;")[0] == "shell:git"
+
+
+def test_a_huge_command_is_complex_without_lexing():
+    assert cmd("ls " + "a " * 40000) == ("shell:complex", C.HIGH)
+
+
+def test_nested_cannot_be_lowered():
+    a = C.classify("terminal", {"command": "bash -c \"bash -c 'bash -c \\\"bash -c ls\\\"'\""}, cwd=CWD, home=HOME,
+                   overrides={"shell:nested": "free", "shell:*": "free"})
+    assert "shell:nested" in C.FLOORS and C.RANK[a.stakes] >= C.RANK[C.HIGH]
+
+
 def test_runner_parsing_does_not_raise():
     for command in ["find", "find -exec", "find . -exec", "find . -exec \\;", "find . -exec {} +", "awk", "awk -e",
                     "sed", "sed -e", "sed -i", "parallel", "parallel :::", "parallel -j", "watch", "watch -n",
