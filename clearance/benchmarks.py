@@ -23,19 +23,41 @@ _cache: dict = {}
 def normalise(model: str | None) -> str:
     """Comparable form of a model id: no provider prefix, no case, no date or variant suffix.
 
-    ``openai/GPT-5.1-2025-11-13@openrouter`` -> ``gpt-5-1``. A local tag such as ``:8b-q4_K_M`` is kept: a
-    quantisation is not the model that was measured.
+    ``openai/GPT-5.1-2025-11-13@openrouter`` -> ``gpt-5-1``. An id with a local tag (``qwen3:8b-q4_K_M``) is
+    kept whole, "_" suffixes included: a quantisation is not the model that was measured.
     """
-    m = (model or "").strip().lower().split("@", 1)[0].rsplit("/", 1)[-1].split("_", 1)[0]
+    m = (model or "").strip().lower().split("@", 1)[0].rsplit("/", 1)[-1]
+    if ":" not in m:                      # a local id keeps everything after the colon, "_" included
+        m = m.split("_", 1)[0]
     m = re.sub(r"[-.]?(20\d{2}-\d{2}-\d{2}|20\d{6})$", "", m)
     return m.replace(".", "-")
 
 
+_EMPTY = {"source": "", "license": "", "url": "", "accessed": "", "benchmarks": {}, "models": {}}
+_PUBLISHED = "best published score (any harness), not a controlled comparison"
+
+
+def _checked(d) -> dict:
+    if not isinstance(d, dict) or not isinstance(d["benchmarks"], dict) or not isinstance(d["models"], dict):
+        raise ValueError("malformed snapshot")
+    for e in d["models"].values():
+        if not isinstance(e["scores"], dict) or not isinstance(e.get("aliases", []), list):
+            raise ValueError("malformed snapshot")
+    for k in ("source", "accessed"):
+        if not isinstance(d[k], str):
+            raise ValueError("malformed snapshot")
+    return d
+
+
 def load(path: Path | str | None = None) -> dict:
+    """The snapshot; an empty one (no model, no benchmark) when the file is missing or unreadable."""
     p = Path(path) if path else DATA_PATH
     key = str(p)
     if key not in _cache:
-        _cache[key] = json.loads(p.read_text(encoding="utf-8"))
+        try:
+            _cache[key] = _checked(json.loads(p.read_text(encoding="utf-8")))
+        except (OSError, ValueError, KeyError, TypeError):
+            _cache[key] = {k: ({} if isinstance(v, dict) else v) for k, v in _EMPTY.items()}
     return _cache[key]
 
 
@@ -88,6 +110,8 @@ def card(old_model: str | None, new_model: str, type_key: str) -> dict:
     else:
         out["delta"] = round(out["new"] - out["old"], 1)
         out["note"] = f"{bench} {out['version']}, percent. Public scores inform; they never grant autonomy."
+    if out["old"] is not None or out["new"] is not None:
+        out["note"] += f" Each score is the model's {_PUBLISHED}."
     return out
 
 

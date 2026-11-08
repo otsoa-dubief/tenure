@@ -101,3 +101,34 @@ def test_snapshot_has_attribution():
     assert real["benchmarks"] and real["models"]
     notice = b.Path(__file__).parent.parent.joinpath("clearance", "NOTICE").read_text()
     assert "Epoch AI" in notice and "CC BY 4.0" in notice and real["accessed"] in notice
+
+
+PHRASE = "best published score (any harness), not a controlled comparison"
+
+
+def test_card_notes_say_best_published_score():
+    assert PHRASE in b.card("claude-opus-4-5", "gpt-5.1", "file:write")["note"]       # both sides
+    assert PHRASE in b.card(None, "claude-opus-4-5", "file:write")["note"]            # one side: new only
+    assert PHRASE in b.card("claude-opus-4-5", "qwen3:8b@ollama", "file:write")["note"]  # one side: old only
+
+
+@pytest.mark.parametrize("content", [None, "{not json", "[]", '{"models": 3}', '{"benchmarks": {}}'])
+def test_missing_or_corrupt_snapshot_never_crashes(snapshot, content):
+    if content is None:
+        snapshot.unlink()
+    else:
+        snapshot.write_text(content)
+    b._cache.clear()
+    snap = b.load()
+    assert snap["models"] == {} and snap["benchmarks"] == {}
+    assert all(snap[k] == "" for k in ("source", "license", "url", "accessed"))
+    assert b.lookup("claude-opus-4-5") is None
+    assert not b.veto("claude-opus-4-5", "gpt-5.1", "file:write")
+    c = b.card("claude-opus-4-5", "gpt-5.1", "file:write")
+    assert c["new"] is None and "no public measure" in c["note"].lower()
+
+
+def test_local_tag_is_kept_by_normalise():
+    assert b.normalise("qwen3:8b-q4_K_M") != b.normalise("qwen3:8b")
+    assert b.normalise("ollama/qwen3:8b_q4@ollama") == "qwen3:8b_q4"
+    assert b.normalise("gpt-5.1_unknown") == "gpt-5-1"
