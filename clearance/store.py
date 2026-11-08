@@ -40,6 +40,8 @@ CREATE TABLE IF NOT EXISTS stats (agent TEXT NOT NULL, day TEXT NOT NULL, action
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS ledger (seq INTEGER PRIMARY KEY AUTOINCREMENT, at REAL, event TEXT, prev TEXT, hash TEXT);
 """
+INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke"})
+DERIVED_KINDS = frozenset({"tier", "trial", "confirmed", "revoked", "neutral_expired"})   # display only
 STAT_FIELDS = ("actions", "checked", "alone", "faults")
 PENDING_COLS = ("tool_call_id", "agent", "type", "stakes", "reversible", "decision", "phase", "rule_key",
                 "session", "snap_id", "at")
@@ -85,16 +87,31 @@ class Store:
         uri = "file:" + urllib.parse.quote(os.path.abspath(path)) + "?mode=ro"
         self.db = sqlite3.connect(uri, uri=True, timeout=30, isolation_level=None, check_same_thread=False)
         self.db.execute("PRAGMA busy_timeout = 30000")
+        try:
+            version = self.get_meta("schema")
+        except sqlite3.DatabaseError:
+            version = None
+        if version != SCHEMA_VERSION:
+            self.db.close()
+            raise RuntimeError(f"clearance store: {path} is not a schema {SCHEMA_VERSION} database "
+                               f"(found {version!r}); open it once with the plugin first")
         return self
 
     def _ensure_schema(self) -> None:
         """Create the v2 tables; a file from an older schema is dropped and recreated (there are no v1 users)."""
-        def current() -> bool:
+        def stored() -> str | None:
             try:
                 row = self.db.execute("SELECT value FROM meta WHERE key = 'schema'").fetchone()
             except sqlite3.OperationalError:
-                return False
-            return row is not None and row[0] == SCHEMA_VERSION
+                return None
+            return None if row is None else row[0]
+
+        def current() -> bool:
+            v = stored()
+            if v is not None and v.isdigit() and int(v) > int(SCHEMA_VERSION):
+                raise RuntimeError(f"clearance store: database schema {v} is newer than this plugin's "
+                                   f"{SCHEMA_VERSION}; refusing to downgrade it")
+            return v == SCHEMA_VERSION
         if current():
             return
         self.db.execute("BEGIN IMMEDIATE")
@@ -110,6 +127,10 @@ class Store:
             self.db.execute("ROLLBACK")
             raise
         self.db.execute("COMMIT")
+
+    def _write(self) -> None:
+        if not self.db.in_transaction:
+            raise RuntimeError("clearance store: write outside a transaction")
 
     @contextmanager
     def transaction(self):
@@ -133,6 +154,7 @@ class Store:
         return s
 
     def put_state(self, agent: str, s: TypeState) -> None:
+        self._write()
         self.db.execute("INSERT OR REPLACE INTO types (agent, key, state) VALUES (?, ?, ?)",
                         (agent, s.key, _canon(s.to_dict())))
 
@@ -154,6 +176,7 @@ class Store:
     def add_pending(self, tool_call_id: str, *, agent: str, type: str, stakes: str, reversible: bool,
                     decision: str, phase: str, rule_key: str, session: str, snap_id: str | None = None,
                     at: float | None = None) -> None:
+        self._write()
         self.db.execute("INSERT OR REPLACE INTO pending (%s) VALUES (%s)"
                         % (", ".join(PENDING_COLS), ", ".join("?" * len(PENDING_COLS))),
                         (tool_call_id, agent, type, stakes, int(bool(reversible)), decision, phase, rule_key,
@@ -165,9 +188,11 @@ class Store:
         return None if row is None else self._pending(row)
 
     def set_phase(self, tool_call_id: str, phase: str) -> None:
+        self._write()
         self.db.execute("UPDATE pending SET phase = ? WHERE tool_call_id = ?", (phase, tool_call_id))
 
     def pop_pending(self, tool_call_id: str) -> dict | None:
+        self._write()
         p = self.get_pending(tool_call_id)
         if p is not None:
             self.db.execute("DELETE FROM pending WHERE tool_call_id = ?", (tool_call_id,))
@@ -175,6 +200,7 @@ class Store:
 
     def expire_pending(self, older_than: float = 24 * 3600) -> list[dict]:
         """Delete and return the rows older than ``older_than`` seconds, so the caller logs them as neutral."""
+        self._write()
         cutoff = time.time() - older_than
         rows = self.db.execute("SELECT %s FROM pending WHERE at < ? ORDER BY at" % ", ".join(PENDING_COLS),
                                (cutoff,)).fetchall()
@@ -184,6 +210,7 @@ class Store:
 
     # ----------------------------------------------------------------------------------------------- sessions
     def taint(self, session: str) -> None:
+        self._write()
         self.db.execute("INSERT INTO sessions (session, tainted, at) VALUES (?, 1, ?) "
                         "ON CONFLICT(session) DO UPDATE SET tainted = 1", (session, time.time()))
 
@@ -193,6 +220,7 @@ class Store:
 
     # --------------------------------------------------------------------------------------------------- undo
     def add_undo(self, agent: str, type: str, snap_id: str | None, at: float | None = None) -> int:
+        self._write()
         cur = self.db.execute("INSERT INTO undo (agent, type, snap_id, at) VALUES (?, ?, ?, ?)",
                               (agent, type, snap_id, time.time() if at is None else at))
         return int(cur.lastrowid)
@@ -202,10 +230,12 @@ class Store:
         return None if r is None else dict(id=r[0], agent=r[1], type=r[2], snap_id=r[3], at=r[4], undone=bool(r[5]))
 
     def mark_undone(self, id: int) -> None:
+        self._write()
         self.db.execute("UPDATE undo SET undone = 1 WHERE id = ?", (id,))
 
     # --------------------------------------------------------------------------------------------------- stats
     def bump(self, agent: str, field: str, n: int = 1, at: float | None = None) -> None:
+        self._write()
         if field not in STAT_FIELDS:
             raise ValueError(f"unknown stat {field!r}")
         day = time.strftime("%Y-%m-%d", time.gmtime(time.time() if at is None else at))
@@ -227,10 +257,15 @@ class Store:
         return default if row is None else row[0]
 
     def set_meta(self, key: str, value: str) -> None:
+        self._write()
         self.db.execute("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", (key, value))
 
     # ------------------------------------------------------------------------------------------------- ledger
     def log(self, event: dict) -> None:
+        self._write()
+        kind = event.get("event")
+        if kind not in INPUT_KINDS and kind not in DERIVED_KINDS:
+            raise ValueError(f"clearance store: unknown ledger event kind {kind!r}")
         last = self.db.execute("SELECT seq, hash FROM ledger ORDER BY seq DESC LIMIT 1").fetchone()
         seq, prev = (last[0] + 1, last[1]) if last else (1, GENESIS)
         at = float(event.get("at") or time.time())

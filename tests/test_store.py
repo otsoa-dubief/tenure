@@ -103,8 +103,9 @@ def test_totals_by_agent(st):
     assert st.totals()["actions"] == 5
     assert st.totals("a", since=time.time() - 86400)["actions"] == 3
     assert st.totals("nobody") == dict(actions=0, checked=0, alone=0, faults=0)
-    with pytest.raises(ValueError):
-        st.bump("a", "bogus")
+    with st.transaction():
+        with pytest.raises(ValueError):
+            st.bump("a", "bogus")
 
 
 def test_ledger_chain_and_verify(st, tmp_path):
@@ -200,3 +201,120 @@ def test_open_readonly(tmp_path):
     assert r.get_meta("schema") == "2"
     with pytest.raises(sqlite3.OperationalError):
         r.db.execute("DELETE FROM pending")
+
+
+def test_writes_outside_a_transaction_raise(st):
+    with st.transaction():
+        _pending(st, "c1")
+        s = st.get_state(A, "t", "low")
+    calls = [lambda: st.pop_pending("c1"), lambda: st.expire_pending(0), lambda: st.put_state(A, s),
+             lambda: _pending(st, "c2"), lambda: st.set_phase("c1", "x"), lambda: st.taint("s"),
+             lambda: st.add_undo(A, "t", None), lambda: st.mark_undone(1), lambda: st.bump(A, "actions"),
+             lambda: st.set_meta("k", "v"), lambda: st.log({"event": "revoke"})]
+    for c in calls:
+        with pytest.raises(RuntimeError, match="outside a transaction"):
+            c()
+    assert st.get_pending("c1") is not None
+
+
+def _popper(path, tcid, q):
+    st = store.Store(path)
+    with st.transaction():
+        got = st.pop_pending(tcid)
+    q.put(got is not None)
+
+
+def test_two_processes_pop_the_same_pending_once(tmp_path):
+    path = str(tmp_path / "clearance.db")
+    s = store.Store(path)
+    ctx = mp.get_context("spawn")
+    for n in range(10):
+        with s.transaction():
+            _pending(s, f"c{n}")
+    results = []
+    for n in range(10):
+        q = ctx.Queue()
+        procs = [ctx.Process(target=_popper, args=(path, f"c{n}", q)) for _ in range(2)]
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join(60)
+        assert [p.exitcode for p in procs] == [0, 0]
+        results.append(sorted([q.get(timeout=5), q.get(timeout=5)]))
+    assert results == [[False, True]] * 10
+
+
+def test_reopen_keeps_data(tmp_path):
+    path = str(tmp_path / "clearance.db")
+    w = store.Store(path)
+    with w.transaction():
+        st_ = w.get_state(A, "file:write", "low", True)
+        st_.series = 7
+        w.put_state(A, st_)
+        w.bump(A, "actions")
+        w.log({"event": "revoke", "agent": A, "type": "file:write"})
+    w.db.close()
+    r = store.Store(path)
+    assert r.get_state(A, "file:write", "low", True).series == 7
+    assert r.totals(A)["actions"] == 1 and len(r.ledger()) == 1
+
+
+def _opener(path, start):
+    start.wait(30)
+    store.Store(path)
+
+
+def test_concurrent_first_open(tmp_path):
+    path = str(tmp_path / "clearance.db")
+    ctx = mp.get_context("spawn")
+    start = ctx.Event()
+    procs = [ctx.Process(target=_opener, args=(path, start)) for _ in range(5)]
+    for p in procs:
+        p.start()
+    start.set()
+    for p in procs:
+        p.join(60)
+    assert [p.exitcode for p in procs] == [0] * 5
+    s = store.Store(path)
+    assert s.get_meta("schema") == "2"
+    n = s.db.execute("SELECT COUNT(*) FROM meta WHERE key = 'schema'").fetchone()[0]
+    assert n == 1
+
+
+def test_downgrade_raises_and_keeps_data(tmp_path):
+    path = str(tmp_path / "clearance.db")
+    w = store.Store(path)
+    with w.transaction():
+        w.bump("a", "actions")
+        w.set_meta("schema", "3")
+    w.db.close()
+    with pytest.raises(RuntimeError, match="newer"):
+        store.Store(path)
+    db = sqlite3.connect(path)
+    assert db.execute("SELECT COUNT(*) FROM stats").fetchone()[0] == 1
+
+
+def test_open_readonly_rejects_wrong_schema(tmp_path):
+    empty = tmp_path / "empty.db"
+    sqlite3.connect(empty).close()
+    with pytest.raises(RuntimeError, match="schema"):
+        store.Store.open_readonly(str(empty))
+    v1 = tmp_path / "v1.db"
+    db = sqlite3.connect(v1)
+    db.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
+    db.commit()
+    db.close()
+    with pytest.raises(RuntimeError, match="schema"):
+        store.Store.open_readonly(str(v1))
+
+
+def test_log_validates_event_kind(st):
+    assert {"settings", "outcome", "agent", "revoke"} == set(store.INPUT_KINDS)
+    with st.transaction():
+        for k in sorted(store.INPUT_KINDS | store.DERIVED_KINDS):
+            st.log({"event": k})
+        with pytest.raises(ValueError):
+            st.log({"event": "bogus"})
+        with pytest.raises(ValueError):
+            st.log({})
+    assert len(st.ledger()) == len(store.INPUT_KINDS | store.DERIVED_KINDS)
