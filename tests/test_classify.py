@@ -615,3 +615,68 @@ def test_exact_floor_key_override_can_raise_but_not_lower():
     a = C.classify("terminal", {"command": "while true; do ls; done"}, cwd=CWD, home=HOME,
                    overrides={"shell:complex": "cap"})
     assert a.stakes == C.CAP
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Fix round 4: an awk program writes only through redirection, a pipe, system(), getline < file or a program file
+# --------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize("command", [
+    "awk '$1 > 3' f", "awk -F, '$1>3' f", "awk 'NR>1' f", "awk '$2>5{c++}END{print c}' f", "awk '{print $1}' f",
+    "awk 'length($0) > 80' f",
+    # strings, regexes, comments, parentheses and option values are not writes
+    "awk -F'|' '{print $1}' f", "awk -F'>' '{print $2}' f", "awk '/a|b/' f", "awk '$1 == \"x>y\"' f",
+    "awk '/^#/ {next} {print}' f", "awk '{print ($1 > 3)}' f", "awk 'NR==FNR{a[$1];next} $1 in a' f g",
+    "awk '{ s += $2 } END { print s / NR }' f", "awk '/x/{getline; print}' f", "awk -v n=2 'NR > n' f",
+    "awk 'BEGIN{FS=\"|\"} {print $2}' f", "awk '$3 > 100 # big ones' f", "awk '!/^[[:space:]]*$/' f",
+    "awk '{gsub(/[0-9]+/, \"#\"); print}' f", "awk 'NF > 0 && $1 !~ /^#/' f", "awk 'length > 72' f",
+    "awk -- '{print}' f", "awk 'BEGIN { while ((getline line) > 0) n++; print n }'",
+    "awk '{ for (i = NF; i > 0; i--) printf \"%s \", $i; print \"\" }' f", "awk '{print $1; x = $2 > 3}' f",
+    "awk '{print $1}' ~/.ssh/config",
+])
+def test_awk_comparisons_and_plain_reads_are_free(command):
+    assert cmd(command) == ("shell:awk", C.FREE), command
+
+
+@pytest.mark.parametrize("command", [
+    "awk 'BEGIN{print \"k\" > \"/home/me/.ssh/authorized_keys\"}'", "awk '{print > \"/home/me/.ssh/x\"}' f",
+    "awk '{printf \"%s\", $0 >> \"/home/me/.ssh/x\"}' f", "awk '{print | \"tee /home/me/.ssh/x\"}' f",
+    "awk -o/home/me/.ssh/x '{print}' f", "awk --profile=/home/me/.ssh/x 'BEGIN{}'",
+    "awk -i inplace '{print}' /home/me/.ssh/config", "awk --file=/home/me/.ssh/x f",
+])
+def test_awk_writes_to_a_sensitive_file_are_capped(command):
+    assert cmd(command) == ("file:sensitive", C.CAP), command
+
+
+@pytest.mark.parametrize("command", [
+    "awk '{print | \"sh\"}' f", "awk 'BEGIN{system(\"rm -rf x\")}'",
+    # finding 2: a program read from a file is unseen
+    "awk --file=s.awk f", "awk --file s.awk f", "awk -f s.awk f", "awk -fs.awk f", "awk -nf s.awk f",
+    "awk --fi=s.awk f", "awk -E s.awk f", "awk --exec=s.awk f", "awk --exec s.awk f", "awk --ex s.awk f",
+    "awk -W exec s.awk f",
+    # gawk options that load code or write a file, and options we do not know
+    "awk -i inplace '{print}' f", "awk --include=inplace '{print}' f", "awk -l ext 'BEGIN{}'",
+    "awk --load=ext 'BEGIN{}'", "awk -o '{print}' f", "awk --profile=p.out '{print}' f",
+    "awk --dump-variables '{print}' f", "awk -Z x '{print}' f",
+    # redirections, pipes and directives the program text holds
+    "awk '@include \"inplace\"; {print}' f", "awk 'BEGIN{f=\"sys\" \"tem\"; @f(\"rm x\")}'",
+    "awk '{print $1 > $2}' f", "awk '{print ($1) > \"o\"}' f", "awk '{ \"date\" | getline d }' f",
+    "awk '{print |& \"cmd\"}' f", "awk '{ while ((getline l < \"o\") > 0) n++ }' f",
+    "awk '{print $1,\n$2 > \"o\"}' f", "awk '{print $1\nprint $2 > \"o\"}' f",
+    "awk '{ x = \"\\\"\" ; print > \"o\" }' f",
+    # an option after the program, and option values an awk may run as the program
+    "awk '{print}' f -f s.awk", "awk --assign '{system(\"x\")}' '{print}' f",
+    "awk -nF '{system(\"x\")}' '{print}' f", "awk -e 'BEGIN{system(\"x\")}'",
+    "awk --source='BEGIN{system(\"x\")}'",
+    # regexes, strings and comments placed to hide a redirection
+    "awk '/\"/ { print > \"o\" } /\"/' f", "awk 'BEGIN{if(1)/\"/;print \"k\" > \"o\";if(1)/\"/}'",
+    "awk 'BEGIN{x=(1)/2;print \"k\" > \"o\";y=3/4}'", "awk '# (\n{print > \"o\"}' f",
+    "awk '/[/]\"/ {print > \"o\"} \"' f",
+])
+def test_awk_calls_that_write_or_run_something_are_not_free(command):
+    assert at_least(command, C.MEDIUM), command
+
+
+@pytest.mark.parametrize("program", ["switch ($1) { case /a/: n++ }", "BEGINFILE /a/"])
+def test_awk_slash_after_a_word_only_gawk_reserves_counts_as_writing(program):
+    # BWK awk reads case, default, switch, BEGINFILE... as variables: the slash after them may be a division
+    assert C._awk_program_writes(program) is True

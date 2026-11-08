@@ -437,6 +437,209 @@ def _opt_values(args: list[str], short: str, long: tuple[str, ...]) -> list[str]
 AWKS = {"awk", "gawk", "mawk", "nawk"}
 FIND_WRITES = {"-delete", "-exec", "-execdir", "-ok", "-okdir", "-fprint", "-fprint0", "-fprintf", "-fls"}
 
+# awk options. Short flags that take no value and neither write nor load code (gawk, mawk, BWK, busybox):
+AWK_FLAGS = set("bcCghIkMnNOPrsStV")
+# gawk long options (getopt_long also takes an unambiguous abbreviation). "unsafe": the program comes from a file
+# or a library, or the call writes a file (profile, variable dump, pretty-print, debugger script, persistence).
+AWK_LONG = {"field-separator": "value", "assign": "value", "source": "code", "lint": "flag",
+            "characters-as-bytes": "flag", "traditional": "flag", "copyright": "flag", "gen-pot": "flag",
+            "help": "flag", "usage": "flag", "trace": "flag", "csv": "flag", "bignum": "flag",
+            "non-decimal-data": "flag", "use-lc-numeric": "flag", "optimize": "flag", "posix": "flag",
+            "re-interval": "flag", "no-optimize": "flag", "sandbox": "flag", "lint-old": "flag", "version": "flag",
+            "file": "unsafe", "exec": "unsafe", "include": "unsafe", "load": "unsafe", "dump-variables": "unsafe",
+            "debug": "unsafe", "pretty-print": "unsafe", "profile": "unsafe", "persist": "unsafe"}
+AWK_KEYWORDS = {"BEGIN", "END", "BEGINFILE", "ENDFILE", "function", "func", "if", "else", "while", "for", "do",
+                "break", "continue", "next", "nextfile", "exit", "return", "delete", "in", "getline", "print",
+                "printf", "switch", "case", "default"}
+AWK_HEADERS = {"if", "while", "for"}                    # their parenthesis is followed by a statement
+# Keywords followed by an expression in every awk. The others leave a following slash ambiguous: words only gawk
+# reserves (case, default, switch, BEGINFILE...) are variables for BWK awk, so their slash may be a division.
+AWK_EXPECT = {"print", "printf", "return", "exit", "do", "else"}
+AWK_WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+AWK_NUMBER = re.compile(r"0[xX][0-9A-Fa-f]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?|\.")
+AWK_OP = re.compile(r"\*\*=|\*\*|&&|\|\||\|&|>>|>=|<=|==|!=|!~|\+\+|--|[-+*/%^]=|[-+*/%^!<>|?:~=,;{}()\[\]$]")
+AWK_CONTINUATION = re.compile(r"\\[ \t]*\r?\n")
+AWK_CLASS = re.compile(r"\[:[A-Za-z]+:\]")
+
+
+def _awk_regex_end(prog: str, i: int) -> int | None:
+    """The index after the regex literal that opens at prog[i], or None when awks could disagree on where it ends:
+    a slash, backslash or nested bracket inside a bracket expression (gawk reads on, other awks stop), a newline."""
+    j, n = i + 1, len(prog)
+    while j < n:
+        c = prog[j]
+        if c == "\\":
+            j += 2
+        elif c == "\n":
+            return None
+        elif c == "/":
+            return j + 1
+        elif c == "[":
+            j += 1
+            j += prog.startswith("^", j)
+            j += prog.startswith("]", j)                 # []...] and [^]...]: a leading ] is a character
+            while j < n and prog[j] != "]":
+                m = AWK_CLASS.match(prog, j)
+                if m:
+                    j = m.end()
+                elif prog[j] in "[\\/\n":
+                    return None
+                else:
+                    j += 1
+            if j >= n:
+                return None
+            j += 1
+        else:
+            j += 1
+    return None
+
+
+def _awk_program_writes(prog: str) -> bool:
+    """An awk program writes or runs something only through: print/printf redirected (`>` outside parentheses,
+    `>>`, `|`), a command pipe (`|`, `|&`: `"cmd" | getline` too), `system`, `getline < file`, or gawk's @-forms
+    (@include, @load, indirect calls). Comparisons are not writes. Strings, regex literals and comments are
+    skipped; anything that cannot be read with certainty (a stray character, an ambiguous slash, unbalanced
+    brackets, a regex whose end awks disagree on) counts as writing."""
+    i, n = 0, len(prog)
+    state = "expect"            # what a slash is: "expect" a regex, "after" an operand (division), or "ambiguous"
+    parens: list[bool] = []     # open parentheses: True for an if/while/for/switch header
+    braces = 0
+    header = False              # the last word opens a header
+    print_depth = None          # parenthesis depth of the print/printf statement being read
+    getline = False             # a getline in the current statement
+    while i < n:
+        c = prog[i]
+        if c in " \t\r":
+            i += 1
+            continue
+        if c == "\\":                                   # a line continuation, nothing else
+            m = AWK_CONTINUATION.match(prog, i)
+            if not m:
+                return True
+            i = m.end()
+            continue
+        if c == "#":                                    # a comment ends at the end of the line
+            end = prog.find("\n", i)
+            end = n if end < 0 else end
+            if prog[i:end].rstrip(" \t\r").endswith("\\"):
+                return True
+            i = end
+            continue
+        if c == "\n":
+            state, header, getline = "expect", False, False
+            i += 1
+            continue
+        if c == '"':
+            j = i + 1
+            while j < n and prog[j] != '"':
+                if prog[j] == "\n":
+                    return True
+                j += 2 if prog[j] == "\\" else 1
+            if j >= n:
+                return True
+            i, state, header = j + 1, "after", False
+            continue
+        if c == "/" and state != "after":
+            j = None if state == "ambiguous" else _awk_regex_end(prog, i)
+            if j is None:
+                return True
+            i, state, header = j, "after", False
+            continue
+        m = AWK_WORD.match(prog, i)
+        if m:
+            w, i = m.group(0), m.end()
+            if w == "system":
+                return True
+            if w in ("print", "printf"):
+                print_depth = len(parens)
+            getline = getline or w == "getline"
+            header = w in AWK_HEADERS
+            state = ("expect" if w in AWK_EXPECT else
+                     "ambiguous" if w in AWK_KEYWORDS or w == "length" else "after")
+            continue
+        m = AWK_NUMBER.match(prog, i) or AWK_OP.match(prog, i)
+        if not m:
+            return True                                 # @ (gawk directives, indirect calls) or a stray character
+        op, i = m.group(0), m.end()
+        if op in ("|", "|&", ">>") or (op == ">" and print_depth is not None and len(parens) <= print_depth):
+            return True
+        if op == "<" and getline:
+            return True
+        if op == "(":
+            parens.append(header)
+            state = "expect"
+        elif op == ")":
+            if not parens:
+                return True
+            state = "expect" if parens.pop() else "after"
+        elif op in ("]",) or op[0] in "0123456789.":
+            state = "after"
+        elif op in ("++", "--", "$"):
+            state = "ambiguous"
+        else:
+            state = "expect"
+        if op in ("{", "}"):
+            braces += 1 if op == "{" else -1
+            if braces < 0:
+                return True
+        if op in (";", "}"):
+            print_depth = None
+        if op in (";", "{", "}"):
+            getline = False
+        header = False
+    return bool(parens) or braces != 0
+
+
+def _awk_writes(args: list[str]) -> bool:
+    """An awk call that may write a file or run a command: a program read from a file or a library, an option
+    that writes, an option we do not know, an option after the program, or a program text that writes. The texts
+    read are the program and every value an awk could take for one: gawk's -e/--source, and the value of an option
+    BWK awk (macOS) ignores (`--assign x`, `-nF x`): it runs the next word as the program."""
+    texts: list[str] = []
+    n = 0
+    while n < len(args):
+        a = args[n]
+        if a == "--":
+            n += 1
+            break
+        if a == "-" or not a.startswith("-"):
+            break
+        if a.startswith("--"):
+            name, eq, val = a[2:].partition("=")
+            kinds = [AWK_LONG[name]] if name in AWK_LONG else [v for k, v in AWK_LONG.items() if k.startswith(name)]
+            if len(kinds) != 1 or kinds[0] == "unsafe":
+                return True
+            if kinds[0] != "flag" and not eq:
+                if n + 1 >= len(args):
+                    return True
+                n += 1
+                texts.append(args[n])
+            elif kinds[0] == "code":
+                texts.append(val)
+        else:
+            for j, ch in enumerate(a[1:], 1):
+                if ch in AWK_FLAGS:
+                    continue
+                if ch == "L":                           # gawk's lint level, attached
+                    break
+                if ch not in "Fve":
+                    return True                         # -f -E -i -l -o -p -d -D -W, or an option we do not know
+                if j + 1 == len(a):                     # the value is the next word
+                    if n + 1 >= len(args):
+                        return True
+                    n += 1
+                    if ch == "e" or a not in ("-F", "-v"):
+                        texts.append(args[n])
+                elif ch == "e":
+                    texts.append(a[j + 1:])
+                break
+        n += 1
+    if n < len(args):
+        texts.append(args[n])
+        if any(x.startswith("-") and x != "-" for x in args[n + 1:]):
+            return True                                 # an option after the program: some awks still read it
+    return any(_awk_program_writes(t) for t in texts)
+
 
 def _ro_writes(prog: str, args: list[str]) -> bool:
     """A normally read-only program that writes, deletes or runs something through an option of this call."""
@@ -447,7 +650,7 @@ def _ro_writes(prog: str, args: list[str]) -> bool:
     if prog == "yq":
         return any(a == "--inplace" or re.fullmatch(r"-[A-Za-z]*i[A-Za-z]*", a) for a in args)
     if prog in AWKS:
-        return "-f" in args or any(re.search(r">|\||system\(|getline[^<]*<", a) for a in args)
+        return _awk_writes(args)
     if prog == "find":
         return bool(FIND_WRITES & set(args))
     if prog == "git":
