@@ -1,14 +1,16 @@
 # clearance: everything covered, autonomy earned
 
-**Hermes alone asks only for commands that look dangerous. clearance covers every action that changes something,
-and your agent earns its way back to acting alone, one action type at a time, with a guarantee you choose.**
+**Every change your agent makes is covered; each action type earns the right to act alone, on evidence, under a risk you set.**
 
-Out of the box, Hermes asks about a short list of risky-looking commands and lets everything else through. You
-cannot see what the agent did without asking, and you cannot say "trust it on this, not on that". clearance
+Hermes alone asks only for commands that look dangerous. clearance covers every action that changes something,
+and your agent earns its way back to acting alone, one action type at a time, with a guarantee you choose.
+
+Out of the box, Hermes asks about a short list of risky-looking commands and lets everything else through,
+and there is no way to say "trust it on this, not on that". clearance
 closes that gap: every action that changes something asks first, through Hermes' own approval prompt. Each
 action type (writing files in the project, `npm`, `git push`, sending a message, one MCP tool) keeps its own
-verified record, and climbs from asking, to acting then telling you with an undo, to acting alone, only on
-evidence. Reads never ask. Secrets, sensitive files and the agent's own skills and plugins always ask.
+verified record, and climbs three tiers: ask, act then notify (with undo), act alone. It climbs only on
+evidence. Ordinary reads never ask; secrets, sensitive files and the agent's own skills and plugins always do.
 
 ## Three pillars
 
@@ -54,11 +56,13 @@ Work as usual: `hermes clearance` shows where each action type stands.
 | Act alone | The agent acts alone. A random share of actions (one in ten by default) still asks, as a spot check. |
 
 **Proofs.** A type climbs on verified outcomes, judged after the tool has run: an approved action that ran
-cleanly and whose automatic check passed (the written file still parses, the exit code is zero) is a success. A
-refusal, a failed check, an undo or an error you flag is a fault. What nobody verified (a timeout, a tool that
-failed, an answer from no person, an action taken alone) counts for nothing. A fault resets the series; a medium
-or high fault sends the type back to asking, lengthens the next climb, and opens a trial of 3 verified
-successes. Asked-but-never-run actions are never counted as successes.
+cleanly and whose automatic check passed (the written file still parses, the exit code is zero) is a success, and
+so is an act-then-notify action whose check passed (you can still undo it: an undo is a fault). A refusal, an
+undo or an error you flag is a fault, and a failed check is a fault at any tier. What nobody verified (timeout,
+failed tool, no one answering, a clean action taken alone) counts for nothing. A fault resets the series. A
+low-stakes fault at act-alone drops one tier (to act-then-notify if the type is reversible). A medium or high
+fault sends the type back to asking, lengthens the next climb, and opens a trial of 3 verified successes.
+Asked-but-never-run actions are never counted as successes.
 
 **Two sessions.** The series that reaches "act alone" must hold successes from at least two distinct sessions.
 
@@ -70,8 +74,8 @@ whatsapp, web, fetch, browser, rss, reddit, twitter, x, brave, search, exa, tavi
 firecrawl, crawl, scrape, github). A session that runs code through `execute_code` is suspended too, and a child
 agent that read external content suspends its parent.
 
-**Model change.** A new model inherits half of the previous model's record, on trial, unless a public benchmark
-vetoes it (5 points lower on the same benchmark). Strict mode (`hermes clearance strict on`) starts every type
+**Model change.** A new model inherits half its evidence provisionally (confirmed by its own
+successes), except at high stakes or when it scores more than 5 points lower on the matching public benchmark. Strict mode (`hermes clearance strict on`) starts every type
 over instead. A returning model keeps its own record.
 
 ## The guarantee
@@ -94,18 +98,26 @@ settings.
 
 ## The study behind the rule
 
-clearance uses the same rule as a preregistered study, simulated on 6,000+ agents. See [docs/the-study.md](docs/the-study.md).
+clearance uses the same rule as a preregistered study, simulated on 6,000+ agents (publication pending; see [docs/the-study.md](docs/the-study.md)).
 
-The middle tier (act, then notify) is part of the study. What clearance adds to the rule:
+### What clearance adds or adapts
+
+The middle tier (act, then notify) is part of the study.
+
+Added layers:
 
 - spot checks on a cleared type (one in ten by default);
 - the requirement of two distinct sessions;
-- suspension after external content;
+- suspension after external content.
+
+Adaptations:
+
+- human approval plus clean execution counts as proof, an adaptation of the study's automatic control;
 - one trial covers the faults that happen during the wait and the inherited faults;
 - evidence is re-based when the stakes of a type change;
-- human approval plus clean execution counts as proof, an adaptation of the study's automatic control.
+- a trial is the next 3 real actions, asked; the study replays 3 hidden variants of the faulty case.
 
-Carry-over is our addition; strict mode is the study.
+Carry-over is our addition; strict mode is the study. The public-benchmark veto is our addition too.
 
 ## Commands
 
@@ -115,9 +127,9 @@ Carry-over is our addition; strict mode is the study.
 | `hermes clearance setup [careful\|balanced\|fast]` | The presets side by side; with a name, use it |
 | `hermes clearance explain` | How it decides, and the guarantee for your settings |
 | `hermes clearance models [--type T]` | Each model's verified record on your own work |
-| `hermes clearance undo ID` | Restore the files of an action taken alone |
+| `hermes clearance undo ID` | Restore the files of an act-then-notify action |
 | `hermes clearance flag TYPE [note]` | Report an error the agent made on its own: revokes that type |
-| `hermes clearance revoke TYPE\|--all` | Take a clearance back |
+| `hermes clearance revoke TYPE\|all [--model M\|--all]` | Take a clearance back: one type or every type, for the last active agent, one model, or every agent |
 | `hermes clearance passport [--agent A] [--out FILE] [--no-redact]` | Write the signed passport of an agent |
 | `hermes clearance verify PASSPORT [LEDGER]` | Check a passport, against the exported ledger when given |
 | `hermes clearance anchor` | One line to publish: the ledger's head, date and length |
@@ -160,9 +172,8 @@ enabled: true
 
 Stored, in `plugin-data/clearance/clearance.db` of each Hermes profile: action types and stakes, outcomes, tiers,
 the agent string `model@provider`, sessions as `sha256(session id)[:12]`, timestamps, and a hash chain over all of
-it. Undo snapshots of files the agent changed alone are kept locally for 24 hours.
-
-Never stored: a command, a path, an argument, file content, a message, or a secret. Nothing leaves your machine:
+it. 
+Never in the database or the ledger: a command, a path, an argument, file content, a message, or a secret. The undo snapshots (file bytes and their paths, mode 0600) are the one exception, deleted after 24 h. Nothing leaves your machine:
 no network access, no LLM call, no telemetry. clearance does not read `.env`, `auth.json` or any credential
 store. Reads outside the plugin folder, as the catalog asks: the dashboard tab reads, read-only, the
 `plugin-data/clearance/clearance.db` of the Hermes root and of each `profiles/*` folder; act-then-notify reads the
