@@ -17,11 +17,11 @@ def st(tmp_path):
     return store.Store(str(tmp_path / "clearance.db"))
 
 
-def _pending(st, tcid, **kw):
-    args = dict(agent=A, type="file:write", stakes="low", reversible=True, decision="ask", phase="asked",
-                rule_key=f"clearance:ask:file:write:{tcid}", session="abc123def456")
+def _pending(st, pid, **kw):
+    args = dict(call=f"call-of-{pid}", agent=A, type="file:write", stakes="low", reversible=True, decision="ask",
+                phase="asked", rule_key=f"clearance:ask:file:write:{pid}", session="abc123def456")
     args.update(kw)
-    st.add_pending(tcid, **args)
+    st.add_pending(pid, **args)
 
 
 def test_state_round_trip(st):
@@ -46,7 +46,8 @@ def test_pending_lifecycle(st):
     with st.transaction():
         p = st.get_pending("call-1")
         assert p["type"] == "file:write" and p["reversible"] is True and p["phase"] == "asked"
-        assert p["snap_id"] == "snap-1" and p["session"] == "abc123def456"
+        assert p["snap_id"] == "snap-1" and p["session"] == "abc123def456" and p["call"] == "call-of-call-1"
+        assert p["id"] == "call-1"
         st.set_phase("call-1", "approved")
     with st.transaction():
         assert st.get_pending("call-1")["phase"] == "approved"
@@ -57,13 +58,42 @@ def test_pending_lifecycle(st):
         assert st.get_pending("call-2")["snap_id"] is None
 
 
+def test_pending_rows_are_found_by_session_and_call_and_never_replaced(st):
+    """Providers reuse tool call ids across sessions (``call_0`` every turn): a row has its own unique id, is found by
+    (session, call), and a second row with the same id is refused instead of replacing the first."""
+    with st.transaction():
+        _pending(st, "u1", call="call_0", session="sess-a", type="shell:npm")
+        _pending(st, "u2", call="call_0", session="sess-b", type="file:write")
+        with pytest.raises(sqlite3.IntegrityError):
+            _pending(st, "u1", call="call_0", session="sess-b", type="message:send")
+    assert st.find_pending("sess-a", "call_0")["type"] == "shell:npm"
+    assert st.find_pending("sess-b", "call_0")["type"] == "file:write"
+    assert st.find_pending("sess-c", "call_0") is None and st.find_pending("sess-a", "call_1") is None
+    with st.transaction():
+        _pending(st, "u3", call="call_0", session="sess-a", type="shell:make", at=time.time() + 1)
+    assert st.find_pending("sess-a", "call_0")["id"] == "u3"          # the newest live row for that call
+    with st.transaction():
+        assert st.pop_pending("u3")["type"] == "shell:make"
+    assert st.find_pending("sess-a", "call_0")["id"] == "u1"
+
+
+def test_recorded_state_keeps_its_stakes(st):
+    with st.transaction():
+        s = st.get_state(A, "shell:rsync", "medium", False)
+        s.series = 4
+        st.put_state(A, s)
+    assert st.recorded(A, "shell:rsync").stakes == "medium"
+    assert st.get_state(A, "shell:rsync", "high", False).stakes == "high"   # get_state applies today's stakes
+    assert st.recorded(A, "shell:rsync").series == 4 and st.recorded(A, "missing") is None
+
+
 def test_expire_pending_returns_rows(st):
     with st.transaction():
         _pending(st, "old", at=0.0)
         _pending(st, "new")
     with st.transaction():
         rows = st.expire_pending(older_than=3600)
-    assert [r["tool_call_id"] for r in rows] == ["old"] and rows[0]["agent"] == A
+    assert [r["id"] for r in rows] == ["old"] and rows[0]["agent"] == A and rows[0]["call"] == "call-of-old"
     with st.transaction():
         assert st.get_pending("old") is None and st.get_pending("new")
         assert st.expire_pending(older_than=3600) == []
@@ -80,10 +110,11 @@ def test_taint_is_per_session(st):
 def test_undo_entries(st):
     with st.transaction():
         i = st.add_undo(A, "file:write", "snap-1")
-        j = st.add_undo(A, "file:write", None)
+        j = st.add_undo(A, "file:write", None, fault=True)
     assert i != j
     e = st.get_undo(i)
-    assert e["agent"] == A and e["snap_id"] == "snap-1" and e["undone"] is False
+    assert e["agent"] == A and e["snap_id"] == "snap-1" and e["undone"] is False and e["fault"] is False
+    assert st.get_undo(j)["fault"] is True             # its action already counted as a fault
     assert st.get_undo(j)["snap_id"] is None and st.get_undo(999) is None
     with st.transaction():
         st.mark_undone(i)
@@ -155,7 +186,8 @@ def test_two_stores_interleaved(tmp_path):
 
 
 def test_meta_and_schema(st):
-    assert st.get_meta("schema") == "2"
+    assert st.get_meta("schema") == "3"
+    assert st.db.execute("PRAGMA busy_timeout").fetchone()[0] == 5000      # well under a hook's time limit
     with st.transaction():
         st.set_meta("k", "v")
     assert st.get_meta("k") == "v" and st.get_meta("missing", "x") == "x"
@@ -170,7 +202,19 @@ def test_v1_database_is_recreated(tmp_path):
     db.commit()
     db.close()
     s = store.Store(str(path))
-    assert s.get_meta("schema") == "2" and s.agents() == []
+    assert s.get_meta("schema") == "3" and s.agents() == []
+
+
+def test_schema_2_database_is_recreated(tmp_path):
+    """Schema 2 keyed pending rows by the provider's tool call id; it is recreated (no release used it)."""
+    path = str(tmp_path / "clearance.db")
+    w = store.Store(path)
+    with w.transaction():
+        w.set_meta("schema", "2")
+        w.bump(A, "actions")
+    w.db.close()
+    s = store.Store(path)
+    assert s.get_meta("schema") == "3" and s.totals(A)["actions"] == 0
 
 
 def test_database_is_private(tmp_path):
@@ -198,7 +242,7 @@ def test_open_readonly(tmp_path):
     assert r.agents() == [A] and len(r.states()) == 1
     assert r.get_pending("c1")["agent"] == A and r.is_tainted("s1") and r.get_undo(i)
     assert r.totals(A)["actions"] == 1 and store.verify(r.ledger()) == []
-    assert r.get_meta("schema") == "2"
+    assert r.get_meta("schema") == "3"
     with pytest.raises(sqlite3.OperationalError):
         r.db.execute("DELETE FROM pending")
 
@@ -276,7 +320,7 @@ def test_concurrent_first_open(tmp_path):
         p.join(60)
     assert [p.exitcode for p in procs] == [0] * 5
     s = store.Store(path)
-    assert s.get_meta("schema") == "2"
+    assert s.get_meta("schema") == "3"
     n = s.db.execute("SELECT COUNT(*) FROM meta WHERE key = 'schema'").fetchone()[0]
     assert n == 1
 
@@ -286,7 +330,7 @@ def test_downgrade_raises_and_keeps_data(tmp_path):
     w = store.Store(path)
     with w.transaction():
         w.bump("a", "actions")
-        w.set_meta("schema", "3")
+        w.set_meta("schema", "4")
     w.db.close()
     with pytest.raises(RuntimeError, match="newer"):
         store.Store(path)

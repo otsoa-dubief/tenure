@@ -1,4 +1,4 @@
-"""The four hooks inside Hermes, with a fake plugin context: decisions before a call, verified outcomes after it,
+"""The hooks inside Hermes, with a fake plugin context: decisions before a call, verified outcomes after it,
 act-then-notify with undo, suspension after external reads, carry-over on a model change, and a ledger that a replay
 can trust."""
 import hashlib
@@ -8,12 +8,14 @@ import logging
 import os
 import re
 import threading
+import time
 
 import pytest
 
 PKG = "clearance"
 A, B, C = "model-a@nous", "model-b@nous", "model-c@nous"
 FAST = {"risks": {"low": 0.25, "medium": 0.2}}       # series length 4 at low stakes, 5 at medium; high capped
+UUID = r"[0-9a-f]{32}"
 NPM = {"command": "npm test"}
 OUTCOME_FIELDS = {"event", "agent", "type", "stakes", "reversible", "result", "source", "session"}
 
@@ -182,15 +184,21 @@ def to_t3(ctx, tool="write_file"):
     climb(ctx, 2, "s2", tool=tool)
 
 
-def age(mod, call, seconds=90000):
+def row(mod, call, session="s1"):
+    """The pending row of a provider's tool call id in a session (ids recur across sessions)."""
+    return mod.store_().find_pending(anon(session), call)
+
+
+def age(mod, call, seconds=90000, session="s1"):
     with mod.txn() as st:
-        st.db.execute("UPDATE pending SET at = at - ? WHERE tool_call_id = ?", (seconds, call))
+        st.db.execute("UPDATE pending SET at = at - ? WHERE session = ? AND call = ?", (seconds, anon(session), call))
 
 
 # ------------------------------------------------------------------------------------------------ registration
-def test_registers_four_hooks_and_commands(plugin):
+def test_registers_the_hooks_and_commands(plugin):
     mod, ctx = plugin()
-    assert set(ctx.hooks) == {"pre_api_request", "pre_tool_call", "post_approval_response", "post_tool_call"}
+    assert set(ctx.hooks) == {"pre_api_request", "pre_tool_call", "post_approval_response", "post_tool_call",
+                              "subagent_stop"}
     assert "clearance" in ctx.commands and "clearance" in ctx.cli
 
 
@@ -303,25 +311,27 @@ def test_free_actions_never_ask_and_leave_no_record(plugin):
     for tool, args in (("read_file", {"path": "a.py"}), ("terminal", {"command": "git status"}),
                        ("search_files", {"pattern": "x"})):
         assert pre(mod, tool, args, "f") is None
-    assert mod.store_().states() == [] and mod.store_().get_pending("f") is None
+    assert mod.store_().states() == [] and row(mod, "f") is None
 
 
 def test_cap_asks_with_a_one_off_cap_key(plugin):
     mod, _ = plugin()
     d1, d2 = pre(mod, "write_file", {"path": ".env"}, "c1"), pre(mod, "write_file", {"path": ".env"}, "c2")
-    assert d1["action"] == "approve" and d1["rule_key"] == "clearance:cap:file:sensitive:c1"
+    assert d1["action"] == "approve" and re.fullmatch(rf"clearance:cap:file:sensitive:{UUID}", d1["rule_key"])
     assert d1["rule_key"] != d2["rule_key"] and "always asked" in d1["message"]
-    assert mod.store_().get_pending("c1") is None and mod.store_().states() == []
+    assert row(mod, "c1") is None and mod.store_().states() == []
 
 
 def test_ask_adds_a_pending_row_in_phase_asked(plugin):
     mod, _ = plugin(FAST)
     d = pre(mod, "write_file", write(), "c1")
-    assert d == {"action": "approve", "rule_key": "clearance:ask:file:write:c1", "message": d["message"]}
+    assert d == {"action": "approve", "rule_key": d["rule_key"], "message": d["message"]}
+    assert re.fullmatch(rf"clearance:ask:file:write:{UUID}", d["rule_key"])
     assert "0/4" in d["message"] and "src/a.py" in d["message"]
-    p = mod.store_().get_pending("c1")
+    p = row(mod, "c1")
     assert (p["phase"], p["decision"], p["agent"], p["type"], p["stakes"], p["reversible"], p["session"],
-            p["snap_id"]) == ("asked", "ask", A, "file:write", "low", True, anon("s1"), None)
+            p["snap_id"], p["rule_key"], p["id"]) == ("asked", "ask", A, "file:write", "low", True, anon("s1"), None,
+                                                       d["rule_key"], d["rule_key"].rsplit(":", 1)[1])
 
 
 def test_spot_check_asks_with_a_spot_key(plugin):
@@ -351,7 +361,7 @@ def test_notify_saves_the_files_then_runs(plugin):
     with open(target, "w") as f:
         f.write("old = 1\n")
     assert pre(mod, "write_file", {"path": "src/x.py", "content": "new = 2\n"}, "n1") is None
-    p = mod.store_().get_pending("n1")
+    p = row(mod, "n1")
     assert (p["phase"], p["decision"], p["rule_key"]) == ("notify", "notify", "") and p["snap_id"]
     assert os.path.isfile(os.path.join(mod.data_dir(), "undo", p["snap_id"], "manifest.json"))
 
@@ -367,9 +377,9 @@ def test_notify_falls_back_to_ask_when_the_file_cannot_be_saved(plugin, monkeypa
         f.write(b"#" * 5_000_001)
     for i, name in enumerate(("blob", "huge")):
         d = pre(mod, "write_file", {"path": f"src/{name}.py", "content": "x = 1\n"}, f"f{i}")
-        assert d["action"] == "approve" and d["rule_key"] == f"clearance:ask:file:write:f{i}"
+        assert d["action"] == "approve" and re.fullmatch(rf"clearance:ask:file:write:{UUID}", d["rule_key"])
         assert "undo" in d["message"]
-        p = mod.store_().get_pending(f"f{i}")
+        p = row(mod, f"f{i}")
         assert (p["phase"], p["decision"], p["snap_id"]) == ("asked", "ask", None)
     monkeypatch.setattr(mod.undo, "snapshot", lambda *a, **k: None)
     assert pre(mod, "write_file", write("plain"), "f2")["action"] == "approve"
@@ -379,7 +389,7 @@ def test_allow_adds_an_alone_row_and_runs(plugin):
     mod, ctx = plugin(FAST)
     to_t3(ctx)
     assert pre(mod, "write_file", write("alone"), "a1") is None
-    p = mod.store_().get_pending("a1")
+    p = row(mod, "a1")
     assert (p["phase"], p["decision"], p["rule_key"], p["snap_id"]) == ("alone", "allow", "", None)
 
 
@@ -389,8 +399,8 @@ def test_nobody_answers_earned_tiers_run_and_the_rest_falls_to_hermes(plugin):
     to_t3(ctx, tool="memory")                                # memory:write at T3
     ctx.cron = True
     d = pre(mod, "terminal", NPM, "n1")
-    assert d["action"] == "approve" and d["rule_key"] == "clearance:ask:shell:npm:n1"
-    assert mod.store_().get_pending("n1")["phase"] == "nobody"
+    assert d["action"] == "approve" and re.fullmatch(rf"clearance:ask:shell:npm:{UUID}", d["rule_key"])
+    assert row(mod, "n1")["phase"] == "nobody"
     assert ctx.call("terminal", NPM) == "blocked"            # cron_mode denied it; nobody's answer teaches nothing
     s = state(mod, "shell:npm")
     assert (s.successes, s.faults, s.neutrals) == (0, 0, 1)
@@ -399,7 +409,7 @@ def test_nobody_answers_earned_tiers_run_and_the_rest_falls_to_hermes(plugin):
     assert outcomes(mod)[-1]["source"] == "notify" and "/clearance undo" in ctx.posted[-1]
     mod.ST.rng = Picks([0.0])                                # a spot check would have been drawn: nobody answers
     assert pre(mod, "memory", {"action": "add", "content": "c"}, "m1") is None
-    assert mod.store_().get_pending("m1")["phase"] == "alone"
+    assert row(mod, "m1")["phase"] == "alone"
 
 
 def test_yolo_learns_nothing(plugin, monkeypatch):
@@ -445,9 +455,7 @@ def test_classification_uses_the_session_cwd(plugin, tmp_path):
     elsewhere.mkdir()
     ctx.cwd = str(elsewhere)                                  # the terminal moved: Hermes keeps the session's cwd
     pre(mod, "write_file", {"path": inside}, "c3")
-    st = mod.store_()
-    assert [st.get_pending(c)["type"] for c in ("c1", "c2", "c3")] == ["file:write", "file:write",
-                                                                       "file:write-outside"]
+    assert [row(mod, c)["type"] for c in ("c1", "c2", "c3")] == ["file:write", "file:write", "file:write-outside"]
 
 
 def test_undo_snapshots_are_purged_at_most_once_an_hour(plugin, monkeypatch):
@@ -466,10 +474,10 @@ def test_expired_pending_rows_are_neutral(plugin):
     mod, ctx = plugin(FAST)
     d = pre(mod, "write_file", write(), "old")
     answer(mod, d, "old", "once")                             # approved, but the tool never reported back
-    assert mod.store_().get_pending("old")["phase"] == "approved"
+    assert row(mod, "old")["phase"] == "approved"
     age(mod, "old")
     ctx.call("terminal", NPM)
-    assert mod.store_().get_pending("old") is None
+    assert row(mod, "old") is None
     s = state(mod, "file:write")
     assert (s.successes, s.neutrals) == (0, 1)
     assert outcomes(mod, type="file:write") == [{"event": "outcome", "agent": A, "type": "file:write",
@@ -478,27 +486,30 @@ def test_expired_pending_rows_are_neutral(plugin):
 
 
 # ------------------------------------------------------------------------------------------ post_approval_response
-def test_answers_match_by_tool_call_id_or_one_off_key(plugin):
+def test_answers_match_by_one_off_key_or_session_and_call(plugin):
     mod, _ = plugin(FAST)
-    st = mod.store_()
-    d = pre(mod, "write_file", write(), "")                   # no tool call id: a uuid makes the key one-off
-    one_off = d["rule_key"].rsplit(":", 1)[1]
-    assert re.fullmatch(r"[0-9a-f]{32}", one_off)
+    d = pre(mod, "write_file", write(), "")                   # no tool call id: found by its key
+    assert re.fullmatch(rf"clearance:ask:file:write:{UUID}", d["rule_key"])
     mod.post_approval_response(pattern_key=f"plugin_rule:{d['rule_key']}", tool_call_id="", choice="once")
-    assert st.get_pending(one_off)["phase"] == "approved"
-    d = pre(mod, "write_file", write(), "call:7:x")           # an id with colons is found by its key too
-    mod.post_approval_response(pattern_key=f"plugin_rule:{d['rule_key']}", tool_call_id="", choice="once")
-    assert st.get_pending("call:7:x")["phase"] == "approved"
-    pre(mod, "write_file", write(), "c3")
-    mod.post_approval_response(pattern_key="", tool_call_id="c3", choice="once")
-    assert st.get_pending("c3")["phase"] == "approved"
-    pre(mod, "write_file", write(), "c4")                     # other prompts for the same call are not ours
-    mod.post_approval_response(pattern_key="plugin_rule:other-plugin:x:c4", tool_call_id="c4", choice="deny")
-    mod.post_approval_response(pattern_key="recursive delete", tool_call_id="c4", choice="deny")
-    assert st.get_pending("c4")["phase"] == "asked"
-    mod.post_approval_response(pattern_key="plugin_rule:clearance:ask:file:write:c3", tool_call_id="c3",
-                               choice="deny")                 # a second answer to a settled ask
-    assert st.get_pending("c3")["phase"] == "approved"
+    assert mod.store_().get_pending(d["rule_key"].rsplit(":", 1)[1])["phase"] == "approved"
+    d = pre(mod, "write_file", write(), "call:7:x")           # the key ends with a uuid, whatever the call id
+    mod.post_approval_response(pattern_key=f"plugin_rule:{d['rule_key']}", tool_call_id="call:7:x", choice="once")
+    assert row(mod, "call:7:x")["phase"] == "approved"
+    pre(mod, "write_file", write(), "c3")                     # no key: the session and the call id
+    mod.post_approval_response(pattern_key="", tool_call_id="c3", session_id="s1", choice="once")
+    assert row(mod, "c3")["phase"] == "approved"
+    pre(mod, "write_file", write(), "c5")
+    mod.post_approval_response(pattern_key="", tool_call_id="c5", choice="once")      # no key, no session: unknown
+    assert row(mod, "c5")["phase"] == "asked"
+    d4 = pre(mod, "write_file", write(), "c4")                # other prompts for the same call are not ours
+    mod.post_approval_response(pattern_key="plugin_rule:other-plugin:x:c4", tool_call_id="c4", session_id="s1",
+                               choice="deny")
+    mod.post_approval_response(pattern_key="recursive delete", tool_call_id="c4", session_id="s1", choice="deny")
+    forged = d4["rule_key"].rsplit(":", 1)[0] + ":" + "0" * 32
+    mod.post_approval_response(pattern_key=f"plugin_rule:{forged}", tool_call_id="c4", choice="deny")
+    assert row(mod, "c4")["phase"] == "asked"
+    mod.post_approval_response(pattern_key="", tool_call_id="c3", session_id="s1", choice="deny")   # settled ask
+    assert row(mod, "c3")["phase"] == "approved"
     assert state(mod, "file:write") is None                  # no outcome yet: approvals wait for the execution
 
 
@@ -517,11 +528,11 @@ def test_approval_waits_for_the_execution(plugin):
     mod, _ = plugin(FAST)
     d = pre(mod, "write_file", write(), "c1")
     answer(mod, d, "c1", "once")
-    assert outcomes(mod) == [] and mod.store_().get_pending("c1")["phase"] == "approved"
+    assert outcomes(mod) == [] and row(mod, "c1")["phase"] == "approved"
     post(mod, "write_file", write(), "c1")
     s = state(mod, "file:write")
     assert (s.successes, s.series, s.sessions) == (1, 1, [anon("s1")])
-    assert outcomes(mod)[-1]["source"] == "approval" and mod.store_().get_pending("c1") is None
+    assert outcomes(mod)[-1]["source"] == "approval" and row(mod, "c1") is None
 
 
 def test_other_answers_are_neutral(plugin):
@@ -532,7 +543,7 @@ def test_other_answers_are_neutral(plugin):
     for i, (choice, kw) in enumerate(answers):
         d = pre(mod, "write_file", write(), f"c{i}")
         answer(mod, d, f"c{i}", choice, **kw)
-        assert mod.store_().get_pending(f"c{i}") is None
+        assert row(mod, f"c{i}") is None
         post(mod, "write_file", write(), f"c{i}")                 # a smart approval runs: nothing more to count
     s = state(mod, "file:write")
     assert (s.successes, s.faults, s.neutrals) == (0, 0, len(answers))
@@ -577,7 +588,10 @@ def test_a_failed_check_is_a_fault(plugin):
     to_t3(ctx)
     assert state(mod, "file:write").tier == mod.rule.T3
     assert ctx.call("write_file", write("bad2", '{"json": ')) == "ran"           # acted alone, check failed
-    assert ctx.call("write_file", {"path": "src/c.json", "content": "{bad"}) == "ran"
+    assert state(mod, "file:write").tier == mod.rule.T2                          # one tier down at low stakes
+    # T3 came from the series (4 under FAST) before the middle tier's test passed: acting then notifying needs that
+    # test's evidence, so it asks (with the presets, a T3 type's score sits at its floor and one fault keeps T2).
+    assert ctx.call("write_file", {"path": "src/c.json", "content": "{bad"}) == "approved"
     s = state(mod, "file:write")
     assert s.faults == 3 and s.tier != mod.rule.T3
     assert ledger(mod, "tier")[-1]["reason"] == "fault"
@@ -588,11 +602,11 @@ def test_notify_success_adds_an_undo_and_posts(plugin):
     mod, ctx = plugin(FAST)
     climb(ctx, 12)
     assert pre(mod, "write_file", write("n"), "n1") is None
-    snap = mod.store_().get_pending("n1")["snap_id"]
+    snap = row(mod, "n1")["snap_id"]
     post(mod, "write_file", write("n"), "n1")
     uid = int(re.fullmatch(r"clearance: file:write acted on its own · /clearance undo (\d+)", ctx.posted[-1])[1])
     assert mod.store_().get_undo(uid) == {"id": uid, "agent": A, "type": "file:write", "snap_id": snap,
-                                          "at": mod.store_().get_undo(uid)["at"], "undone": False}
+                                          "at": mod.store_().get_undo(uid)["at"], "undone": False, "fault": False}
     assert outcomes(mod)[-1]["source"] == "notify" and state(mod, "file:write").successes == 13
 
 
@@ -712,7 +726,7 @@ def test_one_off_keys_everywhere(plugin):
     for i in range(2):
         assert ctx.call("memory", {"action": "add", "content": f"m{i}"}, answer="always") == "approved"
     keys = [d["rule_key"] for d in ctx.prompts]
-    kinds = [re.fullmatch(r"clearance:(ask|spot|cap|capped|trial):(.+):(tc-\d+)", k)[1] for k in keys]
+    kinds = [re.fullmatch(rf"clearance:(ask|spot|cap|capped|trial):(.+):({UUID})", k)[1] for k in keys]
     assert {"ask", "spot", "cap", "capped", "trial"} <= set(kinds)
     assert len(set(keys)) == len(keys) == len(ctx.prompts) == ctx.calls          # every call reached the owner
 
@@ -736,7 +750,7 @@ def test_full_climb_low_reversible_type(plugin):
     assert sum("/clearance undo" in p for p in ctx.posted) == 40
     assert any("now acts alone" in p for p in ctx.posted)
     assert pre(mod, "write_file", write("next"), "next") is None
-    assert mod.store_().get_pending("next")["decision"] in (mod.rule.ALLOW, mod.rule.SPOT)
+    assert row(mod, "next")["decision"] in (mod.rule.ALLOW, mod.rule.SPOT)
 
 
 def test_undo_after_notify_is_a_fault(plugin):
@@ -909,3 +923,209 @@ def test_cli_status_flag_and_revoke_on_the_new_record(plugin):
     assert state(mod, "memory:write").tier == mod.rule.T1
     assert ledger(mod, "revoke")[-1] == {"event": "revoke", "agent": A, "type": "memory:write"}
     assert mod.cli.slash("flag nothing:here").startswith("No record of nothing:here")
+
+
+# ------------------------------------------------------------------------- unique keys, guard, suspension, checks
+def test_a_reused_call_id_answered_always_still_asks_in_the_next_session(plugin):
+    """Providers name calls `call_0` turn after turn, and Hermes makes ids unique only within one session. An "always"
+    answer lands on Hermes' permanent allowlist with no hook: the next session's ask must still reach the owner."""
+    mod, ctx = plugin()
+    assert ctx.call("terminal", NPM, answer="always", session="s1", call_id="call_0") == "approved"
+    assert ctx.call("terminal", NPM, answer="deny", session="s2", call_id="call_0") == "refused"
+    sensitive = {"path": ".ssh/authorized_keys", "content": "k"}
+    call = "functions.write_file:0"
+    assert ctx.call("write_file", sensitive, answer="always", session="s3", call_id=call) == "approved"
+    assert ctx.call("write_file", sensitive, answer="deny", session="s4", call_id=call) == "refused"
+    keys = [d["rule_key"] for d in ctx.prompts]
+    assert len(keys) == len(set(keys)) == 4
+    assert all(re.fullmatch(rf"clearance:(ask|cap):[a-z:.-]+:{UUID}", k) for k in keys)
+    assert [(e["type"], e["result"], e["source"]) for e in outcomes(mod)] == [
+        ("shell:npm", "success", "approval"), ("shell:npm", "fault", "refusal")]
+
+
+def test_two_sessions_with_the_same_call_id_never_cross(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)                                                       # file:write at T2
+    broken = {"path": "src/b.py", "content": "def broken(:\n"}
+    d_a = pre(mod, "terminal", NPM, "call_0", session="A")
+    answer(mod, d_a, "call_0", "once")
+    assert pre(mod, "write_file", broken, "call_0", session="B") is None   # acts then notifies
+    assert (row(mod, "call_0", "A")["type"], row(mod, "call_0", "A")["phase"]) == ("shell:npm", "approved")
+    assert (row(mod, "call_0", "B")["type"], row(mod, "call_0", "B")["phase"]) == ("file:write", "notify")
+    post(mod, "terminal", NPM, "call_0", result='{"exit_code": 0}', session="A")
+    with open(os.path.join(ctx.cwd, "src", "b.py"), "w") as f:
+        f.write(broken["content"])
+    post(mod, "write_file", broken, "call_0", session="B")
+    assert [(e["type"], e["result"], e["source"], e["session"]) for e in outcomes(mod)][-2:] == [
+        ("shell:npm", "success", "approval", anon("A")), ("file:write", "fault", "check", anon("B"))]
+
+
+def test_an_override_raising_the_stakes_asks_again(plugin):
+    mod, ctx = plugin({"risks": {"low": 0.25, "medium": 0.1}})          # series length: low 4, medium 10
+    to_t3(ctx)
+    assert ctx.call("write_file", write("before")) == "ran"
+    logged = len(ledger(mod, "settings"))
+    ctx.settings["types"] = {"file:write": "medium"}
+    for i in range(3):                                                   # earned at low stakes: asks at medium
+        assert ctx.call("write_file", write(f"m{i}")) == "approved"
+    assert len(ledger(mod, "settings")) == logged + 1                  # an override is a settings change
+    s = state(mod, "file:write")
+    assert s.stakes == "medium" and s.series == 7
+
+
+def test_a_tier_earned_at_lower_stakes_asks_at_higher_stakes(plugin):
+    mod, ctx = plugin({"risks": {"low": 0.25, "medium": 0.25, "high": 0.1}})   # series length: medium 4, high 10
+    local, remote = {"command": "rsync -a src/ backup/"}, {"command": "rsync -a src/ prod-host:/srv/app/"}
+    ok = '{"exit_code": 0}'
+    for session in ("s1", "s1", "s2", "s2"):
+        assert ctx.call("terminal", local, session=session, result=ok) == "approved"
+    assert state(mod, "shell:rsync").tier == mod.rule.T3
+    assert ctx.call("terminal", local, session="s2", result=ok) == "ran"
+    assert ctx.call("terminal", remote, session="s2", result=ok) == "approved"    # high stakes, 10 needed
+    assert ctx.call("terminal", remote, session="s2", result=ok) == "approved"    # 5/10 at high stakes: asks
+    assert ctx.call("terminal", local, session="s2", result=ok) == "approved"     # recorded at high: asks once
+    assert ctx.call("terminal", local, session="s2", result=ok) == "ran"
+
+
+def test_the_suspension_survives_a_failure_while_settling(plugin, monkeypatch):
+    mod, ctx = plugin()
+    curl = {"command": "curl -o page.html https://example.com/x"}       # medium stakes, and an external read
+
+    def boom(*a, **k):
+        raise RuntimeError("a bug further down")
+    monkeypatch.setattr(mod, "record_outcome", boom)
+    assert ctx.call("terminal", curl, session="S") == "approved"
+    assert mod.store.Store(mod.store_().path).is_tainted(anon("S"))    # committed, as another process sees it
+
+
+def test_automatic_checks_judge_actions_nobody_answered(plugin):
+    mod, ctx = plugin()
+    ctx.cron, ctx.cron_mode = True, "approve"
+    assert ctx.call("write_file", write("x", "def broken(:\n")) == "ran"   # cron approved it, nobody answered
+    ctx.cron = False
+    pre(mod, "write_file", write("y"), "c2")                            # another plugin's approval let it run
+    with open(os.path.join(ctx.cwd, "src", "y.py"), "w") as f:
+        f.write("def broken(:\n")
+    post(mod, "write_file", write("y"), "c2")
+    ctx.cron = True
+    assert ctx.call("write_file", write("z")) == "ran"                  # clean: nothing learned without a person
+    assert [(e["result"], e["source"]) for e in outcomes(mod)] == [("fault", "check"), ("fault", "check"),
+                                                                    ("neutral", "nobody")]
+    assert state(mod, "file:write").faults == 2
+
+
+def test_a_reversible_type_without_files_never_acts_then_notifies(plugin, monkeypatch):
+    mod, ctx = plugin(FAST)
+    for i in range(12):
+        ctx.call("image_generate", {"prompt": f"cat {i}"})
+    assert state(mod, "media:generate").tier == mod.rule.T1            # only writes in the project are reversible
+    real = mod.classify.classify
+
+    def reversible(tool, args, **kw):
+        a = real(tool, args, **kw)
+        return mod.classify.Action(a.type, a.stakes, True, a.summary) if tool == "image_generate" else a
+    monkeypatch.setattr(mod.classify, "classify", reversible)
+    for i in range(12):
+        ctx.call("image_generate", {"prompt": f"dog {i}"})
+    assert state(mod, "media:generate").tier == mod.rule.T2
+    d = pre(mod, "image_generate", {"prompt": "x"}, "g1")
+    assert d["action"] == "approve" and "undo cannot be prepared" in d["message"]
+
+
+def test_a_held_lock_makes_pre_tool_call_ask_within_the_timeout(plugin, monkeypatch):
+    mod, ctx = plugin(FAST)
+    monkeypatch.setattr(mod, "LOCK_TIMEOUT", 0.2)
+    held, release = threading.Event(), threading.Event()
+
+    def holder():
+        with mod.ST.lock:
+            held.set()
+            release.wait(10)
+    t = threading.Thread(target=holder, daemon=True)
+    t.start()
+    assert held.wait(5)
+    try:
+        start = time.monotonic()
+        d = pre(mod, "write_file", write(), "c1")
+        assert d["action"] == "approve"
+        assert d["message"].startswith("clearance: internal error (LockTimeout); asking you instead")
+        assert pre(mod, "read_file", {"path": "a.py"}, "c2") is None              # free calls need no lock
+        post(mod, "write_file", write(), "c1")                                     # the other hooks skip
+        mod.post_approval_response(pattern_key=f"plugin_rule:{d['rule_key']}", tool_call_id="c1", choice="deny")
+        mod.pre_api_request(model="model-z", provider="nous", session_id="s7")
+        mod.subagent_stop(parent_session_id="s1", child_session_id="child")
+        assert time.monotonic() - start < 3
+    finally:
+        release.set()
+        t.join(5)
+    assert outcomes(mod) == [] and mod.agent_of("s7") == "model-z@nous"
+
+
+def test_files_are_saved_and_checked_outside_the_write_transaction(plugin, monkeypatch):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)                                                       # file:write at T2
+    st, seen = mod.store_(), []
+    snapshot, check = mod.undo.snapshot, mod.proofs.check_files
+    monkeypatch.setattr(mod.undo, "snapshot",
+                        lambda *a, **k: seen.append(("snapshot", st.db.in_transaction)) or snapshot(*a, **k))
+    monkeypatch.setattr(mod.proofs, "check_files",
+                        lambda *a, **k: seen.append(("check", st.db.in_transaction)) or check(*a, **k))
+    assert ctx.call("write_file", write("io")) == "ran"
+    assert seen == [("snapshot", False), ("check", False)]
+
+
+def test_a_snapshot_is_dropped_when_the_decision_changes_before_the_transaction(plugin, monkeypatch):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)                                                       # file:write at T2
+    snapshot, taken = mod.undo.snapshot, []
+
+    def snapshot_then_a_refusal_elsewhere(paths, root, **kw):
+        taken.append(snapshot(paths, root, **kw))
+        cfg = mod.settings()
+        with mod.txn() as st:
+            mod.record_outcome(st, cfg, agent=A, type_key="file:write", stakes="low", reversible=True,
+                               result="fault", source="refusal", session=anon("s2"))
+        return taken[-1]
+    monkeypatch.setattr(mod.undo, "snapshot", snapshot_then_a_refusal_elsewhere)
+    d = pre(mod, "write_file", write("late"), "c1")
+    assert d["action"] == "approve" and row(mod, "c1")["phase"] == "asked"     # T1 again: it asks
+    assert taken[0] and not os.path.exists(os.path.join(mod.data_dir(), "undo", taken[0]))
+
+
+def test_a_tainted_child_suspends_its_parent(plugin):
+    mod, ctx = plugin(FAST)
+    to_t3(ctx)
+    ctx.call("web_extract", {"urls": ["https://example.com"]}, session="child-1")
+    ctx.hooks["subagent_stop"](parent_session_id="s1", child_session_id="child-1", child_summary="done",
+                               child_status="completed")
+    ctx.hooks["subagent_stop"](parent_session_id="s2", child_session_id="child-2", child_status="completed")
+    st = mod.store_()
+    assert st.is_tainted(anon("s1")) and not st.is_tainted(anon("s2"))
+    assert ctx.call("write_file", write("p"), session="s1") == "approved"
+    assert ctx.call("write_file", write("q"), session="s2") == "ran"
+
+
+def test_execute_code_suspends_its_session(plugin):
+    mod, ctx = plugin(FAST)
+    to_t3(ctx)
+    assert ctx.call("execute_code", {"code": "print(open('/etc/hosts').read())"}, session="s1") == "approved"
+    assert mod.store_().is_tainted(anon("s1")) and not mod.store_().is_tainted(anon("s2"))
+    assert ctx.call("write_file", write("after"), session="s1") == "approved"
+
+
+def test_a_t2_write_failing_its_check_keeps_an_undo(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)                                                       # file:write at T2
+    target = os.path.join(ctx.cwd, "src", "w.py")
+    with open(target, "w") as f:
+        f.write("good = 1\n")
+    assert ctx.call("write_file", {"path": "src/w.py", "content": "def broken(:\n"}) == "ran"
+    assert (outcomes(mod)[-1]["result"], outcomes(mod)[-1]["source"]) == ("fault", "check")
+    note = next(p for p in ctx.posted if "automatic check failed" in p)
+    assert note.startswith("clearance: file:write acted on its own, but the automatic check failed")
+    uid = int(re.search(r"/clearance undo (\d+)$", note)[1])
+    entry = mod.store_().get_undo(uid)
+    assert entry["fault"] is True and entry["snap_id"]
+    assert mod.undo.restore(entry["snap_id"], mod.data_dir()) == 1
+    with open(target) as f:
+        assert f.read() == "good = 1\n"

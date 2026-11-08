@@ -131,6 +131,18 @@ def restore(snap_id: str, root: str) -> int:
     return count
 
 
+def discard(snap_id: str, root: str) -> bool:
+    """Delete a snapshot that will not be used (the action asked instead). The saved files are not touched. Return
+    True when there was one."""
+    if not isinstance(snap_id, str) or not _ID_RE.match(snap_id):
+        return False
+    d = os.path.join(_undo_dir(root), snap_id)
+    if os.path.islink(d) or not os.path.isdir(d):
+        return False
+    shutil.rmtree(d, ignore_errors=True)
+    return True
+
+
 def purge(root: str, older_than: float = 86400) -> int:
     """Delete snapshots older than ``older_than`` seconds. Return how many."""
     base = _undo_dir(root)

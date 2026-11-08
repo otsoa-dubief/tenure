@@ -22,6 +22,7 @@ provides_hooks:
   - pre_tool_call
   - post_approval_response
   - post_tool_call
+  - subagent_stop
 config_schema:
   preset:
     type: str

@@ -7,6 +7,9 @@ read-modify-write happens inside ``transaction()`` (BEGIN IMMEDIATE), so no upda
 same database, written in the same transaction as the state it explains, as a hash chain: each row carries the hash
 of the previous one, so an exported evidence file can be checked line by line (``verify``). The ledger records
 agents, action types, stakes, outcomes and anonymised sessions, never commands, paths or message contents.
+
+A pending decision waits for its outcome under its own unique id. Providers reuse tool call ids across sessions
+(``call_0`` every turn), so a row is found by (anonymised session, tool call id), and a live row is never replaced.
 """
 from __future__ import annotations
 
@@ -21,19 +24,22 @@ from contextlib import contextmanager
 from .rule import TypeState
 
 GENESIS = "0" * 64
-SCHEMA_VERSION = "2"
+SCHEMA_VERSION = "3"
+BUSY_TIMEOUT = 5.0             # seconds a writer waits for another process's transaction, well under a hook's limit
 TABLES = ("types", "pending", "sessions", "undo", "stats", "meta", "ledger")
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS types (agent TEXT NOT NULL, key TEXT NOT NULL, state TEXT NOT NULL,
                                   PRIMARY KEY (agent, key));
-CREATE TABLE IF NOT EXISTS pending (tool_call_id TEXT PRIMARY KEY, agent TEXT NOT NULL, type TEXT NOT NULL,
-                                    stakes TEXT NOT NULL, reversible INTEGER NOT NULL, decision TEXT NOT NULL,
-                                    phase TEXT NOT NULL, rule_key TEXT NOT NULL, session TEXT NOT NULL,
-                                    snap_id TEXT, at REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS pending (id TEXT PRIMARY KEY, session TEXT NOT NULL, call TEXT NOT NULL,
+                                    agent TEXT NOT NULL, type TEXT NOT NULL, stakes TEXT NOT NULL,
+                                    reversible INTEGER NOT NULL, decision TEXT NOT NULL, phase TEXT NOT NULL,
+                                    rule_key TEXT NOT NULL, snap_id TEXT, at REAL NOT NULL);
 CREATE INDEX IF NOT EXISTS pending_at ON pending (at);
+CREATE INDEX IF NOT EXISTS pending_call ON pending (session, call);
 CREATE TABLE IF NOT EXISTS sessions (session TEXT PRIMARY KEY, tainted INTEGER NOT NULL DEFAULT 0, at REAL);
 CREATE TABLE IF NOT EXISTS undo (id INTEGER PRIMARY KEY AUTOINCREMENT, agent TEXT NOT NULL, type TEXT NOT NULL,
-                                 snap_id TEXT, at REAL NOT NULL, undone INTEGER NOT NULL DEFAULT 0);
+                                 snap_id TEXT, at REAL NOT NULL, undone INTEGER NOT NULL DEFAULT 0,
+                                 fault INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS stats (agent TEXT NOT NULL, day TEXT NOT NULL, actions INTEGER NOT NULL DEFAULT 0,
                                   checked INTEGER NOT NULL DEFAULT 0, alone INTEGER NOT NULL DEFAULT 0,
                                   faults INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (agent, day));
@@ -43,8 +49,8 @@ CREATE TABLE IF NOT EXISTS ledger (seq INTEGER PRIMARY KEY AUTOINCREMENT, at REA
 INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke"})
 DERIVED_KINDS = frozenset({"tier", "trial", "confirmed", "revoked", "neutral_expired"})   # display only
 STAT_FIELDS = ("actions", "checked", "alone", "faults")
-PENDING_COLS = ("tool_call_id", "agent", "type", "stakes", "reversible", "decision", "phase", "rule_key",
-                "session", "snap_id", "at")
+PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible", "decision", "phase", "rule_key",
+                "snap_id", "at")
 
 # Ledger input events: the only ones a replay reads, in ledger order. Derived events (tier, trial, confirmed, revoked)
 # are display only.
@@ -59,10 +65,13 @@ PENDING_COLS = ("tool_call_id", "agent", "type", "stakes", "reversible", "decisi
 #         success: approval (an approved ask ran cleanly), spot (an approved spot check ran cleanly), notify (a T2
 #                  action ran cleanly);
 #         fault:   refusal (an ask refused), spot (a spot check refused, or approved but failing its automatic
-#                  check), check (an action that ran failed its automatic check), undo, flag (after the fact);
-#         neutral: error (the tool failed), alone (a T3 action ran, unverified), blocked (stopped after our
-#                  decision, never ran), timeout (no answer from a person: timeout, cancellation, smart approval),
-#                  nobody (nobody could answer: cron, yolo, approvals off), expired (no outcome within 24 h).
+#                  check), check (an action that ran failed its automatic check, whoever let it run: a person, an
+#                  earned tier, or nobody), undo, flag (after the fact);
+#         neutral: error (an action a person or an earned tier let run, whose tool failed), alone (a T3 action
+#                  ran, unverified), blocked (stopped by another guard after our decision, never ran), timeout (no
+#                  answer from a person: timeout, cancellation, smart approval), nobody (nobody answered: cron,
+#                  yolo, approvals off, another plugin's approval; the action did not fail its automatic check, or
+#                  did not run, or its tool failed), expired (no outcome within 24 h).
 #   {"event": "agent", "old": str, "new": str, "mode": carry|strict, "vetoed": [type, ...]}
 #       Replay: every type of `old` that `new` has no state for yet becomes rule.carry_over(old state,
 #       n_new=params.required_n(risks, stakes), veto=type in vetoed, strict=mode == "strict").
@@ -73,9 +82,10 @@ OUTCOME_SOURCES = {
     "fault": frozenset({"refusal", "spot", "check", "undo", "flag"}),
     "neutral": frozenset({"error", "alone", "blocked", "timeout", "nobody", "expired"}),
 }
-# Outcomes of an action that ran: the wait after a failed trial counts them (rule.count_action). A refused spot check
-# never ran; an approved one failing its check shares its source ("spot") and is not counted either, which changes
-# nothing in practice: a spot check is only drawn while no trial and no wait are open.
+# Outcomes of an action that ran: the wait after a failed trial counts them (rule.count_action). A failed automatic
+# check counts even when nobody answered: the action ran and the check judged it. A refused spot check never ran; an
+# approved one failing its check shares its source ("spot") and is not counted either, which changes nothing in
+# practice: a spot check is only drawn while no trial and no wait are open.
 COUNTED = frozenset({("success", "approval"), ("success", "spot"), ("success", "notify"), ("fault", "check"),
                      ("neutral", "error"), ("neutral", "alone")})
 
@@ -93,8 +103,8 @@ class Store:
         self.path = path
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
         new = not os.path.exists(path)
-        self.db = sqlite3.connect(path, timeout=30, isolation_level=None, check_same_thread=False)
-        self.db.execute("PRAGMA busy_timeout = 30000")
+        self.db = sqlite3.connect(path, timeout=BUSY_TIMEOUT, isolation_level=None, check_same_thread=False)
+        self.db.execute(f"PRAGMA busy_timeout = {int(BUSY_TIMEOUT * 1000)}")
         try:
             self.db.execute("PRAGMA journal_mode = WAL")
         except sqlite3.DatabaseError:
@@ -111,8 +121,8 @@ class Store:
         self = cls.__new__(cls)
         self.path = path
         uri = "file:" + urllib.parse.quote(os.path.abspath(path)) + "?mode=ro"
-        self.db = sqlite3.connect(uri, uri=True, timeout=30, isolation_level=None, check_same_thread=False)
-        self.db.execute("PRAGMA busy_timeout = 30000")
+        self.db = sqlite3.connect(uri, uri=True, timeout=BUSY_TIMEOUT, isolation_level=None, check_same_thread=False)
+        self.db.execute(f"PRAGMA busy_timeout = {int(BUSY_TIMEOUT * 1000)}")
         try:
             version = self.get_meta("schema")
         except sqlite3.DatabaseError:
@@ -170,12 +180,17 @@ class Store:
             self.db.execute("COMMIT")
 
     # ------------------------------------------------------------------------------------------------- states
-    def get_state(self, agent: str, key: str, stakes: str, reversible: bool = False) -> TypeState:
+    def recorded(self, agent: str, key: str) -> TypeState | None:
+        """The state exactly as last recorded, with the stakes and reversibility of its last outcome; None if none."""
         row = self.db.execute("SELECT state FROM types WHERE agent = ? AND key = ?", (agent, key)).fetchone()
-        if row is None:
+        return None if row is None else TypeState.from_dict(json.loads(row[0]))
+
+    def get_state(self, agent: str, key: str, stakes: str, reversible: bool = False) -> TypeState:
+        """The state with today's stakes and reversibility (the owner may have reclassified the type since)."""
+        s = self.recorded(agent, key)
+        if s is None:
             return TypeState(key=key, stakes=stakes, reversible=bool(reversible))
-        s = TypeState.from_dict(json.loads(row[0]))
-        s.stakes = stakes                     # the owner may have reclassified the type since
+        s.stakes = stakes
         s.reversible = bool(reversible)
         return s
 
@@ -199,29 +214,36 @@ class Store:
         d["reversible"] = bool(d["reversible"])
         return d
 
-    def add_pending(self, tool_call_id: str, *, agent: str, type: str, stakes: str, reversible: bool,
+    def add_pending(self, id: str, *, call: str, agent: str, type: str, stakes: str, reversible: bool,
                     decision: str, phase: str, rule_key: str, session: str, snap_id: str | None = None,
                     at: float | None = None) -> None:
+        """A new pending decision under its unique ``id``; ``call`` is the provider's tool call id. A live row is
+        never replaced: a second row with the same id raises sqlite3.IntegrityError."""
         self._write()
-        self.db.execute("INSERT OR REPLACE INTO pending (%s) VALUES (%s)"
+        self.db.execute("INSERT INTO pending (%s) VALUES (%s)"
                         % (", ".join(PENDING_COLS), ", ".join("?" * len(PENDING_COLS))),
-                        (tool_call_id, agent, type, stakes, int(bool(reversible)), decision, phase, rule_key,
-                         session, snap_id, time.time() if at is None else at))
+                        (id, session, call, agent, type, stakes, int(bool(reversible)), decision, phase, rule_key,
+                         snap_id, time.time() if at is None else at))
 
-    def get_pending(self, tool_call_id: str) -> dict | None:
-        row = self.db.execute("SELECT %s FROM pending WHERE tool_call_id = ?" % ", ".join(PENDING_COLS),
-                              (tool_call_id,)).fetchone()
+    def get_pending(self, id: str) -> dict | None:
+        row = self.db.execute("SELECT %s FROM pending WHERE id = ?" % ", ".join(PENDING_COLS), (id,)).fetchone()
         return None if row is None else self._pending(row)
 
-    def set_phase(self, tool_call_id: str, phase: str) -> None:
-        self._write()
-        self.db.execute("UPDATE pending SET phase = ? WHERE tool_call_id = ?", (phase, tool_call_id))
+    def find_pending(self, session: str, call: str) -> dict | None:
+        """The newest pending row of a tool call id in a session."""
+        row = self.db.execute("SELECT %s FROM pending WHERE session = ? AND call = ? ORDER BY at DESC, rowid DESC "
+                              "LIMIT 1" % ", ".join(PENDING_COLS), (session, call)).fetchone()
+        return None if row is None else self._pending(row)
 
-    def pop_pending(self, tool_call_id: str) -> dict | None:
+    def set_phase(self, id: str, phase: str) -> None:
         self._write()
-        p = self.get_pending(tool_call_id)
+        self.db.execute("UPDATE pending SET phase = ? WHERE id = ?", (phase, id))
+
+    def pop_pending(self, id: str) -> dict | None:
+        self._write()
+        p = self.get_pending(id)
         if p is not None:
-            self.db.execute("DELETE FROM pending WHERE tool_call_id = ?", (tool_call_id,))
+            self.db.execute("DELETE FROM pending WHERE id = ?", (id,))
         return p
 
     def expire_pending(self, older_than: float = 24 * 3600) -> list[dict]:
@@ -245,15 +267,20 @@ class Store:
         return bool(row and row[0])
 
     # --------------------------------------------------------------------------------------------------- undo
-    def add_undo(self, agent: str, type: str, snap_id: str | None, at: float | None = None) -> int:
+    def add_undo(self, agent: str, type: str, snap_id: str | None, at: float | None = None, *,
+                 fault: bool = False) -> int:
+        """An action that can be undone. ``fault``: its outcome already counted as a fault (a failed automatic check),
+        so undoing it must not count a second one."""
         self._write()
-        cur = self.db.execute("INSERT INTO undo (agent, type, snap_id, at) VALUES (?, ?, ?, ?)",
-                              (agent, type, snap_id, time.time() if at is None else at))
+        cur = self.db.execute("INSERT INTO undo (agent, type, snap_id, at, fault) VALUES (?, ?, ?, ?, ?)",
+                              (agent, type, snap_id, time.time() if at is None else at, int(bool(fault))))
         return int(cur.lastrowid)
 
     def get_undo(self, id: int) -> dict | None:
-        r = self.db.execute("SELECT id, agent, type, snap_id, at, undone FROM undo WHERE id = ?", (id,)).fetchone()
-        return None if r is None else dict(id=r[0], agent=r[1], type=r[2], snap_id=r[3], at=r[4], undone=bool(r[5]))
+        r = self.db.execute("SELECT id, agent, type, snap_id, at, undone, fault FROM undo WHERE id = ?",
+                            (id,)).fetchone()
+        return None if r is None else dict(id=r[0], agent=r[1], type=r[2], snap_id=r[3], at=r[4], undone=bool(r[5]),
+                                           fault=bool(r[6]))
 
     def mark_undone(self, id: int) -> None:
         self._write()

@@ -103,3 +103,15 @@ def test_symlink_target_returns_none(tmp_path):
     dangling = tmp_path / "dangling"
     os.symlink(tmp_path / "missing", dangling)
     assert undo.snapshot([str(dangling)], str(tmp_path / "data")) is None
+
+
+def test_discard_deletes_an_unneeded_snapshot(tmp_path):
+    f = tmp_path / "a.txt"
+    f.write_bytes(b"before")
+    root = str(tmp_path / "data")
+    sid = undo.snapshot([str(f)], root)
+    assert undo.discard(sid, root) is True
+    assert not os.path.exists(os.path.join(root, "undo", sid))
+    assert undo.discard(sid, root) is False
+    assert undo.discard("../../etc", root) is False and undo.discard(None, root) is False
+    assert f.read_bytes() == b"before"                     # the file itself is never touched
