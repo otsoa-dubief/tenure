@@ -184,19 +184,34 @@ def test_series_frozen_during_trial_and_wait():
     events = fault(s, MEDIUM)
     assert (s.trial_left, s.trial_wait) == (0, 50) and s.unresolved_fault
     assert ("trial", "open", "wait", "failed") in moves(events)
-    # The wait: successes count in the statistics only, then the 50th counted action reopens the trial.
+    # The wait: 50 executed actions after the failing one, each counted after its outcome; successes count in the
+    # statistics only, and a fault during the wait leaves it as it is.
     frozen = (s.series, list(s.sessions), s.wald, s.tier)
-    for i in range(49):
-        assert succeed(s, 1, MEDIUM, sessions=("c",)) == []
-        assert rule.count_action(s) == []
-        if i == 19:                                             # a fault during the wait leaves the wait as it is
-            assert fault(s, MEDIUM) == [] and (s.trial_left, s.trial_wait, s.faults) == (0, 30, 4)
+    for i in range(50):
+        if i == 19:
+            assert fault(s, MEDIUM) == [] and (s.trial_left, s.trial_wait, s.faults) == (0, 31, 4)
             frozen = (s.series, list(s.sessions), s.wald, s.tier)
-    assert (s.trial_left, s.trial_wait) == (0, 1) and (s.series, s.sessions, s.wald, s.tier) == frozen
-    events = rule.count_action(s)
-    assert (s.trial_left, s.trial_wait) == (3, 0)
-    assert moves(events) == [("trial", "wait", "open", "wait over")]
+        else:
+            assert succeed(s, 1, MEDIUM, sessions=("c",)) == []
+            assert (s.series, s.sessions, s.wald, s.tier) == frozen
+        events = rule.count_action(s)
+        assert (s.trial_left, events == []) == ((0, True) if i < 49 else (3, False))
+    assert moves(events) == [("trial", "wait", "open", "wait over")] and s.trial_wait == 0
     assert rule.count_action(s) == [] and s.trial_left == 3     # only the wait is counted
+
+
+def test_wait_counts_50_executed_actions_after_the_failed_one():
+    s = state("medium")
+    fault(s, MEDIUM)
+    succeed(s, 1, MEDIUM)
+    fault(s, MEDIUM)                                            # fails the trial; this action is not counted
+    assert (s.trial_left, s.trial_wait) == (0, 50)
+    for k in range(1, 51):
+        succeed(s, 1, MEDIUM)
+        rule.count_action(s)
+        assert s.trial_left == (3 if k == 50 else 0), k
+    succeed(s, 1, MEDIUM)                                       # the 51st action is the new trial's first
+    assert s.trial_left == 2
 
 
 @pytest.mark.parametrize("stakes,reversible,n", [("low", False, LOW), ("low", True, LOW), ("medium", False, MEDIUM),
@@ -267,7 +282,7 @@ def test_carry_over_takes_half_and_marks_it_provisional():
     succeed(fast, 1, 21, sessions=("c",))
     assert fast.tier == rule.T1
     succeed(fast, 1, 21, sessions=("d",))
-    assert fast.tier == rule.T3 and fast.provisional == 21
+    assert fast.tier == rule.T3 and fast.provisional == 19      # on trial: 2 of the 21 carried successes confirmed
 
 
 def fresh(new, old):
@@ -357,11 +372,11 @@ def test_carry_over_keeps_bad_evidence():
 def test_provisional_confirmed_when_own_successes_reach_it():
     new = rule.carry_over(climbed("low", reversible=True), n_new=LOW, veto=False, strict=False)
     assert new.provisional == 26
-    events = succeed(new, 25, LOW)
-    assert "confirmed" not in kinds(events) and new.provisional == 26
+    events = succeed(new, 25, LOW)                              # each own success in the series confirms one
+    assert "confirmed" not in kinds(events) and new.provisional == 1
     events = succeed(new, 1, LOW)
     confirmed = [e for e in events if e["event"] == "confirmed"]
-    assert len(confirmed) == 1 and confirmed[0]["type"] == "file:write" and confirmed[0]["provisional"] == 26
+    assert len(confirmed) == 1 and confirmed[0]["type"] == "file:write"
     assert new.provisional == 0
     assert "confirmed" not in kinds(succeed(new, 50, LOW))
     # A medium or high fault withdraws the carry-over entirely: the series and the score's credit.
@@ -379,6 +394,38 @@ def test_low_fault_after_carry_over_withdraws_it():
     assert (new.provisional, new.series) == (0, 0)
     assert rule.guarantee(new, LOW, 0.1)["conditional"] is False
     assert "confirmed" not in kinds(succeed(new, 60, LOW))
+
+
+def test_confirmation_needs_series_successes_after_the_trial():
+    old = state("medium", reversible=True)
+    succeed(old, 10, MEDIUM)
+    fault(old, MEDIUM)
+    succeed(old, 3 + 4, MEDIUM)                                 # trial passed, series 4, fault in memory
+    new = rule.carry_over(old, n_new=MEDIUM, veto=False, strict=False)
+    assert (new.series, new.provisional, new.trial_left) == (2, 2, 3)
+    events = succeed(new, 3, MEDIUM)                            # the inherited trial: these successes do not confirm
+    assert "confirmed" not in kinds(events) and (new.trial_left, new.provisional) == (0, 2)
+    assert "confirmed" not in kinds(succeed(new, 1, MEDIUM)) and new.provisional == 1
+    assert "confirmed" in kinds(succeed(new, 1, MEDIUM)) and new.provisional == 0
+
+
+def test_fault_after_carry_over_never_regains_t2_faster_than_strict_mode():
+    old = climbed("low", reversible=True)
+    carried = rule.carry_over(old, n_new=LOW, veto=False, strict=False)
+    strict = rule.carry_over(old, n_new=LOW, veto=False, strict=True)
+    fault(carried, LOW)                                         # the borrowed score credit goes with the carry-over
+    fault(strict, LOW)
+    a = params.wald_steps("low")[0]
+    assert carried.wald == pytest.approx(a) == strict.wald
+
+    def successes_to_t2(s):
+        k = 0
+        while s.tier != rule.T2:
+            succeed(s, 1, LOW, sessions=("c",))
+            k += 1
+        return k
+
+    assert successes_to_t2(carried) >= successes_to_t2(strict)
 
 
 def test_guarantee_conditional_while_provisional():
@@ -437,14 +484,17 @@ def test_revoke_back_to_t1_without_escaping_a_trial():
     assert c.provisional == 0
 
 
-def test_capped_type_never_climbs_but_counts_its_successes():
+def test_capped_type_never_climbs_and_counts_successes_only():
     s = state("high")
     assert succeed(s, 10, None) == []
-    assert (s.series, s.tier, s.successes) == (0, rule.T1, 10) and sorted(s.sessions) == ["a", "b"]
+    assert (s.series, s.sessions, s.tier, s.successes) == (0, [], rule.T1, 10)
     r = state("low", reversible=True)                           # capped by the user: no middle tier either
     assert succeed(r, 40, None) == []
-    assert (r.series, r.tier, r.wald, r.successes) == (0, rule.T1, 0.0, 40) and sorted(r.sessions) == ["a", "b"]
-    # Faults still apply in full; the trial runs, without any climb.
+    assert (r.series, r.sessions, r.tier, r.wald, r.successes) == (0, [], rule.T1, 0.0, 40)
+    # Faults still apply in full and can bring the tier down; the trial runs, without any climb.
+    t2 = state("low", reversible=True)
+    succeed(t2, 12, LOW)
+    assert moves(fault(t2, None)) == [("tier", rule.T2, rule.T1, "fault")]
     fault(s, None)
     assert (s.trial_left, s.lengthened, s.unresolved_fault, s.sessions) == (3, True, True, [])
     assert moves(succeed(s, 3, None)) == [("trial", "open", "none", "passed")] and s.tier == rule.T1
@@ -452,6 +502,19 @@ def test_capped_type_never_climbs_but_counts_its_successes():
     assert moves(succeed(strong, 1, None)) == [("trial", "open", "none", "passed")] and strong.tier == rule.T1
     with pytest.raises(ValueError):
         rule.required(s, None)
+
+
+def test_capped_sessions_never_count_toward_t3():
+    s = state("high")
+    succeed(s, 2, None)                                         # sessions "a" and "b", while capped
+    succeed(s, HIGH, HIGH, sessions=("c",))                     # then careful preset: 1052, all from session "c"
+    assert (s.tier, s.series, s.sessions) == (rule.T1, HIGH, ["c"])
+    succeed(s, 1, HIGH, sessions=("d",))
+    assert s.tier == rule.T3
+    r = state("low", reversible=True)
+    succeed(r, 2, None)
+    events = succeed(r, LOW, LOW, sessions=("c",))
+    assert (r.tier, r.sessions) == (rule.T2, ["c"]) and [e["reason"] for e in events] == ["wald"]
 
 
 def test_reevaluate_after_stricter_settings_drops_t3():
@@ -488,7 +551,10 @@ def test_reevaluate_after_looser_settings_waits_for_the_next_success():
     s = state("low")
     succeed(s, 60, 105)                                         # careful preset: 60 of 105
     assert (s.tier, s.series) == (rule.T1, 60)
-    assert rule.reevaluate(s, LOW) == [] and s.tier == rule.T1  # looser settings never promote by themselves
+    assert rule.reevaluate(s, LOW) == []                        # looser settings never promote by themselves,
+    assert (s.tier, s.series) == (rule.T1, LOW)                 # and the series is capped at the new length
+    rule.on_neutral(s, "timeout")
+    assert s.series == LOW
     events = succeed(s, 1, LOW)
     assert moves(events) == [("tier", rule.T1, rule.T3, "series")] and s.series == LOW
     r = state("low", reversible=True)
@@ -496,6 +562,9 @@ def test_reevaluate_after_looser_settings_waits_for_the_next_success():
     assert r.tier == rule.T2 and rule.reevaluate(r, LOW) == [] and r.tier == rule.T2
     succeed(r, 1, LOW)
     assert r.tier == rule.T3
+    # The provisional part is capped with the series (fast preset: 21).
+    c = rule.carry_over(climbed("low", reversible=True), n_new=LOW, veto=False, strict=False)
+    assert rule.reevaluate(c, 21) == [] and (c.series, c.provisional, c.tier) == (21, 21, rule.T1)
 
 
 def test_sessions_are_distinct_and_at_most_ten():

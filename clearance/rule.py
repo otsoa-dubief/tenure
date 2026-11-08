@@ -21,24 +21,27 @@ Two measures per type, both updated by every verified outcome:
   kept at T3 too, for the way back down.
 
 Every fault resets the series and its sessions. A medium or high fault sends the type back to T1 from any tier,
-lengthens the next climb (this does not pile up) and opens a trial: the next 3 actions of the type ask, and all 3
-must succeed. A fault during the trial fails it; the trial reopens once 50 actions of the type have been counted.
-While a trial is open, and during that wait, successes count in the statistics only: the series and the score stay
-frozen. A low-stakes fault at T3 goes down one tier, to T2 for a reversible type and to T1 otherwise; at T2, the
-score decides between T2 and T1. A medium or high fault also stays in the agent's memory (``unresolved_fault``), even
-once its trial is passed: the fault remains on the record (study, piece 7).
+lengthens the next climb (this does not pile up) and opens a trial: the type asks until it has 3 verified successes,
+and neutral outcomes count neither way. A fault during the trial fails it; the trial reopens after the 50 executed
+actions of the type that follow the failing one, and a fault during that wait opens no new trial. While a trial is
+open, and during that wait, successes count in the statistics only: the series and the score stay frozen. A
+low-stakes fault at T3 goes down one tier, to T2 for a reversible type and to T1 otherwise; at T2, the score decides
+between T2 and T1. A medium or high fault also stays in the agent's memory (``unresolved_fault``), even once its
+trial is passed: the fault remains on the record (study, piece 7).
 
 A model change makes a new agent (``carry_over``). By default, half of the old series is carried over and marked
-provisional, with half of a negative score; a positive score, which is bad evidence, is kept whole. The carry-over
-is confirmed once the new agent's own successes reach it. It lives in the series, so the first fault of any stakes
-withdraws it. There is no carry-over at high stakes, when the public benchmarks veto it, or in strict mode: those
-start over, as in the study. In every mode, a medium or high fault in the old agent's memory becomes a trial for the
-new agent, and only that trial, once passed by an agent with no such fault of its own, erases it (piece 8).
+provisional, with half of a negative score; a positive score, which is bad evidence, is kept whole. Each of the new
+agent's own successes in the series confirms one carried success, and the carry-over is confirmed when none is
+left; successes during a trial confirm nothing. The carry-over lives in the series, so the first fault of any stakes
+withdraws it, together with the score credit it brought. There is no carry-over at high stakes, when the public
+benchmarks veto it, or in strict mode: those start over, as in the study. In every mode, a medium or high fault in
+the old agent's memory becomes a trial for the new agent, and only that trial, once passed by an agent with no such
+fault of its own, erases it (piece 8).
 
-A capped type (``n`` is None) always asks and never climbs; its successes still count, with their sessions, in the
-statistics, and its faults apply in full. When the settings change, ``reevaluate`` drops a T3 type whose series no
-longer meets the required length, or that is now capped. Looser settings never promote a type by themselves: the
-next success does.
+A capped type (``n`` is None) always asks and never climbs: its successes only count in ``successes``, and its faults
+apply in full, so its tier can still drop. When the settings change, ``reevaluate`` caps the series at the new
+length and drops a T3 type whose series no longer meets it, or that is now capped. Looser settings never promote a
+type by themselves: the next success does.
 
 Neutral outcomes (timeouts, cancellations, unverifiable results) change nothing but their counter.
 
@@ -89,7 +92,7 @@ class TypeState:
     unresolved_fault: bool = False     # a medium or high fault in memory: kept when its trial is passed, erased
                                        # only by the trial a model change opens
     # carry-over
-    provisional: int = 0               # successes carried over from the previous agent, not confirmed yet
+    provisional: int = 0               # carried-over successes not yet matched by the agent's own series successes
     # counters (the agent's own)
     successes: int = 0
     faults: int = 0
@@ -162,10 +165,11 @@ def _climb(s: TypeState, n: int | None) -> list[dict]:
 
 
 def _confirm(s: TypeState) -> list[dict]:
-    if s.provisional > 0 and s.successes >= s.provisional:
-        carried, s.provisional = s.provisional, 0
-        return [_event(s, "confirmed", provisional=carried, successes=s.successes)]
-    return []
+    """One own success in the series confirms one carried success; the carry-over is confirmed when none is left."""
+    if s.provisional <= 0:
+        return []
+    s.provisional = min(s.provisional - 1, s.series)
+    return [] if s.provisional else [_event(s, "confirmed")]
 
 
 def decide(s: TypeState, n: int | None, spot: float, *, suspended: bool, rng: random.Random) -> str:
@@ -183,8 +187,8 @@ def on_success(s: TypeState, n: int | None, *, session: str, source: str) -> lis
     """A verified success. ``session`` is the anonymised session id; ``source`` "spot" marks a spot check.
 
     During a trial it only counts toward the trial, and during the wait after a failed trial it only counts in the
-    statistics. A capped type (``n`` is None) never climbs: its success counts, with its session, in the statistics
-    only, never in the series or the score.
+    statistics. A capped type (``n`` is None) never climbs: its success only counts in ``successes``. Otherwise the
+    success enters the series, with its session, and the score, and confirms one carried success if any is left.
     """
     s.successes += 1
     if source == "spot":
@@ -199,35 +203,37 @@ def on_success(s: TypeState, n: int | None, *, session: str, source: str) -> lis
                 s.unresolved_fault = False
             events.append(_move(s, "trial", _OPEN, _NONE, "passed"))
             events += _climb(s, n)
-    elif s.trial_wait == 0:
+    elif s.trial_wait == 0 and n is not None:
+        s.series = min(s.series + 1, required(s, n))
         if session and session not in s.sessions:
             s.sessions.append(session)
             del s.sessions[:-MAX_SESSIONS]
-        if n is not None:
-            s.series = min(s.series + 1, required(s, n))
-            if _middle(s):
-                a, step, ln_b = params.wald_steps(s.stakes)
-                s.wald = max(s.wald + step, ln_b - a)
-            events += _climb(s, n)
-    return events + _confirm(s)
+        if _middle(s):
+            a, step, ln_b = params.wald_steps(s.stakes)
+            s.wald = max(s.wald + step, ln_b - a)
+        events += _climb(s, n)
+        events += _confirm(s)
+    return events
 
 
 def on_fault(s: TypeState, n: int | None, *, session: str, source: str) -> list[dict]:
     """A verified fault: a refusal, a failed automatic check, an undo or a flag. ``source`` "spot" marks a spot check.
 
-    The series and its sessions restart, and with them a carry-over, which lived in the series. A medium or high
-    fault sends the type to T1, lengthens the next climb, stays in memory and opens a trial; during a trial, any
-    fault fails it, and a fault during the wait after a failed trial leaves the wait as it is. A low-stakes fault goes
-    down at most one tier. Faults apply in full to a capped type too.
+    The series and its sessions restart, and with them a carry-over, which lived in the series; the score credit it
+    brought goes too (the score becomes max(score, 0) + a, as after a medium or high fault), so the new agent never
+    regains T2 faster than in strict mode. A medium or high fault sends the type to T1, lengthens the next climb,
+    stays in memory and opens a trial; during a trial, any fault fails it, and a fault during the wait after a failed
+    trial leaves the wait as it is. A low-stakes fault goes down at most one tier. Faults apply in full to a capped
+    type too.
     """
     s.faults += 1
     if source == "spot":
         s.spot_checks += 1
-    grave, in_trial, old = s.stakes in GRAVE, s.trial_left > 0, s.tier
+    grave, in_trial, old, borrowed = s.stakes in GRAVE, s.trial_left > 0, s.tier, s.provisional > 0
     s.series, s.sessions, s.provisional = 0, [], 0
     if _middle(s):
         a = params.wald_steps(s.stakes)[0]
-        s.wald = (max(s.wald, 0.0) if grave else s.wald) + a
+        s.wald = (max(s.wald, 0.0) if grave or borrowed else s.wald) + a
     if grave:
         s.tier, s.lengthened, s.unresolved_fault = T1, True, True
     else:
@@ -252,10 +258,12 @@ def on_neutral(s: TypeState, reason: str) -> list[dict]:
 
 
 def count_action(s: TypeState) -> list[dict]:
-    """One more action of the type, whatever its outcome: runs the wait after a failed trial.
+    """One more executed action of the type: runs the wait after a failed trial.
 
-    Call it once per action of the type, after its outcome, in the hooks and in the replay alike. The trial
-    reopens once 50 actions have been counted since it failed, the failing action included.
+    The hooks, and the replay, call it after the outcome of each executed action of the type: a success, a fault, or
+    a neutral outcome from a tool failure. Never for a timeout, an expired ask or a cancelled one, and not for the
+    action whose fault failed the trial (``on_fault`` then returns a ``trial`` event with the reason "failed"): the
+    wait counts the 50 executed actions after that one, and the trial reopens with the 51st.
     """
     if s.trial_wait <= 0:
         return []
@@ -290,10 +298,14 @@ def carry_over(old: TypeState, *, n_new: int | None, veto: bool, strict: bool) -
 def reevaluate(s: TypeState, n: int | None) -> list[dict]:
     """The settings changed: ``n`` is the type's new series length, or None when it is now capped.
 
-    A T3 type whose series no longer meets the required length, or that is now capped, drops: to T2 if it has the
-    middle tier and its score is at most ln B, to T1 otherwise. The series is kept. Looser settings never promote a
-    type by themselves: the next success does. The hooks and the replay call this whenever the settings change.
+    With a series length, the series is first capped at it, and the provisional part with the series. A T3 type
+    whose series no longer meets the required length, or that is now capped, then drops: to T2 if it has the middle
+    tier and its score is at most ln B, to T1 otherwise. Looser settings never promote a type by themselves: the next
+    success does. The hooks and the replay call this whenever the settings change.
     """
+    if n is not None:
+        s.series = min(s.series, required(s, n))
+        s.provisional = min(s.provisional, s.series)
     if s.tier != T3 or (n is not None and s.series >= required(s, n)):
         return []
     s.tier = T2 if _middle(s) and s.wald <= params.wald_steps(s.stakes)[2] + TOL else T1
