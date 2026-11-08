@@ -28,7 +28,6 @@ import time
 
 from . import params, passport, personal, rule, store, undo
 
-UNDO_WINDOW = 24 * 3600
 ENOUGH = 20                                     # checks before a rate is called measured
 
 
@@ -253,7 +252,7 @@ def flag(type_key: str, note: str = "", agent: str | None = None, model: str | N
         agent = _targets(core, st, agent=agent, model=model)[0]
         known = {s.key: s for _, s in st.states(agent)}
         if type_key not in known:
-            return f"No record of {type_key} for {agent}. Types: {', '.join(sorted(known)) or 'none yet'}."
+            raise CliError(f"No record of {type_key} for {agent}. Types: {', '.join(sorted(known)) or 'none yet'}.")
         s = known[type_key]
         core.sync_settings(st, cfg)
         core.record_outcome(st, cfg, agent=agent, type_key=type_key, stakes=s.stakes, reversible=s.reversible,
@@ -286,35 +285,11 @@ def revoke(type_key: str, agent: str | None = None, model: str | None = None, ev
 
 # ------------------------------------------------------------------------------------------------ undo
 def undo_action(entry_id: int) -> str:
-    """Restore the files of an action taken alone. The undo counts as a fault of the type (source "undo") unless the
-    action already counted one (its automatic check failed)."""
+    """Restore the files of an action taken alone: the hooks module's ``undo_entry``, the one implementation. The
+    returned text's ``ok`` attribute is False when nothing was undone."""
     core = _core()
-    cfg = core.settings()
     with core.txn() as st:
-        u = st.get_undo(entry_id)
-        if u is None:
-            return f"No undo entry {entry_id}."
-        if u["undone"]:
-            return f"Undo {entry_id} is already undone."
-        if time.time() - u["at"] > UNDO_WINDOW:
-            return f"Undo {entry_id} is older than 24 h: the snapshot is no longer kept."
-        if not u["snap_id"]:
-            return f"Undo {entry_id}: no snapshot was saved for this action, nothing to restore."
-        if undo.restore(u["snap_id"], core.data_dir()) == 0:
-            return f"Undo {entry_id}: the snapshot is gone, nothing restored."
-        st.mark_undone(entry_id)
-        if u["fault"]:
-            return (f"Undo {entry_id}: files restored. The automatic check had already counted this action as a "
-                    f"fault of {u['type']}; no second fault is recorded.")
-        recorded = st.recorded(u["agent"], u["type"])
-        stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
-        core.sync_settings(st, cfg)
-        core.record_outcome(st, cfg, agent=u["agent"], type_key=u["type"], stakes=stakes, reversible=reversible,
-                            result="fault", source="undo")
-        st.bump(u["agent"], "faults")
-        s = st.get_state(u["agent"], u["type"], stakes, reversible)
-    return (f"Undo {entry_id}: files restored. Counted as a fault of {u['type']} for {u['agent']}; "
-            f"it is now at {TIERS[s.tier]}.")
+        return core.undo_entry(st, entry_id)
 
 
 # ------------------------------------------------------------------------------------------------ passport
@@ -554,7 +529,8 @@ def execute(ns) -> tuple[str, int]:
         if cmd == "models":
             return models_text(g("type")), 0
         if cmd == "undo":
-            return undo_action(g("id")), 0
+            text = undo_action(g("id"))
+            return text, 0 if text.ok else 1
         if cmd == "flag":
             return flag(g("type"), " ".join(g("note") or []), model=g("model")), 0
         if cmd == "revoke":

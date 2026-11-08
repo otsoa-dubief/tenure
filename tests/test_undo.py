@@ -14,7 +14,7 @@ def test_snapshot_then_restore_puts_content_back(tmp_path):
     sid = undo.snapshot([str(f)], root)
     assert sid
     f.write_bytes(b"after")
-    assert undo.restore(sid, root) == 1
+    assert undo.restore(sid, root) == (1, 0)
     assert f.read_bytes() == b"before"
     d = os.path.join(root, "undo", sid)
     assert not os.path.exists(d)
@@ -36,7 +36,7 @@ def test_restore_deletes_a_file_that_did_not_exist(tmp_path):
     sid = undo.snapshot([str(f)], root)
     assert sid
     f.write_bytes(b"created by agent")
-    assert undo.restore(sid, root) == 1
+    assert undo.restore(sid, root) == (1, 0)
     assert not f.exists()
 
 
@@ -80,8 +80,8 @@ def test_purge_removes_old_snapshots(tmp_path):
 
 def test_restore_unknown_or_malicious_id_returns_zero(tmp_path):
     root = str(tmp_path / "data")
-    assert undo.restore("nope", root) == 0
-    assert undo.restore("../../etc", root) == 0
+    assert undo.restore("nope", root) == (0, 0)
+    assert undo.restore("../../etc", root) == (0, 0)
 
 
 def test_binary_file_returns_none(tmp_path):
@@ -115,3 +115,24 @@ def test_discard_deletes_an_unneeded_snapshot(tmp_path):
     assert undo.discard(sid, root) is False
     assert undo.discard("../../etc", root) is False and undo.discard(None, root) is False
     assert f.read_bytes() == b"before"                     # the file itself is never touched
+
+
+def test_partial_restore_reports_failures_and_keeps_the_snapshot(tmp_path, monkeypatch):
+    a, b = tmp_path / "a.txt", tmp_path / "b.txt"
+    a.write_bytes(b"a0")
+    b.write_bytes(b"b0")
+    root = str(tmp_path / "data")
+    sid = undo.snapshot([str(a), str(b)], root)
+    a.write_bytes(b"a1")
+    b.write_bytes(b"b1")
+    real = undo._atomic_write
+
+    def flaky(target, data, mode):
+        if target.endswith("b.txt"):
+            raise OSError("read-only")
+        real(target, data, mode)
+    monkeypatch.setattr(undo, "_atomic_write", flaky)
+    assert undo.restore(sid, root) == (1, 1)
+    assert a.read_bytes() == b"a0" and os.path.isdir(os.path.join(root, "undo", sid))
+    monkeypatch.setattr(undo, "_atomic_write", real)
+    assert undo.restore(sid, root) == (2, 0) and b.read_bytes() == b"b0"

@@ -267,18 +267,19 @@ def test_post_undo_restores_and_counts_a_fault(env):
     out = [e["event"] for e in core.store_().ledger() if e["event"]["event"] == "outcome"][-1]
     assert (out["result"], out["source"]) == ("fault", "undo")
     again = client.post(client.base + "/undo", json={"id": uid}).json()
-    assert again["undone"] is True and "already" in again["message"]
+    assert again["undone"] is True and again["ok"] is False and "already" in again["message"]
     assert client.post(client.base + "/undo", json={"id": 999}).status_code == 404
 
 
 def test_undo_entry_in_hooks_module(env):
     core, api, client, root = env
     with core.txn() as st:
-        assert "No action" in core.undo_entry(st, 42)
+        assert "No undo entry" in core.undo_entry(st, 42)
         uid = st.add_undo(A, "file:write", None)
-        assert "cannot be restored" in core.undo_entry(st, uid)
+        m = core.undo_entry(st, uid)
+        assert "no snapshot" in m and m.ok is False
         old = st.add_undo(A, "file:write", "c" * 32, at=time.time() - 2 * 86400)
-        assert "window" in core.undo_entry(st, old)
+        assert "older than 24 h" in core.undo_entry(st, old)
 
 
 def test_posts_only_on_the_current_profile(env):

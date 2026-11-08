@@ -417,9 +417,10 @@ def _undo(body: UndoBody) -> dict:
             cfg, synced = _cfg(core, st)
             message = core.undo_entry(st, body.id, None if synced else cfg)
             done = st.get_undo(body.id)["undone"]
+            ok = message.ok
     except core.LockTimeout:
         raise HTTPException(503, "the store is busy, try again")
-    return {"id": body.id, "undone": done, "message": message}
+    return {"id": body.id, "undone": done, "ok": ok, "message": str(message)}
 
 
 def _set_settings(body: SettingsBody) -> dict:

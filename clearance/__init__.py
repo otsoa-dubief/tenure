@@ -52,6 +52,7 @@ MAX_SESSIONS = 4096              # sessions whose agent, or suspension, this pro
 LOCK_TIMEOUT = 10.0              # seconds a hook waits for another thread's transaction before giving up
 HOOK_BUDGET = 25.0               # seconds pre_tool_call may take in all (Hermes stops waiting at 30)
 SESSIONLESS_TAINT = 3600         # seconds a read outside any session suspends sessionless calls of this process
+_TIER_NAMES = {rule.T1: "T1 ask", rule.T2: "T2 notify", rule.T3: "T3 alone"}
 _TIER = {rule.T1: "T1, asking first", rule.T2: "T2, acting then notifying you with an undo",
          rule.T3: "T3, acting alone"}
 
@@ -399,31 +400,55 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
 UNDO_WINDOW = 24 * 3600          # seconds an act-then-notify action can be undone
 
 
-def undo_entry(st: store.Store, id: int, cfg: dict | None = None) -> str:
+class UndoMessage(str):
+    """The owner's message about an undo; ``ok`` is False when nothing was undone (a refusal or a failure)."""
+    ok = True
+
+    def __new__(cls, text: str, ok: bool = True):
+        self = super().__new__(cls, text)
+        self.ok = ok
+        return self
+
+
+def undo_entry(st: store.Store, id: int, cfg: dict | None = None) -> UndoMessage:
     """Revert one act-then-notify action (files back to their snapshot) and count it as a fault of its type, unless
-    its automatic check already did. Call it inside ``txn()``. Returns a message for the owner; nothing is changed
-    when it cannot be undone. ``cfg`` is for a caller outside the hooks (the dashboard) that has the settings in force
-    from the ledger: they are then used as they are, with no sync; by default, the configured settings are synced."""
+    its automatic check already did. The one implementation, used by the CLI, the slash command and the dashboard.
+    Call it inside ``txn()``. Returns a message (a ``str`` whose ``ok`` is False when nothing was undone). A partial
+    restore marks nothing undone and records no fault: the snapshot is kept, so the owner can try again.
+    ``cfg`` is for a caller outside the hooks (the dashboard) that has the settings in force from the ledger: they
+    are then used as they are, with no sync; by default, the configured settings are synced."""
     entry = st.get_undo(id)
     if entry is None:
-        return f"No action #{id} to undo."
+        return UndoMessage(f"No undo entry {id}.", False)
     if entry["undone"]:
-        return f"Action #{id} is already undone."
+        return UndoMessage(f"Undo {id} is already undone.", False)
     if time.time() - entry["at"] > UNDO_WINDOW:
-        return f"Action #{id} is past its {UNDO_WINDOW // 3600} h undo window."
-    if not entry["snap_id"] or undo.restore(entry["snap_id"], data_dir()) == 0:
-        return f"Action #{id} cannot be restored: no usable snapshot."
+        return UndoMessage(f"Undo {id} is older than {UNDO_WINDOW // 3600} h: the snapshot is no longer kept.", False)
+    if not entry["snap_id"]:
+        return UndoMessage(f"Undo {id}: no snapshot was saved for this action, nothing to restore.", False)
+    restored, failed = undo.restore(entry["snap_id"], data_dir())
+    if failed:
+        return UndoMessage(f"Undo {id}: {failed} file(s) could not be restored ({restored} were). Nothing is marked "
+                           f"undone and no fault is recorded: fix the cause (permissions, a locked file) and try "
+                           f"again.", False)
+    if restored == 0:
+        return UndoMessage(f"Undo {id}: the snapshot is gone, nothing restored.", False)
     agent, key = entry["agent"], entry["type"]
-    if not entry["fault"]:
-        recorded = st.recorded(agent, key)
-        if cfg is None:
-            cfg = settings()
-            sync_settings(st, cfg)
-        record_outcome(st, cfg, agent=agent, type_key=key, stakes=recorded.stakes if recorded else "medium",
-                       reversible=recorded.reversible if recorded else True, result="fault", source="undo")
-        st.bump(agent, "faults")
     st.mark_undone(id)
-    return f"Action #{id} undone ({key})" + ("." if entry["fault"] else "; counted as a fault.")
+    if entry["fault"]:
+        return UndoMessage(f"Undo {id}: files restored. The automatic check had already counted this action as a "
+                           f"fault of {key}; no second fault is recorded.")
+    recorded = st.recorded(agent, key)
+    stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
+    if cfg is None:
+        cfg = settings()
+        sync_settings(st, cfg)
+    record_outcome(st, cfg, agent=agent, type_key=key, stakes=stakes, reversible=reversible,
+                   result="fault", source="undo")
+    st.bump(agent, "faults")
+    s = st.get_state(agent, key, stakes, reversible)
+    return UndoMessage(f"Undo {id}: files restored. Counted as a fault of {key} for {agent}; it is now at "
+                       f"{_TIER_NAMES[s.tier]}.")
 
 
 def _bump(st: store.Store, agent: str, result: str, *, checked: bool = False, alone: bool = False) -> None:

@@ -337,3 +337,52 @@ def test_unknown_command_shows_the_usage_and_run_sets_the_exit_code(plugin, caps
     assert e.value.code == 1 and "Cannot read" in capsys.readouterr().out
     handler(parser.parse_args(["status"]))
     assert "Evidence:" in capsys.readouterr().out
+
+
+# ------------------------------------------------------------------------------- exit codes, partial undo
+def run_line(mod, line):
+    import shlex
+    p = mod.cli._Parser(prog="x", add_help=False)
+    mod.cli._add_subcommands(p)
+    return mod.cli.execute(p.parse_args(shlex.split(line)))
+
+
+def test_refusals_exit_non_zero(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    ctx.call("write_file", write("r"))
+    uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    assert run_line(mod, "undo 999")[1] == 1
+    assert run_line(mod, "flag nothing:here --model model-a")[1] == 1
+    assert run_line(mod, "revoke zzz --model model-a") == ("Nothing to revoke.", 0)
+    with mod.txn() as st:
+        st.db.execute("UPDATE undo SET at = at - 90000 WHERE id = ?", (uid,))
+    assert run_line(mod, f"undo {uid}")[1] == 1
+    with mod.txn() as st:
+        st.db.execute("UPDATE undo SET at = at + 90000 WHERE id = ?", (uid,))
+    text, code = run_line(mod, f"undo {uid}")
+    assert code == 0 and "files restored" in text
+    assert run_line(mod, f"undo {uid}")[1] == 1                          # already undone
+
+
+def test_undo_with_a_gone_snapshot_exits_non_zero(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    ctx.call("write_file", write("g"))
+    uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    import shutil
+    shutil.rmtree(os.path.join(mod.data_dir(), "undo"))
+    assert run_line(mod, f"undo {uid}")[1] == 1
+
+
+def test_partial_undo_keeps_the_entry_open_and_records_no_fault(plugin, monkeypatch):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    ctx.call("write_file", write("p"))
+    uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    faults, n = state(mod, "file:write").faults, len(ledger(mod))
+    monkeypatch.setattr(mod.undo, "restore", lambda snap, root: (1, 2))
+    text, code = run_line(mod, f"undo {uid}")
+    assert code == 1 and "2 file(s) could not be restored" in text and "try again" in text
+    assert mod.store_().get_undo(uid)["undone"] is False
+    assert state(mod, "file:write").faults == faults and len(ledger(mod)) == n

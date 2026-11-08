@@ -763,7 +763,7 @@ def test_undo_after_notify_is_a_fault(plugin):
     uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
     entry = mod.store_().get_undo(uid)
     assert (entry["agent"], entry["type"], entry["undone"]) == (A, "file:write", False) and entry["snap_id"]
-    assert mod.undo.restore(entry["snap_id"], mod.data_dir()) == 1
+    assert mod.undo.restore(entry["snap_id"], mod.data_dir()) == (1, 0)
     with open(target) as f:
         assert f.read() == "before = 1\n"
     cfg = mod.settings()
@@ -1084,7 +1084,7 @@ def test_a_t2_write_failing_its_check_keeps_an_undo(plugin):
     uid = int(re.search(r"/clearance undo (\d+)$", note)[1])
     entry = mod.store_().get_undo(uid)
     assert entry["fault"] is True and entry["snap_id"]
-    assert mod.undo.restore(entry["snap_id"], mod.data_dir()) == 1
+    assert mod.undo.restore(entry["snap_id"], mod.data_dir()) == (1, 0)
     with open(target) as f:
         assert f.read() == "good = 1\n"
 

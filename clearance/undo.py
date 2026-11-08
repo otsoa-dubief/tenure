@@ -100,18 +100,18 @@ def _atomic_write(target: str, data: bytes, mode: int) -> None:
         raise
 
 
-def restore(snap_id: str, root: str) -> int:
-    """Put files back (delete those that did not exist). Return files restored."""
+def restore(snap_id: str, root: str) -> tuple[int, int]:
+    """Put files back (delete those that did not exist). Return (files restored, files that failed). A snapshot that
+    cannot be read gives (0, 0); one with failures is kept, so the restore can be retried."""
     if not isinstance(snap_id, str) or not _ID_RE.match(snap_id):
-        return 0
+        return 0, 0
     d = os.path.join(_undo_dir(root), snap_id)
     try:
         with open(os.path.join(d, "manifest.json"), "rb") as fh:
             files = json.loads(fh.read())["files"]
     except (OSError, ValueError, KeyError, TypeError):
-        return 0
-    count = 0
-    failed = False
+        return 0, 0
+    count = failed = 0
     for i, e in enumerate(files):
         try:
             if e["existed"]:
@@ -125,10 +125,10 @@ def restore(snap_id: str, root: str) -> int:
                     pass
             count += 1
         except (OSError, KeyError, TypeError):
-            failed = True
+            failed += 1
     if not failed:
         shutil.rmtree(d, ignore_errors=True)
-    return count
+    return count, failed
 
 
 def discard(snap_id: str, root: str) -> bool:
