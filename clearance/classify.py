@@ -17,6 +17,7 @@ import fnmatch
 import os
 import re
 import shlex
+import threading
 from dataclasses import dataclass
 
 FREE, LOW, MEDIUM, HIGH, CAP = "free", "low", "medium", "high", "cap"
@@ -99,19 +100,34 @@ def _abs(path: str, cwd: str | None, home: str | None = None) -> str:
     return _norm(os.path.normpath(p if os.path.isabs(p) else os.path.join(cwd or os.getcwd(), p)))
 
 
+_CACHE = threading.local()                       # symlink resolutions, valid for one classify() call
+
+
 def _real(full: str) -> str:
-    """The symlink-resolved path, when the path or its parent exists (otherwise the path as written)."""
+    """The symlink-resolved path (the part that exists is resolved, the rest is kept)."""
+    memo = getattr(_CACHE, "memo", None)
+    if memo is not None and full in memo:
+        return memo[full]
     try:
-        if os.path.exists(full) or os.path.islink(full) or os.path.isdir(os.path.dirname(full)):
-            return _norm(os.path.realpath(full))
+        real = _norm(os.path.realpath(full))
+        if real.startswith("/System/Volumes/Data/"):         # macOS firmlink: the data volume is the root
+            real = real[len("/System/Volumes/Data"):]
     except (OSError, ValueError):
-        pass
-    return full
+        real = full
+    if memo is not None:
+        memo[full] = real
+    return real
+
+
+SENSITIVE_FRAGMENTS = ("authorized_keys", "known_hosts", "id_ed25519", "id_ecdsa", ".netrc", ".hermes/")
 
 
 def _sensitive(probe: str) -> bool:
-    return bool(any(d in probe + "/" for d in SENSITIVE_DIRS) or probe.startswith(SENSITIVE_PREFIXES)
-                or SENSITIVE_NAME.match(os.path.basename(probe)))
+    low = probe.lower()
+    return bool(any(f in low for f in SENSITIVE_FRAGMENTS)
+                or any(d.lower() in low + "/" for d in SENSITIVE_DIRS)
+                or low.startswith(tuple(x.lower() for x in SENSITIVE_PREFIXES))
+                or SENSITIVE_NAME.match(low.rstrip("/").rsplit("/", 1)[-1]))
 
 
 def _file(path: str, cwd: str | None, home: str) -> tuple[str, str, bool]:
@@ -122,7 +138,7 @@ def _file(path: str, cwd: str | None, home: str) -> tuple[str, str, bool]:
         return "file:sensitive", CAP, False
     lexroot = _norm(os.path.normpath(base)).rstrip("/") + "/"
     try:
-        realroot = _norm(os.path.realpath(base)).rstrip("/") + "/" if os.path.isdir(base) else lexroot
+        realroot = _real(_norm(os.path.normpath(base))).rstrip("/") + "/"
     except (OSError, ValueError):
         realroot = lexroot
     if (real + "/").startswith(realroot) or (full == real and (full + "/").startswith(lexroot)):
@@ -184,7 +200,8 @@ def reads_external(tool_name: str, args: dict, cwd: str | None) -> bool:
         root = _norm(os.path.normpath(cwd or os.getcwd())).rstrip("/") + "/"
         return not (_abs(path, cwd) + "/").startswith(root)
     if tool_name.startswith("mcp__") and _clamped(tool_name):
-        return False
+        split = _mcp_split(tool_name)                    # the tool name is cut: only the server tells
+        return _external_server(split[0] if split else tool_name[5:])
     split = _mcp_split(tool_name)
     if split:
         return _read_only_verbs(split[1]) and _external_server(split[0])
@@ -215,7 +232,12 @@ SEPS = {";", ";;", ";&", ";;&", "&", "&&", "|", "||", "|&", "\n"}
 PIPES = {"|", "|&"}
 PUNCT = ";()<>|&\n"
 PUNCT_RE = re.compile(r";;&|;;|;&|\|&|\|\||&&|&>>|&>|>&|<&|<<<|<<-|<<|<\(|>\(|>>|>\||<>|[;&|\n()<>]")
-CONTINUATION = re.compile(r"\\\r?\n")
+CONTINUATION = re.compile(r"(\\+)(\r?\n)")
+
+
+def _join_lines(command: str) -> str:
+    """Remove line continuations: only an ODD number of backslashes before a newline joins the lines."""
+    return CONTINUATION.sub(lambda m: m.group(1)[:-1] if len(m.group(1)) % 2 else m.group(0), command or "")
 ENV_ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 OUT_OPS = {">", ">>", ">|", "&>", "&>>", ">&", "<>"}
 REDIR_OPS = OUT_OPS | {"<", "<<", "<<-", "<<<", "<&"}
@@ -235,8 +257,11 @@ class Seg:
     cond: bool       # may not run at all (after && or ||)
 
 
+FD_PREFIX = re.compile(r"(?<![\w$])\d+(?=[<>])")          # the 2 of 2>file (glued: "timeout 5 >f" keeps its 5)
+
+
 def _lex(text: str) -> list[str]:
-    lex = shlex.shlex(text, posix=True, punctuation_chars=PUNCT)
+    lex = shlex.shlex(FD_PREFIX.sub(" ", text), posix=True, punctuation_chars=PUNCT)
     lex.whitespace_split = True
     lex.whitespace = " \t\r"                         # an unquoted newline is a separator, not a blank
     lex.commenters = ""                              # a comment is read as code: the safe side
@@ -254,7 +279,7 @@ def _decompose(tokens: list[str]) -> list[str]:
 
 
 def _crude(line: str) -> list[str]:
-    return PUNCT_RE.sub(lambda m: f" {m.group(0)} ", line).split()
+    return PUNCT_RE.sub(lambda m: f" {m.group(0)} ", FD_PREFIX.sub(" ", line)).split()
 
 
 def _tokens_lines(command: str) -> list[str]:
@@ -303,7 +328,7 @@ def _build(tokens: list[str]) -> list[Seg]:
 
 
 def _segments(command: str) -> list[list[str]]:
-    return [s.tokens for s in _build(_tokens_whole(CONTINUATION.sub("", command or "")))]
+    return [s.tokens for s in _build(_tokens_whole(_join_lines(command)))]
 
 
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "fish", "ash", "mksh"}
@@ -352,13 +377,15 @@ def _strip_wrappers(toks: list[str]) -> list[str]:
         toks = toks[1:]
         value_opts = WRAPPER_VALUE_OPTS.get(wrapper, set())
         while toks and (toks[0].startswith("-") or ENV_ASSIGN.match(toks[0])):
-            toks = toks[2:] if toks[0] in value_opts and len(toks) > 1 else toks[1:]
+            t = toks[0]
+            takes_value = t in value_opts or (len(t) > 2 and t[1] != "-" and "-" + t[-1] in value_opts)  # -iu root
+            toks = toks[2:] if takes_value and len(toks) > 1 else toks[1:]
         if wrapper == "timeout" and toks:
             toks = toks[1:]                                  # the duration
     return toks
 
 
-def _unwrap(tokens: list[str]) -> list[str]:
+def _unwrap(tokens: list[str], wrappers: bool = True) -> list[str]:
     """The program and its arguments: without redirections, leading VAR=x, grouping and wrappers (sudo, env...)."""
     toks: list[str] = []
     skip = False
@@ -367,13 +394,25 @@ def _unwrap(tokens: list[str]) -> list[str]:
             skip = False
         elif t in REDIR_OPS:
             skip = True                                      # the operator and its target
-        elif t.isdigit() and n + 1 < len(tokens) and tokens[n + 1] in REDIR_OPS:
-            continue                                         # a file descriptor: 2>file
         elif t in ("(", ")", "$", "<(", ">(", "{", "}") or (not toks and ENV_ASSIGN.match(t)):
             continue
         else:
             toks.append(t)
-    return _strip_wrappers(toks)
+    return _strip_wrappers(toks) if wrappers else toks
+
+
+def _leading_flags(args: list[str]) -> list[str]:
+    out = []
+    for a in args:
+        if not a.startswith("-"):
+            break
+        out.append(a)
+    return out
+
+
+def _inline_cluster(args: list[str]) -> bool:
+    """An interpreter flag cluster that carries code: python3 -Bc, perl -ne."""
+    return any(re.fullmatch(r"-[A-Za-z]{2,}", a) and ("c" in a or "e" in a) for a in _leading_flags(args))
 
 
 def _write_args(prog: str, args: list[str]) -> list[str]:
@@ -400,10 +439,13 @@ def _xargs_rest(args: list[str]) -> list[str]:
     return []
 
 
+UNRESOLVED = "$`?*[{"
+
+
 def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
-    """One command. A sensitive path it writes (redirect or argument) caps it; when the working directory is unknown
-    a relative write is at least high stakes."""
-    forced = False
+    """One command. A sensitive path it writes (redirect or argument) caps it; a write target that cannot be
+    resolved (variable, glob, brace, or a relative path while the working directory is unknown) is file:unknown."""
+    unresolved = False
     base = "/" if cwd == UNKNOWN else cwd
     targets = _redirects(tokens)
     toks = _unwrap(tokens)
@@ -411,14 +453,13 @@ def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, s
         targets += _write_args(os.path.basename(toks[0]), toks[1:])
     for target in targets:
         target = _expand(target, home)
-        if "$" in target or "`" in target:
-            forced = True
-        elif cwd == UNKNOWN and not os.path.isabs(target):
-            forced = True
+        if any(c in target for c in UNRESOLVED) or (cwd == UNKNOWN and not os.path.isabs(target)):
+            unresolved = True
         elif _file(target, base, home)[1] == CAP:
             return "file:sensitive", CAP
-    t, s = _core(tokens, cwd, home, depth)
-    return t, (HIGH if forced and RANK[s] < RANK[HIGH] else s)
+    if unresolved:
+        return "file:unknown", HIGH
+    return _core(tokens, cwd, home, depth)
 
 
 def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
@@ -441,8 +482,8 @@ def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     if prog in ("eval", "source", "."):
         return "shell:eval", HIGH
     if prog in SHELLS:
-        if "-c" in args:
-            i = args.index("-c")
+        i = next((n for n, a in enumerate(args) if re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*", a)), None)
+        if i is not None:
             inner = args[i + 1] if i + 1 < len(args) else ""
             t, st, _ = _shell(inner, cwd, home, depth + 1)
             return t, st
@@ -453,7 +494,7 @@ def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
         return _shell_segment(rest, cwd, home, depth + 1) if rest else ("shell:xargs", MEDIUM)
     base = re.sub(r"\d+(\.\d+)*$", "", prog)
     if prog in INTERPRETERS or base in INTERPRETERS:
-        if INLINE_FLAGS & set(args):
+        if INLINE_FLAGS & set(args) or _inline_cluster(args):
             return f"shell:{prog}:inline", HIGH
         if "-m" in args:
             i = args.index("-m")
@@ -558,7 +599,8 @@ def _run(segs: list[Seg], start: str, home: str, depth: int) -> tuple[str, str]:
             r = _shell_segment(seg.tokens, cwd, home, depth)
             if top is None or RANK[r[1]] > RANK[top[1]]:
                 top = r
-        if first or RANK[top[1]] > RANK[best[1]]:
+        if (first or RANK[top[1]] > RANK[best[1]]
+                or (RANK[top[1]] == RANK[best[1]] and top[0] in FLOORS and best[0] not in FLOORS)):
             best, first = top, False
         cd = _cd_kind(seg.tokens)
         if cd:
@@ -569,21 +611,129 @@ def _run(segs: list[Seg], start: str, home: str, depth: int) -> tuple[str, str]:
     return best
 
 
+# ------------------------------------------------------------------------------------- fail-safe floors (R16)
+KEYWORDS = {"if", "then", "elif", "else", "fi", "case", "esac", "for", "while", "until", "do", "done", "select",
+            "function", "!"}
+HEREDOC = re.compile(r"<<(-?)\s*([\"']?)([A-Za-z_][A-Za-z0-9_]*)\2")
+
+
+def _strip_heredocs(command: str) -> str:
+    """The command without the bodies of simple heredocs (their text is data, not grammar)."""
+    out, pending = [], []
+    for line in command.split("\n"):
+        if pending:
+            strip, delim = pending[0]
+            if (line.lstrip("\t") if strip else line).rstrip("\r") == delim:
+                pending.pop(0)
+            continue
+        out.append(line)
+        pending += [(m.group(1) == "-", m.group(3)) for m in HEREDOC.finditer(line.replace("<<<", "   "))]
+    return "\n".join(out)
+
+
+def _frag(word: str) -> bool:
+    for cand in {word, word.split("=", 1)[-1], word.lstrip("@")}:
+        low = cand.lower().replace("\\", "/")
+        if (any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.lower() in "/" + low + "/" for d in SENSITIVE_DIRS)
+                or low.startswith(tuple(x.lower() for x in SENSITIVE_PREFIXES))
+                or SENSITIVE_NAME.match(low.rstrip("/").rsplit("/", 1)[-1])):
+            return True
+    return False
+
+
+def _sensitive_floor(command: str) -> bool:
+    """A write target, or any argument of a command that is not purely read-only, names a sensitive file."""
+    for tokens in (_tokens_lines(command), _tokens_whole(command)):
+        pure, words = True, []
+        for seg in _build(tokens):
+            toks = _unwrap(seg.tokens)
+            prog = os.path.basename(toks[0]) if toks else ""
+            if prog not in READ_ONLY or _redirects(seg.tokens) or "<(" in seg.tokens or ">(" in seg.tokens:
+                pure = False
+            ws = list(seg.tokens)
+            if toks and toks[0] in ws:
+                ws.remove(toks[0])
+            words += ws
+        if not pure and any(_frag(w) for w in words):
+            return True
+    return False
+
+
+def _seg_complex(tokens: list[str]) -> bool:
+    raw = _unwrap(tokens, wrappers=False)
+    if raw and (raw[0] in KEYWORDS or (raw[0] == "exec" and len(raw) > 1)):
+        return True
+    for n in range(len(tokens) - 2):                         # name() { ...; }
+        if tokens[n + 1] == "(" and tokens[n + 2] == ")" and tokens[n] not in ("$", "(", ")"):
+            return True
+    toks = _strip_wrappers(list(raw))
+    if not toks:
+        return False
+    prog, args = os.path.basename(toks[0]), toks[1:]
+    if prog in ("eval", "source", "."):
+        return True
+    if prog in SHELLS:
+        return any(re.fullmatch(r"-[A-Za-z]{2,}", a) and "c" in a for a in args)
+    base = re.sub(r"\d+(\.\d+)*$", "", prog)
+    return (prog in INTERPRETERS or base in INTERPRETERS) and _inline_cluster(args)
+
+
+def _complex_floor(command: str) -> bool:
+    """Constructs outside the supported grammar: control flow, functions, ANSI-C quoting, unbalanced quotes or
+    parentheses, process substitution, here-strings, eval/source/exec, shell or interpreter flag clusters."""
+    text = _strip_heredocs(command)
+    if "$'" in text:
+        return True
+    try:
+        tokens = _decompose(_lex(text))
+    except ValueError:
+        return True
+    if any(t in ("<<<", "<(", ">(") for t in tokens):
+        return True
+    depth = 0
+    for t in tokens:
+        depth += 1 if t == "(" else -1 if t == ")" else 0
+        if depth < 0:
+            return True
+    return depth != 0 or any(_seg_complex(seg.tokens) for seg in _build(tokens))
+
+
 def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str, bool]:
-    """Typed twice, and the riskier reading wins: by lines, then with the whole command tokenised (quotes may span
-    lines). Never `splitlines()`: bash does not split on \\x0c or U+2028."""
+    """The precise reading (typed twice, the riskier wins: by lines, then the whole command tokenised) may lower
+    stakes only for commands it fully understands. Two floors are checked independently of it: a sensitive name
+    (cap) and constructs outside the grammar (shell:complex, high)."""
     home = _norm(home or os.path.expanduser("~"))
-    command = CONTINUATION.sub("", command or "")
+    command = _join_lines(command)
     start = cwd or os.getcwd()
     by_lines = _run(_build(_tokens_lines(command)), start, home, depth)
     whole = _run(_build(_tokens_whole(command)), start, home, depth)
     best = whole if RANK[whole[1]] >= RANK[by_lines[1]] else by_lines
+    if best[1] == CAP:
+        return best[0], best[1], False
+    if _sensitive_floor(command):
+        return "file:sensitive", CAP, False
+    if _complex_floor(command):
+        low = command.lower()          # quotes cannot be trusted here: look at the raw text
+        if any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.lower() in low for d in SENSITIVE_DIRS):
+            return "file:sensitive", CAP, False
+        return "shell:complex", HIGH, False
     return best[0], best[1], False                  # a command is never reversible by Clearance
 
 
 def _seg_reads_external(tokens: list[str], depth: int) -> bool:
+    if depth > MAX_DEPTH:
+        return False
+    for n, t in enumerate(tokens):                      # <(curl x), $(curl x), "$(curl x)", `curl x`
+        if t in ("<(", ">(", "(") and n + 1 < len(tokens) and os.path.basename(tokens[n + 1]) in ("curl", "wget"):
+            return True
+        for inner in re.findall(r"\$\(([^()]*)\)", t):
+            if _cmd_reads_external(inner, depth + 1):
+                return True
+    for inner in re.findall(r"`([^`]*)`", " ".join(tokens)):
+        if _cmd_reads_external(inner, depth + 1):
+            return True
     toks = _unwrap(tokens)
-    if not toks or depth > MAX_DEPTH:
+    if not toks:
         return False
     prog, args = os.path.basename(toks[0]), toks[1:]
     if prog in ("curl", "wget"):
@@ -597,15 +747,37 @@ def _seg_reads_external(tokens: list[str], depth: int) -> bool:
     if prog == "gh":
         plain = _strip(args, GH_VALUE_OPTS)
         if plain[:1] == ["api"]:
-            return not any(a in ("-X", "--method", "-f", "-F", "--field", "--raw-field", "--input")
-                           or a.startswith(("--method=", "-X", "--field=", "--raw-field=", "--input="))
-                           for a in args)
+            return _gh_api_reads(args)
         return len(plain) > 1 and plain[0] in ("issue", "pr") and plain[1] == "view"
     return False
 
 
+def _gh_api_reads(args: list[str]) -> bool:
+    method, fields, endpoint = "", False, ""
+    skip = False
+    for n, a in enumerate(args):
+        if skip:
+            skip = False
+            continue
+        if a in ("-X", "--method"):
+            method, skip = args[n + 1].upper() if n + 1 < len(args) else "?", True
+        elif a.startswith("--method="):
+            method = a.split("=", 1)[1].upper()
+        elif a.startswith("-X") and len(a) > 2:
+            method = a[2:].upper()
+        elif a in ("-f", "-F", "--field", "--raw-field", "--input"):
+            fields, skip = True, True                       # these take a value
+        elif a.startswith(("--field=", "--raw-field=", "--input=", "-f", "-F")):
+            fields = True
+        elif not a.startswith("-") and a != "api" and not endpoint:
+            endpoint = a
+    if method and method != "GET":
+        return False
+    return not fields or method == "GET" or endpoint == "graphql"
+
+
 def _cmd_reads_external(command: str, depth: int) -> bool:
-    command = CONTINUATION.sub("", command or "")
+    command = _join_lines(command)
     return any(_seg_reads_external(seg.tokens, depth)
                for tokens in (_tokens_lines(command), _tokens_whole(command)) for seg in _build(tokens))
 
@@ -671,9 +843,15 @@ def _external_server(server: str) -> bool:
 
 
 # ----------------------------------------------------------------------------------------------------------- main
+FLOORS = {"file:unknown", "shell:complex", "file:unreadable"}   # fail-safe types: an override can only raise them
+
+
 def _override(t: str, stakes: str, overrides: dict | None) -> str:
     if not overrides or (stakes == CAP and t.startswith(PROTECTED)):
         return stakes
+    if t in FLOORS:
+        raised = _override(t + "\0", stakes, overrides)       # what an override would give if it could
+        return raised if RANK[raised] > RANK[stakes] else stakes
     if t in overrides:
         return _valid(overrides[t], stakes)
     for pat, val in overrides.items():
@@ -703,6 +881,7 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
              home: str | None = None) -> Action:
     args = args if isinstance(args, dict) else {}
     home = home or os.path.expanduser("~")
+    _CACHE.memo = {}
     if tool_name in FREE_TOOLS:
         t, stakes, rev = f"read:{tool_name}", FREE, False
     elif tool_name in ("write_file", "patch"):
