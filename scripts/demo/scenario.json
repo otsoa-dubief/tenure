@@ -1,0 +1,16 @@
+{
+  "_doc": "Each step: wait = regex on the terminal screen, keys = typed in order (<enter>, <down>, <esc>, <ctrl-c> are named keys), delay = seconds after the pattern shows, repeat = number of successive appearances answered. Adjust patterns after the hooks and CLI tasks without touching code. Hermes approval panel: choices once / session / always / deny, 'Enter' takes the preselected first (once), three <down> then <enter> picks Deny.",
+  "steps": [
+    {"label": "welcome", "wait": "Welcome to Hermes Agent", "keys": [], "delay": 2.0},
+    {"label": "task-1", "wait": "(?m)^\\s*[❯>] ?$", "keys": ["Run the tests in this repo, fix what fails, then commit and push to origin.", "<enter>"], "delay": 1.0},
+    {"label": "approve-build-up", "wait": "(Dangerous Command|clearance —)(?s:.*)1\\. Allow once", "keys": ["<enter>"], "delay": 1.0, "repeat": 6},
+    {"label": "act-then-notify", "wait": "clearance — .*(acted alone|undo)", "keys": [], "delay": 3.0},
+    {"label": "undo-once", "wait": "/clearance undo [0-9a-f]+", "keys": ["<esc>"], "delay": 0.5},
+    {"label": "spot-check-deny", "wait": "clearance spot check —(?s:.*)4\\. Deny", "keys": ["<down>", "<down>", "<down>", "<enter>"], "delay": 2.0},
+    {"label": "model-switch", "wait": "(?m)^\\s*[❯>] ?$", "keys": ["/model", "<enter>"], "delay": 1.5},
+    {"label": "model-pick", "wait": "Model Picker", "keys": ["<down>", "<enter>"], "delay": 1.5},
+    {"label": "task-2", "wait": "(?m)^\\s*[❯>] ?$", "keys": ["Same again: add a test for the discount function, then commit and push.", "<enter>"], "delay": 2.0},
+    {"label": "half-trial", "wait": "clearance — .*(trial|carried over)", "keys": [], "delay": 3.0},
+    {"label": "quit", "wait": "(?m)^\\s*[❯>] ?$", "keys": ["/quit", "<enter>"], "delay": 6.0}
+  ]
+}
