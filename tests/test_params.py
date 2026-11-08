@@ -3,7 +3,10 @@ import math
 
 import pytest
 
+from fractions import Fraction
+
 from clearance import params
+from clearance.params import ALPHA, BETA, PRESETS, required_n, study_n, wald_steps
 
 
 def _aoql_grid(i, spot, step=1e-5, top=0.5):
@@ -24,17 +27,29 @@ def test_aoql_matches_a_brute_force_search(i, spot):
     assert 0 < worst_p < 0.5
 
 
-@pytest.mark.parametrize("risk,spot", [(0.05, 0.1), (0.02, 0.1), (0.01, 0.1), (0.005, 0.1), (0.001, 0.1),
-                                       (0.02, 0.05), (0.02, 0.2)])
-def test_clearance_number_is_the_smallest_that_keeps_the_risk(risk, spot):
-    i = params.clearance_number(risk, spot)
-    assert params.aoql(i, spot)[0] <= risk
-    assert i == math.ceil(1 / risk) - 1 or params.aoql(i - 1, spot)[0] > risk
+def test_study_n_matches_the_study_formula():
+    assert [study_n(Fraction(1, d)) for d in (20, 50, 100, 200, 1000)] == [21, 52, 105, 210, 1052]
+    assert study_n(0.02) == 52   # floats go through Fraction(str(bar))
 
 
-def test_clearance_numbers_shown_to_users():
-    """With one spot check in ten, about 1.1 / risk approvals in a row: 54 for 1 in 50, 110 for 1 in 100."""
-    assert [params.clearance_number(r, 0.1) for r in (0.02, 0.01, 0.005)] == [54, 110, 220]
+@pytest.mark.parametrize("bad", [0, 1, -0.1, 1.5, Fraction(1), Fraction(0)])
+def test_study_n_rejects_a_bar_outside_zero_one(bad):
+    with pytest.raises(ValueError):
+        study_n(bad)
+
+
+def test_required_n_is_none_when_capped():
+    assert required_n(PRESETS["balanced"], "high") is None
+    assert required_n(PRESETS["balanced"], "low") == 52
+
+
+def test_wald_steps_reach_t2_after_12_and_18_successes():
+    for stakes, expected in (("low", 12), ("medium", 18)):
+        a, s, ln_b = wald_steps(stakes)
+        assert a > 0 and s < 0 and ln_b < 0
+        k = next(k for k in range(1, 100) if k * s <= ln_b)
+        assert k == expected
+    assert (ALPHA, BETA) == (0.05, 0.05)
 
 
 def test_worst_case_when_the_agent_changes_after_clearance():
@@ -44,11 +59,9 @@ def test_worst_case_when_the_agent_changes_after_clearance():
 
 
 @pytest.mark.parametrize("bad", [0, 1, -0.1, 1.5, float("nan")])
-def test_risk_and_spot_rate_are_checked(bad):
+def test_legacy_clearance_number_still_checks_its_risk(bad):
     with pytest.raises(ValueError):
         params.clearance_number(bad, 0.1)
-    with pytest.raises(ValueError):
-        params.clearance_number(0.02, bad if bad != 1 else 0)
 
 
 def test_presets():
@@ -58,7 +71,11 @@ def test_presets():
     assert params.PRESETS["balanced"] == {"low": 1 / 50, "medium": 1 / 100, "high": None}
     assert params.PRESETS["fast"] == {"low": 1 / 20, "medium": 1 / 50, "high": None}
     assert params.PRESETS["careful"] == {"low": 1 / 100, "medium": 1 / 200, "high": 1 / 1000}
-    table = params.describe("balanced", 0.1)
-    assert table["low"]["approvals"] == 54 and table["medium"]["approvals"] == 110
-    assert table["high"]["capped"] and table["high"]["approvals"] is None
-    assert table["low"]["guarantee"] <= 1 / 50 and table["low"]["worst_case"] == pytest.approx(params.worst_case(54, 0.1))
+
+
+def test_describe_shows_the_guarantee_for_the_study_n():
+    table = params.describe("balanced")
+    assert table["low"]["n"] == 52 and table["medium"]["n"] == 105
+    assert table["low"]["aoql"] == params.aoql(52, 0.1)[0]
+    assert table["low"]["worst_case"] == pytest.approx(params.worst_case(52, 0.1))
+    assert table["high"]["capped"] and table["high"]["n"] is None and table["high"]["aoql"] is None

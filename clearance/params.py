@@ -19,6 +19,7 @@ not checked, the share is at most ``(1 - f) / (f i + 1)`` until the first caught
 from __future__ import annotations
 
 import math
+from fractions import Fraction
 from functools import lru_cache
 
 # Recommendations shown by `/clearance setup`: accepted share of errors that run without approval, per stakes level.
@@ -31,6 +32,33 @@ PRESETS = {
 DEFAULT_PRESET = "balanced"
 DEFAULT_SPOT = 0.1          # one cleared action in ten still asks
 LEVELS = ("low", "medium", "high")
+
+
+# Detection rate of the preregistered study; series length N = ceil(1 / (DETECTION * bar)) - 1.
+DETECTION = Fraction(95, 100)
+# Wald sequential test for the middle tier: (pb, pm) = (acceptable, unacceptable) error rate per stakes.
+WALD = {"low": (0.10, 0.30), "medium": (0.05, 0.20)}
+ALPHA = BETA = 0.05
+
+
+def study_n(bar) -> int:
+    """Series length: consecutive approvals needed for a bar (accepted share of unchecked errors), in exact fractions."""
+    b = bar if isinstance(bar, Fraction) else Fraction(str(bar))
+    if not 0 < b < 1:
+        raise ValueError(f"bar must be between 0 and 1 (exclusive), got {bar!r}")
+    return math.ceil(1 / (DETECTION * b)) - 1
+
+
+def required_n(risks: dict, stakes: str):
+    """Series length for a stakes level, or None when that level is capped (always asks)."""
+    bar = risks.get(stakes)
+    return None if bar is None else study_n(bar)
+
+
+def wald_steps(stakes: str) -> tuple[float, float, float]:
+    """(a, s, ln_b): a failure adds a, a success adds s (negative); the lower boundary is ln_b."""
+    pb, pm = WALD[stakes]
+    return math.log(pm / pb), math.log((1 - pm) / (1 - pb)), math.log(BETA / (1 - ALPHA))
 
 
 def _check(risk: float, spot: float) -> None:
@@ -83,15 +111,19 @@ def worst_case(i: int, spot: float) -> float:
 
 
 def describe(preset_or_risks, spot: float = DEFAULT_SPOT) -> dict:
-    """Per stakes level: accepted risk, approvals in a row needed, stable-agent guarantee, worst case, or capped."""
+    """Per stakes level: accepted risk, series length N, guarantee (aoql) and worst case for that N, or capped.
+
+    ``approvals`` and ``guarantee`` are kept as aliases of ``n`` and ``aoql`` for current callers.
+    """
     risks = PRESETS[preset_or_risks] if isinstance(preset_or_risks, str) else dict(preset_or_risks)
     out = {}
     for level in LEVELS:
-        risk = risks.get(level)
-        if risk is None:
-            out[level] = dict(risk=None, capped=True, approvals=None, guarantee=None, worst_case=None)
+        n = required_n(risks, level)
+        if n is None:
+            out[level] = dict(risk=None, capped=True, n=None, aoql=None, worst_case=None,
+                              approvals=None, guarantee=None)
             continue
-        i = clearance_number(risk, spot)
-        out[level] = dict(risk=risk, capped=False, approvals=i, guarantee=aoql(i, spot)[0],
-                          worst_case=worst_case(i, spot))
+        g = aoql(n, spot)[0]
+        out[level] = dict(risk=risks[level], capped=False, n=n, aoql=g, worst_case=worst_case(n, spot),
+                          approvals=n, guarantee=g)
     return out
