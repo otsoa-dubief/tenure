@@ -20,6 +20,7 @@ Hooks:
 - ``post_approval_response``: a refusal is a fault; an approval waits for the execution.
 - ``post_tool_call``: the verified outcome of the decision. A session that read external content, or ran code, is
   suspended first, in a transaction of its own.
+- ``subagent_start``: a child agent of a suspended parent starts suspended (its task comes from that context).
 - ``subagent_stop``: a child agent that read external content suspends its parent, whose context gets its summary.
 
 Calls outside any session (Hermes passes no session id) share the empty session: their pending rows are matched by
@@ -36,6 +37,7 @@ import json
 import logging
 import os
 import random
+import secrets
 import threading
 import time
 import uuid
@@ -110,6 +112,26 @@ def store_() -> store.Store:
         if ST.store is None or ST.store_path != path:
             ST.store, ST.store_path = store.Store(path), path
         return ST.store
+
+
+UNDO_KEY = "undo:hmac-key"
+
+
+def undo_key(deadline: float | None = None) -> bytes:
+    """The secret that signs undo snapshots (``undo``), kept in the clearance database's meta table: created once,
+    never logged, never exported."""
+    with _locked(deadline):
+        st = store_()
+        value = st.get_meta(UNDO_KEY)
+        if value is None:
+            insert = ("INSERT OR IGNORE INTO meta (key, value) VALUES (?, ?)", (UNDO_KEY, secrets.token_hex(32)))
+            if st.db.in_transaction:                     # called inside txn() (undo_entry)
+                st.db.execute(*insert)
+            else:
+                with st.transaction():
+                    st.db.execute(*insert)
+            value = st.get_meta(UNDO_KEY)
+    return bytes.fromhex(value)
 
 
 @contextmanager
@@ -448,7 +470,11 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
         return UndoMessage(f"Undo {id} is older than {UNDO_WINDOW // 3600} h: the snapshot is no longer kept.", False)
     if not entry["snap_id"]:
         return UndoMessage(f"Undo {id}: no snapshot was saved for this action, nothing to restore.", False)
-    restored, failed = undo.restore(entry["snap_id"], data_dir(), keep=True)
+    try:
+        restored, failed = undo.restore(entry["snap_id"], data_dir(), keep=True, key=undo_key())
+    except undo.Refused as e:
+        return UndoMessage(f"Undo {id} refused: {e}. Nothing was restored, nothing is marked undone and no fault is "
+                           f"recorded.", False)
     if failed:
         return UndoMessage(f"Undo {id}: {failed} file(s) could not be restored ({restored} were). Nothing is marked "
                            f"undone and no fault is recorded: fix the cause (permissions, a locked file) and try "
@@ -587,10 +613,29 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
     return f"clearance — {act.summary}\n{why} Approve if the action is right; deny if it is wrong."
 
 
-def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool, reason: str | None) -> list[str]:
+# Seconds: Hermes runs a longer terminal call in the background (its TERMINAL_MAX_FOREGROUND_TIMEOUT default).
+FOREGROUND_MAX = 600
+
+
+def _background(tool: str, args: dict) -> bool:
+    """A terminal call Hermes runs in the background: its result is a launch, not the command's outcome."""
+    if tool != "terminal":
+        return False
+    if _truthy(args.get("background")):
+        return True
+    try:
+        limit = int(os.environ.get("TERMINAL_MAX_FOREGROUND_TIMEOUT", FOREGROUND_MAX))
+        return int(args.get("timeout") or 0) > limit
+    except (TypeError, ValueError):
+        return False
+
+
+def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool, reason: str | None,
+            launched: bool = False) -> list[str]:
     """The verified outcome of one pending decision, from facts gathered before the transaction: was the call stopped
     (``blocked``), did the tool fail, what did the automatic check of the written files say. The check judges every
-    action that ran, even one nobody answered. Returns the owner's messages."""
+    action that ran, even one nobody answered. A background launch (``launched``) is neutral: the command's own
+    outcome is not known when the call returns. Returns the owner's messages."""
     phase, agent, key = p["phase"], p["agent"], p["type"]
     decided = phase in ("approved", "notify", "alone")      # approved by a person, or run by an earned tier
     spot = phase == "approved" and p["decision"] == rule.SPOT
@@ -598,6 +643,8 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         result_source = ("neutral", "blocked" if decided else "nobody")
     elif failed:
         result_source = ("neutral", "error" if decided else "nobody")
+    elif launched:
+        result_source = ("neutral", "background")
     elif reason:
         result_source = ("fault", "spot" if spot else "check")
     elif phase == "approved":
@@ -691,7 +738,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 preview = _decide(store_(), agent, act, n, cfg, session, nobody, _NoSpot)[2]
             if preview == rule.NOTIFY:
                 paths = classify.files_written(tool, args, cwd)
-                taken = undo.snapshot(paths, data_dir()) if paths else None
+                taken = undo.snapshot(paths, data_dir(), key=undo_key(deadline)) if paths else None
         posts, directive, snap = [], None, taken
         with txn(deadline) as st:
             posts += _say(sync_settings(st, cfg), cfg["spot"])
@@ -803,8 +850,9 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         p = rows[0]
         blocked = str(status or "").strip().lower() == "blocked"
         failed = not blocked and proofs.execution(tool, status, error_type, result) == "failed"
+        launched = not blocked and not failed and _background(tool, args)
         reason = None
-        if not blocked and not failed:
+        if not blocked and not failed and not launched:
             paths = classify.files_written(tool, args, cwd)
             reason = proofs.check_files(paths) if paths else None
         cfg = settings()
@@ -813,7 +861,7 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
             p = st.pop_pending(p["id"])                         # settled once, by whoever comes first
             if p is not None:
                 posts += _say(sync_settings(st, cfg), cfg["spot"])
-                posts += _settle(st, cfg, p, blocked=blocked, failed=failed, reason=reason)
+                posts += _settle(st, cfg, p, blocked=blocked, failed=failed, reason=reason, launched=launched)
         for text in posts:
             _announce(text)
     except LockTimeout:
@@ -836,6 +884,26 @@ def _ambiguous(rows: list[dict]) -> None:
                 _bump(st, r["agent"], "neutral")
     for text in posts:
         _announce(text)
+
+
+def subagent_start(parent_session_id="", child_session_id="", **kwargs):
+    """A child agent works from its parent's context: the child of a suspended parent starts suspended."""
+    try:
+        parent, child = anon(parent_session_id), anon(child_session_id)
+        if not parent or not child or parent == child:
+            return None
+        with ST.mem:
+            tainted = parent in ST.tainted
+        if not tainted:
+            with _locked():
+                tainted = store_().is_tainted(parent)
+        if tainted:
+            _taint(child)
+    except LockTimeout:
+        log.warning("clearance: subagent_start skipped: the store stayed busy")
+    except Exception:
+        log.exception("clearance: subagent_start failed")
+    return None
 
 
 def subagent_stop(parent_session_id="", child_session_id="", **kwargs):
@@ -871,6 +939,7 @@ def register(ctx):
     ctx.register_hook("pre_tool_call", pre_tool_call)
     ctx.register_hook("post_approval_response", post_approval_response)
     ctx.register_hook("post_tool_call", post_tool_call)
+    ctx.register_hook("subagent_start", subagent_start)
     ctx.register_hook("subagent_stop", subagent_stop)
     from . import cli
     ctx.register_cli_command(name="clearance", help="Earned autonomy per action type: status, models, undo, flag, "

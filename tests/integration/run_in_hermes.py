@@ -143,9 +143,11 @@ def since(mark):
 
 # ---------------------------------------------------------------------------------------------- loaded
 check("clearance loaded", core is not None, True)
-check("five hooks registered", sorted(h for h in ("pre_api_request", "pre_tool_call", "post_approval_response",
-                                                  "post_tool_call", "subagent_stop") if plugins.has_hook(h)),
-      ["post_approval_response", "post_tool_call", "pre_api_request", "pre_tool_call", "subagent_stop"])
+check("six hooks registered", sorted(h for h in ("pre_api_request", "pre_tool_call", "post_approval_response",
+                                                 "post_tool_call", "subagent_start", "subagent_stop")
+                                       if plugins.has_hook(h)),
+      ["post_approval_response", "post_tool_call", "pre_api_request", "pre_tool_call", "subagent_start",
+       "subagent_stop"])
 core.ST.rng = Picks()
 plugins.invoke_hook("pre_api_request", model="model-a", provider="test", session_id="it-1")
 with open(os.path.join(project, "README.md"), "w") as f:
@@ -185,6 +187,26 @@ for _ in range(n):                             # the rest of the series acts the
         break
     check(f"T2 write, series {tier()[1] + 1}/{n}: acts", write(f"s{tier()[1]}"), "ran")
 check("full series from one session: still T2", tier(), ("notify", n, 1))
+mark = len(posted)
+check("T2 write for the tamper test: acts", write("tamper-me"), "ran")
+tamper_ids = [p.rsplit(" ", 1)[1] for p in since(mark) if "/clearance undo" in p]
+entry = core.store_().get_undo(int(tamper_ids[0])) if tamper_ids else None
+victim = os.path.join(project, "victim.txt")
+with open(victim, "w") as f:
+    f.write("keep\n")
+if entry:
+    mpath = os.path.join(core.data_dir(), "undo", entry["snap_id"], "manifest.json")
+    with open(mpath) as f:
+        manifest = json.load(f)
+    manifest["files"][0]["path"] = victim
+    os.chmod(mpath, 0o600)
+    with open(mpath, "w") as f:
+        json.dump(manifest, f)
+code, out = cli("undo", tamper_ids[0] if tamper_ids else "0")
+print("     " + out)
+check("a tampered undo manifest is refused", (code, "refused" in out), (1, True))
+check("the path it named was never written", open(victim).read(), "keep\n")
+check("the project file stays as the action left it", read(), "tamper-me")
 check("one session only: still notifies", write("one-session"), "ran")
 check("a second session completes the series: T3", (write("second", session="it-2"), tier()),
       ("ran", ("alone", n, 2)))
@@ -210,6 +232,24 @@ check("suspended session: a write asks", write("tainted", "once", session="it-5"
 check("the ask says why", "suspended: external content read" in (asked[before] if len(asked) > before else ""),
       True)
 check("other sessions are not suspended", write("clean", session="it-2"), "ran")
+plugins.invoke_hook("subagent_start", parent_session_id="it-5", parent_turn_id="t", parent_subagent_id=None,
+                    child_session_id="it-5-child", child_subagent_id="sa-1", child_role="leaf", child_goal="x")
+check("subagent_start: the child of a suspended parent asks",
+      write("child", "once", session="it-5-child"), "approved")
+
+# ----------------------------------------------------------------- self-protection, through Hermes' own home
+for cmd in ("hermes config set plugins.entries.clearance.settings.enabled false", "hermes plugins disable clearance",
+            "hermes clearance strict off", "python -m hermes_cli config set approvals.mode off",
+            "find ~ -name clearance.db -delete", f"sqlite3 {core.data_dir()}/clearance.db 'delete from ledger'",
+            f"rm -rf {core.data_dir()}/undo"):
+    before = len(asked)
+    got = run("terminal", {"command": cmd}, "deny", session="it-2", real=False)
+    why = asked[before] if len(asked) > before else ""
+    check(f"capped: {cmd[:60]}", (got, "is capped: always asked" in why, "self:" in why), ("refused", True, True))
+for path in (os.path.join(home, "config.yaml"), os.path.join(core.data_dir(), "undo", "x", "manifest.json")):
+    check(f"capped write in the custom Hermes home: {os.path.relpath(path, home)}",
+          core.classify.classify("write_file", {"path": path}, cwd=project).stakes, "cap")
+check("hermes status: never asks", run("terminal", {"command": "hermes status"}, real=False), "ran")
 
 # --------------------------------------------------------------------------------- 'always' never bypasses
 check("git push: high stakes, capped by the settings",

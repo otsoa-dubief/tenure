@@ -290,7 +290,7 @@ def test_post_undo_restores_and_counts_a_fault(env):
     proj.mkdir()
     target = proj / "f.txt"
     target.write_text("before\n")
-    snap = core.undo.snapshot([str(target)], core.data_dir())
+    snap = core.undo.snapshot([str(target)], core.data_dir(), key=core.undo_key())
     target.write_text("after\n")
     with core.txn() as st:
         uid = st.add_undo(A, "file:write", snap)
@@ -412,7 +412,7 @@ def test_post_snapshot_removed_after_commit_and_busy_store_is_503(env, monkeypat
     proj.mkdir()
     target = proj / "g.txt"
     target.write_text("one")
-    snap = core.undo.snapshot([str(target)], core.data_dir())
+    snap = core.undo.snapshot([str(target)], core.data_dir(), key=core.undo_key())
     target.write_text("two")
     with core.txn() as st:
         uid = st.add_undo(A, "file:write", snap)

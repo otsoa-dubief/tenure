@@ -6,7 +6,8 @@ The CLI, the gateway and cron run in separate processes and may answer approvals
 read-modify-write happens inside ``transaction()`` (BEGIN IMMEDIATE), so no update is lost. The ledger lives in the
 same database, written in the same transaction as the state it explains, as a hash chain: each row carries the hash
 of the previous one, so an exported evidence file can be checked line by line (``verify``). The ledger records
-agents, action types, stakes, outcomes and anonymised sessions, never commands, paths or message contents.
+agents, action types, stakes, outcomes and anonymised sessions, never a whole command, a path or a message. A type
+name can include a script, target or alias name taken from the command; the passport and the dashboard redact it.
 
 A pending decision waits for its outcome under its own unique id. Providers reuse tool call ids across sessions
 (``call_0`` every turn), so a row is found by (anonymised session, tool call id), and a live row is never replaced.
@@ -73,7 +74,8 @@ PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible"
 #                  ran, unverified), blocked (stopped by another guard after our decision, never ran), timeout (no
 #                  answer from a person: timeout, cancellation, smart approval), nobody (nobody answered: cron,
 #                  yolo, approvals off, another plugin's approval; the action did not fail its automatic check, or
-#                  did not run, or its tool failed), expired (no outcome within 24 h).
+#                  did not run, or its tool failed), expired (no outcome within 24 h), background (a terminal call
+#                  Hermes ran in the background: its result is the launch, not the command's outcome).
 #   {"event": "agent", "old": str, "new": str, "mode": carry|strict, "vetoed": [type, ...]}
 #       Replay: every type of `old` that `new` has no state for yet becomes rule.carry_over(old state,
 #       n_new=params.required_n(risks, stakes), veto=type in vetoed, strict=mode == "strict").
@@ -82,7 +84,7 @@ PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible"
 OUTCOME_SOURCES = {
     "success": frozenset({"approval", "spot", "notify"}),
     "fault": frozenset({"refusal", "spot", "check", "undo", "flag"}),
-    "neutral": frozenset({"error", "alone", "blocked", "timeout", "nobody", "expired", "ambiguous"}),
+    "neutral": frozenset({"error", "alone", "blocked", "timeout", "nobody", "expired", "ambiguous", "background"}),
 }
 # Outcomes of an action that ran: the wait after a failed trial counts them (rule.count_action). A failed automatic
 # check counts even when nobody answered: the action ran and the check judged it. A refused spot check never ran; an

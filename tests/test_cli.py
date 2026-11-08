@@ -381,7 +381,7 @@ def test_partial_undo_keeps_the_entry_open_and_records_no_fault(plugin, monkeypa
     ctx.call("write_file", write("p"))
     uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
     faults, n = state(mod, "file:write").faults, len(ledger(mod))
-    monkeypatch.setattr(mod.undo, "restore", lambda snap, root, keep=False: (1, 2))
+    monkeypatch.setattr(mod.undo, "restore", lambda snap, root, keep=False, key=None: (1, 2))
     text, code = run_line(mod, f"undo {uid}")
     assert code == 1 and "2 file(s) could not be restored" in text and "try again" in text
     assert mod.store_().get_undo(uid)["undone"] is False
