@@ -315,11 +315,12 @@ def reevaluate(s: TypeState, n: int | None) -> list[dict]:
 
 def rebase(s: TypeState) -> list[dict]:
     """The type's stakes changed (an owner's override, or arguments that raise or lower them): evidence counts only at
-    the stakes it was earned at. The series, its sessions, the carried-over part and the Wald score start over and
-    the tier returns to T1; an open trial, its wait, a lengthened climb and the faults in memory stay. Call it before
-    applying the first outcome at the new stakes (the hooks and the replay both do)."""
+    the stakes it was earned at. The series, its sessions and the carried-over part start over, the Wald score loses
+    its credit but keeps a fault's penalty (max(score, 0): the error stays), and the tier returns to T1; an open
+    trial, its wait, a lengthened climb and the faults in memory stay. Call it before applying the first outcome at
+    the new stakes (the hooks and the replay both do)."""
     old = s.tier
-    s.tier, s.series, s.sessions, s.provisional, s.wald = T1, 0, [], 0, 0.0
+    s.tier, s.series, s.sessions, s.provisional, s.wald = T1, 0, [], 0, max(s.wald, 0.0)
     return [_move(s, "tier", old, T1, "stakes")]
 
 

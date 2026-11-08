@@ -1227,3 +1227,29 @@ def test_a_sessionless_read_suspends_only_this_process_for_an_hour(plugin):
     with mod.ST.mem:
         mod.ST.tainted[""] -= 3601
     assert sessionless(mod, mod.pre_tool_call, "write_file", write("b"), "c2") is None
+
+
+def test_rebase_keeps_a_faults_wald_penalty(plugin):
+    mod, ctx = plugin({"risks": {"low": 0.25, "medium": 0.1}})
+    ctx.call("write_file", write("bad", "def x(:\n"))                    # low fault: the score goes up by a
+    penalty = state(mod, "file:write").wald
+    assert penalty > 0
+    ctx.settings["types"] = {"file:write": "medium"}
+    ctx.call("write_file", write("m"), answer="timeout")                 # first outcome at medium: re-based
+    assert state(mod, "file:write").wald == pytest.approx(penalty)       # the fault's penalty stays
+
+
+def test_replay_after_a_stakes_change_matches_the_live_states(plugin):
+    mod, ctx = plugin({"risks": {"low": 0.25, "medium": 0.1}})
+    climb(ctx, 12)                                                       # low successes, T2
+    ctx.settings["types"] = {"file:write": "medium"}
+    climb(ctx, 3, name="m")                                              # medium successes, re-based
+    ctx.call("write_file", write("bad", "def x(:\n"))                    # a medium fault
+    ctx.settings["types"] = {}
+    climb(ctx, 2, name="l")                                              # back to low, re-based again
+    assert len([e for e in ledger(mod, "tier") if e["reason"] == "stakes"]) == 2
+    live = {(a, s.key): s.to_dict() for a, s in mod.store_().states()}
+    replayed = {k: s.to_dict() for k, s in replay(mod.store_().ledger(), mod.rule, mod.params, mod.store).items()}
+    for d in list(live.values()) + list(replayed.values()):
+        d.pop("changed_at")
+    assert replayed == live
