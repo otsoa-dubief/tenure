@@ -143,6 +143,9 @@ def since(mark):
 
 # ---------------------------------------------------------------------------------------------- loaded
 check("clearance loaded", core is not None, True)
+from tools import approval_context  # noqa: E402
+check("runs under the Hermes default approvals.mode (smart): clearance's own asks still reach the owner",
+      approval_context._get_approval_mode(), "smart")
 check("six hooks registered", sorted(h for h in ("pre_api_request", "pre_tool_call", "post_approval_response",
                                                  "post_tool_call", "subagent_start", "subagent_stop")
                                        if plugins.has_hook(h)),

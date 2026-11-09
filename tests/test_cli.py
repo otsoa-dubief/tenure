@@ -79,8 +79,9 @@ def test_status_profile_reads_another_profile_read_only(plugin, tmp_path):
 # ----------------------------------------------------------------------------------------------- setup, strict
 def test_setup_warns_when_approvals_not_manual(plugin, monkeypatch):
     mod, ctx = plugin()
+    # smart is the Hermes 0.23 default: plugin approval rules skip the guardian and always reach a person
     fake_hermes_config(monkeypatch, {"approvals": {"mode": "smart"}})
-    assert "learning is paused: approvals.mode is smart" in mod.cli.slash("setup")
+    assert "learning is paused" not in mod.cli.slash("setup")
     fake_hermes_config(monkeypatch, {"approvals": {"mode": False}})           # YAML reads an unquoted off as False
     assert "learning is paused: approvals.mode is off" in mod.cli.slash("setup fast")
     fake_hermes_config(monkeypatch, {"approvals": {"mode": "manual"}})

@@ -412,8 +412,10 @@ def setup_preset(name: str = "") -> str:
     cfg = core.settings()
     warn = ""
     mode = approvals_mode()
-    if mode is not None and mode != "manual":
-        warn = f"learning is paused: approvals.mode is {mode}. Set approvals.mode: manual to let clearance learn.\n"
+    # manual and smart (the Hermes default) both work: clearance's own approvals skip the smart guardian and
+    # always reach a person. Only off lets Hermes settle every ask by itself.
+    if mode == "off":
+        warn = "learning is paused: approvals.mode is off. Set approvals.mode: smart or manual to let clearance learn.\n"
     if not name:
         return warn + presets_text(cfg["spot"])
     name = name.strip().lower()

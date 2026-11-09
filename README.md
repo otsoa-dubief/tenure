@@ -203,8 +203,10 @@ enabled: true
   create or touch the `-wal` and `-shm` files next to it. No table or row is written by a read.
 - **Settings from the dashboard** (`/settings`) may not reach the plugin from the dashboard process; the tab then
   shows the CLI command to run.
-- **Learning pauses unless `approvals.mode` is `manual`.** With `--yolo`, `off`, cron, or a smart-mode verdict,
-  Hermes settles the ask itself and nothing is learned.
+- **Learning needs a person to answer.** `approvals.mode` `smart` (the Hermes default) and `manual` both work:
+  clearance's own approvals skip the smart guardian and always reach you. With `--yolo`, `off` or cron, Hermes
+  settles the ask itself and nothing is learned; a verdict given by the smart guardian on Hermes' own prompts
+  counts for nothing.
 - Approvals count only when a person answers. Records are per model and per Hermes profile.
 - The guarantee covers errors you would refuse when asked. An error nobody would notice cannot be counted.
 
