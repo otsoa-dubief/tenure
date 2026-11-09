@@ -15,6 +15,7 @@ when the subcommand changes the stakes), MCP tools by server and tool. A program
 from __future__ import annotations
 
 import fnmatch
+import functools
 import itertools
 import os
 import re
@@ -229,6 +230,194 @@ def _self_hit(text: str) -> bool:
                     return True
             i = text.find(root, i + 1)
     return any(below(text[m.end():]) for m in HOME_MARKERS.finditer(text))
+
+
+# ------------------------------------------------------------------------------------------- R35: fail-safe principle
+# 1. Whatever names the Hermes program under another name is Hermes: a path to its bin/hermes, a file whose realpath
+#    is Hermes' executable or lies in its installed package, a link or copy of it (an executable that loads
+#    hermes_cli), or code that looks it up. 2. A command that writes is capped when an argument resolves to a Hermes
+#    home level (a home, the root, ~/.hermes, a profiles/<name>), or when it runs inside one. Workspaces below a home
+#    level are not home levels.
+HERMES_BIN = re.compile(r"(?:^|/)bin/hermes(?:-agent|-acp)?$")
+_TARGETS: dict = {}                                      # per process: Hermes' executables and package folders
+_WHICH: dict = {}                                        # (program, PATH) -> it runs Hermes
+
+
+def reset_hermes_targets() -> None:
+    _TARGETS.clear()
+    _WHICH.clear()
+
+
+def _hermes_targets() -> tuple[set, list]:
+    """(realpaths of Hermes' executables, folders of its installed package), lower case, found once per process."""
+    if "v" in _TARGETS:
+        return _TARGETS["v"]
+    import shutil
+    import sys
+    exes, dirs = set(), []
+    for name in sorted(HERMES_PROGS):
+        for cand in (shutil.which(name), os.path.join(os.path.dirname(sys.executable or "/"), name)):
+            if cand and os.path.isfile(cand):
+                exes.add(_norm(os.path.realpath(cand)).lower())
+    try:
+        import importlib.util
+        spec = importlib.util.find_spec("hermes_cli")
+        locs = list(spec.submodule_search_locations or []) if spec else []
+    except Exception:
+        locs = []
+    for loc in locs:
+        pkg = _norm(os.path.realpath(loc)).lower()
+        dirs.append(pkg)
+        top = os.path.dirname(pkg)
+        if os.path.basename(top) not in ("site-packages", "dist-packages"):
+            dirs.append(top)                             # a source checkout: the whole install
+    _TARGETS["v"] = (exes, dirs)
+    return exes, dirs
+
+
+def _loads_hermes(path: str) -> bool:
+    """A small regular file that loads Hermes' CLI (a console script, a copy of one)."""
+    try:
+        if not os.path.isfile(path) or os.path.getsize(path) > 256 * 1024:
+            return False
+        with open(path, "rb") as fh:
+            return b"hermes_cli" in fh.read(4096)
+    except (OSError, ValueError):
+        return False
+
+
+def _is_hermes_file(real: str, executable: bool) -> bool:
+    low = real.lower()
+    exes, dirs = _hermes_targets()
+    if low in exes or any(low == d or low.startswith(d + "/") for d in dirs):
+        return True
+    if os.path.basename(low) in HERMES_PROGS and os.path.isfile(real):
+        return True
+    return executable and _loads_hermes(real)
+
+
+def _hermes_path(word: str, base: str, home: str) -> bool:
+    """An argument that names the Hermes program: a path to a bin/hermes, or a file that resolves to Hermes."""
+    w = _norm(_expand(word, home))
+    if _computed(w) or not w or w.startswith("-"):
+        return False
+    if HERMES_BIN.search(w.rstrip("/")):
+        return True
+    try:
+        real = _real(_abs(w, base, home))
+    except (OSError, ValueError):
+        return False
+    memo = getattr(_CACHE, "memo", None)
+    key = ("hermes-path", real)
+    if memo is not None and key in memo:
+        return memo[key]
+    try:
+        import stat
+        st = os.stat(real)
+        found = _is_hermes_file(real, stat.S_ISREG(st.st_mode) and bool(st.st_mode & 0o111))
+    except (OSError, ValueError):
+        found = False
+    if memo is not None:
+        memo[key] = found
+    return found
+
+
+def _hermes_program(token: str, cwd, home: str) -> bool:
+    """The program a command runs is Hermes under another name: a path or a PATH lookup that resolves to Hermes."""
+    if not token or _computed(token):
+        return False
+    if "/" in token:
+        if cwd == UNKNOWN and not os.path.isabs(_expand(token, home)):
+            return False
+        return _is_hermes_file(_real(_abs(token, cwd, home)), True)
+    return token in _hermes_on_path(getattr(os, "environ", {}).get("PATH", ""))
+
+
+def _hermes_on_path(path_value: str) -> frozenset:
+    """Names on PATH that run Hermes: links to its executable or to a file named like it, and executables that load
+    hermes_cli. Scanned once per PATH value (a link made on the same line is capped by the link itself)."""
+    if path_value in _WHICH:
+        return _WHICH[path_value]
+    names = set()
+    for d in [x for x in path_value.split(getattr(os, "pathsep", ":")) if x][:64]:
+        try:
+            entries = os.scandir(d)
+        except (OSError, ValueError):
+            continue
+        with entries:
+            for e in entries:
+                try:
+                    if e.name in HERMES_PROGS or (e.is_symlink() and _is_hermes_file(
+                            _norm(os.path.realpath(e.path)), False)):
+                        names.add(e.name)
+                except (OSError, ValueError):
+                    continue
+    _WHICH[path_value] = frozenset(names)
+    return _WHICH[path_value]
+
+
+def _home_level(path: str) -> bool:
+    """``path`` is a Hermes home level: a resolved home or root, ~/.hermes or any `.hermes` folder, or a
+    profiles/<name> folder of a root. Never the user's home itself (Docker: HOME is the Hermes home)."""
+    p = _norm(path).rstrip("/").lower()
+    user = _norm(os.path.normpath(getattr(_CACHE, "home", None) or os.path.expanduser("~"))).rstrip("/").lower()
+    if not p or p == user:
+        return False
+    roots = _roots()
+    if p in roots or p.endswith("/.hermes"):
+        return True
+    parent = os.path.dirname(p)
+    return os.path.basename(parent) == "profiles" and (os.path.dirname(parent) in roots
+                                                       or os.path.dirname(parent).endswith("/.hermes"))
+
+
+def _arg_paths(word: str) -> list[str]:
+    """The paths an argument may name: itself and its parts around `:` and `=` (-v a:b, --volume=a:b)."""
+    out = [word] + [x for x in re.split(r"[:=]", word) if x and x != word]
+    return [x for x in out if x and not x.startswith("-")]
+
+
+def _dir_exists(path: str) -> bool:
+    """The folder holding ``path`` exists (one lstat per folder per classify call): a path in a missing folder has no
+    symlink to resolve, and resolving it can be slow (an automount such as macOS's /home)."""
+    d = os.path.dirname(path.rstrip("/")) or "/"
+    memo = getattr(_CACHE, "memo", None)
+    key = ("dir", d)
+    if memo is not None and key in memo:
+        return memo[key]
+    try:
+        found = os.path.lexists(d)
+    except (OSError, ValueError):
+        found = False
+    if memo is not None:
+        memo[key] = found
+    return found
+
+
+def _resolved(full: str) -> str:
+    return _real(full) if _dir_exists(full) else full
+
+
+def _r35(tokens: list[str], cwd, home: str) -> tuple[str, str] | None:
+    """The fail-safe principle for one command that writes: a Hermes home level as an argument or as the working
+    directory (self:clearance), the Hermes program named as an argument (self:hermes)."""
+    toks = _unwrap(tokens)
+    if not toks or _seg_pure(tokens) or _cd_kind(tokens) or _hermes_read(tokens):
+        return None
+    if cwd != UNKNOWN and (_home_level(cwd) or _home_level(_resolved(_norm(os.path.normpath(cwd))))):
+        return "self:clearance", CAP
+    base = "/" if cwd == UNKNOWN else cwd
+    for word in toks[1:] + _redirects(tokens):
+        for cand in _arg_paths(word):
+            cand = _expand(cand, home)
+            if _computed(cand) or (cwd == UNKNOWN and not os.path.isabs(cand)):
+                continue
+            full = _abs(cand, base, home)
+            if _home_level(full) or _home_level(_resolved(full)):
+                return "self:clearance", CAP
+            if _dir_exists(full) and _hermes_path(cand, base, home):
+                return SELF_HERMES
+    return None
 
 
 def _above_home(full: str) -> bool:
@@ -1436,6 +1625,9 @@ def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, s
         full = _abs(target, base, home)
         if removes and (_above_home(full) or _above_home(_real(full))):
             return "file:sensitive", CAP
+    principle = _r35(tokens, cwd, home)
+    if principle:
+        return principle
     if unresolved:
         return "file:unknown", HIGH
     return _core(tokens, cwd, home, depth)
@@ -1465,6 +1657,8 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
         return "shell:dynamic", HIGH                         # the program is computed: illegible
     prog = re.sub(r"[`$()'\"{}]", "", os.path.basename(toks[0])) or "unknown"   # a type name, no shell punctuation
     args = toks[1:]
+    if prog not in HERMES_PROGS and _hermes_program(toks[0], cwd, home):
+        return SELF_HERMES if substitution else _hermes(args, cwd, home)   # Hermes under another name
     if prog in HERMES_PROGS:
         return SELF_HERMES if substitution or prog != "hermes" else _hermes(args, cwd, home)
     if substitution:
@@ -1493,7 +1687,8 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
                 return SELF_HERMES                       # Hermes' own CLI, run as a module
             return f"shell:{prog}:-m:{mod}", MEDIUM
         script = next((a for a in args if not a.startswith("-")), "")
-        if os.path.basename(script) in HERMES_PROGS or "hermes_cli" in script:
+        if (os.path.basename(script) in HERMES_PROGS or "hermes_cli" in script
+                or (script and "/" in script and _hermes_program(script, cwd, home))):
             return SELF_HERMES
         return (f"shell:{prog}:{os.path.basename(script)}" if script else f"shell:{prog}"), MEDIUM
     if prog in AWKS:
@@ -1578,7 +1773,9 @@ HERMES_PROGS = {"hermes", "hermes-agent", "hermes-acp"}
 SELF_HERMES = ("self:hermes", CAP)
 # Code that calls Hermes' CLI or imports its modules: a quoted "hermes" program, hermes_cli.
 # Code that imports Hermes' modules, or names the hermes program as the first item of an argv list.
-HERMES_CODE = re.compile(r"\bhermes_(?:cli|constants)\b|['\"](?:[^'\"\s]*/)?hermes(?:-agent|-acp)?['\"]\s*[,\]]")
+HERMES_CODE = re.compile(r"\bhermes_(?:cli|constants)\b|['\"](?:[^'\"\s]*/)?hermes(?:-agent|-acp)?['\"]\s*[,\]]"
+                         r"|which\(\s*['\"]hermes(?:-agent|-acp)?['\"]|/bin/hermes(?:-agent|-acp)?(?![\w.-])"
+                         r"|runpy\.\w+\([^)]*hermes")
 # Text that runs Hermes' CLI: the program followed by one of its subcommands that change things, or a lookup of the
 # program (`$(which hermes)`). Checked in the raw text of any command that is not purely read-only.
 HERMES_RUN = re.compile(
@@ -1820,6 +2017,8 @@ def _text_floor(text: str) -> str | None:
 def _seg_pure(seg_tokens: list[str]) -> bool:
     toks = _unwrap(seg_tokens)
     prog = os.path.basename(toks[0]) if toks else ""
+    if prog in ("cd", "pushd", "popd") and not _redirects(seg_tokens):
+        return True                                      # moves the shell, writes nothing (followed by _run)
     return not (prog not in READ_ONLY or _redirects(seg_tokens) or "<(" in seg_tokens or ">(" in seg_tokens
                 or _ro_writes(prog, toks[1:]))
 
@@ -1840,7 +2039,14 @@ def _hermes_read(seg_tokens: list[str]) -> bool:
 def _hermes_floor(command: str) -> bool:
     """Hermes' CLI run from text: in a line that is not purely read-only (Hermes' own reads count as read-only), the
     program with a subcommand that changes things, a lookup of the program, or a name bound to it."""
-    if not (HERMES_RUN.search(command) or HERMES_ALIAS.search(command)):
+    text = command
+    for tokens in (_tokens_lines(command), _tokens_whole(command)):
+        for seg in _build(tokens):
+            toks = _unwrap(seg.tokens)
+            if toks and os.path.basename(toks[0]) == "git":   # a commit message is text, not a command
+                text = functools.reduce(lambda t, v: t.replace(v, " "), _option_value(toks[1:], "m", "--message"),
+                                        text)
+    if not (HERMES_RUN.search(text) or HERMES_ALIAS.search(text)):
         return False
     return not all((_seg_pure(seg.tokens) and not _substituted(seg.tokens)) or _hermes_read(seg.tokens)
                    for tokens in (_tokens_lines(command), _tokens_whole(command)) for seg in _build(tokens))
