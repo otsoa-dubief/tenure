@@ -11,10 +11,21 @@ closes that gap: every action that changes something asks first, through Hermes'
 action type (writing files in the project, `npm`, `git push`, sending a message, one MCP tool) keeps its own
 verified record, and climbs three tiers: ask, act then notify (with undo), act alone. It climbs only on
 evidence. Ordinary reads never ask; secrets, sensitive files and the agent's own skills and plugins always do.
-So does anything that could switch clearance off: Hermes' own CLI (all of it except `hermes status`,
-`hermes --version`, `hermes config get|show|path|env-path` and the read commands of `hermes clearance`), any write
-to the Hermes home wherever `HERMES_HOME` points, and anything naming clearance's own data. No type override
-lowers these (`self:*`, `secrets:*`, `file:sensitive`).
+So does anything that could switch clearance off. No type override lowers these (`self:*`, `secrets:*`,
+`file:sensitive`):
+
+- Hermes' own CLI, when the program run is `hermes` (also through `sh -c`, `script -c`, `su -c`, `tmux`, `screen`,
+  `expect`, `ssh`, `uvx`, `uv run`, `pipx run`, a git alias, `$(which hermes)`), or Python code that imports or runs
+  `hermes_cli` or `hermes_constants`. Only these reads are not capped: `hermes status`, `hermes --version`,
+  `hermes config get|show|path|env-path` and `hermes clearance status|models|explain|verify|anchor`.
+- Hermes' own entries in each Hermes home (wherever `HERMES_HOME` points, its root, and `~/.hermes`), and the same
+  entries in each `profiles/<name>/`: `config.yaml`, `.env`, `auth.json` and `auth.lock`, `SOUL.md`, `profile.yaml`,
+  `state.db` and its journal files, and the folders `plugins/`, `plugin-data/`, `skills/`, `optional-skills/`,
+  `hooks/`, `cron/`, `memories/`, `sessions/`, `logs/`, `plans/`, `skins/`, `pairing/`, `platforms/`, `bin/`,
+  `mcp/`, `secrets/`, `vault/`, `backups/`, `state-snapshots/`, `hermes-agent/`, `.deleted/`, the gateway's
+  `gateway.sock`, `gateway.pid` and `gateway.lock`; a whole profile, and removing or moving a home. A project or a
+  workspace inside a home (`workspace/`, `kanban/workspaces/...`) is ordinary.
+- Anything naming clearance's own data: `clearance.db`, `plugin-data/clearance`, the passport key.
 
 ## Three pillars
 
@@ -190,7 +201,8 @@ Never in the database or the ledger: a whole command, a path, file content, a me
 include a script, target or alias name taken from the command (`shell:npm:run:build`, `shell:make:deploy`,
 `shell:git:my-alias`): the ledger keeps them, and the passport and the dashboard redact them by default (a hash of
 the name, see [docs/protocol.md](docs/protocol.md) §3.1). The undo snapshots (file bytes and their paths, mode
-0600) are the one other exception, deleted after 24 h. Nothing leaves your machine:
+0600) are the one other exception, deleted after 24 h. The database also holds the undo HMAC key, a random
+secret that signs each snapshot so that a changed snapshot is never restored. Nothing leaves your machine:
 no network access, no LLM call, no telemetry. clearance does not read `.env`, `auth.json` or any credential
 store. Reads outside the plugin folder, as the catalog asks: the dashboard tab reads, read-only, the
 `plugin-data/clearance/clearance.db` of the Hermes root and of each `profiles/*` folder; act-then-notify reads the
