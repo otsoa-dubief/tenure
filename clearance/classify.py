@@ -544,8 +544,9 @@ HERMES_PART = re.compile(r"(?:^|(?<=[/=:,{(\s'\"`]))(?:\.hermes|hermes)(?=$|[/,}
 
 def _unresolved(word: str) -> bool:
     """R37: a word the shell computes in a way that is not read here: a variable or substitution, a brace list, `~user`
-    or the {} of xargs or find (a glob is judged apart). Words with blanks are text, unless they hold a substitution."""
-    if not word:
+    or the {} of xargs or find (a glob is judged apart). Words with blanks are text, unless they hold a substitution;
+    a word written between single quotes is literal text."""
+    if not word or word in (getattr(_CACHE, "quoted", None) or ()):
         return False
     if any(ch.isspace() for ch in word) and "$(" not in word and "`" not in word:
         return False
@@ -582,19 +583,46 @@ def _names_hermes(word: str, cwd, home: str) -> bool:
     return False
 
 
+PATH_OPTS = {"-C", "-d", "-t", "-o", "--directory", "--target-directory", "--one-top-level", "--output", "--mount",
+             "-v", "--volume", "--chdir"}
+PATH_PROGS = {"unzip", "7z", "7za", "7zz", "unrar", "dd"}         # with WRITERS and ARCHIVERS
+
+
+def _path_words(tokens: list[str]) -> list[str]:
+    """The words of a command that name where it writes: redirection targets, the values of -C, -d, -t, -o,
+    --directory, --mount, -v..., and the arguments of the programs that write files (cp, mv, ln, rm, mkdir, touch,
+    chmod, tar, unzip...). Other option values (a commit message, a header, a version) are not paths."""
+    toks = _unwrap(tokens)
+    out = list(_redirects(tokens))
+    if not toks:
+        return out
+    prog, args = os.path.basename(toks[0]), toks[1:]
+    for n, a in enumerate(args):
+        if a in PATH_OPTS and n + 1 < len(args):
+            out.append(args[n + 1])
+        elif a.startswith("--") and a.split("=", 1)[0] in PATH_OPTS and "=" in a:
+            out.append(a.split("=", 1)[1])
+        elif re.fullmatch(r"-[Cdto].+", a):
+            out.append(a[2:])
+    if prog in PATH_PROGS or prog in WRITERS or prog in ARCHIVERS:
+        out += [a for a in args if not a.startswith("-")]
+    return out
+
+
 def _unresolved_floor(tokens: list[str], cwd, home: str) -> tuple[str, str] | None:
-    """R37, for a command that writes: an argument that cannot be resolved is at least high stakes; capped when its
-    literal part names Hermes."""
+    """R37, for a command that writes: a path it writes to that cannot be resolved is at least high stakes; capped
+    when its literal part names Hermes."""
     toks = _unwrap(tokens)
     if toks and (os.path.basename(toks[0]) in FINDS or os.path.basename(toks[0]) == "parallel"):
         return None                                      # their {} is read where it runs (_find_inner, _parallel)
     found = False
-    for word in toks[1:] + _redirects(tokens):
+    for word in _path_words(tokens):
         for cand in dict.fromkeys([word] + _arg_paths(word)):
             if _unresolved(cand):
                 if _names_hermes(cand, cwd, home):
                     program = re.search(r"(?<![.\w-])hermes(?:-agent|-acp)?(?![\w.-])", cand.lower())
-                    return SELF_HERMES if program and ".hermes" not in cand.lower() else ("self:clearance", CAP)
+                    dotted = any(".hermes" in alt.lower() for alt in _braces(cand))
+                    return SELF_HERMES if program and not dotted else ("self:clearance", CAP)
                 found = True
     return ("file:unknown", HIGH) if found else None
 
@@ -1939,9 +1967,11 @@ def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, s
     if toks:
         targets += _write_args(os.path.basename(toks[0]), toks[1:])
     removes = bool(toks) and os.path.basename(toks[0]) in REMOVERS
+    quoted = getattr(_CACHE, "quoted", None) or ()
     for target in targets:
+        literal = target in quoted                       # between single quotes: no variable, no glob
         target = _expand(target, home)
-        if any(c in target for c in UNRESOLVED) or (cwd == UNKNOWN and not os.path.isabs(target)):
+        if (any(c in target for c in UNRESOLVED) and not literal) or (cwd == UNKNOWN and not os.path.isabs(target)):
             unresolved = True
             continue
         found = _file(target, base, home)
@@ -2509,6 +2539,9 @@ def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str,
     home = _norm(home or os.path.expanduser("~"))
     command = _join_lines(command)
     start = cwd or os.getcwd()
+    quoted = getattr(_CACHE, "quoted", None)
+    if quoted is not None:                               # words written between single quotes: literal text
+        quoted.update(m.group(1) for m in re.finditer(r"(?:^|(?<=[\s=]))'([^']*)'(?=$|[\s;&|)<>])", command))
     by_lines = _run(_glue_find(_build(_tokens_lines(command))), start, home, depth)
     whole = _run(_glue_find(_build(_tokens_whole(command))), start, home, depth)
     best = whole if RANK[whole[1]] >= RANK[by_lines[1]] else by_lines
@@ -2771,7 +2804,7 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
              home: str | None = None) -> Action:
     args = args if isinstance(args, dict) else {}
     home = home or os.path.expanduser("~")
-    _CACHE.memo, _CACHE.roots, _CACHE.cwd, _CACHE.home = {}, None, cwd, home
+    _CACHE.memo, _CACHE.roots, _CACHE.cwd, _CACHE.home, _CACHE.quoted = {}, None, cwd, home, set()
     if tool_name in FREE_TOOLS:
         t, stakes, rev = f"read:{tool_name}", FREE, False
     elif tool_name in ("write_file", "patch"):

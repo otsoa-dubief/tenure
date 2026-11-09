@@ -106,3 +106,28 @@ def test_absolute_member_names_are_high(env, cmd):
 def test_ordinary_extraction_stays_medium(env):
     for cmd in ["tar xzf deps.tgz", "tar -xzvf node-v20.tar.gz", "unzip -o assets.zip -d public/", "7z x data.7z"]:
         assert sh(cmd, env["P"])[1] == c.MEDIUM, cmd
+
+
+# ------------------------------------------------- R37 follow-up: quoted text and non-path option values
+@pytest.mark.parametrize("cmd", ["awk '$1==\"x\"' f > out", "sed 's/$/;/' f > g", "grep '${x}' f > o",
+                                 "jq '.a' f > o", "cp f '$D'"])
+def test_single_quoted_text_is_never_a_variable(env, cmd):
+    assert sh(cmd, env["P"])[1] == c.MEDIUM, cmd
+
+
+def test_inline_perl_keeps_its_own_level(env):
+    t, stakes = sh("perl -pe '$_' f > o", env["P"])    # inline code: its own level (high), not the floor's type
+    assert stakes == c.HIGH and t != "file:unknown"
+
+
+@pytest.mark.parametrize("cmd", ["git commit -m $MSG", 'git commit -m "$MSG"', "echo $X > out.txt", "npm version $V",
+                                 'curl -H "Authorization: $T" -o out.json https://x'])
+def test_non_path_values_keep_the_command_level(env, cmd):
+    assert sh(cmd, env["P"])[1] == c.MEDIUM, cmd
+
+
+@pytest.mark.parametrize("cmd", ["echo x > $D", "tar xf a.tar -C$D", "unzip a.zip -d $D", "cp -t $D x", "mv x $D",
+                                 "ln -s x $D", "rm -rf $D", "mkdir $D", "touch $D", "chmod +x $D",
+                                 "docker run --mount type=bind,src=$D,dst=/d img"])
+def test_unresolved_write_targets_stay_high(env, cmd):
+    assert c.RANK[sh(cmd, env["P"])[1]] >= c.RANK[c.HIGH], cmd
