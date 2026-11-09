@@ -26,6 +26,11 @@ So does anything that could switch clearance off. No type override lowers these 
   `gateway.sock`, `gateway.pid` and `gateway.lock`; a whole profile, and removing or moving a home. A project or a
   workspace inside a home (`workspace/`, `kanban/workspaces/...`) is ordinary.
 - Anything naming clearance's own data: `clearance.db`, `plugin-data/clearance`, the passport key.
+- The fail-safe behind these rules: a command that writes is capped when one of its arguments resolves (through
+  symlinks too) to a Hermes home level (a home, its root, `~/.hermes`, a `profiles/<name>` folder) or to the Hermes
+  program (a path to `bin/hermes`, a link or copy of it, its installed package), and when it runs inside a home level.
+  A program that resolves to Hermes under another name is Hermes. Workspaces below a home level stay ordinary, and so
+  does your own home folder when Hermes lives there (Docker).
 
 ## Three pillars
 
