@@ -33,7 +33,7 @@ Notes:
 | 0-5 s | Hook with the session's real totals ("N actions, M checked"), then title | end of recording (totals read from the ledger afterwards) | Overview totals |
 | 5-15 s | Install command, tab appears; "same rule as a study registered on OSF, simulated on 6,000+ agents" | `welcome` | Tab appearing in the dashboard |
 | 15-45 s | Agent works, tiers light up: 12 approvals, then act-then-notify with Undo; 21 in a row from 2 sessions, then alone; refused spot check drops the type back to T2 | `setup-fast` (on screen: preset fast), `approve-build-up`, `act-then-notify`, `undo-once`, `new-session`, `task-2`, `spot-check-deny`, `status-after-deny` | Live card: tiers, then the type back to notify |
-| 45-65 s | Model switch to GPT-5.5 (Nous Portal list), half of the record carried over on trial, the new agent asks again and fixes the real `discount` bug | `model-switch`, `model-pick`, `model-filter`, `model-choose`, `model-effort`, `task-5`, `approve-fix`, `half-trial` | Model card + carry-over banner |
+| 45-65 s | Chain of 4 models (typed `/model <id> --provider nous`): sonnet-5.5 earns, then opus-5.5, gpt-6-astra-pro, deepseek-v4-pro each carry half the record on trial and ask again on a short task; the cast ends on `/clearance models` | `model-opus`, `approve-opus`, `carry-opus` (the first `half-trial`), `model-astra`..., `model-deepseek`..., `models-table` | Model card + carry-over banner |
 | 65-80 s | Passport: export, then `verify` finds the same tiers | not in the cast; run `/clearance passport` and `verify` in a second short recording | Passport page |
 | 80-90 s | Install command, link, @NousResearch | end card | none |
 
@@ -71,3 +71,12 @@ How many answers (real settings, nothing forced; only the official `fast` preset
 
 The demo project's planted bug is semantic: `test_shop.py` passes with the buggy `discount` (200 - 10 = 190), so "run the
 tests, fix what fails" finds nothing to fix. The task states the expected result (discount(200, 10) = 180) instead.
+
+## Model chain (take 3), what the plugin prints at each switch
+
+- Terminal, every switch, one line posted at the end of the first turn of the new agent: `clearance: new agent <new>@nous (was <old>@nous). Action types: N carried over on trial, 0 reset, 0 vetoed by a public benchmark. A carried-over record is half the old series, provisional until this agent's own successes match it.` N = number of types with a record: 1 in this take (file:write only; the offline check with a second type gave 2). The ask panel then says `... asks first: S/21 verified successes in a row ... K of them carried over from the previous agent, provisional.`
+- The public card and the veto are not printed in the terminal: the card is dashboard only (`plugin_api.py`), the veto only shows as the `vetoed by a public benchmark` count. The snapshot has no sonnet-5.5, opus-5.5 or gpt-6-astra (`No public measure for <model> on SWE-bench Verified` / `Terminal-Bench`), so no veto on these switches. deepseek-v4-pro is in it, but its predecessor (astra) is not: a card without delta, still no veto (a veto needs both scores and a drop of more than 5 points).
+- `/clearance models` (checked offline with the code, same ledger shape): sorted by type then upper bound of the Wilson interval, so the sonnet row (2 faults / 57 checks, 3.5%, 95% interval 1.0% to 11.9%) comes first; the three new models show `0 faults / 3 checks ... under 20 checks: too few to compare`. Rows are 143 columns wide: record with `--cols 150` or the table wraps.
+- The `/model` picker filter is a case-insensitive subsequence over the catalog order: the full id lands on the right model first (astra-pro is followed by -pro-fast, -pro-flex; deepseek-v4-pro by -0813). The typed form skips the picker and the effort screen; a guard may ask `!!! ... !!!` (switch anyway): the `-ok` steps press Enter for it, and Enter on an empty prompt is harmless when there is none.
+- Each short task writes N files, one panel each (new agent at T1 after a half carry-over, Wald half of the old score is above ln B), so `repeat` = N: opus 3, astra 2, deepseek 2.
+- One command for the take: `bash /tmp/acme/work/prise3.sh` (reset, record, passport, frames).

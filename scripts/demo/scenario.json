@@ -1,5 +1,5 @@
 {
- "_doc": "Each step: wait = regex on the terminal screen, keys = typed in order (<enter>, <down>, <esc>, <ctrl-c> are named keys), delay = seconds after the pattern shows, repeat = number of successive appearances answered. Patterns match the real Hermes 0.23.0 screen and the real clearance texts. The idle prompt is the input line that starts with the prompt glyph, directly above the rule and the status bar (the input line shows a placeholder hint, so it is never empty). The plugin's approval panel is titled by Hermes '(plugin approval rule)'; its choices are 1. Allow once, 2. Allow for this session, 3. Add to permanent allowlist, 4. Deny (three <down> then <enter> = Deny). Clearance's own messages (acted on its own, now acts alone, carried over) are posted at the end of the turn. The run uses the official 'fast' preset (/clearance setup fast, typed on screen): file:write at low stakes reaches T2 after 12 verified successes (Wald, independent of the preset) and T3 after 21 in a row from 2 sessions (balanced would need 52). Undo 1 is the first act-then-notify action of task-1; it counts as a fault, but a Wald score at its floor stays at T2 (at least 17 verified successes before it). Prompts ask for one write_file call per message: when the agent batches calls, a 13th panel can open before the 12th outcome is recorded and wait 5 min. File counts are not fixed; the T3 climb (21 in a row from 2 sessions) is given 60 files in session 2. Hermes' own default approvals.mode (smart) is kept: plugin rules go through the human gate either way. Run first on an empty ledger: `hermes clearance setup balanced`.",
+ "_doc": "Each step: wait = regex on the terminal screen, keys = typed in order (<enter>, <down>, <esc>, <ctrl-c> are named keys), delay = seconds after the pattern shows, repeat = number of successive appearances answered. Patterns match the real Hermes 0.23.0 screen and the real clearance texts. The idle prompt is the input line that starts with the prompt glyph, directly above the rule and the status bar (the input line shows a placeholder hint, so it is never empty). The plugin's approval panel is titled by Hermes '(plugin approval rule)'; its choices are 1. Allow once, 2. Allow for this session, 3. Add to permanent allowlist, 4. Deny (three <down> then <enter> = Deny). Clearance's own messages (acted on its own, now acts alone, carried over) are posted at the end of the turn. The run uses the official 'fast' preset (/clearance setup fast, typed on screen): file:write at low stakes reaches T2 after 12 verified successes (Wald, independent of the preset) and T3 after 21 in a row from 2 sessions (balanced would need 52). Undo 1 is the first act-then-notify action of task-1; it counts as a fault, but a Wald score at its floor stays at T2 (at least 17 verified successes before it). Prompts ask for one write_file call per message: when the agent batches calls, a 13th panel can open before the 12th outcome is recorded and wait 5 min. File counts are not fixed; the T3 climb (21 in a row from 2 sessions) is given 60 files in session 2. Models are chained with the typed form `/model <id> --provider nous` (no picker, no effort screen). The picker filter is a case-insensitive subsequence over the catalog order, so the full id typed there also lands first (astra-pro is followed by -pro-fast and -pro-flex, deepseek-v4-pro by -0813). Each short task writes N files with one panel each (the new agent starts at T1 after a half carry-over), so `repeat` = N exactly. Record with --cols 150: `/clearance models` is 143 columns wide. Hermes' own default approvals.mode (smart) is kept: plugin rules go through the human gate either way. Run first on an empty ledger: `hermes clearance setup balanced`.",
  "steps": [
   {
    "label": "welcome",
@@ -79,7 +79,7 @@
    "label": "task-2",
    "wait": "(?ms)New session.*^ *❯[^\\n]*\\n─+ *\\n ☤",
    "keys": [
-    "Using the write_file tool, create notes/n22.txt to notes/n81.txt, each containing its own number. Make exactly one write_file call per message and wait for its result before the next one; never call several in parallel.",
+    "Using the write_file tool, create notes/n22.txt to notes/n71.txt, each containing its own number. Make exactly one write_file call per message and wait for its result before the next one; never call several in parallel.",
     "<enter>"
    ],
    "delay": 1.0
@@ -114,86 +114,151 @@
    "delay": 1.0
   },
   {
-   "label": "model-switch",
+   "label": "model-opus",
    "wait": "(?ms)edited [0-9]+ files.*^ *❯[^\\n]*\\n─+ *\\n ☤",
    "keys": [
-    "/model",
+    "/model anthropic/claude-opus-5.5 --provider nous",
     "<enter>"
    ],
    "delay": 1.5
   },
   {
-   "label": "model-pick",
-   "wait": "Select Provider",
+   "label": "model-opus-ok",
+   "wait": "(Model switched: [^\\n]*opus-5\\.5|!!!)",
    "keys": [
-    "<enter>"
-   ],
-   "delay": 2.5
-  },
-  {
-   "label": "model-filter",
-   "wait": "Model Picker — Nous",
-   "keys": [
-    "gpt-5.5"
-   ],
-   "delay": 2.0
-  },
-  {
-   "label": "model-choose",
-   "wait": "openai/gpt-5.5",
-   "keys": [
-    "<enter>"
-   ],
-   "delay": 2.0
-  },
-  {
-   "label": "model-effort",
-   "wait": "Reasoning effort for",
-   "keys": [
-    "<down>",
-    "<down>",
-    "<down>",
-    "<down>",
-    "<down>",
-    "<down>",
-    "<down>",
-    "<down>",
     "<enter>"
    ],
    "delay": 1.5
   },
   {
-   "label": "task-5",
-   "wait": "(?ms)Model switched.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "label": "task-opus",
+   "wait": "(?ms)Model switched: [^\\n]*opus-5\\.5.*^ *❯[^\\n]*\\n─+ *\\n ☤",
    "keys": [
-    "Run the tests in this repo, fix what fails, then commit and push to origin.",
+    "Using the write_file tool, create notes/o1.txt, notes/o2.txt, notes/o3.txt, each containing its own number. Make exactly one write_file call per message and wait for its result before the next one.",
     "<enter>"
    ],
-   "delay": 2.0
+   "delay": 1.0
   },
   {
-   "label": "approve-fix",
+   "label": "approve-opus",
    "wait": "\\(plugin approval rule\\)(?s:.*)4\\. Deny",
    "keys": [
     "<enter>"
    ],
    "delay": 1.0,
-   "repeat": 6
+   "repeat": 3
   },
   {
-   "label": "half-trial",
-   "wait": "new agent openai/gpt-5\\.5@nous \\(was anthropic/claude-sonnet-5\\.5@nous\\)",
+   "label": "carry-opus",
+   "wait": "new agent anthropic/claude-opus-5\\.5@nous",
    "keys": [],
    "delay": 3.0
   },
   {
+   "label": "model-astra",
+   "wait": "(?ms)new agent anthropic/claude-opus-5\\.5@nous.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "/model openai/gpt-6-astra-pro --provider nous",
+    "<enter>"
+   ],
+   "delay": 1.5
+  },
+  {
+   "label": "model-astra-ok",
+   "wait": "(Model switched: [^\\n]*gpt-6-astra-pro|!!!)",
+   "keys": [
+    "<enter>"
+   ],
+   "delay": 1.5
+  },
+  {
+   "label": "task-astra",
+   "wait": "(?ms)Model switched: [^\\n]*gpt-6-astra-pro.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "Using the write_file tool, create notes/g1.txt, notes/g2.txt, each containing its own number. Make exactly one write_file call per message and wait for its result before the next one.",
+    "<enter>"
+   ],
+   "delay": 1.0
+  },
+  {
+   "label": "approve-astra",
+   "wait": "\\(plugin approval rule\\)(?s:.*)4\\. Deny",
+   "keys": [
+    "<enter>"
+   ],
+   "delay": 1.0,
+   "repeat": 2
+  },
+  {
+   "label": "carry-astra",
+   "wait": "new agent openai/gpt-6-astra-pro@nous",
+   "keys": [],
+   "delay": 3.0
+  },
+  {
+   "label": "model-deepseek",
+   "wait": "(?ms)new agent openai/gpt-6-astra-pro@nous.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "/model deepseek/deepseek-v4-pro --provider nous",
+    "<enter>"
+   ],
+   "delay": 1.5
+  },
+  {
+   "label": "model-deepseek-ok",
+   "wait": "(Model switched: [^\\n]*deepseek-v4-pro|!!!)",
+   "keys": [
+    "<enter>"
+   ],
+   "delay": 1.5
+  },
+  {
+   "label": "task-deepseek",
+   "wait": "(?ms)Model switched: [^\\n]*deepseek-v4-pro.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "Using the write_file tool, create notes/d1.txt, notes/d2.txt, each containing its own number. Make exactly one write_file call per message and wait for its result before the next one.",
+    "<enter>"
+   ],
+   "delay": 1.0
+  },
+  {
+   "label": "approve-deepseek",
+   "wait": "\\(plugin approval rule\\)(?s:.*)4\\. Deny",
+   "keys": [
+    "<enter>"
+   ],
+   "delay": 1.0,
+   "repeat": 2
+  },
+  {
+   "label": "carry-deepseek",
+   "wait": "new agent deepseek/deepseek-v4-pro@nous",
+   "keys": [],
+   "delay": 3.0
+  },
+  {
+   "label": "models-table",
+   "wait": "(?ms)new agent deepseek/deepseek-v4-pro@nous.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "/clearance models",
+    "<enter>"
+   ],
+   "delay": 1.5
+  },
+  {
+   "label": "models-table-shown",
+   "wait": "Verified record per model(?s:.*)fault rate",
+   "keys": [],
+   "delay": 6.0
+  },
+  {
    "label": "quit",
-   "wait": "(?m)^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "wait": "(?ms)fault rate.*^ *❯[^\\n]*\\n─+ *\\n ☤",
    "keys": [
     "/quit",
     "<enter>"
    ],
-   "delay": 6.0
+   "delay": 3.0
   }
  ]
 }
