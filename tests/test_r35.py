@@ -108,8 +108,9 @@ def test_writing_while_inside_a_home_level_is_capped(env):
     t, stakes = sh(f"cd {H} && cp -r /tmp/e plugins/", P)
     assert stakes == c.CAP and t.startswith(c.PROTECTED)
     assert sh("make", H) == ("self:clearance", c.CAP)
-    assert sh(f"cd {H} && ls", P)[1] != c.CAP
-    assert sh(f"cd {H} && cat config.yaml", P)[1] != c.CAP
+    assert sh(f"cd {H} && ls", P) == ("self:clearance", c.CAP)        # R36: a cd to a level is capped, even alone
+    assert sh("ls", H)[1] != c.CAP
+    assert sh("cat config.yaml", H)[1] != c.CAP
 
 
 def test_workspaces_inside_a_home_stay_ordinary(env):

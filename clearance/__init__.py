@@ -19,7 +19,8 @@ Hooks:
   session that read external content asks for everything.
 - ``post_approval_response``: a refusal is a fault; an approval waits for the execution.
 - ``post_tool_call``: the verified outcome of the decision. A session that read external content, or ran code, is
-  suspended first, in a transaction of its own.
+  suspended first, in a transaction of its own. The cwd a terminal command reports becomes the session's: each call is
+  classified in the terminal's real working directory (``call_cwd``), not the session's starting one.
 - ``subagent_start``: a child agent of a suspended parent starts suspended (its task comes from that context).
 - ``subagent_stop``: a child agent that read external content suspends its parent, whose context gets its summary.
 
@@ -80,6 +81,7 @@ class _State:
         self.opening = threading.Lock()          # opening the store
         self.agents: OrderedDict[str, str] = OrderedDict()     # session id -> agent of its latest API request
         self.tainted: OrderedDict[str, float] = OrderedDict()  # suspended sessions (anonymised) -> since when
+        self.cwds: OrderedDict[str, str] = OrderedDict()       # session id -> terminal cwd its last command reported
         self.last_agent = ""
         self.rng = random.SystemRandom()
         self.purged_at = 0.0
@@ -262,6 +264,63 @@ def _session_cwd() -> str:
     except Exception:
         pass
     return os.environ.get("TERMINAL_CWD") or os.getcwd()
+
+
+def _hermes_terminal_cwd(task_id: str) -> str:
+    """The cwd Hermes recorded for the session's terminal (where its next command runs), read the way its terminal
+    tool reads it, when that tool is loaded in this process; else ""."""
+    import sys
+    term = sys.modules.get("tools.terminal_tool")
+    getter = getattr(term, "get_session_cwd", None)
+    if not callable(getter):
+        return ""
+    key = ""
+    approval = sys.modules.get("tools.approval")
+    try:
+        if callable(getattr(approval, "get_current_session_key", None)):
+            key = approval.get_current_session_key(default="") or ""
+    except Exception:
+        key = ""
+    try:
+        return str(getter(key or task_id or "") or "")
+    except Exception:
+        return ""
+
+
+def call_cwd(tool: str, args: dict, session_id="", task_id="") -> str:
+    """The working directory a call runs in (R36): a terminal call's own ``workdir``, else the terminal cwd Hermes
+    recorded for the session, else the one its last command reported (followed in post_tool_call), else the
+    session's cwd. A `cd` approved in one call is still in force in the next."""
+    base = ""
+    hermes = _hermes_terminal_cwd(str(task_id or session_id or ""))
+    if hermes:
+        base = hermes
+    else:
+        with ST.mem:
+            base = ST.cwds.get(str(session_id or task_id or ""), "")
+    base = base or _session_cwd()
+    workdir = args.get("workdir") if tool == "terminal" else None
+    if isinstance(workdir, str) and workdir.strip():
+        wd = os.path.expanduser(workdir.strip())
+        return wd if os.path.isabs(wd) else os.path.join(base, wd)
+    return base
+
+
+def _follow_cwd(tool: str, args: dict, result, session_id="", task_id="") -> None:
+    """After a terminal command: the cwd it reported (Hermes adds "cwd" to its result when the command changed it)
+    becomes the session's, as Hermes records it; a per-call ``workdir`` never does."""
+    if tool != "terminal" or args.get("workdir"):
+        return
+    data = result
+    if isinstance(result, str):
+        try:
+            data = json.loads(result)
+        except ValueError:
+            return
+    cwd = data.get("cwd") if isinstance(data, dict) else None
+    if isinstance(cwd, str) and cwd.strip():
+        with ST.mem:
+            _remember(ST.cwds, str(session_id or task_id or ""), cwd.strip())
 
 
 def anon(session_id) -> str:
@@ -734,7 +793,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         if not cfg["enabled"]:
             return None
         tool, args = str(tool_name or ""), (args if isinstance(args, dict) else {})
-        cwd = _session_cwd()
+        cwd = call_cwd(tool, args, session_id, task_id)
         act = classify.classify(tool, args, cwd=cwd, overrides=cfg["overrides"])
         if act.stakes == classify.FREE:
             return None
@@ -844,7 +903,8 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
     automatic check of the written files, both gathered before the transaction."""
     try:
         tool, args = str(tool_name or ""), (args if isinstance(args, dict) else {})
-        cwd = _session_cwd()
+        cwd = call_cwd(tool, args, session_id, task_id)
+        _follow_cwd(tool, args, result, session_id, task_id)
         session = anon(session_id or task_id)
         if tool == "execute_code" or classify.reads_external(tool, args, cwd):
             _taint(session)

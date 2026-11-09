@@ -89,10 +89,13 @@ def _norm(p: str) -> str:
 
 
 def _expand(path: str, home: str) -> str:
-    """`~`, `$HOME` and `${HOME}` at the start of a path."""
+    """`~`, `$HOME` and `${HOME}` at the start of a path; `$HERMES_HOME` and `${HERMES_HOME}` too (Hermes' home)."""
     for pre in ("${HOME}", "$HOME"):
         if path == pre or path.startswith(pre + "/"):
             return home + path[len(pre):]
+    for pre in ("${HERMES_HOME}", "$HERMES_HOME"):
+        if path == pre or path.startswith(pre + "/"):
+            return _norm(_hermes_home_value(home)).rstrip("/") + path[len(pre):]
     if path == "~" or path.startswith("~/") or path.startswith("~\\"):
         return home + path[1:]
     return path
@@ -157,6 +160,21 @@ def _hermes_constants():
     except Exception:
         _NO_HERMES.append(True)
         return None
+
+
+def _hermes_home_value(home: str) -> str:
+    """What `$HERMES_HOME` holds in the terminal: Hermes' resolved home, else the variable, else ~/.hermes."""
+    hc = _hermes_constants()
+    fn = getattr(hc, "get_hermes_home", None) if hc is not None else None
+    if callable(fn):
+        try:
+            return str(fn())
+        except Exception:
+            pass
+    env = getattr(os, "environ", {}).get("HERMES_HOME", "").strip()
+    if env:
+        return os.path.expanduser(os.path.expandvars(env))
+    return os.path.join(home, ".hermes")
 
 
 def hermes_homes() -> list[str]:
@@ -234,18 +252,20 @@ def _self_hit(text: str) -> bool:
 
 # ------------------------------------------------------------------------------------------- R35: fail-safe principle
 # 1. Whatever names the Hermes program under another name is Hermes: a path to its bin/hermes, a file whose realpath
-#    is Hermes' executable or lies in its installed package, a link or copy of it (an executable that loads
-#    hermes_cli), or code that looks it up. 2. A command that writes is capped when an argument resolves to a Hermes
-#    home level (a home, the root, ~/.hermes, a profiles/<name>), or when it runs inside one. Workspaces below a home
-#    level are not home levels.
+#    is Hermes' executable or lies in its installed package, a hard link to it, a link or copy of it (an executable
+#    whose first 4 KB name hermes_cli), or code that looks it up. 2. A command that writes is capped when an argument
+#    resolves (or a glob may resolve) to a Hermes home level (a home, the root, the ~/.hermes of a home, a
+#    profiles/<name>) or entry, or when it runs inside one. Workspaces below a home level are not home levels. 3. R36:
+#    a `cd` (pushd, env -C) to a level, an entry or a target that cannot be resolved is capped even alone.
 HERMES_BIN = re.compile(r"(?:^|/)bin/hermes(?:-agent|-acp)?$")
+HERMES_VAR = re.compile(r"\$(?:HERMES_HOME|\{HERMES_HOME\})(?:/+\.?)*/*")   # `$HERMES_HOME` alone: a level
+GLOB = re.compile(r"[*?\[]")
+USER_HOMES = re.compile(r"/(?:home|users)/[^/]+|/root|/var/root")
 _TARGETS: dict = {}                                      # per process: Hermes' executables and package folders
-_WHICH: dict = {}                                        # (program, PATH) -> it runs Hermes
 
 
 def reset_hermes_targets() -> None:
     _TARGETS.clear()
-    _WHICH.clear()
 
 
 def _hermes_targets() -> tuple[set, list]:
@@ -276,7 +296,7 @@ def _hermes_targets() -> tuple[set, list]:
 
 
 def _loads_hermes(path: str) -> bool:
-    """A small regular file that loads Hermes' CLI (a console script, a copy of one)."""
+    """A small regular file whose first 4 KB name hermes_cli (a console script, a copy of one)."""
     try:
         if not os.path.isfile(path) or os.path.getsize(path) > 256 * 1024:
             return False
@@ -286,6 +306,22 @@ def _loads_hermes(path: str) -> bool:
         return False
 
 
+def _same_inode(path: str) -> bool:
+    """``path`` is a hard link to one of Hermes' executables."""
+    try:
+        st = os.stat(path)
+    except (OSError, ValueError):
+        return False
+    for exe in _hermes_targets()[0]:
+        try:
+            other = os.stat(exe)
+        except (OSError, ValueError):
+            continue
+        if (st.st_dev, st.st_ino) == (other.st_dev, other.st_ino):
+            return True
+    return False
+
+
 def _is_hermes_file(real: str, executable: bool) -> bool:
     low = real.lower()
     exes, dirs = _hermes_targets()
@@ -293,7 +329,7 @@ def _is_hermes_file(real: str, executable: bool) -> bool:
         return True
     if os.path.basename(low) in HERMES_PROGS and os.path.isfile(real):
         return True
-    return executable and _loads_hermes(real)
+    return executable and (_same_inode(real) or _loads_hermes(real))
 
 
 def _hermes_path(word: str, base: str, home: str) -> bool:
@@ -330,50 +366,76 @@ def _hermes_program(token: str, cwd, home: str) -> bool:
         if cwd == UNKNOWN and not os.path.isabs(_expand(token, home)):
             return False
         return _is_hermes_file(_real(_abs(token, cwd, home)), True)
-    return token in _hermes_on_path(getattr(os, "environ", {}).get("PATH", ""))
+    return _hermes_on_path(token, getattr(os, "environ", {}).get("PATH", ""))
 
 
-def _hermes_on_path(path_value: str) -> frozenset:
-    """Names on PATH that run Hermes: links to its executable or to a file named like it, and executables that load
-    hermes_cli. Scanned once per PATH value (a link made on the same line is capped by the link itself)."""
-    if path_value in _WHICH:
-        return _WHICH[path_value]
-    names = set()
+def _hermes_on_path(name: str, path_value: str) -> bool:
+    """The file PATH runs for ``name`` (its first executable match) is Hermes: a link to Hermes' executable or to a
+    file named like it, a hard link to it, or a copy or script whose first 4 KB name hermes_cli. Looked up at every
+    classify call, for the name invoked: a link made out of band since the last call is seen."""
+    memo = getattr(_CACHE, "memo", None)
+    key = ("which", name, path_value)
+    if memo is not None and key in memo:
+        return memo[key]
+    found = False
     for d in [x for x in path_value.split(getattr(os, "pathsep", ":")) if x][:64]:
+        p = os.path.join(d, name)
         try:
-            entries = os.scandir(d)
+            if not os.path.isfile(p) or not os.access(p, os.X_OK):
+                continue
         except (OSError, ValueError):
             continue
-        with entries:
-            for e in entries:
-                try:
-                    if e.name in HERMES_PROGS or (e.is_symlink() and _is_hermes_file(
-                            _norm(os.path.realpath(e.path)), False)):
-                        names.add(e.name)
-                except (OSError, ValueError):
-                    continue
-    _WHICH[path_value] = frozenset(names)
-    return _WHICH[path_value]
+        found = name in HERMES_PROGS or _is_hermes_file(_real(_norm(p)), True)
+        break
+    if memo is not None:
+        memo[key] = found
+    return found
+
+
+def _user_home() -> str:
+    return _norm(os.path.normpath(getattr(_CACHE, "home", None) or os.path.expanduser("~"))).rstrip("/").lower()
+
+
+def _dot_hermes(p: str) -> bool:
+    """``p`` (lower case) is a `.hermes` folder at the top of a home: the user's, /root, /home/<x>, /Users/<x>."""
+    if os.path.basename(p) != ".hermes":
+        return False
+    parent = os.path.dirname(p)
+    return parent == _user_home() or bool(USER_HOMES.fullmatch(parent))
 
 
 def _home_level(path: str) -> bool:
-    """``path`` is a Hermes home level: a resolved home or root, ~/.hermes or any `.hermes` folder, or a
-    profiles/<name> folder of a root. Never the user's home itself (Docker: HOME is the Hermes home)."""
+    """``path`` is a Hermes home level: a resolved home or root ($HERMES_HOME among them), the `.hermes` folder at the
+    top of a home (~, /root, /home/<x>, /Users/<x>), or a profiles/<name> folder of one of these. Never the user's home
+    itself (Docker: HOME is the Hermes home), never a `.hermes` folder inside a project."""
     p = _norm(path).rstrip("/").lower()
-    user = _norm(os.path.normpath(getattr(_CACHE, "home", None) or os.path.expanduser("~"))).rstrip("/").lower()
-    if not p or p == user:
+    if not p or p == _user_home():
         return False
     roots = _roots()
-    if p in roots or p.endswith("/.hermes"):
+    if p in roots or _dot_hermes(p):
         return True
     parent = os.path.dirname(p)
-    return os.path.basename(parent) == "profiles" and (os.path.dirname(parent) in roots
-                                                       or os.path.dirname(parent).endswith("/.hermes"))
+    top = os.path.dirname(parent)
+    return os.path.basename(parent) == "profiles" and (top in roots or _dot_hermes(top))
+
+
+def _protected_dir(path: str) -> bool:
+    """A working directory that is a home level, or lies in one of Hermes' entries (or clearance's data)."""
+    full = _norm(os.path.normpath(path))
+    for p in (full, _resolved(full)):
+        low = p.lower()
+        if _home_level(p) or _self_hit(low) or CLEARANCE_NAMES.search(low + "/"):
+            return True
+    return False
 
 
 def _arg_paths(word: str) -> list[str]:
-    """The paths an argument may name: itself and its parts around `:` and `=` (-v a:b, --volume=a:b)."""
-    out = [word] + [x for x in re.split(r"[:=]", word) if x and x != word]
+    """The paths an argument may name: itself, its parts around `:`, `=` and `,` (-v a:b, --volume=a:b, --mount
+    type=bind,src=a), and the value glued to a short option (-Cdir, -d~/x)."""
+    out = [word] + [x for x in re.split(r"[:=,]", word) if x and x != word]
+    glued = re.match(r"-[A-Za-z]([^-].*)$", word)
+    if glued:
+        out.append(glued.group(1))
     return [x for x in out if x and not x.startswith("-")]
 
 
@@ -398,19 +460,108 @@ def _resolved(full: str) -> str:
     return _real(full) if _dir_exists(full) else full
 
 
+def _part_may(name: str, part: str) -> bool:
+    """A glob part may match the name (a hidden name only with a part that starts with a dot, as the shell does)."""
+    if name.startswith(".") and not part.startswith("."):
+        return False
+    return fnmatch.fnmatchcase(name, part)
+
+
+def _glob_may_reach(pattern: str) -> bool:
+    """A glob (absolute, lower case) may name a home level or an entry: matched part by part against each home
+    level, then Hermes' entries and profiles below it."""
+    parts = [x for x in pattern.split("/") if x]
+    levels = list(_roots()) + [_user_home() + "/.hermes"]
+    for level in levels:
+        lp = [x for x in level.split("/") if x]
+        if len(parts) < len(lp) or not all(_part_may(n, q) for n, q in zip(lp, parts)):
+            continue
+        rest = parts[len(lp):]
+        while rest:
+            if _part_may("profiles", rest[0]) and len(rest) <= 2:
+                return True                                  # profiles/ or a profile: a level
+            if any(_part_may(e, rest[0]) for e in HERMES_ENTRIES) or rest[0].startswith(HERMES_ENTRY_PREFIXES):
+                return True
+            if _part_may("profiles", rest[0]):
+                rest = rest[2:]                              # an entry of a profile
+                continue
+            break
+        else:
+            return True                                      # the level itself
+    return False
+
+
+def _glob_hit(pattern: str, home: str) -> tuple[str, str] | None:
+    """A glob that may match a home level, an entry, or the Hermes program: what exists is expanded (64 names at
+    most), and the pattern itself is matched against the levels and entries."""
+    import glob
+    try:
+        names = list(itertools.islice(glob.iglob(pattern), 64))
+    except (OSError, ValueError, re.error):
+        names = []
+    for name in names:
+        name = _norm(name)
+        if _protected_dir(name):
+            return "self:clearance", CAP
+        if _hermes_path(name, "/", home):
+            return SELF_HERMES
+    if _glob_may_reach(pattern.lower()):
+        return "self:clearance", CAP
+    head, base = os.path.split(pattern.rstrip("/"))
+    if any(_part_may(p, base) for p in HERMES_PROGS) and _part_may("bin", os.path.basename(head)):
+        return SELF_HERMES
+    return None
+
+
+def _pwd(d: str, cwd) -> str:
+    """`$PWD` at the start of a cd target is the working directory, when it is known."""
+    if cwd == UNKNOWN or not d.startswith(("$PWD", "${PWD}")):
+        return d
+    return re.sub(r"^\$(?:PWD|\{PWD\})(?=/|$)", lambda m: cwd.rstrip("/") or "/", d)
+
+
+def _chdir_hit(d: str, cwd, home: str) -> tuple[str, str] | None:
+    """A `cd` (pushd, env -C) target that is a home level or an entry, or that cannot be resolved (a variable, a
+    substitution), or a glob that may reach one: capped, even when nothing follows (R36)."""
+    if d == "-" or not d:
+        return None
+    if HERMES_VAR.fullmatch(d):
+        return "self:clearance", CAP
+    d = _pwd(d, cwd)
+    e = _expand(d, home)
+    if "$" in e or "`" in e:
+        return "self:clearance", CAP
+    if e.startswith("~") or "{" in e or (cwd == UNKNOWN and not os.path.isabs(e)):
+        return None
+    full = _abs(e, "/" if cwd == UNKNOWN else cwd, home)
+    if GLOB.search(e):
+        return _glob_hit(full, home)
+    return ("self:clearance", CAP) if _protected_dir(full) else None
+
+
 def _r35(tokens: list[str], cwd, home: str) -> tuple[str, str] | None:
-    """The fail-safe principle for one command that writes: a Hermes home level as an argument or as the working
-    directory (self:clearance), the Hermes program named as an argument (self:hermes)."""
+    """The fail-safe principle for one command that writes: a Hermes home level or entry as an argument (a glob that
+    may reach one included) or as the working directory (self:clearance), the Hermes program named as an argument
+    (self:hermes)."""
     toks = _unwrap(tokens)
     if not toks or _seg_pure(tokens) or _cd_kind(tokens) or _hermes_read(tokens):
         return None
-    if cwd != UNKNOWN and (_home_level(cwd) or _home_level(_resolved(_norm(os.path.normpath(cwd))))):
+    if cwd != UNKNOWN and _protected_dir(cwd):
         return "self:clearance", CAP
     base = "/" if cwd == UNKNOWN else cwd
     for word in toks[1:] + _redirects(tokens):
         for cand in _arg_paths(word):
+            if HERMES_VAR.fullmatch(cand):
+                return "self:clearance", CAP
             cand = _expand(cand, home)
-            if _computed(cand) or (cwd == UNKNOWN and not os.path.isabs(cand)):
+            if cwd == UNKNOWN and not os.path.isabs(cand):
+                continue
+            if GLOB.search(cand) and not any(c in cand for c in "$`{") and not cand.startswith("~"):
+                hit = _glob_hit(_abs(cand, base, home), home)
+                if hit:
+                    return hit
+                continue
+            if _computed(cand):
                 continue
             full = _abs(cand, base, home)
             if _home_level(full) or _home_level(_resolved(full)):
@@ -418,6 +569,55 @@ def _r35(tokens: list[str], cwd, home: str) -> tuple[str, str] | None:
             if _dir_exists(full) and _hermes_path(cand, base, home):
                 return SELF_HERMES
     return None
+
+
+ARCHIVERS = {"tar", "gtar", "bsdtar"}
+UNPACKERS = {"unzip", "unrar", "7z", "7za", "7zz", "unar", "cpio", "pax", "jar"}
+
+
+def _extracts(toks: list[str]) -> bool:
+    """The command unpacks an archive (tar x, unzip, 7z x, python -m zipfile -e...)."""
+    if not toks:
+        return False
+    prog, args = os.path.basename(toks[0]), toks[1:]
+    if prog in ARCHIVERS:
+        if args and not args[0].startswith("-") and "x" in args[0]:
+            return True                                      # tar xf
+        return any(a in ("--extract", "--get") or re.fullmatch(r"-[A-Za-z]*x[A-Za-z]*", a) for a in args)
+    if prog == "unzip":
+        return not any(a in ("-l", "-t", "-v", "-Z", "-p", "-z") for a in args)
+    if prog in ("unrar", "7z", "7za", "7zz", "jar"):
+        return bool(args) and args[0].lstrip("-")[:1] in ("x", "e")
+    if prog == "cpio":
+        return any(re.fullmatch(r"-[A-Za-z]*i[A-Za-z]*", a) or a == "--extract" for a in args)
+    if prog in ("unar", "pax"):
+        return prog == "unar" or "-r" in args
+    base = re.sub(r"\d+(\.\d+)*$", "", prog)
+    if base in ("python", "python2", "python3") and "-m" in args:
+        i = args.index("-m")
+        return args[i + 1:i + 2] in (["zipfile"], ["tarfile"]) and bool({"-e", "--extract"} & set(args))
+    return False
+
+
+def _into_user_home(tokens: list[str], cwd, home: str) -> bool:
+    """An archive is unpacked into the user's home: run there, or given it as a destination (R36: high stakes)."""
+    toks = _unwrap(tokens)
+    if not _extracts(toks):
+        return False
+    user = _norm(os.path.normpath(home)).rstrip("/").lower()
+    users = {user, _real(user).rstrip("/").lower()}
+    if cwd != UNKNOWN and {_norm(os.path.normpath(cwd)).rstrip("/").lower(),
+                           _resolved(_norm(os.path.normpath(cwd))).rstrip("/").lower()} & users:
+        return True
+    base = "/" if cwd == UNKNOWN else cwd
+    for word in toks[1:]:
+        for cand in _arg_paths(word):
+            cand = _expand(cand, home)
+            if _computed(cand) or (cwd == UNKNOWN and not os.path.isabs(cand)):
+                continue
+            if _abs(cand, base, home).rstrip("/").lower() in users:
+                return True
+    return False
 
 
 def _above_home(full: str) -> bool:
@@ -1606,7 +1806,25 @@ UNRESOLVED = "$`?*[{"
 
 def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     """One command. A sensitive path it writes (redirect or argument) caps it; a write target that cannot be
-    resolved (variable, glob, brace, or a relative path while the working directory is unknown) is file:unknown."""
+    resolved (variable, glob, brace, or a relative path while the working directory is unknown) is file:unknown.
+    R36: a `cd`, `pushd` or `env -C` to a Hermes level or entry, or to a target that cannot be resolved, is capped
+    even alone; `env -C dir` runs its command in dir; a command that writes while the working directory is unknown,
+    or that unpacks an archive into the user's home, is at least high stakes."""
+    cd, chdir = _cd_kind(tokens), _env_chdir(tokens)
+    target = chdir if chdir is not None else (cd[1][0] if cd and cd[0] != "popd" and cd[1] else None)
+    if target is not None:
+        if _substituted(tokens):
+            return "self:clearance", CAP
+        hit = _chdir_hit(target, cwd, home)
+        if hit:
+            return hit
+    if chdir is not None:
+        cwd = _move((cwd, None), "cd", [chdir], home)[0]
+    floor = None
+    if cwd == UNKNOWN and not cd and not _seg_pure(tokens):
+        floor = ("file:unknown", HIGH)
+    elif _into_user_home(tokens, cwd, home):
+        floor = ("file:unknown", HIGH)
     unresolved = False
     base = "/" if cwd == UNKNOWN else cwd
     targets = _redirects(tokens)
@@ -1630,7 +1848,31 @@ def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, s
         return principle
     if unresolved:
         return "file:unknown", HIGH
-    return _core(tokens, cwd, home, depth)
+    own = _core(tokens, cwd, home, depth)
+    return _top([own, floor]) if floor else own
+
+
+def _env_chdir(tokens: list[str]) -> str | None:
+    """The folder `env -C dir` / `env --chdir=dir` runs its command in (behind other wrappers too), else None."""
+    toks = _unwrap(tokens, wrappers=False)
+    while toks and os.path.basename(toks[0]) in WRAPPERS | {"timeout"}:
+        wrapper, toks = os.path.basename(toks[0]), toks[1:]
+        value_opts = WRAPPER_VALUE_OPTS.get(wrapper, set())
+        while toks and (toks[0].startswith("-") or ENV_ASSIGN.match(toks[0])):
+            t = toks[0]
+            if wrapper == "env":
+                if t in ("-C", "--chdir") and len(toks) > 1:
+                    return toks[1]
+                if t.startswith("--chdir="):
+                    return t.split("=", 1)[1]
+                glued = re.fullmatch(r"-[i0v]*C(.*)", t)
+                if glued and (glued.group(1) or len(toks) > 1):
+                    return glued.group(1) or toks[1]
+            takes_value = t in value_opts or (len(t) > 2 and t[1] != "-" and "-" + t[-1] in value_opts)
+            toks = toks[2:] if takes_value and len(toks) > 1 else toks[1:]
+        if wrapper == "timeout" and toks:
+            toks = toks[1:]
+    return None
 
 
 def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
@@ -1679,7 +1921,10 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     base = re.sub(r"\d+(\.\d+)*$", "", prog)
     if prog in INTERPRETERS or base in INTERPRETERS:
         if INLINE_FLAGS & set(args) or _inline_cluster(args):
-            return SELF_HERMES if _runs_hermes_code(" ".join(args)) else (f"shell:{prog}:inline", HIGH)
+            text = " ".join(args)
+            if _runs_hermes_code(text):
+                return SELF_HERMES
+            return _code_levels(text, cwd, home) or (f"shell:{prog}:inline", HIGH)
         if "-m" in args:
             i = args.index("-m")
             mod = args[i + 1] if i + 1 < len(args) else ""
@@ -1782,7 +2027,7 @@ HERMES_RUN = re.compile(
     r"(?:^|(?<=[\s;&|(`'\"!{}=\\]))(?:[^\s;&|()`'\"=]*/)?hermes(?:-agent|-acp)?[\s'\"]+"
     r"(?:config|plugins|clearance|profile|profiles|gateway|update|auth|setup|model|login|logout|uninstall|install|"
     r"skills|hooks|cron|mcp|tools|memory|secrets|vault|approvals|security|backup|migrate)\b"
-    r"|\b(?:which|whereis|type\s+-[pPa]|command\s+-[vV])\s+['\"]?hermes\b")
+    r"|\b(?:which|whereis|whence|type\s+-[A-Za-z]+|command\s+-[vV])(?:\s+-[A-Za-z]+)*\s+['\"]?hermes\b")
 # A shell name bound to the program: `h=hermes`, `alias h=hermes`.
 HERMES_ALIAS = re.compile(r"=['\"]?(?:[^\s;&|'\"=]*/)?hermes(?:-agent|-acp)?(?=$|[\s;&|'\")])")
 
@@ -1945,7 +2190,7 @@ def _move(state: tuple, kind: str, args: list[str], home: str) -> tuple:
     d = args[0]
     if d == "-":
         return (old if old is not None else UNKNOWN), cwd
-    d = _expand(d, home)
+    d = _expand(_pwd(d, cwd), home)
     if d.startswith("~") or any(c in d for c in "$`*?[{"):
         return UNKNOWN, cwd
     if cwd == UNKNOWN and not os.path.isabs(d):
@@ -1953,15 +2198,51 @@ def _move(state: tuple, kind: str, args: list[str], home: str) -> tuple:
     return _abs(d, cwd, home), cwd
 
 
+SHELL_VAR = re.compile(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))")
+DECLARERS = {"export", "local", "declare", "readonly", "typeset"}
+
+
+def _substitute(tokens: list[str], known: dict) -> list[str]:
+    """The words with the variables assigned earlier on the line replaced by their value."""
+    if not known:
+        return tokens
+    return [SHELL_VAR.sub(lambda m: known.get(m.group(1) or m.group(2), m.group(0)), t) for t in tokens]
+
+
+def _assign(tokens: list[str], known: dict, home: str) -> None:
+    """A segment that only assigns (`D=x`, `export D=x`): its values are kept for the rest of the line when they
+    are plain (no other variable left, no substitution); `~` and $HOME expanded as the shell does."""
+    toks = [t for t in tokens if t not in ("(", ")", "{", "}")]
+    if toks and toks[0] in DECLARERS:
+        toks = [t for t in toks[1:] if not t.startswith("-")]
+    if not toks or not all(ENV_ASSIGN.match(t) for t in toks):
+        return
+    for t in toks:
+        name, value = t.split("=", 1)
+        value = _expand(_substitute([value], known)[0], home)
+        if "$" in value or "`" in value:
+            known.pop(name, None)
+            if name == "CDPATH":
+                known[name] = value
+        else:
+            known[name] = value
+
+
 def _run(segs: list[Seg], start: str, home: str, depth: int) -> tuple[str, str]:
     best, first = ("shell:unknown", MEDIUM), True
     states = [(start, None)]       # every (cwd, previous cwd) the shell may be in: a cd that may not stick adds one
+    known: dict = {}               # variables assigned earlier on the line (R36)
     for seg in segs:
         top = None
+        tokens = _substitute(seg.tokens, known)
+        _assign(seg.tokens, known, home)
+        seg = Seg(tokens, seg.sub, seg.cond, seg.sep)
         for cwd, _ in states:
             r = _shell_segment(seg.tokens, cwd, home, depth)
             if top is None or RANK[r[1]] > RANK[top[1]]:
                 top = r
+        if _cd_kind(seg.tokens) and ("CDPATH" in known or any(t.startswith("CDPATH=") for t in seg.tokens)):
+            top = ("self:clearance", CAP)                    # where the cd lands cannot be worked out
         if (first or RANK[top[1]] > RANK[best[1]]
                 or (RANK[top[1]] == RANK[best[1]] and top[0] in FLOORS and best[0] not in FLOORS)):
             best, first = top, False
@@ -2301,9 +2582,38 @@ def _valid(val, default):
 CODE_PREFIX = re.compile(r"(?:^|[\s'\"`(=,\[])(?:" + "|".join(re.escape(x) for x in SENSITIVE_PREFIXES) + ")")
 
 
-def _code(code: str) -> tuple[str, str, bool]:
+CODE_LITERAL = re.compile(r"""(['"])((?:\\.|(?!\1)[^\\\n])*)\1""")
+CODE_HOME = re.compile(r"""expanduser|Path\.home|\bgetenv\(\s*['"]HOME|environ\s*\[\s*['"]HOME['"]|homedir\(|\$HOME|['"]~/?['"]""")
+
+
+def _code_levels(code: str, cwd, home: str) -> tuple[str, str] | None:
+    """R35 for code (execute_code, python -c): a string literal that names a Hermes home level (expanduser's `~` and
+    $HOME read as the shell reads them, a relative literal against the working directory), `$HERMES_HOME`, or a
+    `.hermes` literal joined to the user's home: self:clearance, capped."""
+    homeward = bool(CODE_HOME.search(code))
+    for m in itertools.islice(CODE_LITERAL.finditer(code or ""), 512):
+        lit = m.group(2).strip()
+        if not lit or len(lit) > 4096 or "\n" in lit:
+            continue
+        if HERMES_VAR.fullmatch(lit):
+            return "self:clearance", CAP
+        if homeward and lit.rstrip("/") == ".hermes":
+            return "self:clearance", CAP
+        if "/" not in lit and lit not in (".", "..", "~", ".hermes"):
+            continue
+        cand = _expand(lit, home)
+        if _computed(cand) or (not os.path.isabs(cand) and (cwd is None or cwd == UNKNOWN)):
+            continue
+        full = _abs(cand, cwd, home)
+        if _home_level(full) or _home_level(_resolved(full)):
+            return "self:clearance", CAP
+    return None
+
+
+def _code(code: str, cwd=None, home: str | None = None) -> tuple[str, str, bool]:
     """execute_code: the same floors as ``python -c``. Code that calls Hermes' CLI or imports its modules is
-    self:hermes; code naming clearance's data is self:clearance; a sensitive file or a Hermes home, file:sensitive."""
+    self:hermes; code naming clearance's data is self:clearance; a sensitive file or a Hermes home, file:sensitive;
+    a literal naming a Hermes home level (R36), self:clearance."""
     if _runs_hermes_code(code):
         return "self:hermes", CAP, False
     low = code.lower().replace("\\\\", "/").replace("\\", "/")
@@ -2312,6 +2622,9 @@ def _code(code: str) -> tuple[str, str, bool]:
     if (any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.lower() in low for d in SENSITIVE_DIRS)
             or _self_hit(low) or CODE_PREFIX.search(code)):
         return "file:sensitive", CAP, False
+    level = _code_levels(code, cwd, home or os.path.expanduser("~"))
+    if level:
+        return level[0], level[1], False
     return "code:execute", MEDIUM, False
 
 
@@ -2350,7 +2663,7 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
     elif tool_name == "terminal":
         t, stakes, rev = _shell(str(args.get("command", "")), cwd, home)
     elif tool_name == "execute_code":
-        t, stakes, rev = _code(str(args.get("code") or ""))
+        t, stakes, rev = _code(str(args.get("code") or ""), cwd, home)
     elif tool_name in TOOLS:
         t, stakes, rev = TOOLS[tool_name]
     elif tool_name.startswith("kanban_"):

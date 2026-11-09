@@ -250,6 +250,14 @@ for path in (os.path.join(home, "config.yaml"), os.path.join(core.data_dir(), "u
     check(f"capped write in the custom Hermes home: {os.path.relpath(path, home)}",
           core.classify.classify("write_file", {"path": path}, cwd=project).stakes, "cap")
 check("hermes status: never asks", run("terminal", {"command": "hermes status"}, real=False), "ran")
+level = os.path.join(home, "profiles", "coder")                   # R36: the terminal's cwd persists between calls
+os.makedirs(level, exist_ok=True)
+check("cd into a profile, alone: capped, then run for real",
+      run("terminal", {"command": f"cd {level}"}, "once", session="it-6"), "approved")
+before = len(asked)
+got = run("terminal", {"command": "tar xf /tmp/clearance-it-none.tar"}, "deny", session="it-6", real=False)
+check("the next call runs in that profile: capped", (got, "is capped: always asked" in "".join(asked[before:])),
+      ("refused", True))
 
 # --------------------------------------------------------------------------------- 'always' never bypasses
 check("git push: high stakes, capped by the settings",
