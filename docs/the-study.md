@@ -2,7 +2,7 @@
 
 **Study publication pending.**
 
-The only claim clearance makes about the study: the same rule as a preregistered study, simulated on 6,000+ agents.
+The only claim clearance makes about the study: the same rule as a study registered on OSF, simulated on 6,000+ agents.
 
 The middle tier (act, then notify) is part of the study.
 

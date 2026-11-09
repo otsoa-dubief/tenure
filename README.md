@@ -138,7 +138,7 @@ settings.
 
 ## The study behind the rule
 
-clearance uses the same rule as a preregistered study, simulated on 6,000+ agents (publication pending; see [docs/the-study.md](docs/the-study.md)).
+clearance uses the same rule as a study registered on OSF, simulated on 6,000+ agents (publication pending; see [docs/the-study.md](docs/the-study.md)).
 
 ### What clearance adds or adapts
 

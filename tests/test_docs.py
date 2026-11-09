@@ -6,7 +6,7 @@ from clearance import params
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 README = (ROOT / "README.md").read_text(encoding="utf-8")
 MANIFEST = (ROOT / "clearance" / "plugin.yaml").read_text(encoding="utf-8")
-CLAIM = "the same rule as a preregistered study, simulated on 6,000+ agents"
+CLAIM = "the same rule as a study registered on OSF, simulated on 6,000+ agents"
 
 
 def _cell(d):
