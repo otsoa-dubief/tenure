@@ -13,8 +13,26 @@ Needs pyte (pip install pyte).
 import argparse, codecs, fcntl, json, os, pty, re, select, signal, struct, sys, termios, time
 
 import pyte
+from wcwidth import wcwidth
 
 KEYS = {"<enter>": "\r", "<down>": "\x1b[B", "<up>": "\x1b[A", "<esc>": "\x1b", "<ctrl-c>": "\x03", "<ctrl-d>": "\x04"}
+
+
+def screen_lines(screen):
+    """Rows of the screen as text. pyte 0.8.2's ``Screen.display`` raises IndexError on the empty stub cell left after
+    an emoji with a variation selector (Hermes prints "✍️"); this reads the same cells and just skips that stub."""
+    rows = []
+    for y in range(screen.lines):
+        row, skip, out = screen.buffer[y], False, []
+        for x in range(screen.columns):
+            if skip:
+                skip = False
+                continue
+            d = row[x].data
+            out.append(d)
+            skip = bool(d) and wcwidth(d[0]) == 2
+        rows.append("".join(out))
+    return rows
 
 
 def expand(k):
@@ -102,7 +120,7 @@ def record(cmd, cast, steps, cols=110, rows=34, idle=240.0, maxt=600.0, env=None
                     last = time.time()
                 if step < len(steps):
                     st = steps[step]
-                    shown = bool(st["_re"].search("\n".join(screen.display)))
+                    shown = bool(st["_re"].search("\n".join(screen_lines(screen))))
                     if answered:
                         # a repeat fires again only after the pattern disappeared once since the last firing
                         if shown:

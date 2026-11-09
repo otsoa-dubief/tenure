@@ -112,3 +112,15 @@ def test_setup_rejects_unknown_argument():
     sh = os.path.join(os.path.dirname(record.__file__), "setup.sh")
     r = subprocess.run(["bash", sh, "--dryrun"], capture_output=True, text=True)
     assert r.returncode == 2 and "usage" in r.stderr
+
+
+def test_screen_lines_survives_a_stub_cell():
+    """Hermes prints '✍️' (emoji + variation selector) and moves the cursor over cells; pyte 0.8.2 can then leave an
+    empty cell that is not behind a wide character, and its own Screen.display raises IndexError on it."""
+    import pyte
+    sc = pyte.Screen(20, 2)
+    pyte.Stream(sc).feed("✍ Preparing write_file")
+    sc.buffer[0][11] = sc.buffer[0][11]._replace(data="")          # the stub as seen in a real Hermes recording
+    with pytest.raises(IndexError):
+        sc.display
+    assert "Preparing" in "\n".join(record.screen_lines(sc))

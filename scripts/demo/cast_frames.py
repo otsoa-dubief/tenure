@@ -8,6 +8,8 @@ import sys
 
 import pyte
 
+from record import screen_lines
+
 PALETTE = {"default": None, "black": "#0A0E1A", "red": "#FF6B6B", "green": "#D4FF4F", "brown": "#FFC857",
            "yellow": "#FFC857", "blue": "#8AB4FF", "magenta": "#E59BFF", "cyan": "#7FE0D8", "white": "#F5F3EE",
            "brightblack": "#8B93A7", "brightred": "#FF8A8A", "brightgreen": "#E2FF8A", "brightyellow": "#FFD98A",
@@ -51,7 +53,7 @@ def frames(cast, cap=1.2, step=0.1, holds=(), start=None):
         if kind != "o":
             continue
         if pending is not None and t - last_t >= step:
-            text = "\n".join(sc.display)
+            text = "\n".join(screen_lines(sc))
             if start and not out and not re.search(start, text):
                 st.feed(data)
                 last_t = t
@@ -70,7 +72,13 @@ def frames(cast, cap=1.2, step=0.1, holds=(), start=None):
 
 
 if __name__ == "__main__":
-    head, fr = frames(sys.argv[1], holds=[(r"4\. Deny", 4.0)], start=r"\$ curl")
+    # Holds: how long a screen that shows the pattern stays (s). Patterns are the real texts of the demo cast
+    # (Hermes 0.23.0 + clearance v2): the preset command, the spot check panel, the tiers announced at the end of a
+    # turn, the undo answer, the model switch, the carry-over. `start` (optional 3rd argument, e.g. '\\$ hermes' for the passport recording) skips the first drawing.
+    holds = [(r"Preset fast in force", 3.0), (r"now acts, then notifies you", 3.5), (r"Undo 1: files restored", 3.5),
+             (r"clearance spot check —", 4.5), (r"now acts alone", 4.0), (r"Model switched", 3.0),
+             (r"carried over on trial", 4.5), (r"OK: signature valid", 4.5)]
+    head, fr = frames(sys.argv[1], holds=holds, start=sys.argv[3] if len(sys.argv) > 3 else r"Welcome to Hermes Agent")
     os.umask(0o077)  # frames contain everything on screen
     json.dump({"width": head["width"], "height": head["height"], "frames": fr}, open(sys.argv[2], "w"))
     print(len(fr), "frames,", round(sum(d for _, d in fr), 1), "s")
