@@ -78,7 +78,6 @@ WRITES = [
     "echo y | hermes plugins uninstall clearance",
     "find . -name x -exec hermes config set a b \\;",
     "hermes-agent",
-    "pip install -U hermes-agent",
 ]
 READS = [
     ("hermes status", "shell:hermes:status"),

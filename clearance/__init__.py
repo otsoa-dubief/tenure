@@ -617,11 +617,24 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
 FOREGROUND_MAX = 600
 
 
-def _background(tool: str, args: dict) -> bool:
-    """A terminal call Hermes runs in the background: its result is a launch, not the command's outcome."""
+BACKGROUND_KEYS = ("auto_backgrounded", "promoted_from_foreground")   # Hermes' markers in a terminal result
+
+
+def _background(tool: str, args: dict, result=None) -> bool:
+    """A terminal call Hermes runs in the background: its result is a launch, not the command's outcome. Asked for
+    (``background``), promoted (a timeout over Hermes' foreground cap), or decided by Hermes itself (a trailing `&`
+    turned into a background run): the result then carries ``auto_backgrounded`` or ``promoted_from_foreground``,
+    or says "Background process started"."""
     if tool != "terminal":
         return False
     if _truthy(args.get("background")):
+        return True
+    try:
+        data = json.loads(result) if isinstance(result, (str, bytes)) else result
+    except ValueError:
+        data = None
+    if isinstance(data, dict) and (any(k in data for k in BACKGROUND_KEYS)
+                                   or str(data.get("output") or "").startswith("Background process started")):
         return True
     try:
         limit = int(os.environ.get("TERMINAL_MAX_FOREGROUND_TIMEOUT", FOREGROUND_MAX))
@@ -738,7 +751,8 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 preview = _decide(store_(), agent, act, n, cfg, session, nobody, _NoSpot)[2]
             if preview == rule.NOTIFY:
                 paths = classify.files_written(tool, args, cwd)
-                taken = undo.snapshot(paths, data_dir(), key=undo_key(deadline)) if paths else None
+                taken = (undo.snapshot(paths, data_dir(), key=undo_key(deadline), cwd=cwd,
+                                       home=os.path.expanduser("~")) if paths else None)
         posts, directive, snap = [], None, taken
         with txn(deadline) as st:
             posts += _say(sync_settings(st, cfg), cfg["spot"])
@@ -850,7 +864,7 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         p = rows[0]
         blocked = str(status or "").strip().lower() == "blocked"
         failed = not blocked and proofs.execution(tool, status, error_type, result) == "failed"
-        launched = not blocked and not failed and _background(tool, args)
+        launched = not blocked and not failed and _background(tool, args, result)
         reason = None
         if not blocked and not failed and not launched:
             paths = classify.files_written(tool, args, cwd)

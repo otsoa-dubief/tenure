@@ -45,9 +45,11 @@ def _undo_dir(root: str) -> str:
     return os.path.join(root, "undo")
 
 
-def snapshot(paths: list[str], root: str, max_bytes: int = 5_000_000, *, key: bytes | None) -> str | None:
+def snapshot(paths: list[str], root: str, max_bytes: int = 5_000_000, *, key: bytes | None, cwd: str | None = None,
+             home: str | None = None) -> str | None:
     """Save paths; return the snapshot id, or None if it cannot be done safely (no ``key`` included: a snapshot
-    without its MAC could never be restored)."""
+    without its MAC could never be restored). ``cwd`` and ``home``: the session's working directory and user home,
+    signed with the manifest, so a restore judges its targets as classify judged the write."""
     if not key:
         return None
     entries = []
@@ -93,7 +95,7 @@ def snapshot(paths: list[str], root: str, max_bytes: int = 5_000_000, *, key: by
         for i, data in enumerate(blobs):
             if data is not None:
                 _write_private(os.path.join(d, str(i)), data)
-        manifest = json.dumps({"files": entries}).encode("utf-8")
+        manifest = json.dumps({"files": entries, "cwd": cwd, "home": home}).encode("utf-8")
         _write_private(os.path.join(d, "manifest.json"), manifest)
         _write_private(os.path.join(d, MAC_FILE), _mac(key, snap_id, manifest).encode("ascii"))
     except OSError:
@@ -140,7 +142,10 @@ def _checked(d: str, snap_id: str, key: bytes | None) -> tuple[list[dict], list[
     if not key or not hmac.compare_digest(mac, _mac(key, snap_id, manifest)):
         raise Refused("the snapshot was changed after it was taken")
     try:
-        files = json.loads(manifest)["files"]
+        data = json.loads(manifest)
+        files, cwd, home = data["files"], data.get("cwd"), data.get("home")
+        if not all(v is None or isinstance(v, str) for v in (cwd, home)):
+            raise TypeError("cwd")
         blobs = []
         for i, e in enumerate(files):
             path = e["path"]
@@ -163,7 +168,7 @@ def _checked(d: str, snap_id: str, key: bytes | None) -> tuple[list[dict], list[
             raise Refused("a target is now a symlink")
         if _parent(path) != e["parent"]:
             raise Refused("a target's folder now resolves elsewhere (a symlink was put on its path)")
-        if classify.sensitive_path(path):
+        if classify.sensitive_path(path, cwd, home):
             raise Refused("a target is a protected file")
     return files, blobs
 
