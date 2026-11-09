@@ -68,7 +68,7 @@ def test_total():
 
 
 def test_discount():
-    assert discount(200, 10) == 190
+    assert discount(200, 10) == 180  # 10 % off
 PY
     printf '# acme shop\n\nA small project for the clearance demo.\n' > "$SHOP/README.md"
     git init -q -b main "$SHOP"
