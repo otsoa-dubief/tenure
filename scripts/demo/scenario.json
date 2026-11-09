@@ -1,16 +1,199 @@
 {
-  "_doc": "Each step: wait = regex on the terminal screen, keys = typed in order (<enter>, <down>, <esc>, <ctrl-c> are named keys), delay = seconds after the pattern shows, repeat = number of successive appearances answered. Adjust patterns after the hooks and CLI tasks without touching code. Hermes approval panel: choices once / session / always / deny, 'Enter' takes the preselected first (once), three <down> then <enter> picks Deny.",
-  "steps": [
-    {"label": "welcome", "wait": "Welcome to Hermes Agent", "keys": [], "delay": 2.0},
-    {"label": "task-1", "wait": "(?m)^\\s*[❯>] ?$", "keys": ["Run the tests in this repo, fix what fails, then commit and push to origin.", "<enter>"], "delay": 1.0},
-    {"label": "approve-build-up", "wait": "(Dangerous Command|clearance —)(?s:.*)1\\. Allow once", "keys": ["<enter>"], "delay": 1.0, "repeat": 6},
-    {"label": "act-then-notify", "wait": "clearance — .*(acted alone|undo)", "keys": [], "delay": 3.0},
-    {"label": "undo-once", "wait": "/clearance undo [0-9a-f]+", "keys": ["<esc>"], "delay": 0.5},
-    {"label": "spot-check-deny", "wait": "clearance spot check —(?s:.*)4\\. Deny", "keys": ["<down>", "<down>", "<down>", "<enter>"], "delay": 2.0},
-    {"label": "model-switch", "wait": "(?m)^\\s*[❯>] ?$", "keys": ["/model", "<enter>"], "delay": 1.5},
-    {"label": "model-pick", "wait": "Model Picker", "keys": ["<down>", "<enter>"], "delay": 1.5},
-    {"label": "task-2", "wait": "(?m)^\\s*[❯>] ?$", "keys": ["Same again: add a test for the discount function, then commit and push.", "<enter>"], "delay": 2.0},
-    {"label": "half-trial", "wait": "clearance — .*(trial|carried over)", "keys": [], "delay": 3.0},
-    {"label": "quit", "wait": "(?m)^\\s*[❯>] ?$", "keys": ["/quit", "<enter>"], "delay": 6.0}
-  ]
+ "_doc": "Each step: wait = regex on the terminal screen, keys = typed in order (<enter>, <down>, <esc>, <ctrl-c> are named keys), delay = seconds after the pattern shows, repeat = number of successive appearances answered. Patterns match the real Hermes 0.23.0 screen and the real clearance texts. The idle prompt is the input line that starts with the prompt glyph, directly above the rule and the status bar (the input line shows a placeholder hint, so it is never empty). The plugin's approval panel is titled by Hermes '(plugin approval rule)'; its choices are 1. Allow once, 2. Allow for this session, 3. Add to permanent allowlist, 4. Deny (three <down> then <enter> = Deny). Clearance's own messages (acted on its own, now acts alone, carried over) are posted at the end of the turn. The run uses the official 'fast' preset (/clearance setup fast, typed on screen): file:write at low stakes reaches T2 after 12 verified successes (Wald, independent of the preset) and T3 after 21 in a row from 2 sessions (balanced would need 52). Undo 1 is the first act-then-notify action of task-1; it counts as a fault, but a Wald score at its floor stays at T2 (at least 17 verified successes before it). Prompts ask for one write_file call per message: when the agent batches calls, a 13th panel can open before the 12th outcome is recorded and wait 5 min. File counts are not fixed; the T3 climb (21 in a row from 2 sessions) is given 60 files in session 2. Run first: `hermes config set approvals.mode manual`, `hermes clearance setup balanced` on an empty ledger.",
+ "steps": [
+  {
+   "label": "welcome",
+   "wait": "Welcome to Hermes Agent",
+   "keys": [],
+   "delay": 2.0
+  },
+  {
+   "label": "setup-fast",
+   "wait": "(?m)^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "/clearance setup fast",
+    "<enter>"
+   ],
+   "delay": 1.5
+  },
+  {
+   "label": "task-1",
+   "wait": "(?ms)in force.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "Using the write_file tool, create notes/n01.txt to notes/n20.txt, each containing its own number. Make exactly one write_file call per message and wait for its result before the next one; never call several in parallel.",
+    "<enter>"
+   ],
+   "delay": 1.0
+  },
+  {
+   "label": "approve-build-up",
+   "wait": "\\(plugin approval rule\\)(?s:.*)4\\. Deny",
+   "keys": [
+    "<enter>"
+   ],
+   "delay": 1.0,
+   "repeat": 12
+  },
+  {
+   "label": "act-then-notify",
+   "wait": "acted on its own · /clearance undo [0-9]+",
+   "keys": [],
+   "delay": 3.0
+  },
+  {
+   "label": "undo-once",
+   "wait": "(?m)^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "/clearance undo 1",
+    "<enter>"
+   ],
+   "delay": 1.5
+  },
+  {
+   "label": "session-1-end",
+   "wait": "(?ms)Undo 1: files restored.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "Using the write_file tool, create notes/n21.txt containing 21.",
+    "<enter>"
+   ],
+   "delay": 1.0
+  },
+  {
+   "label": "new-session",
+   "wait": "(?ms)edited 1 file.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "/new",
+    "<enter>"
+   ],
+   "delay": 1.5
+  },
+  {
+   "label": "new-session-confirm",
+   "wait": "This starts a fresh session",
+   "keys": [
+    "<enter>"
+   ],
+   "delay": 1.0
+  },
+  {
+   "label": "task-2",
+   "wait": "(?ms)New session.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "Using the write_file tool, create notes/n22.txt to notes/n81.txt, each containing its own number. Make exactly one write_file call per message and wait for its result before the next one; never call several in parallel.",
+    "<enter>"
+   ],
+   "delay": 1.0
+  },
+  {
+   "label": "spot-check-deny",
+   "wait": "(?s)4\\. Deny.*clearance spot check —",
+   "keys": [
+    "<down>",
+    "<down>",
+    "<down>",
+    "<enter>"
+   ],
+   "delay": 2.0
+  },
+  {
+   "label": "status-after-deny",
+   "wait": "(?ms)edited [0-9]+ files.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "/clearance status",
+    "<enter>"
+   ],
+   "delay": 2.0
+  },
+  {
+   "label": "task-4",
+   "wait": "(?ms)tier now.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "Using the write_file tool, create notes/m01.txt to notes/m12.txt, each containing its own number. Make exactly one write_file call per message and wait for its result before the next one; never call several in parallel.",
+    "<enter>"
+   ],
+   "delay": 1.0
+  },
+  {
+   "label": "model-switch",
+   "wait": "(?ms)edited [0-9]+ files.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "/model",
+    "<enter>"
+   ],
+   "delay": 1.5
+  },
+  {
+   "label": "model-pick",
+   "wait": "Select Provider",
+   "keys": [
+    "<enter>"
+   ],
+   "delay": 2.5
+  },
+  {
+   "label": "model-filter",
+   "wait": "Model Picker — Nous",
+   "keys": [
+    "gpt-5.5"
+   ],
+   "delay": 2.0
+  },
+  {
+   "label": "model-choose",
+   "wait": "openai/gpt-5.5",
+   "keys": [
+    "<enter>"
+   ],
+   "delay": 2.0
+  },
+  {
+   "label": "model-effort",
+   "wait": "Reasoning effort for",
+   "keys": [
+    "<down>",
+    "<down>",
+    "<down>",
+    "<down>",
+    "<down>",
+    "<down>",
+    "<down>",
+    "<down>",
+    "<enter>"
+   ],
+   "delay": 1.5
+  },
+  {
+   "label": "task-5",
+   "wait": "(?ms)Model switched.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "The function discount in shop.py is wrong: it subtracts the percent as a plain number instead of taking a percent off. Do exactly this, one step at a time, without running anything else: 1) patch shop.py so that discount(200, 10) returns 180; 2) patch test_shop.py to expect 180; 3) run `python3 -m pytest -q` once; 4) run `git add -A`; 5) run `git commit -m \"Fix discount\"`; 6) run `git push origin main`.",
+    "<enter>"
+   ],
+   "delay": 2.0
+  },
+  {
+   "label": "approve-fix",
+   "wait": "\\(plugin approval rule\\)(?s:.*)4\\. Deny",
+   "keys": [
+    "<enter>"
+   ],
+   "delay": 1.0,
+   "repeat": 6
+  },
+  {
+   "label": "half-trial",
+   "wait": "new agent openai/gpt-5\\.5@nous \\(was anthropic/claude-sonnet-5\\.5@nous\\)",
+   "keys": [],
+   "delay": 3.0
+  },
+  {
+   "label": "quit",
+   "wait": "(?m)^ *❯[^\\n]*\\n─+ *\\n ☤",
+   "keys": [
+    "/quit",
+    "<enter>"
+   ],
+   "delay": 6.0
+  }
+ ]
 }
