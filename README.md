@@ -27,10 +27,15 @@ So does anything that could switch clearance off. No type override lowers these 
   workspace inside a home (`workspace/`, `kanban/workspaces/...`) is ordinary.
 - Anything naming clearance's own data: `clearance.db`, `plugin-data/clearance`, the passport key.
 - The fail-safe behind these rules: a command that writes is capped when one of its arguments resolves (through
-  symlinks too) to a Hermes home level (a home, its root, `~/.hermes`, a `profiles/<name>` folder) or to the Hermes
-  program (a path to `bin/hermes`, a link or copy of it, its installed package), and when it runs inside a home level.
-  A program that resolves to Hermes under another name is Hermes. Workspaces below a home level stay ordinary, and so
-  does your own home folder when Hermes lives there (Docker).
+  symlinks, `$HERMES_HOME`, variables set earlier on the line, options glued to their value, or a glob that may
+  match) to a Hermes home level (a home, its root, the `.hermes` folder at the top of a home, a `profiles/<name>`
+  folder) or to the Hermes program (a path to `bin/hermes`, a link, hard link or copy of it, its installed package),
+  and when it runs inside a home level or an entry. A `cd`, `pushd` or `env -C` into one, or to a target that cannot
+  be worked out, is capped even alone, and the terminal's working directory is followed from one call to the next.
+  The same holds for paths written in code (`execute_code`, `python -c`). A program that resolves to Hermes under
+  another name, looked up on PATH at each call, is Hermes. Workspaces below a home level stay ordinary, and so do a
+  `.hermes` folder inside a project and your own home folder when Hermes lives there (Docker); unpacking an archive
+  into your home folder asks (high stakes).
 
 ## Three pillars
 
