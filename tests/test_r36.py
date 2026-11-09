@@ -22,7 +22,7 @@ def cap(result):
 # ---------------------------------------------------------------------- 1. cd alone, and the cwd between calls
 @pytest.mark.parametrize("cmd", ["cd ~/.hermes/plugins", "cd ~/.hermes/plugins/clearance", "pushd ~/.hermes",
                                  "cd ~/.hermes/plugins > /dev/null", "cd ~/.hermes", "cd {H}", "cd {R}/profiles",
-                                 "cd {R}/profiles/other", "cd $HERMES_HOME", "cd ${{HERMES_HOME}}/..", "cd $X",
+                                 "cd {R}/profiles/other", "cd $HERMES_HOME", "cd ${{HERMES_HOME}}/..",
                                  'cd "$(dirname ~/.hermes/config.yaml)"', "cd ~/.herm?s"])
 def test_cd_alone_to_a_level_an_entry_or_an_unresolved_target_is_capped(env, cmd):
     assert cap(sh(cmd.format(**env), env["P"])), cmd

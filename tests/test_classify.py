@@ -729,15 +729,15 @@ def test_an_override_of_the_runner_does_not_lower_its_inner_command():
     ("find . -okdir git push ';'", "shell:git:push", C.HIGH),
     ("find . -exec true \\; -exec git push \\;", "shell:git:push", C.HIGH),
     ("find . -name a -exec ls {} + -exec git push \\;", "shell:git:push", C.HIGH),
-    ("find . -type f -exec chmod 644 {} \\; -o -type d -exec npm publish \\;", "shell:npm:publish", C.HIGH),
+    ("find . -type f -exec chmod 644 {} \\; -o -type d -exec npm publish \\;", "shell:chmod", C.HIGH),  # R37: {} high
     ("sudo find . -exec env A=1 git push \\;", "shell:git:push", C.HIGH),
     ("find . -exec sh -c 'git push' \\;", "shell:git:push", C.HIGH),
     ("gfind . -exec git push \\;", "shell:git:push", C.HIGH),
     # {} is a plain argument, a found path
-    ("find . -name '*.bak' -exec rm {} +", "shell:rm", C.MEDIUM),
-    ("find . -name '*.bak' -execdir rm {} +", "shell:rm", C.MEDIUM),
-    ("find . -exec cp {} /backup \\;", "shell:cp", C.MEDIUM),
-    ("find publish -maxdepth 0 -exec npm {} \\;", "shell:npm", C.MEDIUM),
+    ("find . -name '*.bak' -exec rm {} +", "shell:rm", C.HIGH),       # R37: a found path is not read
+    ("find . -name '*.bak' -execdir rm {} +", "shell:rm", C.HIGH),
+    ("find . -exec cp {} /backup \\;", "shell:cp", C.HIGH),
+    ("find publish -maxdepth 0 -exec npm {} \\;", "shell:npm", C.HIGH),
     ("find . -name '*.csv' -exec awk -F, '{print $1}' {} \\;", "shell:find", C.MEDIUM),
     ("find . -name '*.txt' -exec grep -l TODO {} +", "shell:find", C.MEDIUM),
     # {} as the program, spliced into a word, or where a found name is read as code: not a literal
