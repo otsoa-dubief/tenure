@@ -35,7 +35,13 @@ So does anything that could switch clearance off. No type override lowers these 
   The same holds for paths written in code (`execute_code`, `python -c`). A program that resolves to Hermes under
   another name, looked up on PATH at each call, is Hermes. Workspaces below a home level stay ordinary, and so do a
   `.hermes` folder inside a project and your own home folder when Hermes lives there (Docker); unpacking an archive
-  into your home folder asks (high stakes).
+  into your home folder asks (high stakes). A path argument the shell computes (a variable, a substitution, a brace
+  list, `~user`, the `{}` of find or xargs), a `cd` to such a target, and `tar -P` ask too (high stakes), and are
+  capped when their literal part names Hermes. Setting `CDPATH` is capped.
+- The limit, stated plainly: this is a static reading of the command, not a proof of what it will do. It is a
+  fail-safe floor: what it cannot read with certainty goes up to asking you, and a determined program can still
+  hide its target (code that builds a path at run time, a variable set by an earlier command) behind a high-stakes
+  ask rather than a cap.
 
 ## Three pillars
 
