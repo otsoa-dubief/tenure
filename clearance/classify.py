@@ -431,12 +431,20 @@ def _protected_dir(path: str) -> bool:
 
 def _arg_paths(word: str) -> list[str]:
     """The paths an argument may name: itself, its parts around `:`, `=` and `,` (-v a:b, --volume=a:b, --mount
-    type=bind,src=a), and the value glued to a short option (-Cdir, -d~/x)."""
-    out = [word] + [x for x in re.split(r"[:=,]", word) if x and x != word]
-    glued = re.match(r"-[A-Za-z]([^-].*)$", word)
-    if glued:
-        out.append(glued.group(1))
-    return [x for x in out if x and not x.startswith("-")]
+    type=bind,src=a), and the value glued to a short option (-Cdir, -d~/x). The parts keep their quoting."""
+    out, start = [word], 0
+    for m in re.finditer(r"[:=,]", _view(word)):
+        out.append(_cut(word, start, m.start()))
+        start = m.end()
+    if start:
+        out.append(_cut(word, start))
+    if re.match(r"-[A-Za-z][^-]", word):
+        out.append(_cut(word, 2))
+    seen = []
+    for x in out:
+        if x and not x.startswith("-") and (x is word or x != word) and x not in seen:
+            seen.append(x)
+    return seen
 
 
 def _dir_exists(path: str) -> bool:
@@ -546,7 +554,8 @@ def _unresolved(word: str) -> bool:
     """R37: a word the shell computes in a way that is not read here: a variable or substitution, a brace list, `~user`
     or the {} of xargs or find (a glob is judged apart). Words with blanks are text, unless they hold a substitution;
     a word written between single quotes is literal text."""
-    if not word or word in (getattr(_CACHE, "quoted", None) or ()):
+    word = _view(word)
+    if not word:
         return False
     if any(ch.isspace() for ch in word) and "$(" not in word and "`" not in word:
         return False
@@ -601,9 +610,9 @@ def _path_words(tokens: list[str]) -> list[str]:
         if a in PATH_OPTS and n + 1 < len(args):
             out.append(args[n + 1])
         elif a.startswith("--") and a.split("=", 1)[0] in PATH_OPTS and "=" in a:
-            out.append(a.split("=", 1)[1])
+            out.append(_cut(a, a.index("=") + 1))
         elif re.fullmatch(r"-[Cdto].+", a):
-            out.append(a[2:])
+            out.append(_cut(a, 2))
     if prog in PATH_PROGS or prog in WRITERS or prog in ARCHIVERS:
         out += [a for a in args if not a.startswith("-")]
     return out
@@ -896,12 +905,76 @@ class Seg:
 FD_PREFIX = re.compile(r"(?<![\w$])\d+(?=[<>])")          # the 2 of 2>file (glued: "timeout 5 >f" keeps its 5)
 
 
-def _lex(text: str) -> list[str]:
-    lex = shlex.shlex(FD_PREFIX.sub(" ", text), posix=True, punctuation_chars=PUNCT)
+class Tok(str):
+    """A word that was (partly) written between single quotes: ``masked`` is the same text with the shell's special
+    characters of the quoted parts replaced by LITERAL, so that a quoted `$D` or `*` is never read as a variable or a
+    glob, and an unquoted one elsewhere on the line still is. Quoting belongs to each word, not to its text."""
+    masked: str
+
+    def __new__(cls, text: str, masked: str):
+        t = super().__new__(cls, text)
+        t.masked = masked
+        return t
+
+
+LITERAL = "\x01"
+QUOTED_META = set("$`*?[]{}~")
+
+
+def _mask_single_quotes(text: str) -> str:
+    """``text`` with the special characters inside single quotes replaced by LITERAL (same length)."""
+    out, state, i = [], "", 0
+    while i < len(text):
+        ch = text[i]
+        if state == "'":
+            out.append(LITERAL if ch in QUOTED_META else ch)
+            if ch == "'":
+                state = ""
+        elif ch == "\\" and i + 1 < len(text):
+            out.append(text[i:i + 2])
+            i += 2
+            continue
+        else:
+            out.append(ch)
+            if ch == '"':
+                state = "" if state == '"' else '"'
+            elif ch == "'" and state != '"':
+                state = "'"
+        i += 1
+    return "".join(out)
+
+
+def _shlex(text: str) -> list[str]:
+    lex = shlex.shlex(text, posix=True, punctuation_chars=PUNCT)
     lex.whitespace_split = True
     lex.whitespace = " \t\r"                         # an unquoted newline is a separator, not a blank
     lex.commenters = ""                              # a comment is read as code: the safe side
     return list(lex)
+
+
+def _lex(text: str) -> list[str]:
+    text = FD_PREFIX.sub(" ", text)
+    words = _shlex(text)
+    if "'" not in text:
+        return words
+    try:
+        masked = _shlex(_mask_single_quotes(text))
+    except ValueError:
+        return words
+    if len(masked) != len(words) or any(len(a) != len(b) for a, b in zip(words, masked)):
+        return words
+    return [Tok(w, m) if m != w else w for w, m in zip(words, masked)]
+
+
+def _view(word: str) -> str:
+    """The word as the shell reads its special characters: quoted ones masked."""
+    return word.masked if isinstance(word, Tok) else word
+
+
+def _cut(word: str, start: int, end: int | None = None) -> str:
+    """A slice of a word that keeps its quoting."""
+    piece = str.__getitem__(word, slice(start, end))
+    return Tok(piece, word.masked[start:end]) if isinstance(word, Tok) else piece
 
 
 def _decompose(tokens: list[str]) -> list[str]:
@@ -1967,11 +2040,11 @@ def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, s
     if toks:
         targets += _write_args(os.path.basename(toks[0]), toks[1:])
     removes = bool(toks) and os.path.basename(toks[0]) in REMOVERS
-    quoted = getattr(_CACHE, "quoted", None) or ()
     for target in targets:
-        literal = target in quoted                       # between single quotes: no variable, no glob
-        target = _expand(target, home)
-        if (any(c in target for c in UNRESOLVED) and not literal) or (cwd == UNKNOWN and not os.path.isabs(target)):
+        expanded = _expand(target, home)
+        view = _view(target) if expanded is target else expanded     # quoted characters are literal
+        target = expanded
+        if any(c in view for c in UNRESOLVED) or (cwd == UNKNOWN and not os.path.isabs(target)):
             unresolved = True
             continue
         found = _file(target, base, home)
@@ -2340,10 +2413,28 @@ DECLARERS = {"export", "local", "declare", "readonly", "typeset"}
 
 
 def _substitute(tokens: list[str], known: dict) -> list[str]:
-    """The words with the variables assigned earlier on the line replaced by their value."""
+    """The words with the variables assigned earlier on the line replaced by their value (never inside single
+    quotes); a word keeps its quoting."""
     if not known:
         return tokens
-    return [SHELL_VAR.sub(lambda m: known.get(m.group(1) or m.group(2), m.group(0)), t) for t in tokens]
+    out = []
+    for t in tokens:
+        view, text, mask, last = _view(t), [], [], 0
+        for m in SHELL_VAR.finditer(view):
+            name = m.group(1) or m.group(2)
+            if name not in known:
+                continue
+            text += [str.__getitem__(t, slice(last, m.start())), known[name]]
+            mask += [view[last:m.start()], known[name]]
+            last = m.end()
+        if not text:
+            out.append(t)
+            continue
+        text.append(str.__getitem__(t, slice(last, None)))
+        mask.append(view[last:])
+        new, masked = "".join(text), "".join(mask)
+        out.append(Tok(new, masked) if masked != new else new)
+    return out
 
 
 def _assign(tokens: list[str], known: dict, home: str) -> None:
@@ -2539,9 +2630,6 @@ def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str,
     home = _norm(home or os.path.expanduser("~"))
     command = _join_lines(command)
     start = cwd or os.getcwd()
-    quoted = getattr(_CACHE, "quoted", None)
-    if quoted is not None:                               # words written between single quotes: literal text
-        quoted.update(m.group(1) for m in re.finditer(r"(?:^|(?<=[\s=]))'([^']*)'(?=$|[\s;&|)<>])", command))
     by_lines = _run(_glue_find(_build(_tokens_lines(command))), start, home, depth)
     whole = _run(_glue_find(_build(_tokens_whole(command))), start, home, depth)
     best = whole if RANK[whole[1]] >= RANK[by_lines[1]] else by_lines
@@ -2804,7 +2892,7 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
              home: str | None = None) -> Action:
     args = args if isinstance(args, dict) else {}
     home = home or os.path.expanduser("~")
-    _CACHE.memo, _CACHE.roots, _CACHE.cwd, _CACHE.home, _CACHE.quoted = {}, None, cwd, home, set()
+    _CACHE.memo, _CACHE.roots, _CACHE.cwd, _CACHE.home = {}, None, cwd, home
     if tool_name in FREE_TOOLS:
         t, stakes, rev = f"read:{tool_name}", FREE, False
     elif tool_name in ("write_file", "patch"):

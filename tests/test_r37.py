@@ -131,3 +131,25 @@ def test_non_path_values_keep_the_command_level(env, cmd):
                                  "docker run --mount type=bind,src=$D,dst=/d img"])
 def test_unresolved_write_targets_stay_high(env, cmd):
     assert c.RANK[sh(cmd, env["P"])[1]] >= c.RANK[c.HIGH], cmd
+
+
+# ------------------------------------------- quoting is a property of each word, never of a text on the line
+DECOYS = [("$D/.hermes", "tar xf /tmp/e.tar -C $D/.hermes", c.CAP),
+          ("~/.herm{e,}s", "tar xf /tmp/e.tar -C ~/.herm{e,}s", c.CAP),
+          ("$D", "tar xf /tmp/e.tar -C $D", c.HIGH),
+          ("$D", 'tar xf /tmp/e.tar -C "$D"', c.HIGH),
+          ("*", "rm -rf *", c.HIGH),
+          ("{a,b}", "cp -r /tmp/e/. {a,b}", c.HIGH)]
+
+
+@pytest.mark.parametrize("word,attack,level", DECOYS)
+def test_a_quoted_decoy_never_makes_the_same_unquoted_word_literal(env, word, attack, level):
+    assert sh(attack, env["P"])[1] == level, attack
+    for line in (f"echo '{word}'; {attack}", f"cp f '{word}'; {attack}", f"{attack}; echo '{word}'",
+                 f"{attack} && cp f '{word}'"):
+        assert sh(line, env["P"])[1] == level, line
+
+
+def test_the_quoted_word_itself_stays_literal(env):
+    for cmd in ["cp f '$D'", "echo a > '$D'", "tar xf /tmp/e.tar -C '$D'", "rm -f '*'"]:
+        assert sh(cmd, env["P"])[1] == c.MEDIUM, cmd
