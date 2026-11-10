@@ -1,41 +1,37 @@
 {
-  "approval.button.always": "Toujours autoriser",
-  "approval.button.reject": "Rejeter",
-  "approval.button.run": "Exécuter",
-  "approval.button.session": "Autoriser cette session",
   "ask.capped": "tenure — {summary}\n{type} est plafonné : toujours demandé.",
-  "ask.internal_error": "tenure : erreur interne ({error}) ; tenure vous demande au lieu de laisser passer l'action.",
-  "ask.prompt": "tenure — {summary}\n{why}\n« {run} » si l'action est juste ; « {reject} » si elle est fausse (une faute). « {session} » ou « {always} » = un seul « {run} » ; tenure décide quand cesser de demander.",
-  "ask.spot": "tenure, contrôle aléatoire — {summary}\n{type} agit seul ; 1 action sur {spot} reste contrôlée au hasard.\n« {run} » si l'action est juste ; « {reject} » si elle est fausse (le type redescend). « {session} » ou « {always} » = un seul « {run} ».",
+  "ask.internal_error": "tenure : erreur interne ({error}) ; on vous demande plutôt que de laisser passer l'action.",
+  "ask.prompt": "tenure — {summary}\n{why}\nAutorisez l'action si elle est juste ; refusez-la si elle est fausse (c'est une faute). L'autoriser pour la session ou toujours compte comme une seule approbation : c'est tenure qui décide quand cesser de demander.",
+  "ask.spot": "tenure, contrôle aléatoire — {summary}\n{type} agit seul ; 1 action sur {spot} reste contrôlée au hasard.\nAutorisez l'action si elle est juste ; refusez-la si elle est fausse (le type redescend). L'autoriser pour la session ou toujours compte comme une seule approbation.",
   "ask.why.capped": {
     "one": "{type} (enjeu {stakes}) est plafonné par vos paramètres : toujours demandé ({n} succès vérifié à son actif).",
     "other": "{type} (enjeu {stakes}) est plafonné par vos paramètres : toujours demandé ({n} succès vérifiés à son actif)."
   },
-  "ask.why.other_stakes": "{type} a gagné son historique à enjeu {earned}, et cette action est à enjeu {stakes} : il demande.",
+  "ask.why.other_stakes": "{type} a gagné son historique à enjeu {earned}, mais cette action est à enjeu {stakes} : il demande.",
   "ask.why.provisional": {
     "one": "Dont {n} hérité de l'agent précédent, à titre provisoire.",
     "other": "Dont {n} hérités de l'agent précédent, à titre provisoire."
   },
-  "ask.why.series": "{type} (enjeu {stakes}) demande d'abord : {series}/{required} succès sans faute d'affilée, {sessions} sessions sur {needed}, avant d'agir seul.",
-  "ask.why.suspended": "Cette session a lu du contenu externe : chaque action demande de nouveau (suspendu : contenu externe lu).",
+  "ask.why.series": "{type} (enjeu {stakes}) demande d'abord : {series}/{required} succès d'affilée sans faute, {sessions} sessions sur {needed}, avant d'agir seul.",
+  "ask.why.suspended": "Cette session a lu du contenu externe : chaque action vous est de nouveau demandée (session suspendue).",
   "ask.why.trial": {
-    "one": "{type} est à l'essai après une faute : encore {n} succès vérifié nécessaire, sans faute.",
-    "other": "{type} est à l'essai après une faute : encore {n} succès vérifiés nécessaires, sans faute."
+    "one": "{type} est à l'essai après une faute : il lui faut encore {n} succès vérifié, sans faute.",
+    "other": "{type} est à l'essai après une faute : il lui faut encore {n} succès vérifiés, sans faute."
   },
   "ask.why.trial_wait": {
-    "one": "{type} a échoué à son essai : chaque action demande, et un nouvel essai s'ouvre après encore {n} action de ce type.",
-    "other": "{type} a échoué à son essai : chaque action demande, et un nouvel essai s'ouvre après encore {n} actions de ce type."
+    "one": "{type} a échoué à son essai : chaque action vous est demandée, et un nouvel essai s'ouvrira après encore {n} action de ce type.",
+    "other": "{type} a échoué à son essai : chaque action vous est demandée, et un nouvel essai s'ouvrira après encore {n} actions de ce type."
   },
-  "ask.why.unsaved": "{type} agirait puis vous préviendrait, mais aucune annulation ne peut être préparée pour cette action (fichier trop gros, binaire ou illisible) : il demande à la place.",
+  "ask.why.unsaved": "{type} agirait puis vous préviendrait, mais l'annulation ne peut pas être préparée pour cette action (fichier trop gros, binaire ou illisible) : il vous demande donc.",
   "benchmarks.note.no_model": "Aucune mesure publique pour {model} sur {benchmark}.",
   "benchmarks.note.no_previous": "Aucun modèle précédent avec lequel comparer.",
   "benchmarks.note.no_type": "Aucune mesure publique pour ce type d'action.",
-  "benchmarks.note.published": "Chaque score est le meilleur score publié du modèle (tout dispositif d'évaluation confondu), pas une comparaison contrôlée.",
+  "benchmarks.note.published": "Chaque score est le meilleur score publié du modèle (toutes conditions de test confondues), pas une comparaison à armes égales.",
   "benchmarks.note.scores": "{benchmark} {version}, en pourcentage. Les scores publics informent ; ils n'accordent jamais d'autonomie.",
-  "carry.carried": "Un historique hérité vaut la moitié de l'ancienne série, provisoire jusqu'à ce que les propres succès de cet agent l'égalent.",
+  "carry.carried": "Un historique hérité vaut la moitié de l'ancienne série ; il reste provisoire jusqu'à ce que les succès de cet agent l'égalent.",
   "carry.kept": {
-    "one": "{n} conserve l'historique propre de cet agent.",
-    "other": "{n} conservent l'historique propre de cet agent."
+    "one": "{n} type garde l'historique que cet agent avait déjà.",
+    "other": "{n} types gardent l'historique que cet agent avait déjà."
   },
   "carry.new_agent": "tenure : nouvel agent {new} (auparavant {old}). Types d'action : {carried} hérités à l'essai, {reset} remis à zéro, {vetoed} bloqués par un benchmark public.",
   "carry.strict": "Mode strict : chaque type repart de zéro, et une faute à l'historique devient un essai.",
@@ -52,8 +48,8 @@
     "other": "il y a {n} s"
   },
   "cli.cleanup.dead": {
-    "one": "{n} clé tenure morte dans la liste d'autorisation permanente ({setting}), sur {total} entrées. Chaque demande utilise une clé à usage unique : elle ne correspond plus jamais.",
-    "other": "{n} clés tenure mortes dans la liste d'autorisation permanente ({setting}), sur {total} entrées. Chaque demande utilise une clé à usage unique : elles ne correspondent plus jamais."
+    "one": "{n} clé tenure inutile dans la liste d'autorisation permanente ({setting}), sur {total} entrées. Chaque demande utilise une clé à usage unique : celle-ci ne servira plus jamais.",
+    "other": "{n} clés tenure inutiles dans la liste d'autorisation permanente ({setting}), sur {total} entrées. Chaque demande utilise une clé à usage unique : celles-ci ne serviront plus jamais."
   },
   "cli.cleanup.no_config": "Impossible de lire la configuration de Hermes ({module} n'est pas disponible ici) : rien n'a été vérifié.",
   "cli.cleanup.none": {
@@ -111,17 +107,17 @@
   "cli.err.profile_missing": "Aucun historique tenure pour le profil {profile} (cherché dans {path}).",
   "cli.err.profile_unreadable": "Impossible de lire l'historique du profil {profile} : {error}",
   "cli.err.unreadable": "Impossible de lire {path} : {error}.",
-  "cli.explain.fault": "Une faute, un contrôle aléatoire refusé ou une erreur que vous signalez, fait redescendre le type : un type réversible à enjeu faible en T3 passe en T2 (déjà en T2, son score tranche entre T2 et T1) ; toute autre faute le renvoie en T1. À enjeu moyen ou élevé, la remontée suivante est 25 % plus longue.",
-  "cli.explain.footer": "La garantie couvre les erreurs que vous refuseriez si on vous les demandait ; une erreur que personne ne remarquerait ne peut pas être comptée. Mesuré face à la théorie par simulation dans la suite de tests.",
+  "cli.explain.fault": "Une seule faute (un contrôle aléatoire refusé ou une erreur que vous signalez) fait redescendre le type : un type réversible à enjeu faible en T3 passe en T2 (s'il est déjà en T2, son score tranche entre T2 et T1) ; toute autre faute le renvoie en T1. À enjeu moyen ou élevé, la remontée suivante est 25 % plus longue.",
+  "cli.explain.footer": "La garantie couvre les erreurs que vous refuseriez si on vous les soumettait ; une erreur que personne ne remarquerait ne peut pas être comptée. Comparé à la théorie par simulation, dans la suite de tests.",
   "cli.explain.guarantee_title": "Ce qui est garanti, avec vos paramètres (les erreurs que vous repérez ne s'exécutent jamais : une action refusée est bloquée) :",
-  "cli.explain.level": "{level} : i = {n}. Pour un agent dont le taux d'erreur est stable, les erreurs exécutées sans votre approbation restent sous {aoql} de ses actions de ce type. Pour un agent qui se dégrade après avoir gagné son autonomie, au plus {worst} jusqu'à la première erreur repérée.",
+  "cli.explain.level": "{level} : i = {n}. Pour un agent dont le taux d'erreur est stable, les erreurs exécutées sans votre approbation restent sous {aoql} de ses actions de ce type. Si l'agent se dégrade une fois son autonomie acquise, {worst} au plus, jusqu'à la première erreur repérée.",
   "cli.explain.level_capped": "{level} : toujours demandé.",
   "cli.explain.new_model": "Un nouveau modèle démarre avec la moitié de la série du modèle précédent, marquée provisoire jusqu'à ce qu'il la confirme (mode strict : un historique vide).",
   "cli.explain.new_model_strict": "Un nouveau modèle démarre avec un historique vide (mode strict).",
-  "cli.explain.reads": "Les lectures ne demandent jamais ; les secrets, les skills et plugins de l'agent lui-même et les fichiers sensibles demandent toujours.",
-  "cli.explain.t1": "T1 demande d'abord. Chaque action d'un nouveau type vous est demandée.",
+  "cli.explain.reads": "Les lectures ne demandent jamais ; les secrets, les skills et plugins de l'agent et les fichiers sensibles demandent toujours.",
+  "cli.explain.t1": "T1 demande d'abord. Chaque action d'un nouveau type vous est soumise.",
   "cli.explain.t2": "T2 agit, puis vous prévient. Après {low} approbations d'affilée à enjeu faible, {medium} à enjeu moyen, un type réversible agit et vous prévient, avec une annulation ({command}). L'enjeu élevé et les types irréversibles n'obtiennent jamais T2.",
-  "cli.explain.t3": "T3 agit seul. Après i approbations d'affilée, sur au moins {sessions} sessions (i ci-dessous, le nombre de libération de Dodge, plan d'échantillonnage continu CSP-1) ; 1 action sur {spot} reste contrôlée au hasard.",
+  "cli.explain.t3": "T3 agit seul. Après i approbations d'affilée, sur au moins {sessions} sessions (valeur de i ci-dessous, calculée selon le plan d'échantillonnage continu CSP-1 de Dodge) ; 1 action sur {spot} reste contrôlée au hasard.",
   "cli.explain.title": "Comment tenure décide, un type d'action à la fois :",
   "cli.export.written": {
     "one": "Preuves écrites : {path} ({n} entrée). Vérifiez un passeport avec : {command} {path}",
@@ -137,7 +133,7 @@
   },
   "cli.models.no_check": "aucune vérification pour l'instant",
   "cli.models.none": "Aucun historique pour l'instant.",
-  "cli.models.none_type": "Aucun historique pour {type} pour l'instant.",
+  "cli.models.none_type": "Pas encore d'historique pour {type}.",
   "cli.models.rate": "{rate} (fourchette à 95 % : {low} à {high})",
   "cli.models.title": "Historique vérifié par modèle, sur votre propre travail (fautes / vérifications) :",
   "cli.none_yet": "aucun pour l'instant",
@@ -178,8 +174,8 @@
   },
   "cli.status.disabled": "tenure est désactivé ({setting}: false).",
   "cli.status.empty": "Aucun type d'action n'a encore d'historique. Les lectures ne demandent jamais ; tout le reste demande jusqu'à ce que son type gagne son autonomie.",
-  "cli.status.guarantee": "erreurs non vérifiées sous {rate} de ses actions",
-  "cli.status.guarantee_provisional": "erreurs non vérifiées sous {rate} de ses actions (provisoire)",
+  "cli.status.guarantee": "erreurs non vérifiées : moins de {rate} de ses actions",
+  "cli.status.guarantee_provisional": "erreurs non vérifiées : moins de {rate} de ses actions (provisoire)",
   "cli.status.header.here": "tenure : ce profil, préréglage {preset}, 1 contrôle aléatoire sur {spot}",
   "cli.status.header.here_strict": "tenure : ce profil, préréglage {preset}, 1 contrôle aléatoire sur {spot}, mode strict",
   "cli.status.header.profile": "tenure : profil {profile}, dernier préréglage enregistré, 1 contrôle aléatoire sur {spot}",
@@ -201,7 +197,7 @@
     "one": "{n} autre agent a un historique ({agents}) : {command}",
     "other": "{n} autres agents ont un historique ({agents}) : {command}"
   },
-  "cli.status.paused": "Apprentissage en pause ici : personne ne répond aux approbations ({why}). Les niveaux acquis s'appliquent toujours.",
+  "cli.status.paused": "Apprentissage en pause ici : personne ne répond aux demandes d'approbation ({why}). Les niveaux acquis restent appliqués.",
   "cli.strict.off": "Mode strict désactivé : un nouveau modèle hérite de la moitié de l'historique du modèle précédent, sauf si un benchmark public bloque le type.",
   "cli.strict.on": "Mode strict activé : un nouveau modèle démarre avec un historique vide, rien n'est hérité.",
   "cli.strict.save_failed": "Impossible d'enregistrer le mode strict ({error}). Définissez {setting}: {value}",
@@ -213,12 +209,12 @@
     "other": "{file} (+{n} autres)"
   },
   "cli.undo.none": {
-    "one": "Rien à annuler : aucune action n'a été effectuée seule depuis {n} heure.",
-    "other": "Rien à annuler : aucune action n'a été effectuée seule dans les {n} dernières heures."
+    "one": "Rien à annuler : aucune action faite sans demander depuis {n} heure.",
+    "other": "Rien à annuler : aucune action faite sans demander ces {n} dernières heures."
   },
   "cli.undo.title": {
-    "one": "Actions effectuées seules depuis {n} heure (en annuler une compte comme une faute) :",
-    "other": "Actions effectuées seules dans les {n} dernières heures (en annuler une compte comme une faute) :"
+    "one": "Actions faites sans demander depuis {n} heure (en annuler une compte comme une faute) :",
+    "other": "Actions faites sans demander ces {n} dernières heures (en annuler une compte comme une faute) :"
   },
   "cli.usage": "    status [--profile P] [--model M] [--all]   ce que chaque agent a gagné, par type d'action\n    setup [careful|balanced|fast]              les trois recommandations ; avec un nom, l'appliquer\n    explain                                    comment tenure décide, et ce que garantissent les chiffres\n    models [--type T]                          l'historique vérifié de chaque modèle sur votre propre travail\n    undo [ID]                                  remettre les fichiers d'une action qui a agi puis vous a prévenu (compte une faute) ; seul, la liste\n    flag TYPE [note] [--model M]               signaler une erreur faite par l'agent seul : son autonomie est révoquée\n    revoke TYPE|all [--model M | --all]        retirer l'autonomie acquise sans erreur\n    passport [--agent A] [--out FILE]          écrire le passeport signé d'un agent (--no-redact garde les noms de types)\n    verify PASSPORT [LEDGER]                   vérifier un passeport ; avec le registre exporté, le recalculer en rejouant\n    anchor                                     une ligne à publier : la tête, la date et la longueur du registre\n    export [PATH]                              écrire le registre des preuves (lignes JSON chaînées par hachage)\n    strict on|off                              mode strict : un nouveau modèle démarre avec un historique vide\n    cleanup                                    lister les clés tenure mortes dans la liste d'autorisation permanente de Hermes\n",
   "cli.verify.after": {
@@ -248,22 +244,22 @@
     "other": "{n} succès vérifiés d'affilée"
   },
   "notice.tier.fault": "tenure : {type} est revenu en {tier}, après une faute.",
-  "notice.tier.series": "tenure : {type} agit désormais seul, après {successes}, répartis sur {sessions}. 1 action sur {spot} reste contrôlée au hasard, et une faute le fait redescendre.",
+  "notice.tier.series": "tenure : {type} agit désormais seul, après {successes} sur {sessions}. 1 action sur {spot} reste contrôlée au hasard, et une faute le fait redescendre.",
   "notice.tier.settings": "tenure : {type} est revenu en {tier}, selon vos nouveaux paramètres.",
-  "notice.tier.stakes": "tenure : {type} est désormais à enjeu {stakes} : son historique repart de zéro à cet enjeu (un essai et les fautes à l'historique restent).",
-  "notice.tier.wald": "tenure : {type} agit désormais, puis vous prévient avec une annulation, après une série de succès vérifiés.",
+  "notice.tier.stakes": "tenure : {type} est désormais à enjeu {stakes} : son historique repart de zéro à cet enjeu (un essai en cours et les fautes à l'historique sont conservés).",
+  "notice.tier.wald": "tenure : après une série de succès vérifiés, {type} agit désormais, puis vous prévient, avec une annulation possible.",
   "notice.trial.failed": {
-    "one": "tenure : {type} a échoué à son essai : chaque action demande, et un nouvel essai s'ouvre après encore {n} action de ce type.",
-    "other": "tenure : {type} a échoué à son essai : chaque action demande, et un nouvel essai s'ouvre après encore {n} actions de ce type."
+    "one": "tenure : {type} a échoué à son essai : chaque action vous est demandée, et un nouvel essai s'ouvrira après encore {n} action de ce type.",
+    "other": "tenure : {type} a échoué à son essai : chaque action vous est demandée, et un nouvel essai s'ouvrira après encore {n} actions de ce type."
   },
   "notice.trial.fault": {
-    "one": "tenure : {type} est à l'essai : sa prochaine action demande, et elle doit réussir.",
-    "other": "tenure : {type} est à l'essai : ses {n} prochaines actions demandent, et toutes doivent réussir."
+    "one": "tenure : {type} est à l'essai : sa prochaine action vous sera demandée, et elle doit réussir.",
+    "other": "tenure : {type} est à l'essai : ses {n} prochaines actions vous seront demandées, et toutes doivent réussir."
   },
   "notice.trial.passed": "tenure : {type} a réussi son essai.",
   "notice.trial.wait_over": {
-    "one": "tenure : {type} a droit à un nouvel essai : sa prochaine action demande.",
-    "other": "tenure : {type} a droit à un nouvel essai : ses {n} prochaines actions demandent."
+    "one": "tenure : {type} a droit à un nouvel essai : sa prochaine action vous sera demandée.",
+    "other": "tenure : {type} a droit à un nouvel essai : ses {n} prochaines actions vous seront demandées."
   },
   "settle.acted": "tenure : {type} a agi, puis vous a prévenu · {command} {id}",
   "settle.acted_fault": "tenure : {type} a agi, puis vous a prévenu, mais la vérification automatique a échoué ({reason}) ; comptée comme une faute · {command} {id}",
@@ -273,19 +269,19 @@
   "stakes.medium": "moyen",
   "tier.long.alone": "T3, agit seul",
   "tier.long.ask": "T1, demande d'abord",
-  "tier.long.notify": "T2, agit puis vous prévient avec une annulation",
+  "tier.long.notify": "T2, agit puis vous prévient, annulable",
   "tier.short.alone": "T3 agit seul",
   "tier.short.ask": "T1 demande d'abord",
   "tier.short.notify": "T2 agit, puis prévient",
-  "undo.already": "L'annulation {id} a déjà été effectuée.",
+  "undo.already": "L'action {id} est déjà annulée.",
   "undo.done": "Annulation {id} : fichiers restaurés. Comptée comme une faute de {type} pour {agent} ; il est maintenant en {tier}.",
   "undo.done_already_fault": "Annulation {id} : fichiers restaurés. La vérification automatique avait déjà compté cette action comme une faute de {type} ; aucune seconde faute n'est enregistrée.",
   "undo.expired": {
-    "one": "L'annulation {id} date de plus de {n} heure : l'instantané n'est plus conservé.",
+    "one": "L'annulation {id} date de plus de {n} h : l'instantané n'est plus conservé.",
     "other": "L'annulation {id} date de plus de {n} h : l'instantané n'est plus conservé."
   },
   "undo.gone": "Annulation {id} : l'instantané a disparu, rien n'a été restauré.",
-  "undo.missing": "Aucune annulation {id}.",
+  "undo.missing": "Aucune annulation n° {id}.",
   "undo.no_snapshot": "Annulation {id} : aucun instantané n'a été enregistré pour cette action, rien à restaurer.",
   "undo.partial": {
     "one": "Annulation {id} : {n} fichier n'a pas pu être restauré ({restored} l'ont été). Rien n'est marqué comme annulé et aucune faute n'est enregistrée : corrigez la cause (permissions, fichier verrouillé) et réessayez.",

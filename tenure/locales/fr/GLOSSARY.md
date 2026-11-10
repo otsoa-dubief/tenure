@@ -3,7 +3,7 @@
 Style repris des catalogues français de Hermes : vouvoiement, guillemets « », espace simple avant « : ; ? ! », « 12 % ».
 
 - tier → niveau (codes T1 T2 T3 et CAP gardés tels quels)
-- earned autonomy → autonomie acquise (« gagner son autonomie »)
+- earned autonomy → autonomie acquise (« gagner son autonomie ») ; sous-titre : « Autonomie acquise par type d'action »
 - action type → type d'action
 - spot check → contrôle aléatoire (« contrôlée au hasard »)
 - check (verified action) → vérification
@@ -39,5 +39,7 @@ Style repris des catalogues français de Hermes : vouvoiement, guillemets « »,
 - profile / model / provider → profil / modèle / fournisseur
 - approval buttons (Hermes Desktop) → Exécuter / Rejeter / Autoriser cette session / Toujours autoriser
 - dashboard → tableau de bord
-- harness (benchmark) → dispositif d'évaluation
-- Dodge's clearance number (CSP-1) → nombre de libération de Dodge (plan d'échantillonnage continu CSP-1)
+- harness (benchmark) → conditions de test (« toutes conditions de test confondues ») ; controlled comparison → comparaison à armes égales
+- Dodge's clearance number (CSP-1) → non traduit littéralement : « valeur de i, calculée selon le plan d'échantillonnage continu CSP-1 de Dodge »
+- tamper-evident → scellé (« Signé et scellé : toute modification … apparaît »)
+- on its own (compteur) → sans demander ; « it asks » → « il vous demande » / « vous est demandée » (jamais « la modification demande »)

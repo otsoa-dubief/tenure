@@ -27,7 +27,7 @@ import shlex
 import sys
 import time
 
-from . import params, passport, personal, rule, store, undo
+from . import i18n, params, passport, personal, rule, store, undo
 from .i18n import ljust, tr, width
 
 ENOUGH = 20                                     # checks before a rate is called measured
@@ -60,7 +60,7 @@ def presets_text(spot: float) -> str:
         for level in params.LEVELS:
             x = d[level]
             parts.append(tr("cli.presets.capped", level=_stakes(level)) if x["capped"] else
-                         tr("cli.presets.level", level=_stakes(level), n=x["n"], risk=f"{x['risk']:.1%}"))
+                         tr("cli.presets.level", level=_stakes(level), n=x["n"], risk=i18n.pct(x['risk'], 1)))
         line = "cli.presets.line_default" if name == params.DEFAULT_PRESET else "cli.presets.line"
         lines.append("  " + tr(line, name=name, levels=tr("cli.list.joiner").join(parts)))
     lines += ["", tr("cli.presets.footer", command="/tenure setup balanced", setting=f"{SETTINGS}.risks",
@@ -175,7 +175,7 @@ def _status_agent(st, agent: str, cfg: dict) -> list[str]:
             guar = "-"
             if eff == rule.T3:
                 guar = tr("cli.status.guarantee_provisional" if g["conditional"] else "cli.status.guarantee",
-                          rate=f"{g['aoql']:.2%}")
+                          rate=i18n.pct(g['aoql'], 2))
         notes = [tr("cli.status.note.provisional", n=s.provisional)] if s.provisional else []
         notes += [tr("cli.status.note.trial", n=s.trial_left)] if s.trial_left else []
         notes += [tr("cli.status.note.trial_wait", n=s.trial_wait)] if s.trial_wait else []
@@ -244,8 +244,8 @@ def explain_text() -> str:
         if x["capped"]:
             lines.append("  " + tr("cli.explain.level_capped", level=_stakes(level)))
             continue
-        lines.append("  " + tr("cli.explain.level", level=_stakes(level), n=x["n"], aoql=f"{x['aoql']:.2%}",
-                               worst=f"{x['worst_case']:.1%}"))
+        lines.append("  " + tr("cli.explain.level", level=_stakes(level), n=x["n"], aoql=i18n.pct(x['aoql'], 2),
+                               worst=i18n.pct(x['worst_case'], 1)))
     lines += ["", tr("cli.explain.footer")]
     return "\n".join(lines)
 
@@ -258,7 +258,7 @@ def models_text(type_key: str | None = None) -> str:
     cells = []
     for r in rows:
         rate = (tr("cli.models.no_check") if r["rate"] is None else
-                tr("cli.models.rate", rate=f"{r['rate']:.1%}", low=f"{r['low']:.1%}", high=f"{r['high']:.1%}"))
+                tr("cli.models.rate", rate=i18n.pct(r['rate'], 1), low=i18n.pct(r['low'], 1), high=i18n.pct(r['high'], 1)))
         cells.append([r["type"], r["model"], r["provider"], _record(r["faults"], r["successes"]), rate,
                       "" if r["enough"] else tr("cli.models.few", n=ENOUGH)])
     lines = [tr("cli.models.title")]

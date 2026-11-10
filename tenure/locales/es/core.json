@@ -1,20 +1,16 @@
 {
-  "approval.button.always": "Permitir siempre",
-  "approval.button.reject": "Rechazar",
-  "approval.button.run": "Ejecutar",
-  "approval.button.session": "Permitir esta sesión",
   "ask.capped": "tenure — {summary}\n{type} está limitado: siempre se pregunta.",
   "ask.internal_error": "tenure: error interno ({error}); te pregunto en lugar de dejar pasar la acción.",
-  "ask.prompt": "tenure — {summary}\n{why}\n“{run}” si es correcto; “{reject}” si es incorrecto (cuenta como fallo). “{session}”/“{always}” = un “{run}”; tenure decide cuándo deja de preguntar.",
-  "ask.spot": "control aleatorio de tenure — {summary}\n{type} actúa por su cuenta; 1 acción de cada {spot} se sigue comprobando al azar.\n“{run}” si es correcto; “{reject}” si es incorrecto (el tipo vuelve a bajar). “{session}”/“{always}” = un “{run}”.",
+  "ask.prompt": "tenure — {summary}\n{why}\nPermítelo si es correcto; recházalo si es incorrecto (cuenta como fallo). Permitirlo para la sesión o siempre cuenta como una sola aprobación: tenure decide cuándo deja de preguntar.",
+  "ask.spot": "control aleatorio de tenure — {summary}\n{type} actúa por su cuenta; 1 acción de cada {spot} se sigue comprobando al azar.\nPermítelo si es correcto; recházalo si es incorrecto (el tipo vuelve a bajar). Permitirlo para la sesión o siempre cuenta como una sola aprobación.",
   "ask.why.capped": {
     "one": "{type} (impacto {stakes}) está limitado por tu configuración: siempre se pregunta ({n} éxito verificado en el historial).",
     "other": "{type} (impacto {stakes}) está limitado por tu configuración: siempre se pregunta ({n} éxitos verificados en el historial)."
   },
   "ask.why.other_stakes": "{type} ganó su historial con impacto {earned}, y esta acción tiene impacto {stakes}: pregunta.",
   "ask.why.provisional": {
-    "one": "{n} de ellos heredado del agente anterior, provisional.",
-    "other": "{n} de ellos heredados del agente anterior, provisionales."
+    "one": "Uno de ellos, heredado del agente anterior, es provisional.",
+    "other": "{n} de ellos, heredados del agente anterior, son provisionales."
   },
   "ask.why.series": "{type} (impacto {stakes}) pregunta antes: {series}/{required} acciones limpias seguidas, {sessions} de {needed} sesiones, antes de actuar por su cuenta.",
   "ask.why.suspended": "Esta sesión leyó contenido externo, así que cada acción vuelve a preguntar (suspendido: contenido externo leído).",
@@ -30,12 +26,12 @@
   "benchmarks.note.no_model": "No hay medida pública para {model} en {benchmark}.",
   "benchmarks.note.no_previous": "No hay modelo anterior con el que comparar.",
   "benchmarks.note.no_type": "No hay medida pública para este tipo de acción.",
-  "benchmarks.note.published": "Cada puntuación es la mejor publicada del modelo (con cualquier harness), no una comparación controlada.",
+  "benchmarks.note.published": "Cada puntuación es la mejor publicada del modelo (con cualquier entorno de evaluación), no una comparación controlada.",
   "benchmarks.note.scores": "{benchmark} {version}, en porcentaje. Las puntuaciones públicas informan; nunca conceden autonomía.",
   "carry.carried": "Un historial heredado es la mitad de la serie anterior, provisional hasta que los propios éxitos de este agente lo igualen.",
   "carry.kept": {
-    "one": "{n} conservó el historial propio de este agente.",
-    "other": "{n} conservaron el historial propio de este agente."
+    "one": "{n} tipo conserva el historial que este agente ya tenía.",
+    "other": "{n} tipos conservan el historial que este agente ya tenía."
   },
   "carry.new_agent": "tenure: nuevo agente {new} (antes {old}). Tipos de acción: {carried} heredados a prueba, {reset} reiniciados, {vetoed} vetados por un benchmark público.",
   "carry.strict": "Modo estricto: cada tipo empieza de cero, y un fallo en el historial se convierte en un periodo de prueba.",
@@ -112,16 +108,16 @@
   "cli.err.profile_unreadable": "No se puede leer el historial del perfil {profile}: {error}",
   "cli.err.unreadable": "No se puede leer {path}: {error}.",
   "cli.explain.fault": "Un solo fallo, un control aleatorio rechazado o un error que marcas, hace bajar el tipo: un tipo reversible de impacto bajo en T3 baja a T2 (si ya está en T2, su puntuación decide entre T2 y T1); cualquier otro fallo lo manda a T1. Con impacto medio o alto, la siguiente subida es un 25 % más larga.",
-  "cli.explain.footer": "La garantía cubre los errores que rechazarías si te preguntaran; un error que nadie notaría no se puede contar. Medido frente a la teoría por simulación en la batería de tests.",
+  "cli.explain.footer": "La garantía cubre los errores que rechazarías si te preguntaran; un error que nadie notaría no se puede contar. Medido frente a la teoría por simulación en la batería de pruebas.",
   "cli.explain.guarantee_title": "Lo que garantiza, con tu configuración (los errores que detectas nunca se ejecutan: una acción rechazada se bloquea):",
-  "cli.explain.level": "{level}: i = {n}. Para un agente con una tasa de errores estable, los errores que se ejecutan sin tu aprobación se quedan por debajo del {aoql} de sus acciones de ese tipo. Para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado.",
+  "cli.explain.level": "{level}: i = {n}. Para un agente con una tasa de errores estable, los errores que se ejecutan sin tu aprobación se mantienen por debajo del {aoql} de sus acciones de ese tipo. Para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado.",
   "cli.explain.level_capped": "{level}: siempre se pregunta.",
   "cli.explain.new_model": "Un modelo nuevo empieza con la mitad de la serie del modelo anterior, marcada como provisional hasta que la confirme (modo estricto: un historial vacío).",
   "cli.explain.new_model_strict": "Un modelo nuevo empieza con un historial vacío (modo estricto).",
-  "cli.explain.reads": "Las lecturas nunca preguntan; los secretos, las skills y plugins del propio agente y los archivos sensibles siempre preguntan.",
+  "cli.explain.reads": "Las lecturas nunca preguntan; los secretos, las habilidades y plugins del propio agente y los archivos sensibles siempre preguntan.",
   "cli.explain.t1": "T1 pregunta antes. Cada acción de un tipo nuevo te pregunta.",
   "cli.explain.t2": "T2 actúa y luego te avisa. Tras {low} aprobadas seguidas con impacto bajo, {medium} con impacto medio, un tipo reversible actúa y te avisa, con opción de deshacer ({command}). El impacto alto y los tipos irreversibles nunca llegan a T2.",
-  "cli.explain.t3": "T3 actúa por su cuenta. Tras i aprobadas seguidas, en al menos {sessions} sesiones (i abajo, el número de autorización de Dodge, plan de muestreo continuo CSP-1); 1 acción de cada {spot} sigue teniendo un control aleatorio.",
+  "cli.explain.t3": "T3 actúa por su cuenta. Tras i aprobadas seguidas, en al menos {sessions} sesiones (i más abajo: el número de liberación de Dodge, plan de muestreo continuo CSP-1); 1 acción de cada {spot} sigue pasando un control aleatorio.",
   "cli.explain.title": "Cómo decide tenure, un tipo de acción cada vez:",
   "cli.export.written": {
     "one": "Evidencia escrita: {path} ({n} entrada). Comprueba un pasaporte con ella: {command} {path}",
@@ -143,12 +139,12 @@
   "cli.none_yet": "ninguno todavía",
   "cli.passport.check": "Cualquiera puede comprobarlo: {command} {path} <registro exportado>",
   "cli.passport.none": "No hay historial para {agent}: nada que poner en un pasaporte.",
-  "cli.passport.not_redacted": "SIN ocultar",
-  "cli.passport.redacted": "oculto",
+  "cli.passport.not_redacted": "nombres SIN ocultar",
+  "cli.passport.redacted": "nombres ocultos",
   "cli.passport.signed": "firmado",
-  "cli.passport.summary": "{agent}: {types}, {redaction}, {signature}, cabeza del registro {head} ({events})",
+  "cli.passport.summary": "{agent}: {types}, {redaction}, {signature}, último hash del registro {head} ({events})",
   "cli.passport.unsigned": "SIN FIRMAR (falta el paquete cryptography)",
-  "cli.passport.warning": "Atención: los nombres de tipo se escriben tal cual. Un nombre puede contener un script, un target de make o un alias de git tuyo. Comparte solo un pasaporte oculto.",
+  "cli.passport.warning": "Atención: los nombres de tipo se escriben tal cual. Un nombre puede contener un script, un objetivo de make o un alias de git tuyo. Comparte solo un pasaporte con nombres ocultos.",
   "cli.passport.written": "Pasaporte escrito: {path}",
   "cli.presets.capped": "{level}: siempre se pregunta",
   "cli.presets.footer": "Impacto bajo: archivos del proyecto, memoria, reacciones. Medio: comandos, código, archivos en otros sitios, herramientas internas. Alto: todo lo que sale de la máquina (mensajes a otras personas, pushes, subidas, publicaciones) y el dinero. Usa uno: {command}. O define {setting} en config.yaml (p. ej. {example}).",
@@ -198,7 +194,7 @@
   },
   "cli.status.notes": "{guarantee} [{notes}]",
   "cli.status.others": {
-    "one": "{n} agente más tiene historial ({agents}): {command}",
+    "one": "Otro agente tiene historial ({agents}): {command}",
     "other": "{n} agentes más tienen historial ({agents}): {command}"
   },
   "cli.status.paused": "Aprendizaje en pausa aquí: nadie responde a las aprobaciones ({why}). Los niveles ganados siguen activos.",
@@ -213,14 +209,14 @@
     "other": "{file} (+{n} más)"
   },
   "cli.undo.none": {
-    "one": "Nada que deshacer: ninguna acción se hizo por su cuenta en la última {n} hora.",
+    "one": "Nada que deshacer: ninguna acción se hizo por su cuenta en la última hora.",
     "other": "Nada que deshacer: ninguna acción se hizo por su cuenta en las últimas {n} horas."
   },
   "cli.undo.title": {
-    "one": "Acciones hechas por su cuenta en la última {n} hora (deshacer una cuenta como fallo):",
+    "one": "Acciones hechas por su cuenta en la última hora (deshacer una cuenta como fallo):",
     "other": "Acciones hechas por su cuenta en las últimas {n} horas (deshacer una cuenta como fallo):"
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   lo que ha ganado cada agente, por tipo de acción\n    setup [careful|balanced|fast]              las tres recomendaciones; con un nombre, lo aplica\n    explain                                    cómo decide tenure y qué garantizan los números\n    models [--type T]                          el historial verificado de cada modelo en tu propio trabajo\n    undo [ID]                                  restaura los archivos de una acción que actuó y luego avisó (cuenta un fallo); sin ID, la lista\n    flag TYPE [note] [--model M]               informa de un error que el agente cometió por su cuenta: se le revoca la autonomía\n    revoke TYPE|all [--model M | --all]        retira la autonomía ganada sin que haya error\n    passport [--agent A] [--out FILE]          escribe el pasaporte firmado de un agente (--no-redact conserva los nombres de tipo)\n    verify PASSPORT [LEDGER]                   comprueba un pasaporte; con el registro exportado, lo recalcula reproduciéndolo\n    anchor                                     una línea para publicar: la cabeza, la fecha y la longitud del registro\n    export [PATH]                              escribe el registro de evidencia (líneas JSON encadenadas por hash)\n    strict on|off                              modo estricto: un modelo nuevo empieza con un historial vacío\n    cleanup                                    lista las claves muertas de tenure en la lista de permitidos permanente de Hermes\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   lo que ha ganado cada agente, por tipo de acción\n    setup [careful|balanced|fast]              las tres recomendaciones; con un nombre, lo aplica\n    explain                                    cómo decide tenure y qué garantizan los números\n    models [--type T]                          el historial verificado de cada modelo en tu propio trabajo\n    undo [ID]                                  restaura los archivos de una acción que actuó y luego avisó (cuenta un fallo); sin ID, la lista\n    flag TYPE [note] [--model M]               informa de un error que el agente cometió por su cuenta: se le revoca la autonomía\n    revoke TYPE|all [--model M | --all]        retira la autonomía ganada sin que haya error\n    passport [--agent A] [--out FILE]          escribe el pasaporte firmado de un agente (--no-redact conserva los nombres de tipo)\n    verify PASSPORT [LEDGER]                   comprueba un pasaporte; con el registro exportado, lo recalcula reproduciéndolo\n    anchor                                     una línea para publicar: el último hash, la fecha y la longitud del registro\n    export [PATH]                              escribe el registro de evidencia (líneas JSON encadenadas por hash)\n    strict on|off                              modo estricto: un modelo nuevo empieza con un historial vacío\n    cleanup                                    lista las claves muertas de tenure en la lista de permitidos permanente de Hermes\n",
   "cli.verify.after": {
     "one": "Nota: el registro tiene {n} evento posterior a este pasaporte; los niveles no cambian.",
     "other": "Nota: el registro tiene {n} eventos posteriores a este pasaporte; los niveles no cambian."
@@ -248,7 +244,7 @@
     "other": "{n} éxitos verificados seguidos"
   },
   "notice.tier.fault": "tenure: {type} vuelve a {tier}, tras un fallo.",
-  "notice.tier.series": "tenure: {type} ahora actúa por su cuenta, tras {successes} en {sessions}. 1 acción de cada {spot} sigue teniendo un control aleatorio, y un fallo lo hace bajar.",
+  "notice.tier.series": "tenure: {type} ahora actúa por su cuenta, tras {successes} en {sessions}. 1 acción de cada {spot} sigue pasando un control aleatorio, y un fallo lo hace bajar.",
   "notice.tier.settings": "tenure: {type} vuelve a {tier}, según tu nueva configuración.",
   "notice.tier.stakes": "tenure: {type} ahora tiene impacto {stakes}: su historial empieza de cero con este impacto (se mantienen el periodo de prueba y los fallos registrados).",
   "notice.tier.wald": "tenure: {type} ahora actúa y luego te avisa, con opción de deshacer, tras una serie de éxitos verificados.",
@@ -257,12 +253,12 @@
     "other": "tenure: {type} no superó su periodo de prueba: cada acción pregunta, y se abre uno nuevo tras {n} acciones más de este tipo."
   },
   "notice.trial.fault": {
-    "one": "tenure: {type} está a prueba: su próxima acción ({n}) pregunta, y debe salir bien.",
+    "one": "tenure: {type} está a prueba: su próxima acción pregunta y debe salir bien.",
     "other": "tenure: {type} está a prueba: sus próximas {n} acciones preguntan, y todas deben salir bien."
   },
   "notice.trial.passed": "tenure: {type} superó su periodo de prueba.",
   "notice.trial.wait_over": {
-    "one": "tenure: {type} tiene un nuevo periodo de prueba: su próxima acción ({n}) pregunta.",
+    "one": "tenure: {type} tiene un nuevo periodo de prueba: su próxima acción pregunta.",
     "other": "tenure: {type} tiene un nuevo periodo de prueba: sus próximas {n} acciones preguntan."
   },
   "settle.acted": "tenure: {type} actuó y luego te avisó · {command} {id}",
@@ -277,12 +273,12 @@
   "tier.short.alone": "T3 actúa por su cuenta",
   "tier.short.ask": "T1 pregunta antes",
   "tier.short.notify": "T2 actúa y luego avisa",
-  "undo.already": "El deshacer {id} ya se aplicó.",
+  "undo.already": "La acción {id} ya está deshecha.",
   "undo.done": "Deshacer {id}: archivos restaurados. Contado como fallo de {type} para {agent}; ahora está en {tier}.",
   "undo.done_already_fault": "Deshacer {id}: archivos restaurados. La comprobación automática ya había contado esta acción como fallo de {type}; no se registra un segundo fallo.",
   "undo.expired": {
-    "one": "El deshacer {id} tiene más de {n} hora: la instantánea ya no se conserva.",
-    "other": "El deshacer {id} tiene más de {n} h: la instantánea ya no se conserva."
+    "one": "La entrada de deshacer {id} tiene más de {n} h: la instantánea ya no se conserva.",
+    "other": "La entrada de deshacer {id} tiene más de {n} h: la instantánea ya no se conserva."
   },
   "undo.gone": "Deshacer {id}: la instantánea ya no existe, no se restauró nada.",
   "undo.missing": "No hay ninguna entrada de deshacer {id}.",

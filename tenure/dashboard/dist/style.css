@@ -518,3 +518,8 @@
 [dir="rtl"] .tnr-cell.is-trial { box-shadow: inset -2px 0 0 var(--color-warning, #ffbd38); }
 [dir="rtl"] .tnr-drawer { box-shadow: 12px 0 40px rgba(0, 0, 0, 0.18); }
 [dir="rtl"] .tnr-switch-toggle input:checked + .tnr-toggle-track::after { transform: translateX(-12px); }
+
+/* Right-to-left: each Latin-script name around an arrow is isolated, so the pair follows the page direction
+   (from on the right, arrow pointing at to); Arabic letters must stay joined, so no letter spacing. */
+[dir="rtl"] .tnr-trans-move > *, [dir="rtl"] .tnr-switch-pair > b { unicode-bidi: isolate; }
+[dir="rtl"] .tnr, [dir="rtl"] .tnr * { letter-spacing: 0 !important; }

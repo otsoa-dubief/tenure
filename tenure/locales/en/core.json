@@ -1,12 +1,8 @@
 {
-  "approval.button.always": "Always",
-  "approval.button.reject": "Reject",
-  "approval.button.run": "Run",
-  "approval.button.session": "Session",
   "ask.capped": "tenure — {summary}\n{type} is capped: always asked.",
   "ask.internal_error": "tenure: internal error ({error}); asking you instead of letting the action through.",
-  "ask.prompt": "tenure — {summary}\n{why}\n{run} it if it is right; {reject} it if it is wrong (a fault). {session}/{always} = one {run}; tenure decides when it stops asking.",
-  "ask.spot": "tenure spot check — {summary}\n{type} acts on its own; 1 action in {spot} is still checked at random.\n{run} it if it is right; {reject} it if it is wrong (the type goes back down). {session}/{always} = one {run}.",
+  "ask.prompt": "tenure — {summary}\n{why}\nAllow it if it is right; deny it if it is wrong (that counts as a fault). Allowing it for the session or always counts as a single approval: tenure decides when it stops asking.",
+  "ask.spot": "tenure spot check — {summary}\n{type} acts on its own; 1 action in {spot} is still checked at random.\nAllow it if it is right; deny it if it is wrong (the type goes back down). Allowing it for the session or always counts as a single approval.",
   "ask.why.capped": {
     "one": "{type} ({stakes} stakes) is capped by your settings: always asked ({n} verified success on record).",
     "other": "{type} ({stakes} stakes) is capped by your settings: always asked ({n} verified successes on record)."
@@ -34,8 +30,8 @@
   "benchmarks.note.scores": "{benchmark} {version}, percent. Public scores inform; they never grant autonomy.",
   "carry.carried": "A carried-over record is half the old series, provisional until this agent's own successes match it.",
   "carry.kept": {
-    "one": "{n} kept this agent's own record.",
-    "other": "{n} kept this agent's own record."
+    "one": "{n} type kept the record this agent already had.",
+    "other": "{n} types kept the record this agent already had."
   },
   "carry.new_agent": "tenure: new agent {new} (was {old}). Action types: {carried} carried over on trial, {reset} reset, {vetoed} vetoed by a public benchmark.",
   "carry.strict": "Strict mode: every type starts over, and a fault on record becomes a trial.",
@@ -121,7 +117,7 @@
   "cli.explain.reads": "Reads never ask; secrets, the agent's own skills and plugins, and sensitive files always ask.",
   "cli.explain.t1": "T1 asks first. Every action of a new type asks you.",
   "cli.explain.t2": "T2 acts, then tells you. After {low} approved in a row at low stakes, {medium} at medium, a reversible type acts and tells you, with an undo ({command}). High stakes and irreversible types never get T2.",
-  "cli.explain.t3": "T3 acts on its own. After i approved in a row, over at least {sessions} sessions (i below, Dodge's clearance number, continuous sampling plan CSP-1); 1 action in {spot} is still spot-checked at random.",
+  "cli.explain.t3": "T3 acts on its own. After i approved in a row, over at least {sessions} sessions (the values of i are below; Dodge's continuous sampling plan CSP-1 computes them); 1 action in {spot} is still spot-checked at random.",
   "cli.explain.title": "How tenure decides, one action type at a time:",
   "cli.export.written": {
     "one": "Evidence written: {path} ({n} entry). Check a passport against it: {command} {path}",

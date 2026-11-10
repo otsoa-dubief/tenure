@@ -7,7 +7,8 @@ Termes Hermes repris de `apps/desktop/src/i18n/zh.ts` et `locales/zh.yaml`.
 - action type → 操作类型
 - action → 操作
 - agent → 智能体 (comme Hermes Desktop)
-- spot check / spot-checked → 抽查 / 接受抽查 ; « 1 in k » → 每 k 个抽查 1 个
+- spot check / spot-checked → 抽查 / 接受抽查 ; « 1 in k » (抽查) → 每 k 个抽查 1 个 ; fréquence seule (risque, taux d'抽查, `common.one_in`) → 1/k (comme les boutons des réglages)
+- after tenure → 获得自主权后
 - fault → 失误 ; error → 错误
 - flag → 标记 (标记为失误)
 - revoke → 收回 (收回自主权)

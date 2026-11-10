@@ -1,7 +1,7 @@
 {
   "cell.asked_suffix": " 次询问",
   "cell.capped_by_settings": "受风险设置限制",
-  "cell.held": "已存 {tier}，被你的设置限制",
+  "cell.held": "已赢得 {tier}，被你的设置压低",
   "cell.kind_irreversible": "{type} · {stakes}，不可逆",
   "cell.kind_reversible": "{type} · {stakes}，可逆",
   "cell.provisional_long": {
@@ -18,7 +18,7 @@
   "common.list_sep": "、",
   "common.loading": "正在加载…",
   "common.no_public_measure": "无公开测评",
-  "common.one_in": "每 {k} 个 1 个",
+  "common.one_in": "1/{k}",
   "common.percent": "{v}%",
   "common.profile": "配置文件 {profile}",
   "confirm.again": "再次点击以确认",
@@ -35,7 +35,7 @@
     "other": "{n} 个会话"
   },
   "counters.actions.label": {
-    "other": "个操作"
+    "other": "操作"
   },
   "counters.actions.sub": "已覆盖",
   "counters.alone.label": "未询问即执行",
@@ -68,7 +68,7 @@
   "drawer.revoke_all.done": {
     "other": "已收回 {count} 个类型：退回 T1。"
   },
-  "drawer.revoke_note": "从下一个操作起生效。每次收回都是一条账本事件。",
+  "drawer.revoke_note": "从下一个操作起生效。每次收回都会记入账本。",
   "drawer.revoke_note_other": "标记和收回只作用于仪表盘自己的配置文件。请使用：{cmd}",
   "drawer.sessions_of": {
     "other": "{n}/{total} 个会话"
@@ -76,7 +76,7 @@
   "drawer.stakes_reversible": "{stakes} · 可逆",
   "drawer.types_title": "操作类型",
   "error.request_failed": "请求失败",
-  "event.confirmed": "继承的证据已由自身记录确认",
+  "event.confirmed": "继承的证据已由它自己的记录确认",
   "event.fault.check": "自动检查失败",
   "event.fault.flag": "被你标记为失误",
   "event.fault.other": "失误（{source}）",
@@ -110,7 +110,7 @@
     "other": "重新开启考察期：接下来 {left} 个必须成功"
   },
   "event.why.fault": "失误",
-  "event.why.series_complete": "连续记录已满",
+  "event.why.series_complete": "连续记录已达标",
   "event.why.series_n": "连续 {required}/{required}",
   "event.why.sessions": {
     "other": "{count} 个会话"
@@ -133,8 +133,8 @@
   "flag.provisional": "暂定",
   "flag.trial": "考察期",
   "guarantee.capped": "受限：每次操作都会询问。",
-  "guarantee.text": "未经检查的错误不超过此类型操作的 {aoql}；对于晋升后变差的智能体，在第一次发现错误之前最多 {worst}。",
-  "guarantee.text_conditional": "未经检查的错误不超过此类型操作的 {aoql}；对于晋升后变差的智能体，在第一次发现错误之前最多 {worst}。前提是上一个模型的证据依然成立。",
+  "guarantee.text": "未经检查的错误不超过此类型操作的 {aoql}；若智能体在获得自主权后变差，在第一次发现错误之前最多 {worst}。",
+  "guarantee.text_conditional": "未经检查的错误不超过此类型操作的 {aoql}；若智能体在获得自主权后变差，在第一次发现错误之前最多 {worst}。前提是上一个模型的证据依然成立。",
   "help.agent": "当前行的智能体详情",
   "help.aria": "键盘快捷键",
   "help.close": "关闭",
@@ -144,7 +144,7 @@
   "help.raw": "切换原始类型名",
   "help.title": "键盘",
   "legend.a_share": "一部分",
-  "legend.alone": "自主执行，{share} 接受抽查",
+  "legend.alone": "自主执行，抽查其中 {share}",
   "legend.ask": "先询问",
   "legend.capped": "受限：始终询问",
   "legend.carried": "继承自上一个模型，暂定",
@@ -165,10 +165,10 @@
   "missing.always_asks": "始终询问",
   "missing.earned": "已赢得 · 接受抽查",
   "missing.more_to_t2": {
-    "other": "再 {n} 次到 T2"
+    "other": "还差 {n} 次升 T2"
   },
   "missing.more_to_t3": {
-    "other": "再 {n} 次到 T3"
+    "other": "还差 {n} 次升 T3"
   },
   "missing.rechecking": "正在复核",
   "missing.second_session": "需要第 2 个会话",
@@ -176,7 +176,7 @@
     "other": "考察期 · 还差 {n}/{total}"
   },
   "missing.trial_wait": {
-    "other": "考察未通过 · 等待 {n}"
+    "other": "考察未通过 · 等 {n} 个操作"
   },
   "models.empty.body": "每个已验证的操作都会计入模型在该类型上的记录，显示在这里和 {cmd} 中。",
   "models.empty.title": "还没有记录",
@@ -216,9 +216,9 @@
   "passport.field.settings": "设置",
   "passport.field.signature": "签名",
   "passport.field.type_names": "类型名",
-  "passport.guarantee": "未经检查的错误低于 {aoql} · 若变差为 {worst}",
+  "passport.guarantee": "未经检查的错误低于 {aoql} · 变差时最多 {worst}",
   "passport.note": "已签名且可发现篡改：签名或锚定后的任何改动都会在验证时显示出来。较早的护照对照更长的账本依然能通过验证；验证器会说明此后的变化。",
-  "passport.types_title": "已证明的类型",
+  "passport.types_title": "已证实的类型",
   "passport.value.hashed": "{profile}（已哈希）",
   "passport.value.ledger": {
     "other": "{n} 个事件 · 头部 {head}"
@@ -237,13 +237,13 @@
   "profile.sessions_suspended": {
     "other": "{n} 个会话已暂停：读取了外部内容"
   },
-  "profile.spot": "抽查 {rate}",
+  "profile.spot": "抽查率 {rate}",
   "profile.strict": "严格",
   "profile.suspended": {
     "other": "{n} 个已暂停：读取了外部内容"
   },
   "profile.this_dashboard": " · 此仪表盘",
-  "settings.about.body": "与一项预注册研究相同的规则，在 6,000 多个模拟智能体上重放（结果待定）。额外的机制让它更严格：抽查（类型放行后，{spot}操作仍会先询问）、晋升到 T3 的连续记录须来自两个不同会话，以及会话读取外部内容后暂停。",
+  "settings.about.body": "与一项预注册研究相同的规则，在 6,000 多个模拟智能体上重放（结果待定）。额外的机制让它更严格：抽查（类型放行后，仍有 {spot} 的操作会先询问）、晋升到 T3 的连续记录须来自两个不同会话，以及会话读取外部内容后暂停。",
   "settings.about.carry": "继承是我们的补充；严格模式即研究原规则。",
   "settings.about.title": "关于规则",
   "settings.apply": "应用",
@@ -365,7 +365,7 @@
   "totals.actions": {
     "other": "{n} 个操作"
   },
-  "totals.alone": "{n} 个未询问",
+  "totals.alone": "{n} 个未经询问",
   "totals.checked": "{n} 个已确认",
   "totals.faults": {
     "other": "{n} 次失误"

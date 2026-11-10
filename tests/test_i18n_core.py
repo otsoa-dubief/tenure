@@ -27,7 +27,6 @@ DYNAMIC = {
     "tier.long.": ("ask", "notify", "alone"),
     "stakes.": ("low", "medium", "high"),
     "notice.tier.": ("fault", "settings"),
-    "approval.button.": ("run", "reject", "session", "always"),
     "cli.col.": ("type", "stakes", "tier_now", "series", "sessions", "record", "guarantee", "model", "provider",
                  "fault_rate", "note", "number", "restores", "when", "agent"),
 }
@@ -200,7 +199,7 @@ FR = {
     "cli.status.chain_ok": {"one": "Preuves : {n} entrée, chaîne intacte.", "other": "Preuves : {n} entrées, chaîne intacte."},
     "stakes.low": "faible",
     "tier.short.ask": "T1 demande d'abord",
-    "ask.prompt": "tenure — {summary}\n{why}\n« {run} » si c'est juste ; « {reject} » sinon. {session}/{always} = un « {run} ».",
+    "ask.prompt": "tenure — {summary}\n{why}\nAutorisez l'action si elle est juste ; refusez-la sinon.",
 }
 
 
@@ -222,7 +221,6 @@ def test_status_output_switches_language(plugin, tmp_path, monkeypatch):  # noqa
     assert mod.cli.slash("status").splitlines()[0].startswith("tenure: this profile, preset")
 
 
-# ----------------------------------------------------------------------------------------------- Hermes' buttons
 def fake_hermes(monkeypatch, *, lang="en", core=None, desktop=None):
     pkg, mod = types.ModuleType("agent"), types.ModuleType("agent.i18n")
     core = core or {}
@@ -235,49 +233,22 @@ def fake_hermes(monkeypatch, *, lang="en", core=None, desktop=None):
     return mod
 
 
-GATEWAY = {("en", "gateway.exec_approval.action_once"): "Allow Once",
-           ("en", "gateway.exec_approval.action_deny"): "Deny",
-           ("en", "gateway.exec_approval.action_session"): "Allow Session",
-           ("en", "gateway.exec_approval.action_always"): "Always Allow",
-           ("fr", "gateway.exec_approval.action_once"): "Autoriser une fois",
-           ("fr", "gateway.exec_approval.action_deny"): "Refuser",
-           ("fr", "gateway.exec_approval.action_session"): "Autoriser (session)",
-           ("fr", "gateway.exec_approval.action_always"): "Toujours autoriser"}
-
-
-def test_buttons_in_english_keep_our_labels_even_with_hermes(monkeypatch):
-    fake_hermes(monkeypatch, lang="en", core=GATEWAY)
-    assert i18n.buttons() == {"run": "Run", "reject": "Reject", "session": "Session", "always": "Always"}
-
-
-def test_buttons_come_from_hermes_when_it_translates_them(monkeypatch):
-    fake_hermes(monkeypatch, lang="fr", core=GATEWAY)
-    assert i18n.buttons() == {"run": "Autoriser une fois", "reject": "Refuser", "session": "Autoriser (session)",
-                              "always": "Toujours autoriser"}
-
-
-def test_buttons_prefer_a_desktop_pack_then_fall_back_to_ours(tmp_path, monkeypatch):
-    fake_hermes(monkeypatch, lang="fr", core=GATEWAY, desktop={"assistant.approval.run": "Exécuter"})
-    assert i18n.buttons()["run"] == "Exécuter" and i18n.buttons()["reject"] == "Refuser"
-    fake_locales(tmp_path, monkeypatch, {"es": {"approval.button.run": "Ejecutar"}})
-    fake_hermes(monkeypatch, lang="es", core=GATEWAY)          # Hermes has no es label: it answers in English
-    assert i18n.buttons() == {"run": "Ejecutar", "reject": "Reject", "session": "Session", "always": "Always"}
-
-
-def test_buttons_without_hermes_use_the_catalog(tmp_path, monkeypatch):
-    fake_locales(tmp_path, monkeypatch, {"fr": {"approval.button.reject": "Rejeter"}})
-    assert i18n.buttons("fr")["reject"] == "Rejeter" and i18n.buttons("fr")["run"] == "Run"
-
-
-def test_the_approval_prompt_names_the_localised_buttons(plugin, tmp_path, monkeypatch):  # noqa: F811
+# ------------------------------------------------------------------------------------------------ approval prompt
+def test_the_approval_prompt_is_localised_and_names_no_button(plugin, tmp_path, monkeypatch):  # noqa: F811
+    """The approval card shows on every Hermes surface, whose button labels differ (Run / Allow Once): the prompt uses
+    plain verbs in the owner's language and names none of them."""
     mod, ctx = plugin(FAST)
-    fake_locales(tmp_path, monkeypatch, {"fr": FR})
-    fake_hermes(monkeypatch, lang="fr", core=GATEWAY)
     s = mod.rule.TypeState(key="file:write", stakes="low", reversible=True)
     act = types.SimpleNamespace(summary="write a.txt", type="file:write", stakes="low", reversible=True)
-    text = mod._ask_message(act, s, 4, 0.05, decision=mod.rule.ASK, suspended=False, unsaved=False, earned_at=None)
-    assert "« Autoriser une fois » si c'est juste ; « Refuser » sinon." in text
-    assert "Autoriser (session)/Toujours autoriser" in text
+    ask = lambda: mod._ask_message(act, s, 4, 0.05, decision=mod.rule.ASK, suspended=False, unsaved=False,
+                                   earned_at=None)
+    english = ask()
+    assert "Allow it if it is right; deny it if it is wrong" in english
+    assert not any(label in english for label in ("Run", "Reject", "Session/", "Always allow"))
+    fake_locales(tmp_path, monkeypatch, {"fr": FR})
+    monkeypatch.setenv("HERMES_LANGUAGE", "fr")
+    text = ask()
+    assert "Autorisez l'action si elle est juste ; refusez-la sinon." in text
     assert "(faible stakes)" in text                                    # an untranslated sentence still localises
 
 
@@ -312,3 +283,10 @@ def test_ascii_table_is_unchanged(plugin):  # noqa: F811
     widths = [max(len(r[i]) for r in [header] + rows) for i in range(2)]
     old = ["  ".join(c.ljust(w) for c, w in zip(r, widths)).rstrip() for r in [header] + rows]
     assert mod.cli._table(header, rows) == old
+
+
+def test_percentages_follow_the_language():
+    assert i18n.pct(0.0208, 2, lang="en") == "2.08%" and i18n.pct(0.036, 1, lang="en") == "3.6%"
+    assert i18n.pct(0.0208, 2, lang="fr") == "2,08 %" and i18n.pct(0.0208, 2, lang="es") == "2,08 %"
+    assert i18n.pct(0.0208, 2, lang="zh") == "2.08%" and i18n.pct(0.0208, 2, lang="ar") == "2.08%"
+    assert i18n.pct(0.0208, 2, lang="xx") == "2.08%"

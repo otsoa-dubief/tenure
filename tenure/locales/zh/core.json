@@ -1,12 +1,8 @@
 {
-  "approval.button.always": "始终允许",
-  "approval.button.reject": "拒绝",
-  "approval.button.run": "运行",
-  "approval.button.session": "允许本会话",
   "ask.capped": "tenure — {summary}\n{type} 受限：始终询问。",
   "ask.internal_error": "tenure：内部错误（{error}）；改为询问你，而不是直接放行该操作。",
-  "ask.prompt": "tenure — {summary}\n{why}\n正确就点「{run}」，错误就点「{reject}」（记为失误）。「{session}」/「{always}」= 一次「{run}」；何时不再询问由 tenure 决定。",
-  "ask.spot": "tenure 抽查 — {summary}\n{type} 已自主执行；每 {spot} 个操作仍会随机检查 1 个。\n正确就点「{run}」，错误就点「{reject}」（该类型会降级）。「{session}」/「{always}」= 一次「{run}」。",
+  "ask.prompt": "tenure — {summary}\n{why}\n没问题就允许，有错就拒绝（记为失误）。允许本会话或始终允许，都只算一次批准；何时不再询问由 tenure 决定。",
+  "ask.spot": "tenure 抽查 — {summary}\n{type} 已可自主执行；每 {spot} 个操作仍会随机抽查 1 个。\n没问题就允许，有错就拒绝（该类型会降级）。允许本会话或始终允许，都只算一次批准。",
   "ask.why.capped": {
     "other": "{type}（{stakes}风险）受你的设置限制：始终询问（记录中有 {n} 次已验证的成功）。"
   },
@@ -30,7 +26,7 @@
   "benchmarks.note.scores": "{benchmark} {version}，百分比。公开分数仅供参考，从不授予自主权。",
   "carry.carried": "继承的记录为旧连续记录的一半，在此智能体自己的成功追平之前为暂定。",
   "carry.kept": {
-    "other": "{n} 个保留了此智能体自己的记录。"
+    "other": "{n} 个类型保留了此智能体原有的记录。"
   },
   "carry.new_agent": "tenure：新智能体 {new}（原为 {old}）。操作类型：{carried} 个继承并进入考察期，{reset} 个重置，{vetoed} 个被公开基准否决。",
   "carry.strict": "严格模式：每个类型都从头开始，记录中的失误转为考察期。",
@@ -95,17 +91,17 @@
   "cli.err.profile_unreadable": "无法读取配置文件 {profile} 的记录：{error}",
   "cli.err.unreadable": "无法读取 {path}：{error}。",
   "cli.explain.fault": "一次失误（被拒绝的抽查或你标记的错误）就会让该类型降级：处于 T3 的低风险可逆类型降到 T2（已在 T2 的，由得分决定留在 T2 还是降到 T1）；其他任何失误都会让它退回 T1。在中、高风险下，下一次晋升需要的连续记录延长 25%。",
-  "cli.explain.footer": "这一保证覆盖的是你被询问时会拒绝的错误；没人会注意到的错误无法计入。测试套件中已用模拟对照理论进行测量。",
+  "cli.explain.footer": "这一保证覆盖的是你被询问时会拒绝的错误；没人会注意到的错误无法计入。测试套件已通过模拟将其与理论值对照验证。",
   "cli.explain.guarantee_title": "按你的设置，它能保证什么（你发现的错误永远不会运行：被拒绝的操作会被拦截）：",
-  "cli.explain.level": "{level}：i = {n}。对于错误率稳定的智能体，未经你批准而运行的错误不超过它在该类型上操作的 {aoql}。对于晋升后变差的智能体，在第一次发现错误之前最多 {worst}。",
+  "cli.explain.level": "{level}：i = {n}。对于错误率稳定的智能体，未经你批准而运行的错误不超过它在该类型上操作的 {aoql}。若智能体在获得自主权后变差，在第一次发现错误之前最多 {worst}。",
   "cli.explain.level_capped": "{level}：始终询问。",
   "cli.explain.new_model": "新模型从上一个模型连续记录的一半开始，标为暂定，直到它自己确认为止（严格模式：空记录）。",
   "cli.explain.new_model_strict": "新模型从空记录开始（严格模式）。",
   "cli.explain.reads": "读取从不询问；密钥、智能体自己的技能和插件，以及敏感文件始终询问。",
   "cli.explain.t1": "T1 先询问。新类型的每个操作都会询问你。",
   "cli.explain.t2": "T2 先执行后告知。在低风险下连续获批 {low} 次、中风险下 {medium} 次后，可逆类型会先执行再告知你，并可撤销（{command}）。高风险和不可逆类型永远不会升到 T2。",
-  "cli.explain.t3": "T3 自主执行。连续获批 i 次，且至少跨 {sessions} 个会话后（i 见下文，即 Dodge 的放行数，连续抽样方案 CSP-1）；每 {spot} 个操作仍会随机抽查 1 个。",
-  "cli.explain.title": "tenure 如何决定，一次一个操作类型：",
+  "cli.explain.t3": "T3 自主执行。连续获批 i 次且跨越至少 {sessions} 个会话后升到 T3（i 见下文：Dodge 的放行数，连续抽样方案 CSP-1）；之后每 {spot} 个操作仍会随机抽查 1 个。",
+  "cli.explain.title": "tenure 如何逐个操作类型作出决定：",
   "cli.export.written": {
     "other": "证据已写入：{path}（{n} 条）。用它验证护照：{command} {path}"
   },
@@ -214,7 +210,7 @@
     "other": "连续 {n} 次已验证的成功"
   },
   "notice.tier.fault": "tenure：{type} 因失误退回 {tier}。",
-  "notice.tier.series": "tenure：{type} 在 {sessions} 中取得 {successes} 后，现在自主执行。每 {spot} 个操作仍会抽查 1 个，一次失误就会让它降级。",
+  "notice.tier.series": "tenure：{type} 在 {sessions}中取得{successes}后，现可自主执行。每 {spot} 个操作仍会抽查 1 个，一次失误就会让它降级。",
   "notice.tier.settings": "tenure：按你的新设置，{type} 退回 {tier}。",
   "notice.tier.stakes": "tenure：{type} 现为{stakes}风险：它在此风险等级下的记录从头开始（考察期和已记录的失误保留）。",
   "notice.tier.wald": "tenure：{type} 在一连串已验证的成功后，现在先执行后告知你，并可撤销。",
@@ -240,11 +236,11 @@
   "tier.short.alone": "T3 自主执行",
   "tier.short.ask": "T1 先询问",
   "tier.short.notify": "T2 先执行后告知",
-  "undo.already": "撤销 {id} 已经执行过。",
+  "undo.already": "操作 {id} 已经撤销过。",
   "undo.done": "撤销 {id}：文件已恢复。已记为 {agent} 在 {type} 上的一次失误；现为 {tier}。",
   "undo.done_already_fault": "撤销 {id}：文件已恢复。自动检查已将此操作记为 {type} 的一次失误；不会重复记录。",
   "undo.expired": {
-    "other": "撤销 {id} 已超过 {n} 小时：快照不再保留。"
+    "other": "撤销条目 {id} 已超过 {n} 小时：快照已不再保留。"
   },
   "undo.gone": "撤销 {id}：快照已不存在，未恢复任何内容。",
   "undo.missing": "没有撤销条目 {id}。",

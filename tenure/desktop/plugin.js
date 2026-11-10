@@ -126,6 +126,10 @@ const TENURE_LOCALES = {
     "passport.verified": "Verified: signature valid, hash chain intact, and replaying the ledger gives the same tiers.",
     "passport.verify_hint": "Anyone can check it:",
     "passport.verifying": "Verifying…",
+    "preset.name.balanced": "balanced",
+    "preset.name.careful": "careful",
+    "preset.name.custom": "custom",
+    "preset.name.fast": "fast",
     "preset.value": "{preset} · 1 in {k} spot-checked",
     "preset.value_pending": "{preset} · 1 in {k} spot-checked · applies from the next action",
     "recent.check_failed": "check failed",
@@ -208,7 +212,7 @@ const TENURE_LOCALES = {
     },
     "benchmark.no_public": "—",
     "benchmark.not_enough": "أدلة غير كافية",
-    "benchmark.note": "سجل كل نموذج الموثَّق على عملك لنوع الإجراء هذا، مع نطاق 95% لمعدل إخفاقه، مرتبًا حسب الحد الأعلى لهذا النطاق. النتيجة العامة للسياق فقط: قدرة على مهامهم، لا موثوقية على مهامك.",
+    "benchmark.note": "السجل الموثَّق لكل نموذج على عملك لنوع الإجراء هذا، مع نطاق 95% لمعدل إخفاقه، مرتبًا حسب الحد الأعلى لهذا النطاق. النتيجة العامة للسياق فقط: قدرة على مهامهم، لا موثوقية على مهامك.",
     "benchmark.public_score": "النتيجة العامة: {benchmark}، {source}",
     "benchmark.public_score_accessed": "النتيجة العامة: {benchmark}، {source}، {accessed}.",
     "benchmark.public_value": "{value}%",
@@ -216,14 +220,14 @@ const TENURE_LOCALES = {
     "benchmark.rate": "{rate}% ({low}–{high}%)",
     "benchmark.search": "البحث في أنواع الإجراءات",
     "chip.tip": {
-      "zero": "{name}: اكتسب {earned} من {n} أنواع إجراءات الاستقلالية (T2 أو T3). افتح Tenure.",
-      "one": "{name}: اكتسب {earned} من {n} نوع إجراء الاستقلالية (T2 أو T3). افتح Tenure.",
-      "two": "{name}: اكتسب {earned} من {n} نوعَي إجراء الاستقلالية (T2 أو T3). افتح Tenure.",
-      "few": "{name}: اكتسب {earned} من {n} أنواع إجراءات الاستقلالية (T2 أو T3). افتح Tenure.",
-      "many": "{name}: اكتسب {earned} من {n} نوعَ إجراء الاستقلالية (T2 أو T3). افتح Tenure.",
-      "other": "{name}: اكتسب {earned} من {n} نوع إجراء الاستقلالية (T2 أو T3). افتح Tenure."
+      "zero": "{name}: {earned} من {n} أنواع إجراءات اكتسبت الاستقلالية (T2 أو T3). افتح Tenure.",
+      "one": "{name}: {earned} من {n} نوع إجراء اكتسب الاستقلالية (T2 أو T3). افتح Tenure.",
+      "two": "{name}: {earned} من {n} نوعَي إجراء اكتسبا الاستقلالية (T2 أو T3). افتح Tenure.",
+      "few": "{name}: {earned} من {n} أنواع إجراءات اكتسبت الاستقلالية (T2 أو T3). افتح Tenure.",
+      "many": "{name}: {earned} من {n} نوعَ إجراء اكتسبت الاستقلالية (T2 أو T3). افتح Tenure.",
+      "other": "{name}: {earned} من {n} نوعِ إجراء اكتسبت الاستقلالية (T2 أو T3). افتح Tenure."
     },
-    "common.loading": "جار قراءة الأدلة…",
+    "common.loading": "جارٍ قراءة الأدلة…",
     "common.no_match": "لا نتائج",
     "common.retry": "حاول مرة أخرى",
     "empty.desc": "اعمل كالمعتاد. كل تغيير يسأل أولًا، وكل نوع إجراء يكتسب مستواه من إجاباتك.",
@@ -237,12 +241,12 @@ const TENURE_LOCALES = {
     "meta.actions": "الإجراءات",
     "meta.actions_tip": "كل إجراء لهذا الوكيل رآه tenure. الإجراءات التي لم يتحقق منها أحد (بلا إجابة، أو انتهت المهلة) لا تُحسب.",
     "meta.alone": "وحده",
-    "meta.checked": "بواسطتك",
+    "meta.checked": "بفحصك",
     "meta.faults": "الإخفاقات",
     "meta.preset": "الإعداد المسبق",
     "meta.profile": "الملف الشخصي",
     "meta.provider": "المزوّد",
-    "model_menu.badge": "اكتسب {tier}",
+    "model_menu.badge": "{tier} مكتسب",
     "nav.label": "Tenure",
     "page.title": "Tenure",
     "page.view_agents": "الوكلاء",
@@ -270,7 +274,11 @@ const TENURE_LOCALES = {
     "passport.unavailable": "غير متاح: {error}",
     "passport.verified": "تم التحقق: التوقيع صالح، وسلسلة التجزئة سليمة، وإعادة تشغيل الدفتر تعطي المستويات نفسها.",
     "passport.verify_hint": "يمكن لأي شخص التحقق منه:",
-    "passport.verifying": "جار التحقق…",
+    "passport.verifying": "جارٍ التحقق…",
+    "preset.name.balanced": "متوازن",
+    "preset.name.careful": "حذِر",
+    "preset.name.custom": "مخصص",
+    "preset.name.fast": "سريع",
     "preset.value": "{preset} · فحص عشوائي لإجراء من كل {k}",
     "preset.value_pending": "{preset} · فحص عشوائي لإجراء من كل {k} · يسري من الإجراء التالي",
     "recent.check_failed": "فشل الفحص",
@@ -305,7 +313,7 @@ const TENURE_LOCALES = {
     "recent.undo_tip": "استعادة الملفات كما كانت. يُحسب إخفاقًا: ينزل النوع من جديد.",
     "recent.undone": "استُعيدت الملفات. حُسب إخفاقًا.",
     "revoke.action": "سحب…",
-    "revoke.busy": "جار السحب…",
+    "revoke.busy": "جارٍ السحب…",
     "revoke.confirm": "سحب",
     "revoke.desc": "سيعود {name} إلى السؤال قبل كل إجراء. يبقى سجله في الدفتر.",
     "revoke.done": "يسأل {name} أولًا من جديد في كل أنواع الإجراءات.",
@@ -325,8 +333,8 @@ const TENURE_LOCALES = {
     "tier.t3": "T3 · يعمل وحده، مع فحص عشوائي",
     "toast.acted": {
       "zero": "{type}: {n} تغييرات، ثم أبلغك ({name}).",
-      "one": "{type}: {n} تغيير، ثم أبلغك ({name}).",
-      "two": "{type}: {n} تغييران، ثم أبلغك ({name}).",
+      "one": "{type}: تغيير واحد، ثم أبلغك ({name}).",
+      "two": "{type}: تغييران، ثم أبلغك ({name}).",
       "few": "{type}: {n} تغييرات، ثم أبلغك ({name}).",
       "many": "{type}: {n} تغييرًا، ثم أبلغك ({name}).",
       "other": "{type}: {n} تغيير، ثم أبلغك ({name})."
@@ -409,8 +417,8 @@ const TENURE_LOCALES = {
     "passport.generated": "Generado",
     "passport.ledger": "Registro",
     "passport.ledger_value": {
-      "one": "{n} evento · cabeza {head}",
-      "other": "{n} eventos · cabeza {head}"
+      "one": "{n} evento · último hash {head}",
+      "other": "{n} eventos · último hash {head}"
     },
     "passport.problems": "No se verifica: {problems}",
     "passport.protocol": "Protocolo",
@@ -420,6 +428,10 @@ const TENURE_LOCALES = {
     "passport.verified": "Verificado: firma válida, cadena de hashes intacta, y al reproducir el registro se obtienen los mismos niveles.",
     "passport.verify_hint": "Cualquiera puede comprobarlo:",
     "passport.verifying": "Verificando…",
+    "preset.name.balanced": "equilibrado",
+    "preset.name.careful": "prudente",
+    "preset.name.custom": "personalizado",
+    "preset.name.fast": "rápido",
     "preset.value": "{preset} · 1 de cada {k} con control aleatorio",
     "preset.value_pending": "{preset} · 1 de cada {k} con control aleatorio · se aplica desde la próxima acción",
     "recent.check_failed": "falló la comprobación",
@@ -466,7 +478,7 @@ const TENURE_LOCALES = {
     "tier.t3": "T3 · actúa por su cuenta, con control aleatorio",
     "toast.acted": {
       "one": "{type} hizo un cambio y luego te avisó ({name}).",
-      "other": "{type}: {n} cambios, y luego te avisó ({name})."
+      "other": "{type} hizo {n} cambios y luego te avisó ({name})."
     },
     "toast.acted_detail": "Deshacer restaura los archivos del último cambio y cuenta como fallo.",
     "type.always_asks": "siempre pregunta",
@@ -498,7 +510,7 @@ const TENURE_LOCALES = {
     },
     "benchmark.no_public": "—",
     "benchmark.not_enough": "pas assez de preuves",
-    "benchmark.note": "L'historique vérifié de chaque modèle sur votre travail pour ce type d'action, avec la fourchette à 95 % de son taux de fautes, classé par le haut de cette fourchette. Le score public sert de contexte : la capacité sur leurs tâches, pas la fiabilité sur les vôtres.",
+    "benchmark.note": "L'historique vérifié de chaque modèle sur votre travail pour ce type d'action, avec la fourchette à 95 % de son taux de fautes, classé par le haut de cette fourchette. Le score public sert de contexte : il mesure la capacité sur les tâches du benchmark, pas la fiabilité sur les vôtres.",
     "benchmark.public_score": "Score public : {benchmark}, {source}",
     "benchmark.public_score_accessed": "Score public : {benchmark}, {source}, {accessed}.",
     "benchmark.public_value": "{value} %",
@@ -512,17 +524,17 @@ const TENURE_LOCALES = {
     "common.loading": "Lecture des preuves…",
     "common.no_match": "Aucun résultat",
     "common.retry": "Réessayer",
-    "empty.desc": "Travaillez comme d'habitude. Chaque modification demande d'abord, et chaque type d'action gagne son niveau grâce à vos réponses.",
+    "empty.desc": "Travaillez comme d'habitude. L'agent demande avant chaque modification, et chaque type d'action gagne son niveau selon vos réponses.",
     "empty.title": "Aucun agent n'a encore agi",
     "flag.confirm": "Signaler",
     "flag.desc": "Cela compte comme une faute : {type} descendra d'au moins un niveau et devra remonter. À utiliser pour une erreur que personne n'a repérée.",
     "flag.title": "Signaler cette modification comme une erreur ?",
-    "intro.body": "Chaque type d'action de chaque modèle commence en T1 : il demande d'abord. Une série d'actions approuvées sans faute le fait passer en T2 : il agit, puis vous prévient, avec un bouton Annuler. Une série plus longue, sur deux sessions, le fait passer en T3 : il agit seul, et 1 action sur {k} demande encore, en contrôle aléatoire. Une seule faute fait redescendre le type.",
+    "intro.body": "Chaque type d'action de chaque modèle commence en T1 : il demande d'abord. Une série d'actions approuvées sans faute le fait passer en T2 : il agit, puis vous prévient, avec un bouton Annuler. Une série plus longue, sur deux sessions, le fait passer en T3 : il agit seul, et 1 action sur {k} vous est encore demandée, par contrôle aléatoire. Une seule faute le fait redescendre.",
     "intro.got_it": "Compris",
     "intro.title": "Comment un type d'action gagne son niveau",
     "meta.actions": "Actions",
     "meta.actions_tip": "Toutes les actions de cet agent vues par tenure. Les actions que personne n'a vérifiées (pas de réponse, délai expiré) ne comptent pas.",
-    "meta.alone": "Seul",
+    "meta.alone": "Sans demander",
     "meta.checked": "Par vous",
     "meta.faults": "Fautes",
     "meta.preset": "Préréglage",
@@ -533,7 +545,7 @@ const TENURE_LOCALES = {
     "page.title": "Tenure",
     "page.view_agents": "Agents",
     "page.view_benchmark": "Votre benchmark",
-    "palette.no_current": "Le modèle actuel n'a pas encore d'historique : chaque modification demande d'abord.",
+    "palette.no_current": "Le modèle actuel n'a pas encore d'historique : il demande avant chaque modification.",
     "palette.open": "Tenure : Ouvrir",
     "palette.passport": "Tenure : Afficher le passeport du modèle actuel",
     "palette.revoke": "Tenure : Révoquer le modèle actuel…",
@@ -550,15 +562,19 @@ const TENURE_LOCALES = {
     "passport.rule": "Règle",
     "passport.title": "Passeport signé",
     "passport.unavailable": "Indisponible : {error}",
-    "passport.verified": "Vérifié : signature valide, chaîne de hachage intacte, et rejouer le registre donne les mêmes niveaux.",
+    "passport.verified": "Vérifié : signature valide, chaîne de hachage intacte, et le registre rejoué redonne les mêmes niveaux.",
     "passport.verify_hint": "Tout le monde peut le vérifier :",
     "passport.verifying": "Vérification…",
-    "preset.value": "{preset} · 1 sur {k} contrôlée",
-    "preset.value_pending": "{preset} · 1 sur {k} contrôlée · s'applique dès la prochaine action",
+    "preset.name.balanced": "équilibré",
+    "preset.name.careful": "prudent",
+    "preset.name.custom": "personnalisé",
+    "preset.name.fast": "rapide",
+    "preset.value": "{preset} · 1 action sur {k} contrôlée",
+    "preset.value_pending": "{preset} · 1 action sur {k} contrôlée · s'applique dès la prochaine action",
     "recent.check_failed": "vérification échouée",
     "recent.check_failed_tip": "La vérification automatique a échoué : déjà comptée comme une faute. Annuler restaure les fichiers.",
     "recent.flag": "Signaler",
-    "recent.flag_tip": "Il a fait une erreur que personne n'a repérée : révoquer ce type.",
+    "recent.flag_tip": "Une erreur est passée inaperçue : révoquer ce type.",
     "recent.flagged": "{type} signalé : compté comme une faute, il perd au moins un niveau.",
     "recent.hours_ago": {
       "one": "il y a {n} h",
@@ -570,7 +586,7 @@ const TENURE_LOCALES = {
       "other": "il y a {n} min"
     },
     "recent.more_files": "+{n}",
-    "recent.none": "Rien à annuler sur les dernières 24 heures.",
+    "recent.none": "Rien à annuler depuis 24 heures.",
     "recent.show_all": "Tout afficher ({n})",
     "recent.show_fewer": "Afficher moins",
     "recent.title": "A agi sans demander",
@@ -582,7 +598,7 @@ const TENURE_LOCALES = {
     "revoke.busy": "Révocation…",
     "revoke.confirm": "Révoquer",
     "revoke.desc": "{name} demandera de nouveau avant chaque action. Son historique reste dans le registre.",
-    "revoke.done": "{name} demande de nouveau d'abord, pour chaque type d'action.",
+    "revoke.done": "{name} demande de nouveau avant d'agir, pour tous les types d'action.",
     "revoke.title": "Révoquer l'autonomie acquise ?",
     "state.aria": "{label} : {tip}",
     "state.fault": "faute",
@@ -590,7 +606,7 @@ const TENURE_LOCALES = {
     "state.provisional": "provisoire",
     "state.provisional_tip": "Hérité du modèle précédent, divisé par deux, jusqu'à ce que ses propres approbations le confirment.",
     "state.suspended": "suspendu",
-    "state.suspended_tip": "Une session a lu du contenu externe : elle demande tout jusqu'à sa fin.",
+    "state.suspended_tip": "La session a lu du contenu externe : elle demande avant chaque action, jusqu'à sa fin.",
     "state.trial": "à l'essai",
     "state.trial_tip": "Une faute à enjeu moyen ou élevé a ouvert un essai : 3 succès vérifiés d'affilée.",
     "tier.cap": "Plafonné · demande toujours",
@@ -599,7 +615,7 @@ const TENURE_LOCALES = {
     "tier.t3": "T3 · agit seul, avec contrôles aléatoires",
     "toast.acted": {
       "one": "{type} a fait une modification, puis vous a prévenu ({name}).",
-      "other": "{type} : {n} modifications, puis vous a prévenu ({name})."
+      "other": "{type} a fait {n} modifications, puis vous a prévenu ({name})."
     },
     "toast.acted_detail": "Annuler restaure les fichiers de la dernière modification et compte comme une faute.",
     "type.always_asks": "demande toujours",
@@ -648,7 +664,7 @@ const TENURE_LOCALES = {
     "flag.confirm": "标记",
     "flag.desc": "这会记为一次失误：{type} 至少下降一个级别，之后需重新晋升。用于没人发现的错误。",
     "flag.title": "将此更改标记为错误？",
-    "intro.body": "每个模型的每个操作类型都从 T1 开始：先询问。一连串干净、获批的操作会让它升到 T2：先执行后告知，并可撤销。跨两个会话的更长连续记录会让它升到 T3：自主执行，但每 {k} 个操作仍有 1 个会询问，作为抽查。一次失误就会让该类型降级。",
+    "intro.body": "每个模型的每个操作类型都从 T1 开始：先询问。连续多次获批且无误后，它升到 T2：先执行后告知，并可撤销。跨两个会话的更长连续记录会让它升到 T3：自主执行，但每 {k} 个操作仍会抽查 1 个，先询问你。一次失误就会让该类型降级。",
     "intro.got_it": "知道了",
     "intro.title": "操作类型如何赢得级别",
     "meta.actions": "操作",
@@ -683,13 +699,17 @@ const TENURE_LOCALES = {
     "passport.verified": "已验证：签名有效，哈希链完整，重放账本得到相同的级别。",
     "passport.verify_hint": "任何人都可以验证：",
     "passport.verifying": "正在验证…",
+    "preset.name.balanced": "平衡",
+    "preset.name.careful": "谨慎",
+    "preset.name.custom": "自定义",
+    "preset.name.fast": "快速",
     "preset.value": "{preset} · 每 {k} 个抽查 1 个",
     "preset.value_pending": "{preset} · 每 {k} 个抽查 1 个 · 从下一个操作起生效",
     "recent.check_failed": "检查失败",
     "recent.check_failed_tip": "自动检查失败：已记为一次失误。撤销可恢复文件。",
     "recent.flag": "标记",
     "recent.flag_tip": "它犯了一个没人发现的错误：收回此类型的自主权。",
-    "recent.flagged": "已标记 {type}：计为一次失误，至少降一级。",
+    "recent.flagged": "已标记 {type}：记为一次失误，至少降一级。",
     "recent.hours_ago": {
       "other": "{n} 小时前"
     },
@@ -709,14 +729,14 @@ const TENURE_LOCALES = {
     "revoke.action": "收回…",
     "revoke.busy": "正在收回…",
     "revoke.confirm": "收回",
-    "revoke.desc": "{name} 将重新在每次操作前询问。它的记录仍保留在账本中。",
+    "revoke.desc": "{name} 每次操作前都会重新询问。它的记录仍保留在账本中。",
     "revoke.done": "{name} 的所有操作类型都已恢复为先询问。",
     "revoke.title": "收回已赢得的自主权？",
     "state.aria": "{label}：{tip}",
     "state.fault": "有失误",
     "state.fault_tip": "中、高风险的失误会一直留在记录中，直到通过考察期。",
     "state.provisional": "暂定",
-    "state.provisional_tip": "从上一个模型继承并减半，直到它自己的批准记录确认为止。",
+    "state.provisional_tip": "从上一个模型继承并减半，直到它自己的批准将其确认。",
     "state.suspended": "已暂停",
     "state.suspended_tip": "此会话读取了外部内容：在会话结束前，每次操作都会询问。",
     "state.trial": "考察期",
@@ -730,8 +750,8 @@ const TENURE_LOCALES = {
     },
     "toast.acted_detail": "撤销会恢复最近一次更改的文件，并记为一次失误。",
     "type.always_asks": "始终询问",
-    "type.guarantee": "此类型的操作中，未经批准而带错执行的最多占 {aoql}%；若模型变差，最多 {worst}%。",
-    "type.guarantee_provisional": "此类型的操作中，未经批准而带错执行的最多占 {aoql}%；若模型变差，最多 {worst}%。暂定：基于继承的证据。",
+    "type.guarantee": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。",
+    "type.guarantee_provisional": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。暂定：基于继承的证据。",
     "type.in_a_row": "连续 {series}/{required}",
     "type.sessions": {
       "other": "{n} 个会话"
@@ -814,6 +834,15 @@ function hostBundles(locales) {
   return bundles
 }
 /* TENURE_I18N_END */
+/** A preset's display name in the active language; the id itself (typed in commands) when it has none. */
+function presetName(t, id) {
+  if (id === 'careful') return t('preset.name.careful')
+  if (id === 'balanced') return t('preset.name.balanced')
+  if (id === 'fast') return t('preset.name.fast')
+  if (id === 'custom') return t('preset.name.custom')
+  return id
+}
+
 
 // A sentence with one React node inside: format it around a sentinel, then interleave the node.
 function withNode(t, key, name, node) {
@@ -879,7 +908,18 @@ function bestTier(agent) {
 }
 
 const earned = agent => (agent.types || []).filter(t => ['notify', 'alone'].includes(tierKey(t))).length
-const pct = x => (x * 100).toFixed(1)
+/** The page's language, as Hermes sets it on <html> from display.language; Western digits in every language. */
+const pageLocale = () => {
+  const lang = (typeof document !== 'undefined' && document.documentElement.lang) || 'en'
+  return lang + '-u-nu-latn'
+}
+const dec1 = x => {
+  try { return new Intl.NumberFormat(pageLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(x) } catch (e) { return Number(x).toFixed(1) }
+}
+const pct = x => dec1(x * 100)
+const when = iso => {
+  try { return new Date(iso).toLocaleString(pageLocale()) } catch (e) { return new Date(iso).toLocaleString() }
+}
 
 const ago = (t, s) =>
   s < 90 ? t('recent.just_now') : s < 5400 ? t('recent.minutes_ago', { n: Math.round(s / 60) }) : t('recent.hours_ago', { n: Math.round(s / 3600) })
@@ -1156,8 +1196,8 @@ function PassportSection({ agent, t }) {
             rows: [
               { label: t('passport.protocol'), value: jsx('span', { className: 'font-mono', children: p.protocol }) },
               { label: t('passport.rule'), value: jsx('span', { className: 'font-mono', children: `${p.rule.name} · ${String(p.rule.fingerprint).slice(0, 16)}` }) },
-              { label: t('passport.ledger'), value: jsx('span', { className: 'font-mono', children: t('passport.ledger_value', { n: p.ledger.count, head: String(p.ledger.head).slice(0, 12) }) }) },
-              { label: t('passport.generated'), value: new Date(p.generated_at).toLocaleString() }
+              { label: t('passport.ledger'), value: jsx('span', { children: t('passport.ledger_value', { n: p.ledger.count, head: String(p.ledger.head).slice(0, 12) }) }) },
+              { label: t('passport.generated'), value: when(p.generated_at) }
             ]
           })
         : null,
@@ -1214,7 +1254,7 @@ function AgentDetail({ agent, t, onRevoke }) {
               { label: t('meta.checked'), value: String(tot.checked || 0) },
               { label: t('meta.alone'), value: String(tot.alone || 0) },
               { label: t('meta.faults'), value: String(tot.faults || 0) },
-              { label: t('meta.preset'), value: t(s.pending ? 'preset.value_pending' : 'preset.value', { preset: s.preset || 'balanced', k: Math.round(1 / (s.spot || 0.1)) }) }
+              { label: t('meta.preset'), value: t(s.pending ? 'preset.value_pending' : 'preset.value', { preset: presetName(t, s.preset || 'balanced'), k: Math.round(1 / (s.spot || 0.1)) }) }
             ]
           })
         ]
@@ -1405,7 +1445,7 @@ function BenchmarkView({ t }) {
                               children: jsx('span', {
                                 className: 'w-12 text-[0.7rem] tabular-nums text-muted-foreground/80',
                                 style: { textAlign: 'end' },
-                                children: r.public && r.public.new != null ? t('benchmark.public_value', { value: Number(r.public.new).toFixed(1) }) : t('benchmark.no_public')
+                                children: r.public && r.public.new != null ? t('benchmark.public_value', { value: dec1(Number(r.public.new)) }) : t('benchmark.no_public')
                               })
                             })
                           ]

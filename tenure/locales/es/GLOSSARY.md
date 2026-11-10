@@ -42,3 +42,8 @@ Registro: tú (como Hermes Desktop). Porcentaje con espacio no separable (U+00A0
 - redacted / raw → oculto / sin ocultar (nombres «reales» en el panel)
 - dashboard → panel
 - Run / Reject / Allow this session / Always allow → Ejecutar / Rechazar / Permitir esta sesión / Permitir siempre (Hermes Desktop, `assistant.approval`)
+- head (ledger) → último hash
+- clearance number (Dodge, CSP-1) → número de liberación
+- harness (public score) → entorno de evaluación
+- redacted passport → pasaporte con nombres ocultos
+- skills (agent's own) → habilidades (como Hermes)

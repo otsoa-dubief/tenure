@@ -474,7 +474,7 @@ const TENURE_LOCALES = {
     "view.undo": "Undo"
   },
   "ar": {
-    "cell.asked_suffix": " سأل",
+    "cell.asked_suffix": " بسؤال",
     "cell.capped_by_settings": "مقيَّد بإعدادات المخاطرة",
     "cell.held": "{tier} مخزَّن، تُقيّده إعداداتك",
     "cell.kind_irreversible": "{type} · {stakes}، لا يمكن التراجع عنه",
@@ -501,7 +501,7 @@ const TENURE_LOCALES = {
     "common.arrow": "←",
     "common.capped": "مقيَّد",
     "common.list_sep": "، ",
-    "common.loading": "جار التحميل…",
+    "common.loading": "جارٍ التحميل…",
     "common.no_public_measure": "لا مقياس عام",
     "common.one_in": "1 من كل {k}",
     "common.percent": "{v}%",
@@ -543,11 +543,11 @@ const TENURE_LOCALES = {
       "other": "إجراء"
     },
     "counters.actions.sub": "مشمولة",
-    "counters.alone.label": "نُفّذ دون سؤال",
+    "counters.alone.label": "نُفّذت دون سؤال",
     "counters.alone.sub": "نُفّذت دون سؤال، من {total}",
     "counters.aria": "آخر 7 أيام",
     "counters.checked.label": "مفحوصة",
-    "counters.checked.sub": "بواسطتك، من {total}",
+    "counters.checked.sub": "بفحصك، من {total}",
     "counters.faults.label": "إخفاقات مكتشفة",
     "counters.faults.sub": {
       "zero": "{faults} / {n} فحوص",
@@ -618,7 +618,7 @@ const TENURE_LOCALES = {
     "event.success.spot": "فحص عشوائي وافقتَ عليه",
     "event.switch": "تبديل النموذج",
     "event.switch_from": "تبديل النموذج من {from}",
-    "event.tier": "المستوى {from} ← {to} · {why}",
+    "event.tier": "المستوى: من {from} إلى {to} · {why}",
     "event.trial.failed": {
       "zero": "فشل الاختبار: انتظر {wait} إجراءات",
       "one": "فشل الاختبار: انتظر {wait} إجراء",
@@ -629,8 +629,8 @@ const TENURE_LOCALES = {
     },
     "event.trial.opened": {
       "zero": "فُتح اختبار: يجب أن تنجح الإجراءات الـ{left} التالية",
-      "one": "فُتح اختبار: يجب أن ينجح الإجراء التالي ({left})",
-      "two": "فُتح اختبار: يجب أن ينجح الإجراءان التاليان ({left})",
+      "one": "فُتح اختبار: يجب أن ينجح الإجراء التالي",
+      "two": "فُتح اختبار: يجب أن ينجح الإجراءان التاليان",
       "few": "فُتح اختبار: يجب أن تنجح الإجراءات الـ{left} التالية",
       "many": "فُتح اختبار: يجب أن تنجح الإجراءات الـ{left} التالية",
       "other": "فُتح اختبار: يجب أن تنجح الإجراءات الـ{left} التالية"
@@ -638,8 +638,8 @@ const TENURE_LOCALES = {
     "event.trial.passed": "اجتاز الاختبار",
     "event.trial.reopens": {
       "zero": "يُعاد فتح الاختبار: يجب أن تنجح الإجراءات الـ{left} التالية",
-      "one": "يُعاد فتح الاختبار: يجب أن ينجح الإجراء التالي ({left})",
-      "two": "يُعاد فتح الاختبار: يجب أن ينجح الإجراءان التاليان ({left})",
+      "one": "يُعاد فتح الاختبار: يجب أن ينجح الإجراء التالي",
+      "two": "يُعاد فتح الاختبار: يجب أن ينجح الإجراءان التاليان",
       "few": "يُعاد فتح الاختبار: يجب أن تنجح الإجراءات الـ{left} التالية",
       "many": "يُعاد فتح الاختبار: يجب أن تنجح الإجراءات الـ{left} التالية",
       "other": "يُعاد فتح الاختبار: يجب أن تنجح الإجراءات الـ{left} التالية"
@@ -699,12 +699,12 @@ const TENURE_LOCALES = {
     "help.raw": "إظهار / إخفاء الأسماء الخام للأنواع",
     "help.title": "لوحة المفاتيح",
     "legend.a_share": "نسبة منها",
-    "legend.alone": "يعمل وحده، مع فحص عشوائي لـ{share}",
+    "legend.alone": "يعمل وحده، ويُفحص {share} عشوائيًا",
     "legend.ask": "يسأل أولًا",
     "legend.capped": "مقيَّد: يسأل دائمًا",
     "legend.carried": "من النموذج السابق، مؤقت",
     "legend.notify": "ينفّذ ثم يُبلغ مع إمكانية التراجع (الأنواع القابلة للتراجع)",
-    "legend.series": "متتاليات سليمة على التوالي، من N المطلوبة",
+    "legend.series": "نجاحات سليمة على التوالي، من أصل N مطلوبة",
     "map.aria": "الوكلاء حسب نوع الإجراء",
     "map.empty.after": "، ولا يصعد إلا بنجاحات موثّقة: تبلغ الأنواع القابلة للتراجع المستوى الأوسط بعد سلسلة من النجاحات الموثّقة دون إخفاق، وT3 بعد سلسلة كاملة من N على جلستين.",
     "map.empty.before": "يبدأ tenure العدّ عند أول إجراء يطلب الوكيل تنفيذه. القراءة لا تسأل أبدًا. يبدأ كل نوع إجراء في ",
@@ -725,20 +725,20 @@ const TENURE_LOCALES = {
     "missing.always_asks": "يسأل دائمًا",
     "missing.earned": "مكتسب · فحص عشوائي",
     "missing.more_to_t2": {
-      "zero": "{n} إضافية حتى T2",
-      "one": "{n} إضافي حتى T2",
-      "two": "{n} إضافيان حتى T2",
-      "few": "{n} إضافية حتى T2",
-      "many": "{n} إضافية حتى T2",
-      "other": "{n} إضافية حتى T2"
+      "zero": "بقي {n} حتى T2",
+      "one": "بقي {n} حتى T2",
+      "two": "بقي {n} حتى T2",
+      "few": "بقي {n} حتى T2",
+      "many": "بقي {n} حتى T2",
+      "other": "بقي {n} حتى T2"
     },
     "missing.more_to_t3": {
-      "zero": "{n} إضافية حتى T3",
-      "one": "{n} إضافي حتى T3",
-      "two": "{n} إضافيان حتى T3",
-      "few": "{n} إضافية حتى T3",
-      "many": "{n} إضافية حتى T3",
-      "other": "{n} إضافية حتى T3"
+      "zero": "بقي {n} حتى T3",
+      "one": "بقي {n} حتى T3",
+      "two": "بقي {n} حتى T3",
+      "few": "بقي {n} حتى T3",
+      "many": "بقي {n} حتى T3",
+      "other": "بقي {n} حتى T3"
     },
     "missing.rechecking": "إعادة الفحص",
     "missing.second_session": "يحتاج جلسة ثانية",
@@ -760,7 +760,7 @@ const TENURE_LOCALES = {
     },
     "models.empty.body": "كل إجراء موثّق يُضاف إلى سجل النموذج على ذلك النوع، هنا وفي {cmd}.",
     "models.empty.title": "لا سجل بعد",
-    "models.lede": "مقياسك الخاص: سجل كل نموذج الموثّق على عملك، لكل نوع إجراء، مع نطاق 95% لمعدل إخفاقه. مرتب حسب الحد الأعلى لنطاقه، لا حسب نتيجة واحدة. وبجانبه المقياس العام، للعلم: ",
+    "models.lede": "مقياسك الخاص: السجل الموثّق لكل نموذج على عملك، لكل نوع إجراء، مع نطاق 95% لمعدل إخفاقه. الترتيب حسب الحد الأعلى للنطاق، لا حسب نتيجة واحدة. وبجانبه المقياس العام، للعلم فقط: ",
     "models.lede_bold": "قدرة عامة على مهامهم، لا موثوقية على مهامك.",
     "models.no_checks": "لا فحوص بعد",
     "models.no_public": "لا مقياس عام لنوع الإجراء هذا.",
@@ -772,7 +772,7 @@ const TENURE_LOCALES = {
     "models.source_accessed": "{source}، اطُّلع عليه في {accessed}. أفضل نتيجة منشورة، بأي أداة تقييم؛ ليست مقارنة مضبوطة.",
     "page.error": "تعذّرت قراءة tenure: {error}",
     "page.live": "مباشر · ",
-    "page.loading": "جار تحميل السجل…",
+    "page.loading": "جارٍ تحميل السجل…",
     "page.polling": "تحديث كل {s} ث",
     "page.raw_off": "أسماء محجوبة",
     "page.raw_on": "أسماء خام",
@@ -1008,10 +1008,10 @@ const TENURE_LOCALES = {
     },
     "timeline.empty": "لا أدلة لهذا المرشّح",
     "timeline.filter_label": "التصفية حسب النوع",
-    "timeline.loading": "جار تحميل الأدلة…",
+    "timeline.loading": "جارٍ تحميل الأدلة…",
     "timeline.note": "من الدفتر المتسلسل بالتجزئة، الأحدث أولًا، آخر 200 حدث. تُجمَّع النتائج المتكررة.",
     "timeline.title": "خط الأدلة الزمني",
-    "toast.transition": "{agent} · {type}: {from} ← {to}",
+    "toast.transition": "{agent} · {type}: من {from} إلى {to}",
     "totals.actions": {
       "zero": "{n} إجراءات",
       "one": "{n} إجراء",
@@ -1021,7 +1021,7 @@ const TENURE_LOCALES = {
       "other": "{n} إجراء"
     },
     "totals.alone": "{n} دون سؤال",
-    "totals.checked": "{n} مفحوص",
+    "totals.checked": "{n} مفحوصة",
     "totals.faults": {
       "zero": "{n} إخفاقات",
       "one": "{n} إخفاق",
@@ -1059,7 +1059,7 @@ const TENURE_LOCALES = {
     },
     "verdict.unsigned.no_key": "لا مفتاح توقيع بعد: {cmd} ينشئ واحدًا",
     "verdict.unsigned.replay": "إعادة التشغيل تعطي المستويات نفسها",
-    "verdict.unsigned.title": "غير موقَّع، ومُتحقَّق منه فيما عدا ذلك",
+    "verdict.unsigned.title": "غير موقَّع، وما عدا ذلك سليم",
     "view.map": "الخريطة",
     "view.models": "مقياسك",
     "view.passport": "الجواز",
@@ -1165,8 +1165,8 @@ const TENURE_LOCALES = {
     "event.neutral.ambiguous": "llamada ambigua · sin evidencia",
     "event.neutral.blocked": "bloqueado por otra protección · sin evidencia",
     "event.neutral.error": "error de herramienta · sin evidencia",
-    "event.neutral.expired": "nunca devolvió resultado · sin evidencia",
-    "event.neutral.nobody": "nadie para responder · sin evidencia",
+    "event.neutral.expired": "nunca informó del resultado · sin evidencia",
+    "event.neutral.nobody": "nadie que responda · sin evidencia",
     "event.neutral.other": "neutro ({source})",
     "event.neutral.timeout": "sin respuesta · sin evidencia",
     "event.neutral_expired": "acción pendiente caducada · sin evidencia",
@@ -1182,12 +1182,12 @@ const TENURE_LOCALES = {
       "other": "prueba no superada: esperar {wait} acciones"
     },
     "event.trial.opened": {
-      "one": "periodo de prueba abierto: la próxima ({left}) debe salir bien",
+      "one": "periodo de prueba abierto: la siguiente acción debe salir bien",
       "other": "periodo de prueba abierto: las próximas {left} deben salir bien"
     },
     "event.trial.passed": "prueba superada",
     "event.trial.reopens": {
-      "one": "periodo de prueba reabierto: la próxima ({left}) debe salir bien",
+      "one": "periodo de prueba reabierto: la siguiente acción debe salir bien",
       "other": "periodo de prueba reabierto: las próximas {left} deben salir bien"
     },
     "event.why.fault": "fallo",
@@ -1218,8 +1218,8 @@ const TENURE_LOCALES = {
     "flag.provisional": "provisional",
     "flag.trial": "a prueba",
     "guarantee.capped": "Limitado: cada acción pregunta.",
-    "guarantee.text": "Los errores sin comprobar se quedan por debajo del {aoql} de sus acciones de este tipo; para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado.",
-    "guarantee.text_conditional": "Los errores sin comprobar se quedan por debajo del {aoql} de sus acciones de este tipo; para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado. Siempre que la evidencia del modelo anterior siga siendo válida.",
+    "guarantee.text": "Los errores sin comprobar se mantienen por debajo del {aoql} de sus acciones de este tipo; para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado.",
+    "guarantee.text_conditional": "Los errores sin comprobar se mantienen por debajo del {aoql} de sus acciones de este tipo; para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado. Siempre que la evidencia del modelo anterior siga siendo válida.",
     "help.agent": "Panel del agente de la fila seleccionada",
     "help.aria": "Atajos de teclado",
     "help.close": "Cerrar",
@@ -1245,8 +1245,8 @@ const TENURE_LOCALES = {
     "map.th.agent_sub": "perfil · modelo@proveedor",
     "map.th.capped": "limitado · siempre pregunta",
     "map.th.risk": {
-      "one": "riesgo {risk} · {n} seguida para actuar por su cuenta",
-      "other": "riesgo {risk} · {n} seguidas para actuar por su cuenta"
+      "one": "riesgo {risk} · {n} éxito para actuar por su cuenta",
+      "other": "riesgo {risk} · {n} éxitos seguidos para actuar por su cuenta"
     },
     "missing.always_asks": "siempre pregunta",
     "missing.earned": "ganado · control aleatorio",
@@ -1278,8 +1278,8 @@ const TENURE_LOCALES = {
     "models.personal_title": "En tu trabajo",
     "models.public_note": "Capacidad pública en sus tareas, no fiabilidad en las tuyas.",
     "models.public_title": "Medida pública",
-    "models.source": "{source}. Mejor puntuación publicada, con cualquier harness; no es una comparación controlada.",
-    "models.source_accessed": "{source}, consultado el {accessed}. Mejor puntuación publicada, con cualquier harness; no es una comparación controlada.",
+    "models.source": "{source}. Mejor puntuación publicada, con cualquier entorno de evaluación; no es una comparación controlada.",
+    "models.source_accessed": "{source}, consultado el {accessed}. Mejor puntuación publicada, con cualquier entorno de evaluación; no es una comparación controlada.",
     "page.error": "No se pudo leer tenure: {error}",
     "page.live": "en directo · ",
     "page.loading": "Cargando el historial…",
@@ -1311,8 +1311,8 @@ const TENURE_LOCALES = {
     "passport.types_title": "Tipos certificados",
     "passport.value.hashed": "{profile} (hash)",
     "passport.value.ledger": {
-      "one": "{n} evento · cabeza {head}",
-      "other": "{n} eventos · cabeza {head}"
+      "one": "{n} evento · último hash {head}",
+      "other": "{n} eventos · último hash {head}"
     },
     "passport.value.none": "ninguno",
     "passport.value.raw": "reales",
@@ -1341,7 +1341,7 @@ const TENURE_LOCALES = {
     "settings.about.title": "Sobre la regla",
     "settings.apply": "Aplicar",
     "settings.checks_in_row": {
-      "one": " comprobación seguida",
+      "one": " comprobación",
       "other": " comprobaciones seguidas"
     },
     "settings.empty.body": "El preajuste equilibrado se aplica hasta que se registre la primera acción.",
@@ -1485,7 +1485,7 @@ const TENURE_LOCALES = {
     "undo.confirm": "¿Deshacer n.º {id}?",
     "undo.effect.already": "restaura los archivos · la comprobación automática ya contó un fallo",
     "undo.effect.fault": "restaura los archivos · cuenta como fallo",
-    "undo.empty.body": "Las acciones en T2 (actúa y luego avisa) guardan una instantánea de los archivos que escribieron durante 24 horas. Aparecen aquí, las más recientes primero, cada una con su propio deshacer.",
+    "undo.empty.body": "Las acciones en T2 (actúa y luego avisa) guardan una instantánea de los archivos que escribieron durante 24 horas. Aparecen aquí, las más recientes primero, cada una con su botón Deshacer.",
     "undo.empty.title": "Nada que deshacer",
     "undo.lede": "Acciones recientes que actuaron y luego avisaron. Deshacer restaura los archivos desde su instantánea y cuenta como fallo del tipo.",
     "undo.own_profile_only": "Deshacer solo actúa sobre el perfil de este panel",
@@ -1607,7 +1607,7 @@ const TENURE_LOCALES = {
     "event.neutral.ambiguous": "appel ambigu · aucune preuve",
     "event.neutral.blocked": "bloqué par une autre protection · aucune preuve",
     "event.neutral.error": "erreur d'outil · aucune preuve",
-    "event.neutral.expired": "jamais revenu · aucune preuve",
+    "event.neutral.expired": "aucun retour · aucune preuve",
     "event.neutral.nobody": "personne pour répondre · aucune preuve",
     "event.neutral.other": "neutre ({source})",
     "event.neutral.timeout": "pas de réponse · aucune preuve",
@@ -1660,23 +1660,23 @@ const TENURE_LOCALES = {
     "flag.provisional": "provisoire",
     "flag.trial": "à l'essai",
     "guarantee.capped": "Plafonné : chaque action demande.",
-    "guarantee.text": "Les erreurs non vérifiées restent sous {aoql} de ses actions de ce type ; pour un agent qui se dégrade après avoir gagné son autonomie, au plus {worst} jusqu'à la première erreur repérée.",
-    "guarantee.text_conditional": "Les erreurs non vérifiées restent sous {aoql} de ses actions de ce type ; pour un agent qui se dégrade après avoir gagné son autonomie, au plus {worst} jusqu'à la première erreur repérée. Sous réserve que les preuves du modèle précédent tiennent toujours.",
-    "help.agent": "Volet de l'agent de la ligne active",
+    "guarantee.text": "Les erreurs que personne n'a vérifiées restent sous {aoql} de ses actions de ce type ; si l'agent se dégrade une fois son autonomie acquise, {worst} au plus, jusqu'à la première erreur repérée.",
+    "guarantee.text_conditional": "Les erreurs que personne n'a vérifiées restent sous {aoql} de ses actions de ce type ; si l'agent se dégrade une fois son autonomie acquise, {worst} au plus, jusqu'à la première erreur repérée. À condition que les preuves du modèle précédent restent valables.",
+    "help.agent": "Volet de l'agent sélectionné",
     "help.aria": "Raccourcis clavier",
     "help.close": "Fermer",
     "help.help": "Cette aide",
     "help.next_prev": "Agent suivant / précédent",
-    "help.open": "Ouvrir l'agent actif",
-    "help.raw": "Noms de types bruts oui / non",
+    "help.open": "Ouvrir l'agent sélectionné",
+    "help.raw": "Afficher / masquer les noms bruts",
     "help.title": "Clavier",
     "legend.a_share": "une part",
-    "legend.alone": "agit seul, {share} contrôlée au hasard",
+    "legend.alone": "agit seul, contrôle aléatoire : {share}",
     "legend.ask": "demande d'abord",
     "legend.capped": "plafonné : demande toujours",
     "legend.carried": "hérité du modèle précédent, provisoire",
-    "legend.notify": "agit, puis prévient avec une annulation (types réversibles)",
-    "legend.series": "succès sans faute d'affilée, sur les N requis",
+    "legend.notify": "agit, puis prévient, annulable (types réversibles)",
+    "legend.series": "succès d'affilée, sur les N requis",
     "map.aria": "Agents par type d'action",
     "map.empty.after": ", et ne monte que sur des succès vérifiés : les types réversibles atteignent le niveau intermédiaire après une série de succès vérifiés sans faute, et T3 après une série complète de N sur deux sessions.",
     "map.empty.before": "tenure commence à compter dès la première action qu'un agent demande à exécuter. Les lectures ne demandent jamais. Chaque type d'action commence en ",
@@ -1691,7 +1691,7 @@ const TENURE_LOCALES = {
       "other": "risque {risk} · {n} d'affilée pour agir seul"
     },
     "missing.always_asks": "demande toujours",
-    "missing.earned": "acquis · contrôlé",
+    "missing.earned": "acquis · contrôlé au hasard",
     "missing.more_to_t2": {
       "one": "encore {n} avant T2",
       "other": "encore {n} avant T2"
@@ -1713,15 +1713,15 @@ const TENURE_LOCALES = {
     "models.empty.body": "Chaque action vérifiée s'ajoute à l'historique du modèle pour ce type, ici et dans {cmd}.",
     "models.empty.title": "Aucun historique pour l'instant",
     "models.lede": "Votre propre benchmark : l'historique vérifié de chaque modèle sur votre travail, par type d'action, avec la fourchette à 95 % de son taux de fautes. Classé par le haut de sa fourchette, jamais par un score unique. À côté, la mesure publique, pour information : ",
-    "models.lede_bold": "la capacité publique sur leurs tâches, pas la fiabilité sur les vôtres.",
+    "models.lede_bold": "la capacité sur les tâches du benchmark, pas la fiabilité sur les vôtres.",
     "models.no_checks": "aucune vérification pour l'instant",
     "models.no_public": "Aucune mesure publique pour ce type d'action.",
     "models.not_enough": "pas assez de preuves",
     "models.personal_title": "Sur votre travail",
-    "models.public_note": "Capacité publique sur leurs tâches, pas fiabilité sur les vôtres.",
+    "models.public_note": "Capacité sur les tâches du benchmark, pas fiabilité sur les vôtres.",
     "models.public_title": "Mesure publique",
-    "models.source": "{source}. Meilleur score publié, tout dispositif d'évaluation confondu ; pas une comparaison contrôlée.",
-    "models.source_accessed": "{source}, consulté le {accessed}. Meilleur score publié, tout dispositif d'évaluation confondu ; pas une comparaison contrôlée.",
+    "models.source": "{source}. Meilleur score publié, toutes conditions de test confondues ; pas une comparaison à armes égales.",
+    "models.source_accessed": "{source}, consulté le {accessed}. Meilleur score publié, toutes conditions de test confondues ; pas une comparaison à armes égales.",
     "page.error": "Impossible de lire tenure : {error}",
     "page.live": "en direct · ",
     "page.loading": "Chargement de l'historique…",
@@ -1730,9 +1730,9 @@ const TENURE_LOCALES = {
     "page.raw_on": "noms bruts",
     "page.raw_title": "Afficher les noms bruts des types d'action (r)",
     "page.retrying": "nouvelle tentative · ",
-    "page.subtitle": "Autonomie gagnée par type d'action, sur preuves vérifiées",
+    "page.subtitle": "Autonomie acquise par type d'action, sur preuves vérifiées",
     "page.title": "Tenure",
-    "page.unreadable": "Illisible : {profiles}. Sa base de données existe mais ne peut pas être ouverte ; les autres profils sont affichés.",
+    "page.unreadable": "Illisible : {profiles}. La base de données existe mais ne s'ouvre pas ; les autres profils sont affichés.",
     "passport.agent": "Agent",
     "passport.checked_by": "Vérifié par le tableau de bord avec le registre de ce profil. Tout le monde peut le revérifier :",
     "passport.download": "Télécharger le JSON",
@@ -1749,7 +1749,7 @@ const TENURE_LOCALES = {
     "passport.field.signature": "Signature",
     "passport.field.type_names": "Noms de types",
     "passport.guarantee": "erreurs non vérifiées sous {aoql} · {worst} s'il se dégrade",
-    "passport.note": "Signé et infalsifiable sans trace : toute modification après signature ou ancrage apparaît à la vérification. Un ancien passeport se vérifie encore avec un registre plus long ; le vérificateur indique ce qui a changé depuis.",
+    "passport.note": "Signé et scellé : toute modification faite après la signature ou l'ancrage apparaît à la vérification. Un ancien passeport se vérifie encore avec un registre plus long ; le vérificateur indique ce qui a changé depuis.",
     "passport.types_title": "Types attestés",
     "passport.value.hashed": "{profile} (haché)",
     "passport.value.ledger": {
@@ -1768,18 +1768,18 @@ const TENURE_LOCALES = {
     "profile.preset": "préréglage {preset}",
     "profile.read_only": " · lecture seule ici",
     "profile.sessions_suspended": {
-      "one": "{n} session suspendue : contenu externe lu",
-      "other": "{n} sessions suspendues : contenu externe lu"
+      "one": "{n} session suspendue : elle a lu du contenu externe",
+      "other": "{n} sessions suspendues : elles ont lu du contenu externe"
     },
     "profile.spot": "contrôles aléatoires {rate}",
     "profile.strict": "strict",
     "profile.suspended": {
-      "one": "{n} suspendue : contenu externe lu",
-      "other": "{n} suspendues : contenu externe lu"
+      "one": "{n} suspendue : a lu du contenu externe",
+      "other": "{n} suspendues : ont lu du contenu externe"
     },
     "profile.this_dashboard": " · ce tableau de bord",
-    "settings.about.body": "La même règle qu'une étude préenregistrée, rejouée sur plus de 6 000 agents simulés (résultats à venir). Des couches ajoutées la rendent plus stricte : contrôles aléatoires (une fois un type validé, {spot} de ses actions demande encore), deux sessions distinctes dans la série qui mène à T3, et suspension après qu'une session a lu du contenu externe.",
-    "settings.about.carry": "L'héritage est notre ajout ; le mode strict, c'est l'étude.",
+    "settings.about.body": "La règle d'une étude préenregistrée, rejouée sur plus de 6 000 agents simulés (résultats à venir). Nos ajouts la rendent plus stricte : contrôles aléatoires (une fois un type validé, {spot} de ses actions vous est encore demandée), deux sessions distinctes dans la série qui mène à T3, et suspension dès qu'une session lit du contenu externe.",
+    "settings.about.carry": "L'héritage vient de nous ; le mode strict suit l'étude.",
     "settings.about.title": "À propos de la règle",
     "settings.apply": "Appliquer",
     "settings.checks_in_row": {
@@ -1791,7 +1791,7 @@ const TENURE_LOCALES = {
     "settings.in_force": "en vigueur : {value}",
     "settings.in_force_profile": "En vigueur dans le profil {profile}.",
     "settings.preset_aria": "Préréglage",
-    "settings.read_only.body": "Ce processus du tableau de bord ne peut pas écrire les paramètres de tenure (Hermes ne donne aux plugins aucun autre moyen public d'écriture). Lancez :",
+    "settings.read_only.body": "Ce tableau de bord ne peut pas écrire les paramètres de tenure (Hermes n'offre aux plugins aucune autre façon publique de le faire). Lancez :",
     "settings.read_only.bold": "Lecture seule ici.",
     "settings.reset": "Réinitialiser",
     "settings.risk_help": "La part d'erreurs que vous acceptez de voir s'exécuter sans vérification, par niveau d'enjeu. N est la série de succès vérifiés d'affilée dont un type a besoin pour agir seul.",
@@ -1836,11 +1836,11 @@ const TENURE_LOCALES = {
     "switch.empty": "Aucun agent à prévisualiser pour l'instant",
     "switch.footnote": "Les scores publics informent ; ils n'accordent jamais d'autonomie. Un blocage n'empêche que l'héritage, au-delà d'une marge fixe.",
     "switch.from": "De",
-    "switch.lede": "Avant de changer de modèle : ce dont le nouvel agent hériterait, type par type. Un nouveau modèle ou fournisseur est un nouvel agent. L'héritage est notre ajout ; le mode strict, c'est l'étude.",
+    "switch.lede": "Avant de changer de modèle : ce dont le nouvel agent hériterait, type par type. Un nouveau modèle ou fournisseur est un nouvel agent. L'héritage vient de nous ; le mode strict suit l'étude.",
     "switch.none": "aucun",
-    "switch.pick.body": "Saisissez n'importe quel identifiant de modèle. Rien ne change tant que Hermes n'exécute pas réellement le nouveau modèle.",
+    "switch.pick.body": "Saisissez n'importe quel identifiant de modèle. Rien ne change tant que Hermes n'utilise pas vraiment le nouveau modèle.",
     "switch.pick.title": "Choisissez un modèle cible",
-    "switch.placeholder": "identifiant de modèle, par ex. {example} ou model@provider",
+    "switch.placeholder": "identifiant de modèle, p. ex. {example} ou model@provider",
     "switch.preview": "Aperçu",
     "switch.provisional": {
       "one": "{n} provisoire",
@@ -1853,7 +1853,7 @@ const TENURE_LOCALES = {
     "switch.status.reset.label": "remis à zéro",
     "switch.status.reset.text": "Repart de zéro : enjeu élevé, plafonné ou mode strict.",
     "switch.status.vetoed.label": "bloqué",
-    "switch.status.vetoed.text": "Le benchmark public montre le nouveau modèle plus faible sur ce type : rien n'est hérité.",
+    "switch.status.vetoed.text": "Selon le benchmark public, le nouveau modèle est plus faible sur ce type : rien n'est hérité.",
     "switch.strict": "mode strict : rien n'est hérité",
     "switch.to": "Vers le modèle",
     "switch.to_aria": "Modèle cible",
@@ -1924,17 +1924,17 @@ const TENURE_LOCALES = {
     "transitions.why.on_evidence": "sur preuves",
     "transitions.why.trial_open": "essai ouvert",
     "undo.button": "Annuler",
-    "undo.confirm": "Annuler n° {id} ?",
+    "undo.confirm": "Annuler le n° {id} ?",
     "undo.effect.already": "restaure les fichiers · la vérification automatique a déjà compté une faute",
     "undo.effect.fault": "restaure les fichiers · compte comme une faute",
-    "undo.empty.body": "Les actions en T2 (agit, puis prévient) conservent un instantané des fichiers qu'elles ont écrits pendant 24 heures. Elles apparaissent ici, de la plus récente à la plus ancienne, chacune avec sa propre annulation.",
+    "undo.empty.body": "Les actions en T2 (agir, puis prévenir) gardent 24 heures un instantané des fichiers qu'elles ont écrits. Elles apparaissent ici, de la plus récente à la plus ancienne, chacune avec son bouton Annuler.",
     "undo.empty.title": "Rien à annuler",
-    "undo.lede": "Actions récentes qui ont agi, puis prévenu. Annuler restaure les fichiers depuis leur instantané et compte comme une faute du type.",
+    "undo.lede": "Dernières actions faites en T2 (agir, puis prévenir). Annuler restaure les fichiers depuis leur instantané et compte comme une faute du type.",
     "undo.own_profile_only": "L'annulation n'agit que sur le profil de ce tableau de bord",
     "undo.title": "Restaurer les fichiers",
-    "undo.window_ends": "fin du délai dans {duration}",
+    "undo.window_ends": "annulable encore {duration}",
     "verdict.chain": "Chaîne de hachage intacte",
-    "verdict.ok.replay": "Rejouer le registre avec la règle donne les mêmes niveaux",
+    "verdict.ok.replay": "Le registre rejoué avec la règle redonne les mêmes niveaux",
     "verdict.ok.signature": "Signature valide (Ed25519)",
     "verdict.ok.title": "Vérifié",
     "verdict.problems": {
@@ -1942,7 +1942,7 @@ const TENURE_LOCALES = {
       "other": "{count} problèmes trouvés"
     },
     "verdict.unsigned.no_key": "Pas encore de clé de signature : {cmd} en crée une",
-    "verdict.unsigned.replay": "Le rejeu donne les mêmes niveaux",
+    "verdict.unsigned.replay": "Le registre rejoué redonne les mêmes niveaux",
     "verdict.unsigned.title": "Non signé, vérifié par ailleurs",
     "view.map": "Carte",
     "view.models": "Votre benchmark",
@@ -1954,7 +1954,7 @@ const TENURE_LOCALES = {
   "zh": {
     "cell.asked_suffix": " 次询问",
     "cell.capped_by_settings": "受风险设置限制",
-    "cell.held": "已存 {tier}，被你的设置限制",
+    "cell.held": "已赢得 {tier}，被你的设置压低",
     "cell.kind_irreversible": "{type} · {stakes}，不可逆",
     "cell.kind_reversible": "{type} · {stakes}，可逆",
     "cell.provisional_long": {
@@ -1971,7 +1971,7 @@ const TENURE_LOCALES = {
     "common.list_sep": "、",
     "common.loading": "正在加载…",
     "common.no_public_measure": "无公开测评",
-    "common.one_in": "每 {k} 个 1 个",
+    "common.one_in": "1/{k}",
     "common.percent": "{v}%",
     "common.profile": "配置文件 {profile}",
     "confirm.again": "再次点击以确认",
@@ -1988,7 +1988,7 @@ const TENURE_LOCALES = {
       "other": "{n} 个会话"
     },
     "counters.actions.label": {
-      "other": "个操作"
+      "other": "操作"
     },
     "counters.actions.sub": "已覆盖",
     "counters.alone.label": "未询问即执行",
@@ -2021,7 +2021,7 @@ const TENURE_LOCALES = {
     "drawer.revoke_all.done": {
       "other": "已收回 {count} 个类型：退回 T1。"
     },
-    "drawer.revoke_note": "从下一个操作起生效。每次收回都是一条账本事件。",
+    "drawer.revoke_note": "从下一个操作起生效。每次收回都会记入账本。",
     "drawer.revoke_note_other": "标记和收回只作用于仪表盘自己的配置文件。请使用：{cmd}",
     "drawer.sessions_of": {
       "other": "{n}/{total} 个会话"
@@ -2029,7 +2029,7 @@ const TENURE_LOCALES = {
     "drawer.stakes_reversible": "{stakes} · 可逆",
     "drawer.types_title": "操作类型",
     "error.request_failed": "请求失败",
-    "event.confirmed": "继承的证据已由自身记录确认",
+    "event.confirmed": "继承的证据已由它自己的记录确认",
     "event.fault.check": "自动检查失败",
     "event.fault.flag": "被你标记为失误",
     "event.fault.other": "失误（{source}）",
@@ -2063,7 +2063,7 @@ const TENURE_LOCALES = {
       "other": "重新开启考察期：接下来 {left} 个必须成功"
     },
     "event.why.fault": "失误",
-    "event.why.series_complete": "连续记录已满",
+    "event.why.series_complete": "连续记录已达标",
     "event.why.series_n": "连续 {required}/{required}",
     "event.why.sessions": {
       "other": "{count} 个会话"
@@ -2086,8 +2086,8 @@ const TENURE_LOCALES = {
     "flag.provisional": "暂定",
     "flag.trial": "考察期",
     "guarantee.capped": "受限：每次操作都会询问。",
-    "guarantee.text": "未经检查的错误不超过此类型操作的 {aoql}；对于晋升后变差的智能体，在第一次发现错误之前最多 {worst}。",
-    "guarantee.text_conditional": "未经检查的错误不超过此类型操作的 {aoql}；对于晋升后变差的智能体，在第一次发现错误之前最多 {worst}。前提是上一个模型的证据依然成立。",
+    "guarantee.text": "未经检查的错误不超过此类型操作的 {aoql}；若智能体在获得自主权后变差，在第一次发现错误之前最多 {worst}。",
+    "guarantee.text_conditional": "未经检查的错误不超过此类型操作的 {aoql}；若智能体在获得自主权后变差，在第一次发现错误之前最多 {worst}。前提是上一个模型的证据依然成立。",
     "help.agent": "当前行的智能体详情",
     "help.aria": "键盘快捷键",
     "help.close": "关闭",
@@ -2097,7 +2097,7 @@ const TENURE_LOCALES = {
     "help.raw": "切换原始类型名",
     "help.title": "键盘",
     "legend.a_share": "一部分",
-    "legend.alone": "自主执行，{share} 接受抽查",
+    "legend.alone": "自主执行，抽查其中 {share}",
     "legend.ask": "先询问",
     "legend.capped": "受限：始终询问",
     "legend.carried": "继承自上一个模型，暂定",
@@ -2118,10 +2118,10 @@ const TENURE_LOCALES = {
     "missing.always_asks": "始终询问",
     "missing.earned": "已赢得 · 接受抽查",
     "missing.more_to_t2": {
-      "other": "再 {n} 次到 T2"
+      "other": "还差 {n} 次升 T2"
     },
     "missing.more_to_t3": {
-      "other": "再 {n} 次到 T3"
+      "other": "还差 {n} 次升 T3"
     },
     "missing.rechecking": "正在复核",
     "missing.second_session": "需要第 2 个会话",
@@ -2129,7 +2129,7 @@ const TENURE_LOCALES = {
       "other": "考察期 · 还差 {n}/{total}"
     },
     "missing.trial_wait": {
-      "other": "考察未通过 · 等待 {n}"
+      "other": "考察未通过 · 等 {n} 个操作"
     },
     "models.empty.body": "每个已验证的操作都会计入模型在该类型上的记录，显示在这里和 {cmd} 中。",
     "models.empty.title": "还没有记录",
@@ -2169,9 +2169,9 @@ const TENURE_LOCALES = {
     "passport.field.settings": "设置",
     "passport.field.signature": "签名",
     "passport.field.type_names": "类型名",
-    "passport.guarantee": "未经检查的错误低于 {aoql} · 若变差为 {worst}",
+    "passport.guarantee": "未经检查的错误低于 {aoql} · 变差时最多 {worst}",
     "passport.note": "已签名且可发现篡改：签名或锚定后的任何改动都会在验证时显示出来。较早的护照对照更长的账本依然能通过验证；验证器会说明此后的变化。",
-    "passport.types_title": "已证明的类型",
+    "passport.types_title": "已证实的类型",
     "passport.value.hashed": "{profile}（已哈希）",
     "passport.value.ledger": {
       "other": "{n} 个事件 · 头部 {head}"
@@ -2190,13 +2190,13 @@ const TENURE_LOCALES = {
     "profile.sessions_suspended": {
       "other": "{n} 个会话已暂停：读取了外部内容"
     },
-    "profile.spot": "抽查 {rate}",
+    "profile.spot": "抽查率 {rate}",
     "profile.strict": "严格",
     "profile.suspended": {
       "other": "{n} 个已暂停：读取了外部内容"
     },
     "profile.this_dashboard": " · 此仪表盘",
-    "settings.about.body": "与一项预注册研究相同的规则，在 6,000 多个模拟智能体上重放（结果待定）。额外的机制让它更严格：抽查（类型放行后，{spot}操作仍会先询问）、晋升到 T3 的连续记录须来自两个不同会话，以及会话读取外部内容后暂停。",
+    "settings.about.body": "与一项预注册研究相同的规则，在 6,000 多个模拟智能体上重放（结果待定）。额外的机制让它更严格：抽查（类型放行后，仍有 {spot} 的操作会先询问）、晋升到 T3 的连续记录须来自两个不同会话，以及会话读取外部内容后暂停。",
     "settings.about.carry": "继承是我们的补充；严格模式即研究原规则。",
     "settings.about.title": "关于规则",
     "settings.apply": "应用",
@@ -2318,7 +2318,7 @@ const TENURE_LOCALES = {
     "totals.actions": {
       "other": "{n} 个操作"
     },
-    "totals.alone": "{n} 个未询问",
+    "totals.alone": "{n} 个未经询问",
     "totals.checked": "{n} 个已确认",
     "totals.faults": {
       "other": "{n} 次失误"
@@ -3293,7 +3293,7 @@ const TENURE_LOCALES = {
       !to ? h(Empty, { title: t("switch.pick.title") }, t("switch.pick.body")) : null,
       res ? h(Fragment, null,
         h("div", { className: "tnr-switch-summary" },
-          h("span", null, h("b", null, res.from), " " + t("common.arrow") + " ", h("b", null, res.to)),
+          h("span", { className: "tnr-switch-pair" }, h("b", null, res.from), " " + t("common.arrow") + " ", h("b", null, res.to)),
           ["carried", "reset", "vetoed", "kept"].map(function (k) {
             return counts[k] ? h(Flag, { key: k, kind: STATUS[k].tone }, t("switch.count." + k, { n: counts[k] })) : null;
           }),

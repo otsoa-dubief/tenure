@@ -687,10 +687,9 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
 
 def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool,
                  earned_at: str | None) -> str:
-    labels = i18n.buttons()                          # Hermes' own approval buttons, as the owner sees them
     stakes = stakes_name(act.stakes)
     if decision == rule.SPOT:
-        return tr("ask.spot", summary=act.summary, type=act.type, spot=round(1 / spot), **labels)
+        return tr("ask.spot", summary=act.summary, type=act.type, spot=round(1 / spot))
     if n is None:
         why = tr("ask.why.capped", type=act.type, stakes=stakes, n=s.successes)
     elif suspended:
@@ -708,7 +707,7 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
                  sessions=len(s.sessions), needed=rule.SESSIONS)
         if s.provisional:
             why += " " + tr("ask.why.provisional", n=s.provisional)
-    return tr("ask.prompt", summary=act.summary, why=why, **labels)
+    return tr("ask.prompt", summary=act.summary, why=why)
 
 
 # Seconds: Hermes runs a longer terminal call in the background (its TERMINAL_MAX_FOREGROUND_TIMEOUT default).

@@ -57,8 +57,8 @@
   "passport.generated": "Generado",
   "passport.ledger": "Registro",
   "passport.ledger_value": {
-    "one": "{n} evento · cabeza {head}",
-    "other": "{n} eventos · cabeza {head}"
+    "one": "{n} evento · último hash {head}",
+    "other": "{n} eventos · último hash {head}"
   },
   "passport.problems": "No se verifica: {problems}",
   "passport.protocol": "Protocolo",
@@ -68,6 +68,10 @@
   "passport.verified": "Verificado: firma válida, cadena de hashes intacta, y al reproducir el registro se obtienen los mismos niveles.",
   "passport.verify_hint": "Cualquiera puede comprobarlo:",
   "passport.verifying": "Verificando…",
+  "preset.name.balanced": "equilibrado",
+  "preset.name.careful": "prudente",
+  "preset.name.custom": "personalizado",
+  "preset.name.fast": "rápido",
   "preset.value": "{preset} · 1 de cada {k} con control aleatorio",
   "preset.value_pending": "{preset} · 1 de cada {k} con control aleatorio · se aplica desde la próxima acción",
   "recent.check_failed": "falló la comprobación",
@@ -114,7 +118,7 @@
   "tier.t3": "T3 · actúa por su cuenta, con control aleatorio",
   "toast.acted": {
     "one": "{type} hizo un cambio y luego te avisó ({name}).",
-    "other": "{type}: {n} cambios, y luego te avisó ({name})."
+    "other": "{type} hizo {n} cambios y luego te avisó ({name})."
   },
   "toast.acted_detail": "Deshacer restaura los archivos del último cambio y cuenta como fallo.",
   "type.always_asks": "siempre pregunta",

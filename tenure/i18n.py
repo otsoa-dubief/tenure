@@ -152,48 +152,19 @@ def tr(key: str, lang: str | None = None, **values) -> str:
     return key
 
 
-# ----------------------------------------------------------------------------------------------- Hermes' buttons
-# The approval prompt names Hermes' own buttons. Python can read only Hermes' core catalog (plus any desktop pack or
-# overlay): first the Desktop's labels when a pack/overlay supplies them, then the messaging gateways' exec-approval
-# labels, then ours.
-_BUTTONS = {
-    "run": ("assistant.approval.run", "gateway.exec_approval.action_once"),
-    "reject": ("assistant.approval.reject", "gateway.exec_approval.action_deny"),
-    "session": ("assistant.approval.allowSession", "gateway.exec_approval.action_session"),
-    "always": ("assistant.approval.alwaysAllow", "gateway.exec_approval.action_always"),
-}
+# -------------------------------------------------------------------------------------------------- percentages
+_DECIMAL_COMMA = {"fr", "es"}          # "2,08 %" (non-breaking space before %, as Hermes' fr and es catalogs write it)
 
 
-def buttons(lang: str | None = None) -> dict[str, str]:
-    """Labels of Hermes' approval buttons in the owner's language: {run, reject, session, always}. In English our own
-    labels (the Desktop's words), so the English prompt never changes; elsewhere Hermes' translation when it has one."""
-    lang = normalize(lang) if lang else language()
-    out = {k: tr(f"approval.button.{k}", lang=lang) for k in _BUTTONS}
-    if lang.split("-", 1)[0] == DEFAULT:
-        return out
-    try:
-        from agent import i18n as hermes
-    except Exception:
-        return out
-    try:
-        desktop = hermes.surface_catalog(lang, "desktop") or {}
-    except Exception:
-        desktop = {}
-    for k, (desk_key, gw_key) in _BUTTONS.items():
-        v = desktop.get(desk_key) if isinstance(desktop, dict) else None
-        if not (isinstance(v, str) and v.strip()):
-            try:
-                v, en = hermes.t(gw_key, lang=lang), hermes.t(gw_key, lang=DEFAULT)
-                if not isinstance(v, str) or v in (gw_key, en):
-                    v = None                      # Hermes has no translation there: keep ours
-            except Exception:
-                v = None
-        if v:
-            out[k] = v.strip()
-    return out
+def pct(x: float, digits: int = 1, lang: str | None = None) -> str:
+    """A rate as a percentage in the owner's language: 2.08% in English, Chinese and Arabic (Western digits), 2,08 %
+    in French and Spanish."""
+    base = chain(lang or language())[0].split("-")[0]
+    text = f"{x * 100:.{digits}f}"
+    return text.replace(".", ",") + "\u00a0%" if base in _DECIMAL_COMMA else text + "%"
 
 
-# ----------------------------------------------------------------------------------------------- terminal width
+# ------------------------------------------------------------------------------------------------- terminal width
 def width(text: str) -> int:
     """Columns ``text`` takes in a terminal: East Asian wide and fullwidth characters take two, combining marks none.
     Arabic keeps its logical order and one column per character."""
@@ -209,4 +180,4 @@ def ljust(text: str, columns: int) -> str:
     return text + " " * max(0, columns - width(text))
 
 
-__all__ = ["tr", "language", "chain", "catalog", "plural_category", "buttons", "width", "ljust", "reset_cache"]
+__all__ = ["tr", "language", "chain", "catalog", "plural_category", "pct", "width", "ljust", "reset_cache"]

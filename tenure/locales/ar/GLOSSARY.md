@@ -20,7 +20,7 @@
 - kept / reset / vetoed → محفوظ / مُصفَّر / مرفوض
 - stakes → الخطورة ; low/medium/high → منخفضة / متوسطة / عالية
 - risk (accepted) → المخاطرة (المقبولة)
-- clean run → متتالية سليمة ; in a row → على التوالي ; series → السلسلة
+- clean run → نجاح سليم (une action réussie, pas « متتالية ») ; in a row → على التوالي ; series → السلسلة ; progression : « السلسلة 9/52 على التوالي »
 - benchmark (your) → مقياسك ; public score → النتيجة العامة ; public measure → المقياس العام
 - 95% range → نطاق 95%
 - acts on its own → يعمل وحده
@@ -37,4 +37,6 @@
 - approval buttons → تشغيل / رفض / السماح لهذه الجلسة / السماح دائما (= Desktop Hermes assistant.approval)
 - dashboard → اللوحة
 - snapshot → لقطة ; hash chain → سلسلة التجزئة ; signature → التوقيع
-- arrow (common.arrow, event.tier, toast.transition) → ← (lecture RTL)
+- arrow (common.arrow) → ← (lecture RTL) ; transitions de tier dans une phrase (event.tier, toast.transition) → « من T1 إلى T2 » (une flèche entre deux codes latins se résout en LTR et s'inverse)
+- checked by you → بفحصك ; ‹ n more to T2 › → بقي {n} حتى T2
+- « جارٍ … » (forme Hermes) pour les états en cours

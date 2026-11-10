@@ -96,8 +96,8 @@
   "event.neutral.ambiguous": "llamada ambigua · sin evidencia",
   "event.neutral.blocked": "bloqueado por otra protección · sin evidencia",
   "event.neutral.error": "error de herramienta · sin evidencia",
-  "event.neutral.expired": "nunca devolvió resultado · sin evidencia",
-  "event.neutral.nobody": "nadie para responder · sin evidencia",
+  "event.neutral.expired": "nunca informó del resultado · sin evidencia",
+  "event.neutral.nobody": "nadie que responda · sin evidencia",
   "event.neutral.other": "neutro ({source})",
   "event.neutral.timeout": "sin respuesta · sin evidencia",
   "event.neutral_expired": "acción pendiente caducada · sin evidencia",
@@ -113,12 +113,12 @@
     "other": "prueba no superada: esperar {wait} acciones"
   },
   "event.trial.opened": {
-    "one": "periodo de prueba abierto: la próxima ({left}) debe salir bien",
+    "one": "periodo de prueba abierto: la siguiente acción debe salir bien",
     "other": "periodo de prueba abierto: las próximas {left} deben salir bien"
   },
   "event.trial.passed": "prueba superada",
   "event.trial.reopens": {
-    "one": "periodo de prueba reabierto: la próxima ({left}) debe salir bien",
+    "one": "periodo de prueba reabierto: la siguiente acción debe salir bien",
     "other": "periodo de prueba reabierto: las próximas {left} deben salir bien"
   },
   "event.why.fault": "fallo",
@@ -149,8 +149,8 @@
   "flag.provisional": "provisional",
   "flag.trial": "a prueba",
   "guarantee.capped": "Limitado: cada acción pregunta.",
-  "guarantee.text": "Los errores sin comprobar se quedan por debajo del {aoql} de sus acciones de este tipo; para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado.",
-  "guarantee.text_conditional": "Los errores sin comprobar se quedan por debajo del {aoql} de sus acciones de este tipo; para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado. Siempre que la evidencia del modelo anterior siga siendo válida.",
+  "guarantee.text": "Los errores sin comprobar se mantienen por debajo del {aoql} de sus acciones de este tipo; para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado.",
+  "guarantee.text_conditional": "Los errores sin comprobar se mantienen por debajo del {aoql} de sus acciones de este tipo; para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado. Siempre que la evidencia del modelo anterior siga siendo válida.",
   "help.agent": "Panel del agente de la fila seleccionada",
   "help.aria": "Atajos de teclado",
   "help.close": "Cerrar",
@@ -176,8 +176,8 @@
   "map.th.agent_sub": "perfil · modelo@proveedor",
   "map.th.capped": "limitado · siempre pregunta",
   "map.th.risk": {
-    "one": "riesgo {risk} · {n} seguida para actuar por su cuenta",
-    "other": "riesgo {risk} · {n} seguidas para actuar por su cuenta"
+    "one": "riesgo {risk} · {n} éxito para actuar por su cuenta",
+    "other": "riesgo {risk} · {n} éxitos seguidos para actuar por su cuenta"
   },
   "missing.always_asks": "siempre pregunta",
   "missing.earned": "ganado · control aleatorio",
@@ -209,8 +209,8 @@
   "models.personal_title": "En tu trabajo",
   "models.public_note": "Capacidad pública en sus tareas, no fiabilidad en las tuyas.",
   "models.public_title": "Medida pública",
-  "models.source": "{source}. Mejor puntuación publicada, con cualquier harness; no es una comparación controlada.",
-  "models.source_accessed": "{source}, consultado el {accessed}. Mejor puntuación publicada, con cualquier harness; no es una comparación controlada.",
+  "models.source": "{source}. Mejor puntuación publicada, con cualquier entorno de evaluación; no es una comparación controlada.",
+  "models.source_accessed": "{source}, consultado el {accessed}. Mejor puntuación publicada, con cualquier entorno de evaluación; no es una comparación controlada.",
   "page.error": "No se pudo leer tenure: {error}",
   "page.live": "en directo · ",
   "page.loading": "Cargando el historial…",
@@ -242,8 +242,8 @@
   "passport.types_title": "Tipos certificados",
   "passport.value.hashed": "{profile} (hash)",
   "passport.value.ledger": {
-    "one": "{n} evento · cabeza {head}",
-    "other": "{n} eventos · cabeza {head}"
+    "one": "{n} evento · último hash {head}",
+    "other": "{n} eventos · último hash {head}"
   },
   "passport.value.none": "ninguno",
   "passport.value.raw": "reales",
@@ -272,7 +272,7 @@
   "settings.about.title": "Sobre la regla",
   "settings.apply": "Aplicar",
   "settings.checks_in_row": {
-    "one": " comprobación seguida",
+    "one": " comprobación",
     "other": " comprobaciones seguidas"
   },
   "settings.empty.body": "El preajuste equilibrado se aplica hasta que se registre la primera acción.",
@@ -416,7 +416,7 @@
   "undo.confirm": "¿Deshacer n.º {id}?",
   "undo.effect.already": "restaura los archivos · la comprobación automática ya contó un fallo",
   "undo.effect.fault": "restaura los archivos · cuenta como fallo",
-  "undo.empty.body": "Las acciones en T2 (actúa y luego avisa) guardan una instantánea de los archivos que escribieron durante 24 horas. Aparecen aquí, las más recientes primero, cada una con su propio deshacer.",
+  "undo.empty.body": "Las acciones en T2 (actúa y luego avisa) guardan una instantánea de los archivos que escribieron durante 24 horas. Aparecen aquí, las más recientes primero, cada una con su botón Deshacer.",
   "undo.empty.title": "Nada que deshacer",
   "undo.lede": "Acciones recientes que actuaron y luego avisaron. Deshacer restaura los archivos desde su instantánea y cuenta como fallo del tipo.",
   "undo.own_profile_only": "Deshacer solo actúa sobre el perfil de este panel",
