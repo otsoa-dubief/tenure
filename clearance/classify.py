@@ -2422,10 +2422,10 @@ KNOWN_TOOLS = {"vim", "nvim", "vi", "nano", "emacs", "emacsclient", "code", "cod
 # Options of these tools that start another program (an editor command, a pager command), and for ssh, those that
 # read another configuration or run a local command.
 TOOL_RISKY_OPTS = re.compile(r"(?:^|\s)(?:--?exec\S*|-c\b|--cmd\b|\+|--load\b|--eval\b|--init-directory"
-                             r"|--extensions-dir|--lesskey)")
-# Short options that load a file of the agent's choice, per tool (vim -u/-S, emacs -l, less -k).
-TOOL_LOAD_OPTS = {"vim": "uS", "nvim": "uS", "vi": "uS", "vimdiff": "uS", "nvimdiff": "uS", "emacs": "l", "less": "k"}
-SSH_RISKY_OPTS = re.compile(r"(?:^|\s)-[A-Za-z]*F|proxycommand|localcommand|knownhostscommand|proxyjump"
+                             r"|--extensions-dir|--lesskey|--script|--batch)")
+# Short options that load a file of the agent's choice, per tool (vim -u/-S, nvim -l, emacs -l/-x, less -k).
+TOOL_LOAD_OPTS = {"vim": "uS", "nvim": "uSl", "vi": "uS", "vimdiff": "uS", "nvimdiff": "uS", "emacs": "lx", "less": "k"}
+SSH_RISKY_OPTS = re.compile(r"(?-i:(?:^|\s)-[A-Za-z]*[FI])|pkcs11provider|securitykeyprovider|proxycommand|localcommand|knownhostscommand|proxyjump"
                             r"|(?:^|[\s=o])(?:include|match)\b", re.I)
 
 
@@ -2437,6 +2437,8 @@ def _bare_program(value: str) -> bool:
         return True
     if not BARE_PROGRAM.fullmatch(value.replace("/", "_")) or "!" in value:
         return False
+    if re.search(r"\$\{?HERMES", value) or _self_hit(value.casefold()):
+        return False                                         # the value names Hermes' own home
     first, _, rest = value.partition(" ")
     if "/" in first and os.path.dirname(first) not in SYSTEM_BIN_DIRS:
         return False
@@ -3395,7 +3397,8 @@ def _repository_path(server: str | None, args: dict, value) -> bool:
     owner and a repository, and a relative value (never absolute, `~`, `$` or file:)."""
     if (server or "").casefold() not in REPOSITORY_SERVERS or not {"owner", "repo"} <= set(args):
         return False
-    values = value if isinstance(value, list) else [value]
+    from urllib.parse import unquote
+    values = [unquote(v) if isinstance(v, str) else v for v in (value if isinstance(value, list) else [value])]
     return all(isinstance(v, str) and not v.strip().startswith(("/", "~", "$", "\\")) and ":" not in v
                for v in values)
 
@@ -3464,7 +3467,7 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         split = _mcp_split(tool_name)
         name_words = _words(split[1]) if split else set()
         checked = args
-        if split and not (name_words & DISK_VERBS):
+        if split and not (name_words & (DISK_VERBS | {"upload", "attach", "send"})):
             checked = {k: v for k, v in args.items() if not (isinstance(k, str) and k.casefold() in REMOTE_PATH_KEYS
                                                              and _repository_path(split[0], args, v))}
         hit = _args_hit(checked, cwd, home,

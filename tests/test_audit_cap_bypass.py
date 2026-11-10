@@ -406,3 +406,21 @@ def test_f_working_folder_before_path_asks(cmd):
 @pytest.mark.parametrize("cmd", ['export PATH="$(npm bin):$PATH"', 'PATH="$PWD/../x:$PATH" ls'])
 def test_f_computed_folders_before_path_stay_capped(cmd):
     assert sh(cmd)[1] == CAP
+
+
+@pytest.mark.parametrize("cmd", [
+    "GIT_SSH_COMMAND='ssh -o PKCS11Provider=./x.so' git fetch", "GIT_SSH_COMMAND='ssh -I ./x.so' git fetch",
+    "GIT_SSH_COMMAND='ssh -o SecurityKeyProvider=./x.so' git fetch",
+    "git config core.sshCommand 'ssh -o PKCS11Provider=./x.so'",
+    "EDITOR='nvim -l x.lua' git commit", "EDITOR='emacs --script x' git commit",
+    "EDITOR='emacs --batch x' git commit", "EDITOR='emacs -x x' git commit",
+    'EDITOR="vim $HERMES_HOME/config.yaml" git commit', "GIT_SSH_COMMAND='ssh -i $HERMES_HOME/k' git fetch",
+])
+def test_g_libraries_scripts_and_hermes_names_are_capped(cmd):
+    assert sh(cmd)[1] == CAP
+
+
+def test_g_upload_verbs_and_encoded_paths_get_no_repository_exemption(home):
+    assert kind("mcp__github__upload_file", {"owner": "o", "repo": "r", "path": "../../../x/.hermes/.env"})[1] == CAP
+    assert kind("mcp__gitlab__get_file", {"owner": "o", "repo": "r", "path": f"%2F{home}/config.yaml"[0:3]
+                                          + str(home).replace("/", "%2F") + "%2Fconfig.yaml"})[1] == CAP
