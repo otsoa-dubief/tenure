@@ -493,3 +493,16 @@ def test_tier_notices_speak_the_tenure_vocabulary(plugin):
     granted = next(p for p in ctx.posted if "Tenure granted" in p)
     assert granted.startswith("tenure · 🎓 Tenure granted · file:write") and "████████████ T3" in granted
     assert "now acts on its own" in granted.lower()
+
+
+def test_card_hides_the_owners_names_by_default(plugin):
+    """The card is meant for a public post: script, make-target and alias names are hashed, as in the passport."""
+    mod, ctx = plugin(FAST)
+    st = mod.store_()
+    with st.transaction():
+        s = mod.rule.TypeState(key="shell:npm:run:client-secret-build", stakes="low", reversible=False)
+        s.series, s.successes = 1, 1
+        st.put_state(A, s)
+    out = mod.cli.slash("card")
+    assert "client-secret-build" not in out and "shell:npm:run:" in out
+    assert "client-secret-build" in mod.cli.slash("card --no-redact")

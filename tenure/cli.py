@@ -10,7 +10,7 @@
     flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked
     revoke TYPE|all [--model M | --all]        take earned autonomy back without an error
     passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)
-    card [--model M]                           the passport as a short text card to paste in a chat or a post
+    card [--model M] [--no-redact]             the passport as a short text card to paste in a chat or a post
     verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay
     anchor                                     one line to publish: the ledger's head, date and length
     export [PATH]                              write the evidence ledger (hash-chained JSON lines)
@@ -243,7 +243,7 @@ def _card_bar(s: rule.TypeState, n: int | None, eff: str, cells: int = 12) -> st
     return "█" * max(done, 1 if s.series else 0) + "░" * (cells - max(done, 1 if s.series else 0))
 
 
-def card_text(model: str | None = None) -> str:
+def card_text(model: str | None = None, redact: bool = True) -> str:
     """The passport as a few lines of text to paste in a chat or a post: one bar per action type, from the real
     record. Verifiable evidence is the signed passport (hermes tenure passport)."""
     core = _core()
@@ -254,13 +254,14 @@ def card_text(model: str | None = None) -> str:
     if not rows:
         return tr("cli.card.empty", agent=agent)
     lines = [tr("cli.card.title", agent=agent)]
-    width_k = max(width(s.key) for _, s in rows)
+    shown = {s.key: (passport.redact_type(s.key) if redact else s.key) for _, s in rows}
+    width_k = max(width(k) for k in shown.values())
     faults = successes = 0
     for _, s in sorted(rows, key=lambda r: r[1].key):
         n = params.required_n(cfg["risks"], s.stakes)
         eff = effective_tier(s, n)
         label = (f"CAP {tr('tier.rank.cap')}" if n is None else f"{_CODE[eff]} {tr(f"tier.rank.{_RANK_KEY[eff]}")}")
-        lines.append(f"{_card_bar(s, n, eff)} {ljust(s.key, width_k)}  {label}")
+        lines.append(f"{_card_bar(s, n, eff)} {ljust(shown[s.key], width_k)}  {label}")
         faults, successes = faults + s.faults, successes + s.successes
     lines.append(tr("cli.card.foot", record=_record(faults, successes)))
     return "\n".join(lines)
@@ -587,6 +588,7 @@ def _add_subcommands(subparser) -> None:
     p.add_argument("--all", action="store_true", help="Every agent with a record")
     p = subs.add_parser("card", help="The passport as a short text card to paste in a chat or a post")
     p.add_argument("--model", help="Start of an agent string, e.g. gpt-5")
+    p.add_argument("--no-redact", action="store_true", help="Keep script, target and alias names readable")
     p = subs.add_parser("setup", help="The three recommendations; with a name, use it")
     p.add_argument("preset", nargs="?", default="", help="careful, balanced or fast")
     subs.add_parser("explain", help="How tenure decides and what the numbers guarantee")
@@ -632,7 +634,7 @@ def execute(ns) -> tuple[str, int]:
         if cmd == "status":
             return status_text(profile=g("profile"), model=g("model"), every=bool(g("all"))), 0
         if cmd == "card":
-            return card_text(model=g("model")), 0
+            return card_text(model=g("model"), redact=not g("no_redact", False)), 0
         if cmd == "setup":
             return setup_preset(g("preset", "")), 0
         if cmd == "explain":
