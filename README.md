@@ -72,6 +72,13 @@ same tiers (`hermes tenure verify`). The format is in [docs/protocol.md](docs/pr
 
 ![Autonomy passport](docs/images/dashboard-passport.png)
 
+**Native in Hermes Desktop too.** The package also ships a desktop half: a **Tenure** page in the sidebar (map,
+models, passport), a status-bar chip with the tiers of the model in use, and ⌘K commands to open the map, show the
+current model's passport or revoke it. Like every desktop half, it is opt-in: enable it once in
+**Capabilities → Plugins**.
+
+![Tenure in Hermes Desktop](docs/images/desktop-page.png)
+
 ![Dashboard on a phone](docs/images/dashboard-mobile.png)
 
 ## Install in 60 seconds

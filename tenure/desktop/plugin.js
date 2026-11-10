@@ -75,14 +75,15 @@ const card = 'rounded-md border border-(--ui-border) p-3'
 
 function Badge({ text, strong }) {
   return jsx('span', {
-    className: `inline-flex min-w-8 justify-center rounded border px-1.5 py-0.5 font-mono text-[0.6875rem] ${strong ? 'border-emerald-500 text-emerald-500' : 'border-(--ui-border) ' + muted}`,
+    className: `rounded border px-1.5 py-0.5 font-mono text-[0.6875rem] ${strong ? '' : 'border-(--ui-border) ' + muted}`,
+    style: { display: 'inline-flex', justifyContent: 'center', minWidth: 32, ...(strong ? { borderColor: '#22c55e', color: '#22c55e' } : {}) },
     children: text
   })
 }
 
 function Stat({ value, label, sub }) {
   return jsxs('div', {
-    className: 'flex flex-col',
+    style: { display: 'flex', flexDirection: 'column', minWidth: 120 },
     children: [
       jsx('span', { className: 'text-2xl font-semibold', children: String(value) }),
       jsx('span', { className: 'text-sm', children: label }),
@@ -187,7 +188,8 @@ function ModelsView({ ctx }) {
         children: rows.map(r =>
           jsxs('div', {
             key: r.profile + r.agent + r.type,
-            className: 'grid grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-(--ui-border) py-1.5 text-sm last:border-b-0',
+            className: 'border-b border-(--ui-border) text-sm',
+            style: { display: 'grid', gridTemplateColumns: '1fr 90px 260px', alignItems: 'center', gap: 12, padding: '6px 0' },
             children: [
               jsxs('div', { children: [jsx('div', { children: r.agent }), jsx('div', { className: `font-mono text-xs ${muted}`, children: r.type })] }),
               jsx('span', { className: 'font-mono text-xs', children: `${r.faults} / ${r.successes + r.faults}` }),
@@ -237,7 +239,8 @@ function PassportView({ data, ctx, initial }) {
               }),
               doc.passport &&
                 jsx('div', {
-                  className: `mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 font-mono text-xs ${muted}`,
+                  className: `mt-2 font-mono text-xs ${muted}`,
+                  style: { display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 16, rowGap: 2 },
                   children: [
                     ['protocol', doc.passport.protocol],
                     ['rule', doc.passport.rule && `${doc.passport.rule.name} · ${String(doc.passport.rule.fingerprint || '').slice(0, 16)}`],
@@ -288,7 +291,8 @@ function TenurePage({ ctx }) {
         : null,
       data &&
         jsxs('div', {
-          className: card + ' flex flex-wrap gap-8',
+          className: card,
+          style: { display: 'flex', flexWrap: 'wrap', gap: 40 },
           children: [
             jsx(Stat, { value: sum('actions'), label: 'actions', sub: 'covered' }),
             jsx(Stat, { value: sum('checked'), label: 'checked', sub: 'by you' }),
