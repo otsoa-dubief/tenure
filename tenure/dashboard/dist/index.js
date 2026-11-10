@@ -34,7 +34,7 @@
   // ----------------------------------------------------------------------------------------- pinned rule values
   // Mirrors of tenure/params.py and rule.py, used only to say what evidence is still missing and to preview N.
   var TIER = { ask: "T1", notify: "T2", alone: "T3" };
-  var TIER_NAME = { ask: "asks first", notify: "acts, then notifies", alone: "acts alone" };
+  var TIER_NAME = { ask: "asks first", notify: "acts, then notifies", alone: "acts on its own" };
   var STAKES = ["low", "medium", "high"];
   var TRIAL = 3;            // rule.TRIAL
   var SESSIONS = 2;         // rule.SESSIONS
@@ -112,12 +112,12 @@
   function plural(n, word) { return num(n) + " " + word + (n === 1 ? "" : "s"); }
   function totals(t) {
     t = t || {};
-    return plural(t.actions, "action") + " · " + num(t.checked) + " checked · " + num(t.alone) + " alone · " + plural(t.faults, "fault");
+    return plural(t.actions, "action") + " · " + num(t.checked) + " checked · " + num(t.alone) + " without asking · " + plural(t.faults, "fault");
   }
   function totalsLines(t) {
     t = t || {};
     return [h("div", { key: 1 }, plural(t.actions, "action") + " · " + num(t.checked) + " checked"),
-      h("div", { key: 2 }, num(t.alone) + " alone · " + plural(t.faults, "fault"))];
+      h("div", { key: 2 }, num(t.alone) + " without asking · " + plural(t.faults, "fault"))];
   }
   function oneIn(r) { return r == null ? "capped" : "1 in " + num(Math.round(1 / r)); }
   function ago(sec) {
@@ -341,7 +341,7 @@
     var cells = [
       { n: t ? t.actions : null, label: "actions", sub: "covered" },
       { n: t ? t.checked : null, label: "checked", sub: t ? "by you, of " + num(t.actions) : "" },
-      { n: t ? t.alone : null, label: "earned alone", sub: t ? "ran without asking, of " + num(t.actions) : "" },
+      { n: t ? t.alone : null, label: "acted without asking", sub: t ? "ran without asking, of " + num(t.actions) : "" },
       { n: t ? t.faults : null, label: "faults caught", sub: t ? num(t.faults) + " / " + num(t.checked) + " checks" : "" }
     ];
     return h("div", { className: "tnr-counters", "aria-label": "Last 7 days" },
@@ -553,7 +553,7 @@
     return h("div", { className: "tnr-legend" },
       h("span", null, h(TierChip, { tier: "ask" }), " asks first"),
       h("span", null, h(TierChip, { tier: "notify" }), " acts, then notifies with an undo (reversible types)"),
-      h("span", null, h(TierChip, { tier: "alone" }), " acts alone, " + (props.spot ? oneIn(props.spot) : "a share") + " spot-checked"),
+      h("span", null, h(TierChip, { tier: "alone" }), " acts on its own, " + (props.spot ? oneIn(props.spot) : "a share") + " spot-checked"),
       h("span", null, h(TierChip, { capped: true }), " capped: always asks"),
       h("span", null, h("span", { className: "tnr-mono" }, "n/N"), " clean runs in a row, of the N needed"),
       h("span", null, h(Flag, { kind: "prov" }, "carried over"), " from the previous model, provisional"));
@@ -682,7 +682,15 @@
     var tot = a.totals || {};
     return h("div", { className: "tnr-drawer-wrap", style: top ? { top: top } : null,
       onClick: function (e) { if (e.target === e.currentTarget) props.onClose(); } },
-      h("aside", { className: "tnr-drawer", role: "dialog", "aria-modal": true, "aria-label": "Agent " + a.agent },
+      h("aside", { className: "tnr-drawer", role: "dialog", "aria-modal": true, "aria-label": "Agent " + a.agent,
+        onKeyDown: function (e) {                       // focus stays in the dialog: Tab wraps around
+          if (e.key !== "Tab") return;
+          var f = e.currentTarget.querySelectorAll("button:not([disabled]), select, input, [tabindex='0']");
+          if (!f.length) return;
+          var first = f[0], last = f[f.length - 1];
+          if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+          else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+        } },
         h("header", { className: "tnr-drawer-head" },
           h("div", null,
             h("div", { className: "tnr-drawer-eyebrow" }, "Agent · profile " + row.profile + (mine ? "" : " (read-only here)")),
@@ -708,7 +716,7 @@
                   h("td", { className: "tnr-num" }, num(t.faults) + " / " + num(t.successes + t.faults)),
                   h("td", { className: "tnr-dtable-actions" },
                     h(ConfirmBtn, {
-                      kind: "ghost", disabled: !mine, confirm: "Flag?",
+                      disabled: !mine, confirm: "Flag?",
                       title: mine ? "Record a fault on this type, after the fact" : "Actions apply to this dashboard's profile only",
                       onConfirm: function () {
                         return act("/flag", { agent: a.agent, type: t.type }, function (r) {
@@ -717,7 +725,7 @@
                       }
                     }, "Flag"),
                     h(ConfirmBtn, {
-                      kind: "ghost", disabled: !mine, confirm: "Revoke?",
+                      disabled: !mine, confirm: "Revoke?",
                       title: mine ? "Take back what this type earned: back to T1" : "Actions apply to this dashboard's profile only",
                       onConfirm: function () {
                         return act("/revoke", { agent: a.agent, type: t.type }, function () { return "Revoked " + t.type + ": back to T1."; });
@@ -784,7 +792,7 @@
     return h("div", { className: "tnr-models" }, h(Stale, { res: res }),
       h("p", { className: "tnr-lede" },
         "Your own benchmark: each model's verified record on your work, per action type, with the 95% range of its fault rate. ",
-        "Ranked by the interval's upper bound, never by one score. Beside it, the public measure, as information: ",
+        "Ranked by the top of its range, never by one score. Beside it, the public measure, as information: ",
         h("b", null, "public capability on their tasks, not reliability on yours.")),
       byType.map(function (g) {
         var max = Math.max.apply(null, g.rows.filter(function (r) { return r.successes + r.faults; }).map(function (r) { return r.high; }).concat([0.05]));
@@ -1079,7 +1087,7 @@
       h("section", { className: "tnr-dial" },
         h("div", { className: "tnr-dial-head" },
           h("div", null, h("div", { className: "tnr-section-title" }, "Accepted risk"),
-            h("div", { className: "tnr-dim tnr-small" }, "The share of errors you accept running unchecked, per stakes level. N is the series of verified successes in a row a type needs to act alone.")),
+            h("div", { className: "tnr-dim tnr-small" }, "The share of errors you accept running unchecked, per stakes level. N is the series of verified successes in a row a type needs to act on its own.")),
           h("div", { className: "tnr-seg", role: "radiogroup", "aria-label": "Preset" },
             ["careful", "balanced", "fast"].map(function (n) {
               return h("button", {

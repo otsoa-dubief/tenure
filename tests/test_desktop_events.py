@@ -24,3 +24,30 @@ def test_profile_name(monkeypatch, tmp_path):
     assert core._profile_name() == "ops"
     monkeypatch.setattr(core, "_hermes_home", lambda: str(tmp_path / ".hermes"))
     assert core._profile_name() == "default"
+
+
+def test_events_raised_in_a_transaction_wait_for_the_commit(monkeypatch, tmp_path):
+    sent = []
+    fake = types.ModuleType("hermes_cli.plugin_events")
+    fake.broadcast_plugin_event = lambda pid, ev, payload=None: sent.append(ev)
+    monkeypatch.setitem(sys.modules, "hermes_cli.plugin_events", fake)
+    monkeypatch.setattr(core, "data_dir", lambda: str(tmp_path))
+    with core.txn():
+        core._push("changed")
+        assert sent == []                      # not before the commit
+    assert sent == ["changed"]
+
+
+def test_events_of_a_rolled_back_transaction_are_dropped(monkeypatch, tmp_path):
+    sent = []
+    fake = types.ModuleType("hermes_cli.plugin_events")
+    fake.broadcast_plugin_event = lambda pid, ev, payload=None: sent.append(ev)
+    monkeypatch.setitem(sys.modules, "hermes_cli.plugin_events", fake)
+    monkeypatch.setattr(core, "data_dir", lambda: str(tmp_path))
+    try:
+        with core.txn():
+            core._push("changed")
+            raise RuntimeError("boom")
+    except RuntimeError:
+        pass
+    assert sent == []

@@ -231,7 +231,7 @@ def _activity(since: float, raw: bool) -> dict:
                 if st is None:
                     continue
                 t = st.totals(since=since)
-                rows = st.db.execute("SELECT id, agent, type, at, fault FROM undo WHERE undone = 0 "
+                rows = st.db.execute("SELECT id, agent, type, at, fault, snap_id FROM undo WHERE undone = 0 "
                                      "AND snap_id IS NOT NULL AND at > ? ORDER BY id DESC LIMIT ?",
                                      (now - core.UNDO_WINDOW, UNDOABLE_LIMIT)).fetchall()
         except (_Unreadable, sqlite3.Error):
@@ -241,8 +241,27 @@ def _activity(since: float, raw: bool) -> dict:
             total[k] += v
         profiles.append({"profile": p["name"], "totals": t})
         undoable += [{"profile": p["name"], "id": r[0], "agent": r[1], "type": _name(core, r[2], raw),
-                      "age": round(now - r[3], 1), "counts_as_fault": not r[4]} for r in rows]
+                      "age": round(now - r[3], 1), "counts_as_fault": not r[4],
+                      **_snap_files(p, r[5])} for r in rows]
     return {"since": since, "totals": total, "profiles": profiles, "undoable": undoable}
+
+
+def _snap_files(p: dict, snap_id: str | None) -> dict:
+    """What an undo would restore, said for the owner of this machine: the first file, relative to the folder the
+    agent worked in, and how many files in all. Read from the snapshot's manifest; nothing when it is unreadable."""
+    try:
+        if not snap_id or not snap_id.isalnum():
+            return {}
+        with open(os.path.join(_data_dir(p), "undo", snap_id, "manifest.json"), encoding="utf-8") as fh:
+            m = json.load(fh)
+        files = [f["path"] for f in m.get("files", []) if isinstance(f, dict) and isinstance(f.get("path"), str)]
+        if not files:
+            return {}
+        cwd = m.get("cwd") or ""
+        first = os.path.relpath(files[0], cwd) if cwd and files[0].startswith(cwd.rstrip("/") + "/") else os.path.basename(files[0])
+        return {"file": first, "files": len(files)}
+    except (OSError, ValueError, KeyError, TypeError):
+        return {}
 
 
 def _models(type_key: str | None, raw: bool) -> dict:

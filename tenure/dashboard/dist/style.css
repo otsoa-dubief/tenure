@@ -30,7 +30,7 @@
 .tnr *, .tnr *::before, .tnr *::after { box-sizing: border-box; }
 .tnr code, .tnr kbd, .tnr pre { background: transparent !important; color: inherit; font-family: var(--tnr-mono); }
 .tnr code { font-size: 12px; }
-.tnr button { font: inherit; color: inherit; letter-spacing: 0; }
+.tnr :where(.tnr-btn, .tnr-tab, .tnr-rung, .tnr-seg-btn, .tnr-chip-btn) { font: inherit; color: inherit; letter-spacing: 0; }
 .tnr-mono { font-family: var(--tnr-mono); font-size: 12px; }
 .tnr-dim { color: var(--tnr-mut); }
 .tnr-small { font-size: 11.5px; }
@@ -257,6 +257,8 @@
 .tnr-dtable td { padding: 7px 8px; border-bottom: 1px solid var(--tnr-line); vertical-align: top; }
 .tnr-num { text-align: right !important; white-space: nowrap; }
 .tnr-dtable-actions { white-space: nowrap; text-align: right; }
+.tnr-dtable-actions > * { display: inline-flex; vertical-align: middle; }
+.tnr-dtable-actions > * + * { margin-left: 4px; }
 .tnr-dtable-actions .tnr-btn + .tnr-btn { margin-left: 4px; }
 .tnr-dtable-main td { border-bottom: 0; padding-bottom: 2px; }
 .tnr-dtable-sub td { font-size: 11.5px; padding-top: 0; color: var(--tnr-mut); }

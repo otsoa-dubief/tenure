@@ -604,7 +604,7 @@ def test_notify_success_adds_an_undo_and_posts(plugin):
     assert pre(mod, "write_file", write("n"), "n1") is None
     snap = row(mod, "n1")["snap_id"]
     post(mod, "write_file", write("n"), "n1")
-    uid = int(re.fullmatch(r"tenure: file:write acted on its own · /tenure undo (\d+)", ctx.posted[-1])[1])
+    uid = int(re.fullmatch(r"tenure: file:write acted, then told you · /tenure undo (\d+)", ctx.posted[-1])[1])
     assert mod.store_().get_undo(uid) == {"id": uid, "agent": A, "type": "file:write", "snap_id": snap,
                                           "at": mod.store_().get_undo(uid)["at"], "undone": False, "fault": False}
     assert outcomes(mod)[-1]["source"] == "notify" and state(mod, "file:write").successes == 13
@@ -748,7 +748,7 @@ def test_full_climb_low_reversible_type(plugin):
     assert (s.tier, s.series, len(s.sessions)) == (mod.rule.T3, 52, 2)
     assert len(os.listdir(os.path.join(mod.data_dir(), "undo"))) == 40       # one snapshot per act-then-notify
     assert sum("/tenure undo" in p for p in ctx.posted) == 40
-    assert any("now acts alone" in p for p in ctx.posted)
+    assert any("now acts on its own" in p for p in ctx.posted)
     assert pre(mod, "write_file", write("next"), "next") is None
     assert row(mod, "next")["decision"] in (mod.rule.ALLOW, mod.rule.SPOT)
 
@@ -1080,7 +1080,7 @@ def test_a_t2_write_failing_its_check_keeps_an_undo(plugin):
     assert ctx.call("write_file", {"path": "src/w.py", "content": "def broken(:\n"}) == "ran"
     assert (outcomes(mod)[-1]["result"], outcomes(mod)[-1]["source"]) == ("fault", "check")
     note = next(p for p in ctx.posted if "automatic check failed" in p)
-    assert note.startswith("tenure: file:write acted on its own, but the automatic check failed")
+    assert note.startswith("tenure: file:write acted, then told you, but the automatic check failed")
     uid = int(re.search(r"/tenure undo (\d+)$", note)[1])
     entry = mod.store_().get_undo(uid)
     assert entry["fault"] is True and entry["snap_id"]

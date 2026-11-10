@@ -6,7 +6,7 @@
     setup [careful|balanced|fast]              the three recommendations; with a name, use it
     explain                                    how tenure decides, and what the numbers guarantee
     models [--type T]                          each model's verified record on your own work
-    undo ID                                    put back the files of an action taken alone (counts a fault)
+    undo ID                                    put back the files of an action that acted, then told you (counts a fault)
     flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked
     revoke TYPE|all [--model M | --all]        take earned autonomy back without an error
     passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)
@@ -498,7 +498,7 @@ def _add_subcommands(subparser) -> None:
     subs.add_parser("explain", help="How tenure decides and what the numbers guarantee")
     p = subs.add_parser("models", help="Each model's verified record on your own work")
     p.add_argument("--type", help="One action type")
-    p = subs.add_parser("undo", help="Restore the files of an action taken alone")
+    p = subs.add_parser("undo", help="Restore the files of an action that acted, then told you")
     p.add_argument("id", type=int)
     p = subs.add_parser("flag", help="Report an error the agent made on its own: revokes the type's tenure")
     p.add_argument("type")

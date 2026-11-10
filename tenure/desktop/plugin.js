@@ -68,11 +68,11 @@ const EN = {
   emptyDesc: 'Work as usual. Every change asks first, and each action type earns its tier from the answers you give.',
   pickAgent: 'Pick an agent to see what it has earned.',
   introTitle: 'How an action type earns its tier',
-  introBody:
-    'Every action type of every model starts at T1: it asks first. A run of clean, approved actions moves it to T2, where it acts, then tells you, with an Undo. A longer run, over two sessions, moves it to T3: it acts on its own, and 1 action in 10 still asks, as a spot check. One fault sends the type back down.',
+  introBody: k =>
+    `Every action type of every model starts at T1: it asks first. A run of clean, approved actions moves it to T2: it acts, then tells you, with an Undo. A longer run, over two sessions, moves it to T3: it acts on its own, and 1 action in ${k} still asks, as a spot check. One fault sends the type back down.`,
   gotIt: 'Got it',
   tierT1: 'T1 · asks first',
-  tierT2: 'T2 · acts, then notifies with an Undo',
+  tierT2: 'T2 · acts, then tells you, with an Undo',
   tierT3: 'T3 · acts on its own, spot-checked',
   tierCap: 'Capped · always asks',
   provisional: 'provisional',
@@ -109,7 +109,7 @@ const EN = {
   alwaysAsks: 'always asks',
   guarantee: (a, w) => `At most ${a}% of this type's actions run with an error nobody approved; ${w}% if the model turns bad.`,
   conditional: ' Provisional: carried-over evidence.',
-  recent: 'Ran on its own',
+  recent: 'Acted without asking',
   recentNone: 'Nothing to undo in the last 24 hours.',
   ago: s => (s < 90 ? 'just now' : s < 5400 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`),
   undo: 'Undo',
@@ -120,8 +120,8 @@ const EN = {
   flagTip: 'It made an error nobody caught: revoke this type.',
   flagged: type => `${type} revoked: it asks first again.`,
   flagFailed: 'Could not flag',
-  actedToast: (type, name) => `${type} ran on its own (${name}).`,
-  actedDetail: 'Undo restores the files and counts as a fault.',
+  actedToast: (type, n, name) => (n > 1 ? `${type}: ${n} changes, then told you (${name}).` : `${type} changed, then told you (${name}).`),
+  actedDetail: 'Undo restores the files of the last change and counts as a fault.',
   passportSection: 'Signed passport',
   verifying: 'Verifying…',
   verified: 'Verified: signature valid, hash chain intact, and replaying the ledger gives the same tiers.',
@@ -137,13 +137,24 @@ const EN = {
   verifyCommand: 'hermes tenure verify passport.json ledger.jsonl',
   benchmarkNote:
     "Each model's verified record on your work for this action type, with the 95% range of its fault rate, ranked by the top of that range. The public score is context: capability on their tasks, not reliability on yours.",
-  faults: (f, n) => `${f} of ${n}`,
+  faults: (f, n) => `${f} ${f === 1 ? 'fault' : 'faults'} / ${n}`,
+  colFaults: 'Faults',
+  colRange: '95% range',
+  colRate: 'Rate',
+  colPublic: 'Public',
+  moreFiles: n => ` +${n}`,
+  checkFailed: 'check failed',
+  checkFailedTip: 'The automatic check failed: already counted as a fault. Undo restores the files.',
+  flagTitle: 'Flag this change as an error?',
+  flagDesc: type => `${type} is revoked: it asks first again. Use it for an error nobody caught.`,
+  flagConfirm: 'Flag',
+  copyCommand: 'Copy command',
   notEnough: 'not enough evidence',
   rate: (r, lo, hi) => `${r}% (${lo}–${hi}%)`,
   rangeTip: 'Fault rate and its 95% range, on a 0–70% axis',
   publicScore: (b, s) => `Public score: ${b}, ${s}`,
   noPublic: '—',
-  chipTip: (name, earned, total) => `${name}: ${earned} of ${total} action types act on their own. Open Tenure.`,
+  chipTip: (name, earned, total) => `${name}: ${earned} of ${total} action types have earned autonomy (T2 or T3). Open Tenure.`,
   menuBadge: tier => `${tier} earned`,
   paletteOpen: 'Tenure: Open',
   palettePassport: 'Tenure: Show passport for current model',
@@ -315,7 +326,7 @@ function TypeRow({ type, t }) {
   })
 }
 
-function Intro({ t }) {
+function Intro({ t, spot }) {
   const [hidden, setHidden] = useState(() => (storage ? storage.get('introDismissed', false) : false))
   if (hidden) return null
   return jsxs('div', {
@@ -326,7 +337,7 @@ function Intro({ t }) {
         className: 'min-w-0 flex-1 space-y-0.5',
         children: [
           jsx('p', { className: 'text-xs font-medium text-foreground', children: t('introTitle') }),
-          jsx('p', { className: 'max-w-3xl text-xs leading-relaxed text-muted-foreground/80', children: t('introBody') })
+          jsx('p', { className: 'max-w-3xl text-xs leading-relaxed text-muted-foreground/80', children: t('introBody', Math.round(1 / (spot || 0.1))) })
         ]
       }),
       jsx(Button, {
@@ -345,11 +356,14 @@ function Intro({ t }) {
 function RecentSection({ agent, t }) {
   const profile = useValue(host.state.profile)
   const qc = useQueryClient()
+  const [busy, setBusy] = useState(null)
+  const [flagging, setFlagging] = useState(null)
   const { data } = useQuery({ queryKey: ['tenure', profile, 'activity'], queryFn: () => rest('/activity?since=0'), refetchInterval: HEARTBEAT_MS })
   const [all, setAll] = useState(false)
   const every = ((data && data.undoable) || []).filter(r => r.agent === agent.agent && r.profile === agent.profile)
   const rows = all ? every : every.slice(0, 5)
-  const act = async (fn, ok, fail) => {
+  const act = async (key, fn, ok, fail) => {
+    setBusy(key)
     try {
       await fn()
       haptic('success')
@@ -357,6 +371,8 @@ function RecentSection({ agent, t }) {
       qc.invalidateQueries({ queryKey: ['tenure'] })
     } catch (e) {
       host.notifyError(e, fail)
+    } finally {
+      setBusy(null)
     }
   }
   return jsxs('section', {
@@ -374,30 +390,36 @@ function RecentSection({ agent, t }) {
                   className: 'group/row flex items-center gap-3 rounded-md px-2 py-1 text-[0.78rem] hover:bg-(--ui-row-hover-background)',
                   children: [
                     jsx(Codicon, { className: 'shrink-0 text-muted-foreground/55', name: 'history', size: '0.8rem' }),
-                    jsx('span', { className: 'min-w-0 flex-1 truncate font-mono text-[0.75rem] text-foreground/85', children: r.type }),
-                    jsx('span', { className: 'shrink-0 text-[0.7rem] tabular-nums text-muted-foreground/60', children: t('ago', r.age) }),
-                    jsx(Tip, {
-                      label: t('flagTip'),
-                      children: jsx(Button, {
-                        onClick: () =>
-                          act(
-                            () => rest('/flag?of=' + encodeURIComponent(r.profile), { method: 'POST', body: { agent: r.agent, type: r.type } }),
-                            t('flagged', r.type),
-                            t('flagFailed')
-                          ),
-                        size: 'xs',
-                        variant: 'ghost',
-                        children: t('flag')
-                      })
+                    jsxs('span', {
+                      className: 'min-w-0 flex-1 truncate text-[0.75rem] text-foreground/85',
+                      children: [
+                        jsx('span', { className: 'font-mono', children: r.file || r.type }),
+                        r.files > 1 ? jsx('span', { className: 'text-muted-foreground/60', children: t('moreFiles', r.files - 1) }) : null,
+                        r.file ? jsx('span', { className: 'ml-2 font-mono text-[0.68rem] text-muted-foreground/55', children: r.type }) : null
+                      ]
                     }),
-                    jsx(Tip, {
-                      label: t('undoTip'),
-                      children: jsx(Button, {
-                        onClick: () => act(() => rest('/undo?of=' + encodeURIComponent(r.profile), { method: 'POST', body: { id: r.id } }), t('undone'), t('undoFailed')),
-                        size: 'xs',
-                        variant: 'outline',
-                        children: t('undo')
-                      })
+                    r.counts_as_fault === false ? jsx(StatePill, { label: t('checkFailed'), tip: t('checkFailedTip'), tone: 'bad' }) : null,
+                    jsx('span', { className: 'shrink-0 text-[0.7rem] tabular-nums text-muted-foreground/60', children: t('ago', r.age) }),
+                    jsxs('span', {
+                      className: 'flex shrink-0 items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/row:opacity-100',
+                      children: [
+                        jsx(Tip, {
+                          label: t('flagTip'),
+                          children: jsx(Button, { disabled: busy !== null, onClick: () => setFlagging(r), size: 'xs', variant: 'ghost', children: t('flag') })
+                        }),
+                        jsx(Tip, {
+                          label: t('undoTip'),
+                          children: jsxs(Button, {
+                            'aria-busy': busy === 'undo' + r.id || undefined,
+                            disabled: busy !== null,
+                            onClick: () =>
+                              act('undo' + r.id, () => rest('/undo?of=' + encodeURIComponent(r.profile), { method: 'POST', body: { id: r.id } }), t('undone'), t('undoFailed')),
+                            size: 'xs',
+                            variant: 'outline',
+                            children: [busy === 'undo' + r.id ? jsx(Codicon, { name: 'loading', size: '0.75rem', spinning: true }) : null, t('undo')]
+                          })
+                        })
+                      ]
                     })
                   ]
                 },
@@ -408,7 +430,23 @@ function RecentSection({ agent, t }) {
                 ? [jsx('div', { className: 'px-2 pt-1', children: jsx(Button, { onClick: () => setAll(!all), size: 'xs', variant: 'ghost', children: all ? t('showFewer') : t('showAll', every.length) }) }, 'more')]
                 : []
             )
-          })
+          }),
+      jsx(ConfirmDialog, {
+        busyLabel: t('revoking'),
+        confirmLabel: t('flagConfirm'),
+        description: flagging ? t('flagDesc', flagging.type) : null,
+        destructive: true,
+        onClose: () => setFlagging(null),
+        onConfirm: async () => {
+          const r = flagging
+          await rest('/flag?of=' + encodeURIComponent(r.profile), { method: 'POST', body: { agent: r.agent, type: r.type } })
+          haptic('success')
+          host.notify({ kind: 'success', message: t('flagged', r.type) })
+          qc.invalidateQueries({ queryKey: ['tenure'] })
+        },
+        open: flagging !== null,
+        title: t('flagTitle')
+      })
     ]
   })
 }
@@ -419,7 +457,7 @@ function PassportSection({ agent, t }) {
     queryKey: ['tenure', agent.profile, 'passport', agent.agent, head],
     queryFn: () => rest(`/passport?agent=${encodeURIComponent(agent.agent)}&of=${encodeURIComponent(agent.profile)}`),
     staleTime: Infinity,
-    placeholderData: previous => previous
+    placeholderData: (previous, query) => (query && query.queryKey[3] === agent.agent ? previous : undefined)
   })
   const ok = doc && Array.isArray(doc.verify) && doc.verify.length === 0
   const p = doc && doc.passport
@@ -465,7 +503,7 @@ function PassportSection({ agent, t }) {
                 className: 'flex items-start gap-1',
                 children: [
                   jsx(PanelBlock, { className: 'min-w-0 flex-1', children: t('verifyCommand') }),
-                  jsx(CopyButton, { appearance: 'icon', label: t('verifyCommand'), text: t('verifyCommand') })
+                  jsx(CopyButton, { appearance: 'icon', label: t('copyCommand'), text: t('verifyCommand') })
                 ]
               })
             ]
@@ -505,7 +543,7 @@ function AgentDetail({ agent, t, onRevoke }) {
             rows: [
               { label: t('metaProfile'), value: agent.profile },
               { label: t('metaProvider'), value: agent.provider },
-              { label: jsx(Tip, { label: t('metaActionsTip'), children: jsx('span', { className: 'underline decoration-dotted underline-offset-2', tabIndex: 0, children: t('metaActions') }) }), value: String(tot.actions || 0) },
+              { label: t('metaActions'), value: jsx(Tip, { label: t('metaActionsTip'), children: jsx('span', { tabIndex: 0, children: String(tot.actions || 0) }) }) },
               { label: t('metaChecked'), value: String(tot.checked || 0) },
               { label: t('metaAlone'), value: String(tot.alone || 0) },
               { label: t('metaFaults'), value: String(tot.faults || 0) },
@@ -656,6 +694,23 @@ function BenchmarkView({ t }) {
                   jsx('p', { className: 'text-xs leading-relaxed text-muted-foreground/80', children: t('benchmarkNote') })
                 ]
               }),
+              jsxs('div', {
+                className: 'flex items-center gap-x-3 px-2',
+                'aria-hidden': true,
+                children: [
+                  jsx('span', { className: 'w-4 shrink-0' }),
+                  jsx('span', { className: 'min-w-[10rem] flex-1' }),
+                  jsxs('span', {
+                    className: 'flex shrink-0 items-center gap-3',
+                    children: [
+                      jsx(PanelSectionLabel, { className: 'w-14 text-right', children: t('colFaults') }),
+                      jsx(PanelSectionLabel, { className: 'w-24', children: t('colRange') }),
+                      jsx(PanelSectionLabel, { className: 'w-28', children: t('colRate') }),
+                      jsx(PanelSectionLabel, { className: 'w-12 text-right', children: t('colPublic') })
+                    ]
+                  })
+                ]
+              }),
               jsx('div', {
                 className: 'flex flex-col',
                 children: ranked.map((r, i) =>
@@ -675,7 +730,7 @@ function BenchmarkView({ t }) {
                         jsxs('span', {
                           className: 'flex shrink-0 items-center gap-3',
                           children: [
-                            jsx('span', { className: 'w-14 text-right font-mono text-[0.72rem] tabular-nums', children: t('faults', r.faults, r.successes + r.faults) }),
+                            jsx('span', { className: 'w-14 whitespace-nowrap text-right font-mono text-[0.72rem] tabular-nums', children: t('faults', r.faults, r.successes + r.faults) }),
                             jsx(Tip, { label: t('rangeTip'), children: jsx('span', { className: 'inline-flex', tabIndex: 0, children: jsx(Range, { rate: r.rate, low: r.low, high: r.high, enough: r.enough }) }) }),
                             jsx('span', { className: 'w-28 text-[0.7rem] tabular-nums text-muted-foreground/80', children: r.enough ? t('rate', pct(r.rate), pct(r.low), pct(r.high)) : t('notEnough') }),
                             jsx(Tip, {
@@ -753,7 +808,7 @@ function TenurePage() {
             : null
         ]
       }),
-      agents.length ? jsx(Intro, { t }) : null,
+      agents.length ? jsx(Intro, { t, spot: (((data && data.profiles) || []).find(p => p.current) || {}).settings?.spot }) : null,
       body
     ]
   })
@@ -811,13 +866,18 @@ export default {
 
     // Live: the agent half pushes `changed` after every outcome and `acted` when a T2 action ran.
     ctx.onEvent('plugin.tenure.changed', () => bus.dispatchEvent(new Event('changed')))
+    const acted = new Map()                       // type -> changes since its toast opened
     ctx.onEvent('plugin.tenure.acted', ({ payload }) => {
       bus.dispatchEvent(new Event('changed'))
       if (!payload || payload.undo_id == null) return
       const name = displayName(String(payload.agent || '').split('@')[0])
+      const n = (acted.get(payload.type) || 0) + 1
+      acted.set(payload.type, n)
+      ctx.setTimeout(() => acted.delete(payload.type), 60_000)
       host.notify({
+        id: 'tenure-acted-' + payload.type,
         kind: payload.fault ? 'warning' : 'info',
-        message: tr('actedToast', payload.type, name),
+        message: tr('actedToast', payload.type, n, name),
         detail: tr('actedDetail'),
         action: {
           label: tr('undo'),
@@ -838,18 +898,6 @@ export default {
       { id: 'page', area: ROUTES_AREA, data: { path: ROUTE }, render: () => jsx(TenurePage, {}) },
       { id: 'nav', area: SIDEBAR_NAV_AREA, order: 60, data: { codicon: 'shield', label: tr('nav'), path: ROUTE } },
       { id: 'chip', area: STATUSBAR_AREAS.right, order: 85, render: () => jsx(Chip, {}) },
-      {
-        id: 'model-badge',
-        area: MODEL_MENU_ROW_AREA,
-        data: {
-          decorate: ({ model }) => {
-            const a = agentForModel(cache.agents, model)
-            if (!a) return null
-            const tier = bestTier(a)
-            return tier === 'ask' || tier === 'cap' ? null : { badge: tr('menuBadge', TIER_SHORT[tier]) }
-          }
-        }
-      },
       { id: 'open', area: PALETTE_AREA, data: { id: 'tenure.open', label: tr('paletteOpen'), keywords: ['tenure', 'autonomy', 'tier', 'trust'], run: () => host.navigate(ROUTE) } },
       {
         id: 'passport',
@@ -881,12 +929,46 @@ export default {
       }
     ]
     let dispose = ctx.registerMany(contributions())
+    const badge = () =>
+      ctx.register({
+        id: 'model-badge',
+        area: MODEL_MENU_ROW_AREA,
+        data: {
+          decorate: ({ model }) => {
+            const a = agentForModel(cache.agents, model)
+            if (!a) return null
+            const tier = bestTier(a)
+            return tier === 'ask' || tier === 'cap' ? null : { badge: tr('menuBadge', TIER_SHORT[tier]) }
+          }
+        }
+      })
+    let disposeBadge = badge()
+    let badgeTiers = ''
+    const tiersKey = () => allAgents(cache.agents).map(a => a.key + ':' + bestTier(a)).join('|')
+    ctx.onEvent('plugin.tenure.changed', () => {
+      fetchAgents()
+        .then(() => {
+          const now = tiersKey()
+          if (now !== badgeTiers) {
+            badgeTiers = now
+            disposeBadge()
+            disposeBadge = badge()                 // decorate() reruns only when the registry changes
+          }
+        })
+        .catch(() => {})
+    })
     ctx.i18n.onLocaleChange(() => {
       dispose()
       dispose = ctx.registerMany(contributions())
+      disposeBadge()
+      disposeBadge = badge()
     })
 
     // Warm the cache for the model menu and the palette even before the page or the chip mounts.
-    fetchAgents().catch(() => {})
+    fetchAgents()
+      .then(() => {
+        badgeTiers = tiersKey()
+      })
+      .catch(() => {})
   }
 }

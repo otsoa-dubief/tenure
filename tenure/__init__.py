@@ -57,7 +57,7 @@ HOOK_BUDGET = 25.0               # seconds pre_tool_call may take in all (Hermes
 SESSIONLESS_TAINT = 3600         # seconds a read outside any session suspends sessionless calls of this process
 _TIER_NAMES = {rule.T1: "T1 asks first", rule.T2: "T2 acts, then notifies", rule.T3: "T3 acts on its own"}
 _TIER = {rule.T1: "T1, asking first", rule.T2: "T2, acting then notifying you with an undo",
-         rule.T3: "T3, acting alone"}
+         rule.T3: "T3, acting on its own"}
 
 
 class LockTimeout(RuntimeError):
@@ -154,8 +154,19 @@ def txn(deadline: float | None = None):
     """The store inside one write transaction, one thread at a time: every write of a hook happens here."""
     with _locked(deadline):
         st = store_()
-        with st.transaction():
-            yield st
+        _DEFERRED.depth = getattr(_DEFERRED, "depth", 0) + 1
+        try:
+            with st.transaction():
+                yield st
+        except BaseException:
+            _DEFERRED.events = []                       # rolled back: nothing to tell
+            raise
+        finally:
+            _DEFERRED.depth -= 1
+        if _DEFERRED.depth == 0:
+            events, _DEFERRED.events = getattr(_DEFERRED, "events", []), []
+            for event, payload in events:               # committed: the desktop half reads the new state
+                _push(event, payload)
 
 
 def _config_setting(key, default=None):
@@ -405,10 +416,16 @@ def _profile_name() -> str:
         return "default"
 
 
+_DEFERRED = threading.local()      # plugin events raised inside a transaction, sent once it commits
+
+
 def _push(event: str, payload: dict | None = None) -> None:
     """Tell the desktop half, live (``plugin.tenure.<event>`` on Hermes' event stream): ``changed`` after any
     outcome, ``acted`` when an act-then-notify action ran and can be undone. A process with no Desktop client
     (cron, ``hermes chat``) has nobody to tell: Hermes logs a no-op."""
+    if getattr(_DEFERRED, "depth", 0) > 0:
+        _DEFERRED.events = getattr(_DEFERRED, "events", []) + [(event, payload)]
+        return
     try:
         from hermes_cli.plugin_events import broadcast_plugin_event
         broadcast_plugin_event("tenure", event, payload or {})
@@ -445,7 +462,7 @@ def _say(events: list[dict], spot: float) -> list[str]:
             out.append(f"tenure: {t} now has {ev.get('stakes')} stakes: its record starts over at these stakes "
                        f"(a trial and the faults on record stay).")
         elif kind == "tier" and reason == "series":
-            out.append(f"tenure: {t} now acts alone, after {ev.get('required')} verified successes in a row from "
+            out.append(f"tenure: {t} now acts on its own, after {ev.get('required')} verified successes in a row from "
                        f"{ev.get('sessions')} sessions. 1 action in {round(1 / spot)} is still spot-checked, and a "
                        f"fault sends it back down.")
         elif kind == "tier" and reason == "wald":
@@ -511,6 +528,7 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
             "result": result, "source": source, "session": session})
     for ev in events:
         st.log({**ev, "agent": agent})
+    _push("changed", {"agent": agent, "type": type_key})      # sent when the transaction commits
     return events
 
 
@@ -667,7 +685,8 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
                  earned_at: str | None) -> str:
     if decision == rule.SPOT:
         return (f"tenure spot check — {act.summary}\n{act.type} acts on its own; 1 action in {round(1 / spot)} is "
-                f"still checked at random.\nRun it if it is right. Reject it if it is wrong: the type goes back down.")
+                f"still checked at random.\nRun it if it is right; Reject it if it is wrong (the type goes back down). "
+                f"Session/Always = one Run.")
     if n is None:
         why = (f"{act.type} ({act.stakes} stakes) is capped by your settings: always asked ({s.successes} verified "
                f"successes on record).")
@@ -690,8 +709,8 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
                f"{k} of 2 sessions, before it acts on its own.")
         if s.provisional:
             why += f" {s.provisional} of them carried over from the previous agent, provisional."
-    return (f"tenure — {act.summary}\n{why}\nRun it if it is right. Reject it if it is wrong: that counts as a fault. "
-            f"Allow this session and Always allow count as one Run: tenure decides when this type stops asking.")
+    return (f"tenure — {act.summary}\n{why}\nRun it if it is right; Reject it if it is wrong (a fault). "
+            f"Session/Always = one Run; tenure decides when it stops asking.")
 
 
 # Seconds: Hermes runs a longer terminal call in the background (its TERMINAL_MAX_FOREGROUND_TIMEOUT default).
@@ -754,16 +773,15 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     _bump(st, agent, result_source[0], checked=phase == "approved",
           alone=not blocked and phase in ("notify", "alone"))
     posts = []
-    _push("changed", {"agent": agent, "type": key})
     if phase == "notify" and not blocked and not failed:    # the files were written: the owner can revert them
         undo_id = st.add_undo(agent, key, p["snap_id"], fault=bool(reason))
         _push("acted", {"agent": agent, "type": key, "undo_id": undo_id, "fault": bool(reason),
                         "profile": _profile_name()})
         if reason:
-            posts.append(f"tenure: {key} acted on its own, but the automatic check failed ({reason}); counted as "
+            posts.append(f"tenure: {key} acted, then told you, but the automatic check failed ({reason}); counted as "
                          f"a fault · /tenure undo {undo_id}")
         else:
-            posts.append(f"tenure: {key} acted on its own · /tenure undo {undo_id}")
+            posts.append(f"tenure: {key} acted, then told you · /tenure undo {undo_id}")
     elif reason:
         posts.append(f"tenure: {key}: the automatic check failed ({reason}); counted as a fault.")
     return posts + _say(events, cfg["spot"])
