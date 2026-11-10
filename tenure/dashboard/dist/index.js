@@ -251,6 +251,16 @@ const TENURE_LOCALES = {
     "models.public_title": "Public measure",
     "models.source": "{source}. Best published score, any harness; not a controlled comparison.",
     "models.source_accessed": "{source}, accessed {accessed}. Best published score, any harness; not a controlled comparison.",
+    "moment.dismiss": "Dismiss",
+    "moment.eyebrow.down": "Fault caught",
+    "moment.eyebrow.up": "Promotion",
+    "moment.granted": "Tenure granted",
+    "moment.probation": "Back on probation",
+    "moment.review": "Under review",
+    "page.anim_off": "motion off",
+    "page.anim_on": "motion on",
+    "page.anim_reduced": "Your system asks for reduced motion: animations stay off",
+    "page.anim_title": "Animations: on or off, remembered in this browser",
     "page.error": "Could not read tenure: {error}",
     "page.live": "live · ",
     "page.loading": "Loading the record…",
@@ -263,6 +273,9 @@ const TENURE_LOCALES = {
     "page.title": "Tenure",
     "page.unreadable": "Unreadable: {profiles}. Its database exists but cannot be opened; other profiles are shown.",
     "passport.agent": "Agent",
+    "passport.card.aria": "Passport of {agent}: {verdict}",
+    "passport.card.signature": "a plugin for Hermes Agent",
+    "passport.card.title": "Passport",
     "passport.checked_by": "Checked by the dashboard against this profile's ledger. Anyone can re-check it:",
     "passport.download": "Download JSON",
     "passport.empty.body": "A passport covers an agent's record; it appears with the first verified action.",
@@ -407,6 +420,10 @@ const TENURE_LOCALES = {
     "tier.capped.chip": "CAP",
     "tier.capped.title": "Capped: always asks",
     "tier.chip.title": "{tier}, {name}",
+    "tier.label.alone": "Tenured",
+    "tier.label.ask": "Probation",
+    "tier.label.cap": "Always asks",
+    "tier.label.notify": "Under review",
     "tier.name.alone": "acts on its own",
     "tier.name.ask": "asks first",
     "tier.name.notify": "acts, then tells you",
@@ -785,6 +802,16 @@ const TENURE_LOCALES = {
     "models.public_title": "المقياس العام",
     "models.source": "{source}. أفضل نتيجة منشورة، بأي أداة تقييم؛ ليست مقارنة مضبوطة.",
     "models.source_accessed": "{source}، اطُّلع عليه في {accessed}. أفضل نتيجة منشورة، بأي أداة تقييم؛ ليست مقارنة مضبوطة.",
+    "moment.dismiss": "إغلاق",
+    "moment.eyebrow.down": "رُصد إخفاق",
+    "moment.eyebrow.up": "ترقية",
+    "moment.granted": "مُنح التثبيت",
+    "moment.probation": "العودة إلى فترة الاختبار",
+    "moment.review": "قيد المراجعة",
+    "page.anim_off": "الحركة متوقفة",
+    "page.anim_on": "الحركة مفعّلة",
+    "page.anim_reduced": "يطلب نظامك تقليل الحركة: تبقى الحركة متوقفة",
+    "page.anim_title": "الحركة: مفعّلة أو متوقفة، وتُحفظ في هذا المتصفح",
     "page.error": "تعذّرت قراءة tenure: {error}",
     "page.live": "مباشر · ",
     "page.loading": "جارٍ تحميل السجل…",
@@ -797,6 +824,9 @@ const TENURE_LOCALES = {
     "page.title": "Tenure",
     "page.unreadable": "غير مقروء: {profiles}. قاعدة بياناته موجودة لكن يتعذّر فتحها؛ تُعرض الملفات الشخصية الأخرى.",
     "passport.agent": "الوكيل",
+    "passport.card.aria": "جواز {agent}: {verdict}",
+    "passport.card.signature": "إضافة لـ Hermes Agent",
+    "passport.card.title": "جواز",
     "passport.checked_by": "تحققت منه اللوحة مقابل دفتر هذا الملف الشخصي. يمكن لأي شخص إعادة التحقق:",
     "passport.download": "تنزيل JSON",
     "passport.empty.body": "يغطي الجواز سجل الوكيل؛ ويظهر مع أول إجراء موثّق.",
@@ -977,6 +1007,10 @@ const TENURE_LOCALES = {
     "tier.capped.chip": "CAP",
     "tier.capped.title": "مقيَّد: يسأل دائمًا",
     "tier.chip.title": "{tier}، {name}",
+    "tier.label.alone": "مُثبَّت",
+    "tier.label.ask": "فترة اختبار",
+    "tier.label.cap": "يسأل دائمًا",
+    "tier.label.notify": "قيد المراجعة",
     "tier.name.alone": "يعمل وحده",
     "tier.name.ask": "يسأل أولًا",
     "tier.name.notify": "ينفّذ ثم يُبلغ",
@@ -1303,6 +1337,16 @@ const TENURE_LOCALES = {
     "models.public_title": "Medida pública",
     "models.source": "{source}. Mejor puntuación publicada, con cualquier entorno de evaluación; no es una comparación controlada.",
     "models.source_accessed": "{source}, consultado el {accessed}. Mejor puntuación publicada, con cualquier entorno de evaluación; no es una comparación controlada.",
+    "moment.dismiss": "Cerrar",
+    "moment.eyebrow.down": "Fallo detectado",
+    "moment.eyebrow.up": "Ascenso",
+    "moment.granted": "Titularidad concedida",
+    "moment.probation": "De vuelta a prueba",
+    "moment.review": "En revisión",
+    "page.anim_off": "animaciones desactivadas",
+    "page.anim_on": "animaciones activadas",
+    "page.anim_reduced": "Tu sistema pide reducir el movimiento: las animaciones quedan desactivadas",
+    "page.anim_title": "Animaciones: activadas o no, se recuerda en este navegador",
     "page.error": "No se pudo leer tenure: {error}",
     "page.live": "en directo · ",
     "page.loading": "Cargando el historial…",
@@ -1315,6 +1359,9 @@ const TENURE_LOCALES = {
     "page.title": "Tenure",
     "page.unreadable": "Ilegible: {profiles}. Su base de datos existe pero no se puede abrir; se muestran los demás perfiles.",
     "passport.agent": "Agente",
+    "passport.card.aria": "Pasaporte de {agent}: {verdict}",
+    "passport.card.signature": "un plugin para Hermes Agent",
+    "passport.card.title": "Pasaporte",
     "passport.checked_by": "Comprobado por el panel frente al registro de este perfil. Cualquiera puede volver a comprobarlo:",
     "passport.download": "Descargar JSON",
     "passport.empty.body": "Un pasaporte resume el historial de un agente; aparece con la primera acción verificada.",
@@ -1459,6 +1506,10 @@ const TENURE_LOCALES = {
     "tier.capped.chip": "CAP",
     "tier.capped.title": "Limitado: siempre pregunta",
     "tier.chip.title": "{tier}, {name}",
+    "tier.label.alone": "Titular",
+    "tier.label.ask": "Período de prueba",
+    "tier.label.cap": "Siempre pregunta",
+    "tier.label.notify": "En revisión",
     "tier.name.alone": "actúa por su cuenta",
     "tier.name.ask": "pregunta antes",
     "tier.name.notify": "actúa y luego avisa",
@@ -1753,6 +1804,16 @@ const TENURE_LOCALES = {
     "models.public_title": "Mesure publique",
     "models.source": "{source}. Meilleur score publié, toutes conditions de test confondues ; pas une comparaison à armes égales.",
     "models.source_accessed": "{source}, consulté le {accessed}. Meilleur score publié, toutes conditions de test confondues ; pas une comparaison à armes égales.",
+    "moment.dismiss": "Fermer",
+    "moment.eyebrow.down": "Faute relevée",
+    "moment.eyebrow.up": "Promotion",
+    "moment.granted": "Titularisé",
+    "moment.probation": "Retour en probation",
+    "moment.review": "En examen",
+    "page.anim_off": "animations désactivées",
+    "page.anim_on": "animations activées",
+    "page.anim_reduced": "Votre système demande de réduire les animations : elles restent désactivées",
+    "page.anim_title": "Animations : activées ou non, mémorisé dans ce navigateur",
     "page.error": "Impossible de lire tenure : {error}",
     "page.live": "en direct · ",
     "page.loading": "Chargement de l'historique…",
@@ -1765,6 +1826,9 @@ const TENURE_LOCALES = {
     "page.title": "Tenure",
     "page.unreadable": "Illisible : {profiles}. La base de données existe mais ne s'ouvre pas ; les autres profils sont affichés.",
     "passport.agent": "Agent",
+    "passport.card.aria": "Passeport de {agent} : {verdict}",
+    "passport.card.signature": "un plugin pour Hermes Agent",
+    "passport.card.title": "Passeport",
     "passport.checked_by": "Vérifié par le tableau de bord avec le registre de ce profil. Tout le monde peut le revérifier :",
     "passport.download": "Télécharger le JSON",
     "passport.empty.body": "Un passeport couvre l'historique d'un agent ; il apparaît dès la première action vérifiée.",
@@ -1909,6 +1973,10 @@ const TENURE_LOCALES = {
     "tier.capped.chip": "CAP",
     "tier.capped.title": "Plafonné : demande toujours",
     "tier.chip.title": "{tier}, {name}",
+    "tier.label.alone": "Titulaire",
+    "tier.label.ask": "Probation",
+    "tier.label.cap": "Toujours demandé",
+    "tier.label.notify": "En examen",
     "tier.name.alone": "agit seul",
     "tier.name.ask": "demande d'abord",
     "tier.name.notify": "agit, puis prévient",
@@ -2182,6 +2250,16 @@ const TENURE_LOCALES = {
     "models.public_title": "公开测评",
     "models.source": "{source}。已公布的最高分，不限测试框架；并非受控对比。",
     "models.source_accessed": "{source}，访问于 {accessed}。已公布的最高分，不限测试框架；并非受控对比。",
+    "moment.dismiss": "关闭",
+    "moment.eyebrow.down": "发现失误",
+    "moment.eyebrow.up": "晋升",
+    "moment.granted": "已获转正",
+    "moment.probation": "重回试用期",
+    "moment.review": "进入考察",
+    "page.anim_off": "动画已关闭",
+    "page.anim_on": "动画已开启",
+    "page.anim_reduced": "你的系统要求减少动态效果：动画保持关闭",
+    "page.anim_title": "动画：开启或关闭，记在此浏览器中",
     "page.error": "无法读取 tenure：{error}",
     "page.live": "实时 · ",
     "page.loading": "正在加载记录…",
@@ -2194,6 +2272,9 @@ const TENURE_LOCALES = {
     "page.title": "Tenure",
     "page.unreadable": "无法读取：{profiles}。其数据库存在但无法打开；已显示其他配置文件。",
     "passport.agent": "智能体",
+    "passport.card.aria": "{agent} 的护照：{verdict}",
+    "passport.card.signature": "Hermes Agent 的一个插件",
+    "passport.card.title": "护照",
     "passport.checked_by": "已由仪表盘对照此配置文件的账本验证。任何人都可以重新验证：",
     "passport.download": "下载 JSON",
     "passport.empty.body": "护照汇总智能体的记录；第一个已验证的操作出现后才会生成。",
@@ -2329,6 +2410,10 @@ const TENURE_LOCALES = {
     "tier.capped.chip": "CAP",
     "tier.capped.title": "受限：始终询问",
     "tier.chip.title": "{tier}，{name}",
+    "tier.label.alone": "已转正",
+    "tier.label.ask": "试用期",
+    "tier.label.cap": "始终询问",
+    "tier.label.notify": "考察中",
     "tier.name.alone": "自主执行",
     "tier.name.ask": "先询问",
     "tier.name.notify": "先执行后告知",
@@ -2650,16 +2735,323 @@ const TENURE_LOCALES = {
     return st[0];
   }
 
+  // ------------------------------------------------------------------------------------------- ink and dither
+  // "Encre et trame": one colour (the theme's midground, read from the CSS of each canvas), 1-bit Bayer dither.
+  // A type's progress is a dither that densifies from a faint dotted track to a solid fill as it nears its next
+  // tier; the agent's emblem is a dithered sunburst whose density is its share of earned autonomy. Animations play
+  // on real state changes only (previous render vs new data), never on a timer, and stop on reduced motion, on the
+  // tab's own switch (localStorage "tenure.animations") and while the page is hidden.
+  var BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  var REDUCED = (function () { try { return window.matchMedia("(prefers-reduced-motion: reduce)"); } catch (e) { return null; } })();
+  var ANIM = true;                                   // the tab's switch, set by TenurePage on every render
+  function reducedMotion() { return !!(REDUCED && REDUCED.matches); }
+  function motion() { return ANIM && !reducedMotion() && !document.hidden; }
+  function readAnimPref() { try { return window.localStorage.getItem("tenure.animations") !== "off"; } catch (e) { return true; } }
+  function writeAnimPref(on) { try { window.localStorage.setItem("tenure.animations", on ? "on" : "off"); } catch (e) { /* ignore */ } }
+  function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+  function easeOut(x) { return 1 - Math.pow(1 - x, 3); }
+
+  /** Size a canvas to its CSS box at device resolution; a context in CSS pixels, filled with the canvas's colour. */
+  function prep(cv, w, hgt) {
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var W = Math.max(1, Math.round(w * dpr)), H = Math.max(1, Math.round(hgt * dpr));
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    var x = cv.getContext && cv.getContext("2d");
+    if (!x) return null;
+    x.setTransform(dpr, 0, 0, dpr, 0, 0);
+    x.clearRect(0, 0, w, hgt);
+    x.globalAlpha = 1;
+    x.fillStyle = getComputedStyle(cv).color;
+    return x;
+  }
+  /** One RAF tween of ``ms`` (after ``delay``) on the state object ``s``: step(k in 0..1), then done(). */
+  function tween(s, ms, delay, step, done) {
+    var t0 = 0;
+    cancelAnimationFrame(s.raf);
+    function f(ts) {
+      if (!t0) t0 = ts;
+      var k = clamp01((ts - t0 - (delay || 0)) / ms);
+      step(k);
+      if (k < 1) s.raf = requestAnimationFrame(f);
+      else { s.raf = 0; if (done) done(); }
+    }
+    s.raf = requestAnimationFrame(f);
+  }
+  /** A CSS mask that shows the cells of the 4x4 Bayer matrix below ``k`` of 16: a dither dissolve in 17 steps. */
+  var MASKS = {};
+  function ditherMask(k) {
+    k = Math.max(0, Math.min(16, Math.round(k)));
+    if (MASKS[k]) return MASKS[k];
+    var r = "";
+    for (var j = 0; j < 4; j++) for (var i = 0; i < 4; i++) {
+      if (BAYER[j][i] < k) r += "%3Crect x='" + i * 2 + "' y='" + j * 2 + "' width='2' height='2'/%3E";
+    }
+    return (MASKS[k] = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E" + r + "%3C/svg%3E\")");
+  }
+  function setMask(el, k) {
+    if (!el) return;
+    var m = k >= 16 ? "" : ditherMask(k);
+    el.style.webkitMaskImage = m; el.style.maskImage = m;
+  }
+
+  /** How far a type is toward its next tier, 0..1: toward T2 for a T1 type that can reach it (Wald steps), toward
+   *  T3 otherwise (series / required); T3 is full; capped is null (a faint track only). */
+  function progress(ty) {
+    if (!ty || ty.capped) return null;
+    var eff = ty.effective_tier || ty.tier;
+    if (eff === "alone") return 1;
+    if (eff === "ask" && ty.wald != null) {
+      var w = WALD[ty.stakes];
+      if (w && ty.reversible) {
+        var step = -Math.log((1 - w[1]) / (1 - w[0]));
+        var total = Math.ceil(-LN_B / step), left = toT2(ty);
+        if (left != null && total > 0) return clamp01(1 - left / total);
+      }
+    }
+    return ty.required ? clamp01((ty.series || 0) / ty.required) : 0;
+  }
+  /** Share of earned autonomy: (T2 x 0.5 + T3) / types. */
+  function autonomyShare(types) {
+    if (!types || !types.length) return 0;
+    var s = 0;
+    types.forEach(function (ty) {
+      var eff = ty.effective_tier || ty.tier;
+      if (ty.capped || (ty.guarantee && ty.guarantee.capped)) return;
+      s += eff === "alone" ? 1 : eff === "notify" ? 0.5 : 0;
+    });
+    return s / types.length;
+  }
+
+  /** Paint a progress bar: ``p`` 0..1 (or -1 for capped), ``dev`` the print sweep (cells whose Bayer threshold is
+   *  below it), ``crumble`` 0..1 (dots drop and fade). Cells of 2 CSS px. */
+  function paintBar(cv, p, dev, crumble) {
+    var w = cv.clientWidth, hgt = cv.clientHeight;
+    if (!w || !hgt) return false;
+    var x = prep(cv, w, hgt);
+    if (!x) return false;
+    var c = 2, cols = Math.ceil(w / c), rows = Math.max(1, Math.floor(hgt / c));
+    var edge = p < 0 ? 0 : p * w, fade = Math.min(22, w * 0.18), track = p < 0 ? 0.07 : 0.1;
+    var d = dev == null ? 1 : dev, k = crumble || 0;
+    if (k) x.globalAlpha = 1 - k;
+    for (var j = 0; j < rows; j++) for (var i = 0; i < cols; i++) {
+      var X = i * c, v = X < edge - fade ? 1 : X < edge ? (edge - X) / fade : 0;
+      if (p >= 1) v = 1;
+      v = Math.max(v, track);
+      var th = BAYER[j & 3][i & 3];
+      if (v * 16 > th && th < d * 16) {
+        var dy = k ? k * k * (3 + ((i * 7 + j * 3) % 5)) : 0;
+        x.fillRect(X, j * c + dy, c - 0.6, c - 0.6);
+      }
+    }
+    return true;
+  }
+
+  /** A type's dither bar. Prints in on first paint (A), fills when the value climbs (C), crumbles and re-prints
+   *  lower when it drops (D). Redraws when the theme colour or the width changes. */
+  function DitherBar(props) {
+    var ref = useRef(null);
+    var st = useRef({ v: null, color: "", w: 0, raf: 0 });
+    var target = props.value == null ? -1 : clamp01(props.value);
+    useEffect(function () {
+      var cv = ref.current, s = st.current;
+      if (!cv) return;
+      var w = cv.clientWidth, col = getComputedStyle(cv).color;
+      if (!w) return;                                // hidden (the other layout): painted when it shows
+      if (s.v === target && s.color === col && s.w === w) return;
+      var from = s.v, first = from === null;
+      s.color = col; s.w = w; s.v = target;
+      if (!motion() || (!first && from === target)) { cancelAnimationFrame(s.raf); paintBar(cv, target, 1, 0); return; }
+      if (first) {
+        tween(s, 600, props.delay || 0, function (k) { paintBar(cv, target, easeOut(k), 0); });
+      } else if (target > from) {
+        tween(s, target >= 1 ? 700 : 450, 0, function (k) { paintBar(cv, from + (target - from) * easeOut(k), 1, 0); });
+      } else {
+        var start = from < 0 ? 0 : from;
+        tween(s, 500, 0, function (k) { paintBar(cv, start, 1, k); }, function () {
+          tween(s, 450, 0, function (k) { paintBar(cv, target, easeOut(k), 0); });
+        });
+      }
+    });
+    useEffect(function () { return function () { cancelAnimationFrame(st.current.raf); }; }, []);
+    return h("canvas", { ref: ref, className: cx("tnr-dbar", props.className), "aria-hidden": true });
+  }
+
+  /** The emblem: an original dithered sunburst, its density the share of earned autonomy. */
+  function embValue(i, j, n, rot, share) {
+    var c = n / 2, dx = i - c + 0.5, dy = j - c + 0.5, r = Math.sqrt(dx * dx + dy * dy) / c;
+    if (r > 1) return -1;
+    var a = Math.atan2(dy, dx) + rot, ray = Math.pow((Math.cos(a * 36) + 1) / 2, 2), core = Math.max(0, 1 - r / 0.42);
+    var v = Math.max(core * 1.15, ray * (1.08 - r) * 1.25 * (0.4 + 0.6 * share), 0.18 * (1 - r));
+    if (Math.abs(r - 0.47) < 0.025 || Math.abs(r - 0.97) < 0.02) v = 1;
+    return v;
+  }
+  function paintEmblem(cv, size, n, share, dev, rot) {
+    var x = prep(cv, size, size);
+    if (!x) return;
+    var c = size / n, g = Math.min(0.8, c * 0.27), d = dev * 16;
+    for (var j = 0; j < n; j++) for (var i = 0; i < n; i++) {
+      var v = embValue(i, j, n, rot, share);
+      if (v < 0) continue;
+      var th = BAYER[j & 3][i & 3];
+      if (v * 16 > th && th < d) x.fillRect(i * c, j * c, c - g, c - g);
+    }
+  }
+
+  /** The agent's emblem: develops point by point on mount (A), pulses once when the share climbs (C); with
+   *  ``rotate``, its rays turn slowly while it is on screen. */
+  function Emblem(props) {
+    var ref = useRef(null);
+    var st = useRef({ share: null, color: "", raf: 0, rot: 0, loop: 0, seen: true });
+    var size = props.size || 72, n = Math.min(96, props.cells || Math.round(size / 3));
+    var share = clamp01(props.share || 0);
+    useEffect(function () {
+      var cv = ref.current, s = st.current;
+      if (!cv) return;
+      var col = getComputedStyle(cv).color;
+      if (s.share === share && s.color === col) return;
+      var from = s.share;
+      s.share = share; s.color = col;
+      if (!motion()) { paintEmblem(cv, size, n, share, 1, s.rot); return; }
+      if (from === null) {
+        tween(s, props.developMs || 1400, props.delay || 0, function (k) { paintEmblem(cv, size, n, share, k, s.rot); }, startLoop);
+      } else if (share > from) {
+        tween(s, 900, 0, function (k) { paintEmblem(cv, size, n, clamp01(share + 0.45 * Math.sin(Math.PI * k)), 1, s.rot); }, startLoop);
+      } else paintEmblem(cv, size, n, share, 1, s.rot);
+    });
+    function startLoop() {
+      var s = st.current, cv = ref.current, last = 0;
+      if (!props.rotate || !cv || s.loop) return;
+      function f(ts) {
+        if (!ref.current || !props.rotate) { s.loop = 0; return; }
+        if (!motion() || !s.seen) { s.loop = 0; return; }   // resumed by the observer or the next render
+        if (last) s.rot += Math.min(0.1, (ts - last) / 1000) * 0.06;
+        last = ts;
+        if (!s.raf) paintEmblem(cv, size, n, s.share, 1, s.rot);     // a pulse in progress paints itself
+        s.loop = requestAnimationFrame(f);
+      }
+      s.loop = requestAnimationFrame(f);
+    }
+    useEffect(function () {
+      var s = st.current, cv = ref.current, io = null;
+      if (!props.rotate || !cv) return undefined;
+      if (window.IntersectionObserver) {
+        io = new IntersectionObserver(function (es) {
+          s.seen = es[0] && es[0].isIntersecting;
+          if (s.seen && !s.raf) startLoop();
+        });
+        io.observe(cv);
+      }
+      function vis() { if (!document.hidden && !s.raf) startLoop(); }
+      document.addEventListener("visibilitychange", vis);
+      return function () {
+        if (io) io.disconnect();
+        document.removeEventListener("visibilitychange", vis);
+        cancelAnimationFrame(s.loop); cancelAnimationFrame(s.raf); s.loop = 0;
+      };
+    }, [props.rotate]);
+    useEffect(function () { if (props.rotate && !st.current.raf) startLoop(); });
+    return h("canvas", { ref: ref, className: cx("tnr-emblem", props.className), "aria-hidden": true,
+      style: { width: size, height: size } });
+  }
+
+  /** A band of dither fading downward (the bottom of a big moment), printed in once. */
+  function DitherFade(props) {
+    var ref = useRef(null), st = useRef({ raf: 0, done: false, color: "" });
+    useEffect(function () {
+      var cv = ref.current, s = st.current;
+      if (!cv) return;
+      var col = getComputedStyle(cv).color;
+      function paint(kk) {
+        var w = cv.clientWidth, hgt = cv.clientHeight;
+        if (!w || !hgt) return;
+        var x = prep(cv, w, hgt);
+        if (!x) return;
+        var c = 4, cols = Math.ceil(w / c), rows = Math.floor(hgt / c);
+        for (var j = 0; j < rows; j++) {
+          var v = (1 - j / rows) * kk;
+          for (var i = 0; i < cols; i++) if (v * 16 > BAYER[j & 3][i & 3] + ((i * 7) % 3)) x.fillRect(i * c, j * c, c - 0.8, c - 0.8);
+        }
+      }
+      if (s.done && s.color === col) return;
+      s.color = col;
+      if (!s.done && motion()) tween(s, 900, 200, function (k) { paint(easeOut(k)); });
+      else paint(1);
+      s.done = true;
+    });
+    useEffect(function () { return function () { cancelAnimationFrame(st.current.raf); }; }, []);
+    return h("canvas", { ref: ref, className: "tnr-fade", "aria-hidden": true });
+  }
+
+  /** Re-render key that changes when ``value`` climbs: restarts a one-shot CSS sweep (the spot-check scan line). */
+  function useClimb(value) {
+    var r = useRef({ v: value, n: 0 });
+    if (value != null && r.current.v != null && value > r.current.v && motion()) r.current.n += 1;
+    r.current.v = value;
+    return r.current.n;
+  }
+
+  /** True for the first moments after ``ready``: rows carry the entrance class (A) only then, because Chrome replays
+   *  a table row's CSS animation on every relayout (a resize) while the class stays. */
+  function useFresh(ready) {
+    var s = useState(true), fresh = s[0], setFresh = s[1];
+    useEffect(function () {
+      if (!ready || !fresh) return undefined;
+      var tm = setTimeout(function () { setFresh(false); }, 1400);
+      return function () { clearTimeout(tm); };
+    }, [ready]);
+    return fresh;
+  }
+
+  /** "#01"-style mono number of an eyebrow. */
+  function nth(i) { return "#" + (i < 10 ? "0" : "") + i; }
+  function Eyebrow(props) {
+    return h("div", { className: cx("tnr-section-title", props.className) },
+      props.n != null ? h("span", { className: "tnr-eyebrow-n" }, nth(props.n)) : null, props.children);
+  }
+
   // ------------------------------------------------------------------------------------------------ small parts
   function Kbd(props) { return h("kbd", { className: "tnr-kbd" }, props.children); }
 
-  var TIER_TONE = { ask: "outline", notify: "secondary", alone: "success" };
+  /** The tier's display name next to its code: Probation, Under review, Tenured, Always asks. */
+  function tierLabel(tier, capped) {
+    if (capped) return t("tier.label.cap");
+    if (tier === "alone") return t("tier.label.alone");
+    if (tier === "notify") return t("tier.label.notify");
+    return t("tier.label.ask");
+  }
+  /** A flat rectangular tier chip: outlined (T1, T2), filled with the accent (T3), dashed (CAP). When the tier
+   *  changes between two renders, the old chip dissolves in dither while the new one prints (C, D). */
   function TierChip(props) {
-    var tier = props.tier;
-    var B = UI.Badge || "span";
-    if (props.capped) return h(B, { tone: "outline", className: "tnr-tier", title: t("tier.capped.title") }, t("tier.capped.chip"));
-    return h(B, { tone: TIER_TONE[tier] || "outline", className: "tnr-tier tnr-tier--" + tier,
-      title: t("tier.chip.title", { tier: TIER[tier], name: tierName(tier) }) }, TIER[tier]);
+    var tier = props.tier, capped = !!props.capped;
+    var id = capped ? "cap" : tier;
+    var prev = useRef(id);
+    var gs = useState(null), ghost = gs[0], setGhost = gs[1];
+    var chipRef = useRef(null), ghostRef = useRef(null), st = useRef({ raf: 0 });
+    if (prev.current !== id) {
+      var was = prev.current;
+      prev.current = id;
+      if (motion() && !props.still) { if (ghost !== was) setGhost(was); }
+    }
+    useEffect(function () {
+      if (!ghost) return undefined;
+      var s = st.current;
+      setMask(chipRef.current, 0);
+      tween(s, 520, 0, function (k) {
+        setMask(ghostRef.current, 16 - k * 17);
+        setMask(chipRef.current, k * 17 - 1);
+      }, function () { setMask(chipRef.current, 16); setGhost(null); });
+      return function () { cancelAnimationFrame(s.raf); setMask(chipRef.current, 16); };
+    }, [ghost]);
+    function chip(which, ref, extra) {
+      var cap = which === "cap";
+      return h("span", Object.assign({
+        ref: ref, className: cx("tnr-tier", "tnr-tier--" + which, extra),
+        title: cap ? t("tier.capped.title") : t("tier.chip.title", { tier: TIER[which], name: tierLabel(which) + " · " + tierName(which) })
+      }, extra ? { "aria-hidden": true } : null), cap ? t("tier.capped.chip") : TIER[which]);
+    }
+    return h("span", { className: cx("tnr-tierwrap", props.label && "has-label") },
+      h("span", { className: "tnr-tier-stack" }, chip(id, chipRef), ghost ? chip(ghost, ghostRef, "tnr-tier--ghost") : null),
+      props.label ? h("span", { className: "tnr-tier-label" }, tierLabel(tier, capped)) : null);
   }
 
   // State flags keep the tab's own readable style: the SDK Badge uses a display face too small for a phrase.
@@ -2808,7 +3200,8 @@ const TENURE_LOCALES = {
       cells.map(function (c, i) {
         return h(Fragment, { key: i },
           i ? h("span", { className: "tnr-counter-dot", "aria-hidden": true }, "·") : null,
-          h("div", { className: "tnr-counter" },
+          h("div", { className: "tnr-counter tnr-in", style: { "--i": i } },
+            h("span", { className: "tnr-counter-tag", "aria-hidden": true }, nth(i + 1)),
             h("span", { className: "tnr-counter-n" }, num(c.n)),
             h("span", { className: "tnr-counter-label" }, c.label),
             h("span", { className: "tnr-counter-sub" }, c.sub)));
@@ -2846,7 +3239,7 @@ const TENURE_LOCALES = {
               e.preventDefault();
               setTimeout(function () { var el = document.getElementById("tnr-tab-" + w.id); if (el) el.focus(); }, 0);
             }
-          }, t("view." + v.id), badge);
+          }, h("span", { className: "tnr-tab-n", "aria-hidden": true }, "0" + (VIEWS.indexOf(v) + 1)), t("view." + v.id), badge);
         })));
   }
 
@@ -2874,6 +3267,8 @@ const TENURE_LOCALES = {
 
   function Cell(props) {
     var ty = props.t;
+    // A spot check that passed: one more spot check, no more faults (E).
+    var scan = useClimb(ty ? (ty.spot_checks || 0) - (ty.faults || 0) : null);
     if (!ty) return h("td", { className: "tnr-cell tnr-cell--none" }, h("span", { className: "tnr-none" }, "—"));
     var miss = missing(ty);
     var held = ty.tier !== ty.effective_tier;
@@ -2892,17 +3287,20 @@ const TENURE_LOCALES = {
         h(TierChip, { tier: ty.effective_tier, capped: ty.capped }),
         ty.capped ? h("span", { className: "tnr-cell-ev" }, num(ty.successes + ty.faults), h("span", { className: "tnr-dim" }, t("cell.asked_suffix")))
           : h("span", { className: "tnr-cell-ev" }, num(ty.series), h("span", { className: "tnr-dim" }, "/" + num(ty.required)))),
+      h(DitherBar, { value: progress(ty), delay: 120 + (props.row || 0) * 40 }),
       h("div", { className: "tnr-cell-mid" },
         ty.capped ? h("span", null, t("count.faults", { n: ty.faults })) : h("span", null, t("count.sessions", { n: ty.sessions })),
         held ? h("span", { className: "tnr-held" }, t("cell.held", { tier: TIER[ty.tier] })) : null),
       h("div", { className: "tnr-cell-miss tnr-tone--" + miss.tone }, miss.text),
-      flags.length ? h("div", { className: "tnr-cell-flags" }, flags) : null);
+      flags.length ? h("div", { className: "tnr-cell-flags" }, flags) : null,
+      scan ? h("span", { key: scan, className: "tnr-scan", "aria-hidden": true }) : null);
   }
 
   function MapView(props) {
     var profiles = props.profiles;
     var cols = useMemo(function () { return columns(profiles); }, [profiles]);
     var rows = props.rows;
+    var fresh = useFresh(rows.length > 0);
     if (!rows.length) {
       return h(Empty, { title: t("map.empty.title") },
         t("map.empty.before"), h("b", null, t("map.empty.bold")), t("map.empty.after"));
@@ -2955,12 +3353,14 @@ const TENURE_LOCALES = {
               a.types.forEach(function (ty) { byType[ty.type] = ty; });
               var tot = a.totals || {};
               return h("tr", {
-                key: r.key, className: cx("tnr-map-row", x.i === props.focus && "is-focus"),
+                key: r.key, className: cx("tnr-map-row", fresh && "tnr-in", x.i === props.focus && "is-focus"), style: { "--i": x.i },
                 onClick: function () { props.onFocus(x.i); props.onOpen(r); },
                 "aria-selected": x.i === props.focus
               },
                 h("th", { scope: "row", className: "tnr-td-agent" },
-                  h("div", { className: "tnr-agent-model" }, a.model, h("span", { className: "tnr-dim" }, "@" + a.provider)),
+                  h("div", { className: "tnr-agent-head" },
+                    h(Emblem, { share: autonomyShare(a.types), size: 30, cells: 30, delay: x.i * 40, developMs: 900 }),
+                    h("div", { className: "tnr-agent-model" }, a.model, h("span", { className: "tnr-dim" }, "@" + a.provider))),
                   h("div", { className: "tnr-agent-tot" }, totalsLines(tot)),
                   h("div", { className: "tnr-agent-flags" },
                     a.provisional ? h(Flag, { kind: "prov" }, t("flag.provisional")) : null,
@@ -2968,7 +3368,7 @@ const TENURE_LOCALES = {
                     a.unresolved_fault ? h(Flag, { kind: "fault" }, t("flag.fault_on_record")) : null,
                     h("span", { className: "tnr-open-hint" }, t("map.open_hint"), h(Kbd, null, "↵")))),
                 cols.map(function (g) {
-                  return g.types.map(function (ty) { return h(Cell, { key: ty, t: byType[ty] }); });
+                  return g.types.map(function (ty) { return h(Cell, { key: ty, t: byType[ty], row: x.i }); });
                 }));
             }));
         })));
@@ -2983,10 +3383,12 @@ const TENURE_LOCALES = {
           grp.rows.map(function (x) {
             var r = x.r, a = r.agent, tot = a.totals || {};
             return h("button", {
-              type: "button", key: r.key, className: cx("tnr-agent-card", x.i === props.focus && "is-focus"),
+              type: "button", key: r.key, className: cx("tnr-agent-card", fresh && "tnr-in", x.i === props.focus && "is-focus"), style: { "--i": x.i },
               onClick: function () { props.onFocus(x.i); props.onOpen(r); }
             },
-              h("div", { className: "tnr-agent-model" }, a.model, h("span", { className: "tnr-dim" }, "@" + a.provider)),
+              h("div", { className: "tnr-agent-head" },
+                h(Emblem, { share: autonomyShare(a.types), size: 36, cells: 36, delay: x.i * 40, developMs: 900 }),
+                h("div", { className: "tnr-agent-model" }, a.model, h("span", { className: "tnr-dim" }, "@" + a.provider))),
               h("div", { className: "tnr-agent-tot" }, totals(tot)),
               h("div", { className: "tnr-card-types" },
                 a.types.slice().sort(function (p, q) {
@@ -2997,6 +3399,7 @@ const TENURE_LOCALES = {
                     h(TierChip, { tier: ty.effective_tier, capped: ty.capped }),
                     h("code", { className: "tnr-card-type-name" }, ty.type),
                     h("span", { className: "tnr-card-type-ev" }, ty.capped ? t("common.capped") : num(ty.series) + "/" + num(ty.required)),
+                    h(DitherBar, { value: progress(ty), className: "tnr-card-type-bar", delay: 120 + x.i * 40 }),
                     h("span", { className: "tnr-card-type-miss tnr-tone--" + miss.tone },
                       ty.tier !== ty.effective_tier ? t("cell.held", { tier: TIER[ty.tier] }) :
                         ty.provisional ? t("flag.carried_over_n", { n: ty.provisional }) + " · " + miss.text :
@@ -3013,24 +3416,28 @@ const TENURE_LOCALES = {
 
   function Legend(props) {
     return h("div", { className: "tnr-legend" },
-      h("span", null, h(TierChip, { tier: "ask" }), " " + t("legend.ask")),
-      h("span", null, h(TierChip, { tier: "notify" }), " " + t("legend.notify")),
-      h("span", null, h(TierChip, { tier: "alone" }), " " + t("legend.alone", { share: props.spot ? oneIn(props.spot) : t("legend.a_share") })),
-      h("span", null, h(TierChip, { capped: true }), " " + t("legend.capped")),
-      h("span", null, h("span", { className: "tnr-mono" }, "n/N"), " " + t("legend.series")),
+      h("span", null, h(TierChip, { tier: "ask", label: true }), " " + t("legend.ask")),
+      h("span", null, h(TierChip, { tier: "notify", label: true }), " " + t("legend.notify")),
+      h("span", null, h(TierChip, { tier: "alone", label: true }), " " + t("legend.alone", { share: props.spot ? oneIn(props.spot) : t("legend.a_share") })),
+      h("span", null, h(TierChip, { capped: true, label: true }), " " + t("legend.capped")),
+      h("span", null, h(LegendBar), h("span", { className: "tnr-mono" }, "n/N"), " " + t("legend.series")),
       h("span", null, h(Flag, { kind: "prov" }, t("flag.carried_over")), " " + t("legend.carried")));
+  }
+
+  function LegendBar() {
+    return h("span", { className: "tnr-legend-bar" }, h(DitherBar, { value: 0.55 }));
   }
 
   function Transitions(props) {
     return h("section", { className: "tnr-transitions", "aria-live": "polite" },
-      h("div", { className: "tnr-section-title" }, t("transitions.title")),
+      h(Eyebrow, { n: 2 }, t("transitions.title")),
       props.items.length ? h("ol", { className: "tnr-trans-list" },
         props.items.slice(0, 8).map(function (x) {
           return h("li", { key: x.id },
             h("span", { className: "tnr-mono tnr-dim" }, hms(x.at)),
             h("span", null, x.agent),
             h("code", null, x.type),
-            h("span", { className: "tnr-trans-move" }, h(TierChip, { tier: x.from, capped: false }), " " + t("common.arrow") + " ", h(TierChip, { tier: x.to, capped: false })),
+            h("span", { className: "tnr-trans-move" }, h(TierChip, { tier: x.from, capped: false, still: true }), " " + t("common.arrow") + " ", h(TierChip, { tier: x.to, capped: false, still: true, label: true })),
             h("span", { className: "tnr-dim" }, t("transitions.why." + x.why)));
         })) : h("div", { className: "tnr-dim tnr-trans-empty" }, t("transitions.empty")));
   }
@@ -3125,6 +3532,7 @@ const TENURE_LOCALES = {
     }, []);
     var mine = row.info.current;
     var fs = useState("all"), filter = fs[0], setFilter = fs[1];
+    var fresh = useFresh(true);
     var top = useHostBarOffset();
     var tl = usePoll(function () {
       return apiGet("/timeline", { agent: a.agent, of: row.profile, raw: props.raw });
@@ -3151,25 +3559,28 @@ const TENURE_LOCALES = {
           else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
         } },
         h("header", { className: "tnr-drawer-head" },
-          h("div", null,
-            h("div", { className: "tnr-drawer-eyebrow" }, t(mine ? "drawer.eyebrow" : "drawer.eyebrow_read_only", { profile: row.profile })),
+          h(Emblem, { share: autonomyShare(a.types), size: 84, cells: 42, className: "tnr-drawer-emblem" }),
+          h("div", { className: "tnr-drawer-id" },
+            h("div", { className: "tnr-drawer-eyebrow" }, "#", t(mine ? "drawer.eyebrow" : "drawer.eyebrow_read_only", { profile: row.profile })),
             h("div", { className: "tnr-drawer-title" }, a.model, h("span", { className: "tnr-dim" }, "@" + a.provider)),
             h("div", { className: "tnr-agent-tot" }, totals(tot),
               row.info.suspended ? h(Flag, { kind: "warn" }, t("profile.suspended", { n: row.info.suspended })) : null)),
           h("span", { ref: closeRef }, h(Btn, { kind: "ghost", onClick: props.onClose, title: t("drawer.close_title") }, t("drawer.close")))),
         h("div", { className: "tnr-drawer-body" },
-          h("div", { className: "tnr-section-title" }, t("drawer.types_title")),
-          h("table", { className: "tnr-dtable" },
+          h(Eyebrow, { n: 1 }, t("drawer.types_title")),
+          h("table", { className: "tnr-dtable tnr-dtable--types" },
             h("thead", null, h("tr", null,
               h("th", null, t("th.type")), h("th", null, t("th.tier")), h("th", { className: "tnr-num" }, t("th.series")),
               h("th", { className: "tnr-num" }, t("th.sessions")), h("th", { className: "tnr-num" }, t("th.faults_checks")), h("th", null, ""))),
-            h("tbody", null, types.map(function (ty) {
+            h("tbody", null, types.map(function (ty, ti) {
               var miss = missing(ty);
               return h(Fragment, { key: ty.type },
-                h("tr", { className: "tnr-dtable-main" },
-                  h("td", null, h("code", null, ty.type), h("div", { className: "tnr-dim tnr-small" },
-                    ty.reversible ? t("drawer.stakes_reversible", { stakes: t("stakes." + ty.stakes) }) : t("stakes." + ty.stakes))),
-                  h("td", null, h(TierChip, { tier: ty.effective_tier, capped: ty.capped }),
+                h("tr", { className: cx("tnr-dtable-main", fresh && "tnr-in"), style: { "--i": ti } },
+                  h("td", null, h("div", { className: "tnr-type-line" }, h("span", { className: "tnr-eyebrow-n" }, nth(ti + 1)), h("code", null, ty.type)),
+                    h("div", { className: "tnr-dim tnr-small" },
+                      ty.reversible ? t("drawer.stakes_reversible", { stakes: t("stakes." + ty.stakes) }) : t("stakes." + ty.stakes)),
+                    h(DitherBar, { value: progress(ty), className: "tnr-drawer-bar", delay: 200 + ti * 40 })),
+                  h("td", null, h(TierChip, { tier: ty.effective_tier, capped: ty.capped, label: true }),
                     ty.tier !== ty.effective_tier ? h("div", { className: "tnr-held" }, t("cell.held", { tier: TIER[ty.tier] })) : null),
                   h("td", { className: "tnr-num" }, ty.capped ? "—" : num(ty.series) + "/" + num(ty.required)),
                   h("td", { className: "tnr-num" }, ty.capped ? "—" : num(ty.sessions) + "/" + SESSIONS),
@@ -3193,7 +3604,7 @@ const TENURE_LOCALES = {
                         return act("/revoke", { agent: a.agent, type: ty.type }, function () { return t("drawer.revoke.done", { type: ty.type }); });
                       }
                     }, t("drawer.revoke.button")))),
-                h("tr", { className: "tnr-dtable-sub" },
+                h("tr", { className: cx("tnr-dtable-sub", fresh && "tnr-in"), style: { "--i": ti } },
                   h("td", { colSpan: 6 },
                     h("span", { className: "tnr-mobile-only" }, t("drawer.mobile_summary", {
                       sessions: ty.capped ? t("common.capped") : t("drawer.sessions_of", { n: ty.sessions, total: String(SESSIONS) }),
@@ -3216,7 +3627,7 @@ const TENURE_LOCALES = {
             h("span", { className: "tnr-dim tnr-small" }, mine ? t("drawer.revoke_note") :
               t("drawer.revoke_note_other", { cmd: "hermes -p " + row.profile + " tenure revoke" }))),
           h("div", { className: "tnr-section-title tnr-tl-head" },
-            h("span", null, t("timeline.title")),
+            h("span", null, h("span", { className: "tnr-eyebrow-n" }, nth(2)), t("timeline.title")),
             h(Sel, { value: filter, onChange: setFilter, label: t("timeline.filter_label"),
               options: [["all", t("timeline.all_types")]].concat(types.map(function (ty) { return [ty.type, ty.type]; })) })),
           h("div", { className: "tnr-dim tnr-small tnr-tl-note" }, t("timeline.note")),
@@ -3224,16 +3635,39 @@ const TENURE_LOCALES = {
   }
 
   // ---------------------------------------------------------------------------------------------------- models
+  /** The 95% range as a dither bar on a dotted axis, the observed rate a solid tick. Draws in left to right with a
+   *  short dithered front (F). */
+  function paintRange(cv, lo, hi, p, front) {
+    var w = cv.clientWidth, hgt = cv.clientHeight;
+    if (!w || !hgt) return;
+    var x = prep(cv, w, hgt);
+    if (!x) return;
+    var c = 2, cols = Math.ceil(w / c), rows = Math.max(1, Math.floor(hgt / c)), mid = Math.floor(rows / 2);
+    var L = lo * w, H = Math.max(lo * w + c, hi * w), P = p == null ? null : p * w, F = front * (w + 12), soft = 10;
+    for (var j = 0; j < rows; j++) for (var i = 0; i < cols; i++) {
+      var X = i * c + c / 2, v = 0;
+      if (j === mid) v = 0.22;
+      if (X >= L - 3 && X <= H + 3 && j >= mid - 1 && j <= mid + 1) v = X < L ? 0.5 : X > H ? 0.5 : 1;
+      if (P != null && Math.abs(X - P) <= c) v = 1;
+      if (X > F) v = 0; else if (X > F - soft) v *= (F - X) / soft;
+      if (v * 16 > BAYER[j & 3][i & 3]) x.fillRect(i * c, j * c, c - 0.5, c - 0.5);
+    }
+  }
   function Interval(props) {
-    var w = 96, max = props.max || 1;
-    var x = function (v) { return 2 + (w - 4) * Math.min(1, v / max); };
-    var lo = x(props.low), hi = x(props.high), p = props.rate == null ? null : x(props.rate);
-    return h("svg", { className: "tnr-interval", width: w, height: 14, viewBox: "0 0 " + w + " 14", "aria-hidden": true },
-      h("line", { x1: 2, x2: w - 2, y1: 7, y2: 7, className: "tnr-interval-axis" }),
-      h("line", { x1: lo, x2: hi, y1: 7, y2: 7, className: "tnr-interval-range" }),
-      h("line", { x1: lo, x2: lo, y1: 3, y2: 11, className: "tnr-interval-range" }),
-      h("line", { x1: hi, x2: hi, y1: 3, y2: 11, className: "tnr-interval-range" }),
-      p == null ? null : h("circle", { cx: p, cy: 7, r: 2.5, className: "tnr-interval-point" }));
+    var ref = useRef(null), st = useRef({ key: "", raf: 0 });
+    var max = props.max || 1;
+    var lo = Math.min(1, props.low / max), hi = Math.min(1, props.high / max), p = props.rate == null ? null : Math.min(1, props.rate / max);
+    useEffect(function () {
+      var cv = ref.current, s = st.current;
+      if (!cv || !cv.clientWidth) return;
+      var key = [lo, hi, p, getComputedStyle(cv).color].join("|"), first = !s.key;
+      if (key === s.key) return;
+      s.key = key;
+      if (first && motion()) tween(s, 650, props.delay || 0, function (k) { paintRange(cv, lo, hi, p, easeOut(k)); });
+      else { cancelAnimationFrame(s.raf); paintRange(cv, lo, hi, p, 1); }
+    });
+    useEffect(function () { return function () { cancelAnimationFrame(st.current.raf); }; }, []);
+    return h("canvas", { ref: ref, className: "tnr-interval", "aria-hidden": true });
   }
 
   function Stale(props) {
@@ -3243,6 +3677,7 @@ const TENURE_LOCALES = {
 
   function ModelsView(props) {
     var res = usePoll(function () { return apiGet("/models", { raw: props.raw }); }, [props.raw, props.version]);
+    var fresh = useFresh(!!res.data);
     if (res.error && !res.data) return h("div", { className: "tnr-error" }, errText(res.error));
     if (!res.data) return h("div", { className: "tnr-dim tnr-pad" }, t("common.loading"));
     var rows = res.data.rows;
@@ -3256,36 +3691,36 @@ const TENURE_LOCALES = {
     return h("div", { className: "tnr-models" }, h(Stale, { res: res }),
       h("p", { className: "tnr-lede" },
         t("models.lede"), h("b", null, t("models.lede_bold"))),
-      byType.map(function (g) {
+      byType.map(function (g, gi) {
         var max = Math.max.apply(null, g.rows.filter(function (r) { return r.successes + r.faults; }).map(function (r) { return r.high; }).concat([0.05]));
         max = Math.min(1, Math.ceil(max * 20) / 20);
         var bench = g.rows[0].benchmark;
         var card = g.rows[0].public || {};
         return h("section", { key: g.type, className: "tnr-model-block" },
-          h("div", { className: "tnr-model-head" }, h("code", null, g.type),
+          h("div", { className: "tnr-model-head" }, h("span", { className: "tnr-eyebrow-n" }, nth(gi + 1)), h("code", null, g.type),
             h("span", { className: "tnr-dim" }, t("count.agents", { n: g.rows.length }))),
           h("div", { className: "tnr-model-split" },
             h("div", { className: "tnr-model-personal" },
-              h("div", { className: "tnr-section-title" }, t("models.personal_title")),
+              h(Eyebrow, { n: 1 }, t("models.personal_title")),
               h("table", { className: "tnr-dtable tnr-dtable--models" },
                 h("thead", null, h("tr", null,
                   h("th", { className: "tnr-num" }, "#"), h("th", null, t("th.agent")), h("th", { className: "tnr-num" }, t("th.faults_checks")),
                   h("th", { className: "tnr-num" }, t("th.rate")), h("th", null, t("th.range", { max: pct(max) })), h("th", { className: "tnr-num" }, t("th.sessions")))),
                 h("tbody", null, g.rows.map(function (r, i) {
                   var n = r.successes + r.faults;
-                  return h("tr", { key: r.profile + r.agent },
-                    h("td", { className: "tnr-num tnr-dim" }, i + 1),
+                  return h("tr", { key: r.profile + r.agent, className: fresh ? "tnr-in" : undefined, style: { "--i": i } },
+                    h("td", { className: "tnr-num tnr-dim tnr-mono" }, nth(i + 1)),
                     h("td", null, h("div", null, r.model, h("span", { className: "tnr-dim" }, "@" + r.provider)),
                       h("div", { className: "tnr-dim tnr-small" }, t("common.profile", { profile: r.profile }))),
                     h("td", { className: "tnr-num" }, num(r.faults) + " / " + num(n)),
                     h("td", { className: "tnr-num" }, !n ? h("span", { className: "tnr-dim" }, t("models.no_checks")) : r.enough ? pct(r.rate) :
                       h("span", { className: "tnr-dim" }, t("models.not_enough"))),
-                    h("td", null, n ? h("div", { className: "tnr-interval-cell" }, h(Interval, { low: r.low, high: r.high, rate: r.rate, max: max }),
+                    h("td", null, n ? h("div", { className: "tnr-interval-cell" }, h(Interval, { low: r.low, high: r.high, rate: r.rate, max: max, delay: 150 + i * 60 }),
                       h("span", { className: "tnr-mono tnr-small" }, pct(r.low) + "–" + pct(r.high))) : h("span", { className: "tnr-dim tnr-small" }, "—")),
                     h("td", { className: "tnr-num" }, num(r.sessions_in_series)));
                 })))),
             h("div", { className: "tnr-model-public" },
-              h("div", { className: "tnr-section-title" }, t("models.public_title")),
+              h(Eyebrow, { n: 2 }, t("models.public_title")),
               bench ? h(Fragment, null,
                 h("div", { className: "tnr-public-bench" }, bench, h("span", { className: "tnr-dim" }, card.version ? " · " + card.version : "")),
                 h("table", { className: "tnr-dtable" }, h("tbody", null, g.rows.map(function (r) {
@@ -3314,6 +3749,7 @@ const TENURE_LOCALES = {
     var draftS = useState(""), draft = draftS[0], setDraft = draftS[1];
     var resS = useState(null), res = resS[0], setRes = resS[1];
     var errS = useState(null), err = errS[0], setErr = errS[1];
+    var fresh = useFresh(!!res);
     var fromRow = agents.filter(function (r) { return r.key === from; })[0] || agents[0];
     useEffect(function () { if (!from && agents[0]) setFrom(agents[0].key); }, [agents.length]);
     var models = useMemo(function () {
@@ -3365,16 +3801,16 @@ const TENURE_LOCALES = {
           h("table", { className: "tnr-dtable tnr-dtable--switch" },
             h("thead", null, h("tr", null, h("th", null, t("th.type")), h("th", null, t("th.outcome")), h("th", null, t("th.now")),
               h("th", null, t("th.after_switch")), h("th", null, t("th.public_measure")), h("th", null, t("th.your_record")))),
-            h("tbody", null, res.types.map(function (ty) {
+            h("tbody", null, res.types.map(function (ty, ri) {
               var st = STATUS[ty.status] || { tone: "muted" };
               var c = ty.card || {};
               var delta = c.delta != null ? t("switch.delta", { delta: (c.delta > 0 ? "+" : "") + dec1(c.delta) }) : "";
-              return h("tr", { key: ty.type },
+              return h("tr", { key: ty.type, className: fresh ? "tnr-in" : undefined, style: { "--i": ri } },
                 h("td", null, h("code", null, ty.type), h("div", { className: "tnr-dim tnr-small" }, t("stakes." + ty.stakes))),
                 h("td", null, h(Flag, { kind: st.tone }, statusLabel(ty.status))),
                 h("td", null, h(TierChip, { tier: ty.old.effective_tier, capped: ty.old.capped }), " ",
                   h("span", { className: "tnr-mono" }, ty.old.capped ? t("common.capped") : num(ty.old.series) + "/" + num(ty.old.required))),
-                h("td", null, h(TierChip, { tier: ty.new.effective_tier, capped: ty.new.capped }), " ",
+                h("td", null, h(TierChip, { tier: ty.new.effective_tier, capped: ty.new.capped, label: true }), " ",
                   h("span", { className: "tnr-mono" }, ty.new.capped ? t("common.capped") : num(ty.new.series) + "/" + num(ty.new.required)),
                   ty.new.provisional ? h("div", { className: "tnr-small tnr-tone--prov" }, t("switch.provisional", { n: ty.new.provisional })) : null),
                 h("td", null, c.benchmark ? h(Fragment, null,
@@ -3403,6 +3839,120 @@ const TENURE_LOCALES = {
     return { tone: "fault", title: t("verdict.problems", { n: verify.length, count: String(verify.length) }), lines: verify };
   }
 
+  /** The seal: a dithered stamp ring, printed at the end of the passport's entrance when it verifies. */
+  function paintSeal(cv, size, dev) {
+    var x = prep(cv, size, size);
+    if (!x) return;
+    var n = 36, c = size / n, d = dev * 16;
+    for (var j = 0; j < n; j++) for (var i = 0; i < n; i++) {
+      var dx = i - n / 2 + 0.5, dy = j - n / 2 + 0.5, r = Math.sqrt(dx * dx + dy * dy) / (n / 2), v = 0;
+      if (r > 1) continue;
+      if (r > 0.84) v = 1;
+      else if (r > 0.7 && r < 0.76) v = 1;
+      else if (r <= 0.7) v = 0.12 + 0.55 * Math.pow((Math.cos(Math.atan2(dy, dx) * 12) + 1) / 2, 3) * (1 - r);
+      var th = BAYER[j & 3][i & 3];
+      if (v * 16 > th && th < d) x.fillRect(i * c, j * c, c - 0.5, c - 0.5);
+    }
+  }
+
+  /** The passport as a card (B): the emblem develops then turns, the name types in, the tier rows fill, the ledger
+   *  head scrambles while it is checked and settles with a check mark only when the passport verifies, then the
+   *  seal prints. Pointer tilt and a dithered glare on hover (mouse only). */
+  function PassportCard(props) {
+    var d = props.doc, ok = props.ok;
+    var cardRef = useRef(null), nameRef = useRef(null), hashRef = useRef(null), okRef = useRef(null), sealRef = useRef(null);
+    var sweepRef = useRef(null), st = useRef({ raf: 0, done: false });
+    var name = d.agent.model, head = short(d.ledger.head, 8), types = d.types || [];
+    var fill = function (ty) { return ty.guarantee && ty.guarantee.capped ? -1 : ty.tier === "alone" ? 1 : ty.required ? clamp01(ty.series / ty.required) : 0; };
+    function final() {
+      var card = cardRef.current;
+      if (!card) return;
+      if (nameRef.current) nameRef.current.textContent = name;
+      if (hashRef.current) hashRef.current.textContent = head;
+      if (okRef.current) okRef.current.classList.toggle("is-on", !!ok);
+      var rows = card.querySelectorAll(".tnr-pass-row");
+      for (var i = 0; i < rows.length; i++) {
+        rows[i].classList.add("is-on");
+        var cv = rows[i].querySelector("canvas");
+        if (cv) paintBar(cv, fill(types[i]), 1, 0);
+      }
+      if (sealRef.current) { if (ok) paintSeal(sealRef.current, 64, 1); sealRef.current.classList.toggle("is-on", !!ok); }
+      if (sweepRef.current) sweepRef.current.style.top = "";
+    }
+    useEffect(function () {
+      var s = st.current, card = cardRef.current;
+      if (!card) return undefined;
+      if (!motion()) { s.done = true; final(); return undefined; }
+      var rows = card.querySelectorAll(".tnr-pass-row"), n = rows.length, gap = Math.min(0.25, 1.4 / Math.max(1, n));
+      var tRows = 1.6 + n * gap, tScr = Math.max(2.2, tRows), tSet = tScr + 1.2, tSeal = tSet + 0.2, total = tSeal + 0.8;
+      var H = card.clientHeight;
+      if (nameRef.current) nameRef.current.textContent = "";
+      if (hashRef.current) hashRef.current.textContent = "········";
+      tween(s, total * 1000, 0, function (k) {
+        var tt = k * total;
+        var nc = Math.max(0, Math.min(name.length, Math.floor((tt - 0.9) * 22)));
+        if (nameRef.current) nameRef.current.textContent = name.slice(0, nc);
+        for (var i = 0; i < n; i++) {
+          if (tt > 1.6 + i * gap) rows[i].classList.add("is-on");
+          var cv = rows[i].querySelector("canvas");
+          if (cv) paintBar(cv, fill(types[i]), clamp01((tt - 1.7 - i * gap) / 0.8), 0);
+        }
+        if (hashRef.current) {
+          if (tt < tScr) hashRef.current.textContent = "········";
+          else if (tt < tSet) {
+            var x = "";
+            for (var j = 0; j < head.length; j++) x += "0123456789abcdef".charAt(Math.floor(Math.random() * 16));
+            hashRef.current.textContent = x;
+          } else { hashRef.current.textContent = head; if (okRef.current) okRef.current.classList.toggle("is-on", !!ok); }
+        }
+        if (sweepRef.current) sweepRef.current.style.top = tt > tScr && tt < tSet ? ((tt - tScr) / 1.2 * (H + 60) - 60) + "px" : "";
+        if (ok && sealRef.current && tt > tSeal) {
+          sealRef.current.classList.add("is-on");
+          paintSeal(sealRef.current, 64, clamp01((tt - tSeal) / 0.8));
+        }
+      }, function () { s.done = true; final(); });
+      return function () { cancelAnimationFrame(s.raf); };
+    }, []);
+    useEffect(function () { if (st.current.done) final(); });     // new data, theme or verdict after the entrance
+    function tilt(e) {
+      var card = cardRef.current;
+      if (!card || e.pointerType !== "mouse" || !motion()) return;
+      var r = card.getBoundingClientRect(), px = (e.clientX - r.left) / r.width - 0.5, py = (e.clientY - r.top) / r.height - 0.5;
+      card.style.transform = "perspective(900px) rotateY(" + (px * 8).toFixed(2) + "deg) rotateX(" + (-py * 8).toFixed(2) + "deg)";
+      card.style.setProperty("--gx", (px + 0.5).toFixed(3));
+      card.classList.add("is-tilt");
+    }
+    function untilt() {
+      var card = cardRef.current;
+      if (!card) return;
+      card.style.transform = ""; card.classList.remove("is-tilt");
+    }
+    var ledger = t("passport.value.ledger", { n: d.ledger.count, head: "\u0001" }).split("\u0001");
+    return h("div", { className: "tnr-pass-wrap" },
+      h("div", { ref: cardRef, className: "tnr-pass", role: "img", "aria-label": t("passport.card.aria", { agent: name, verdict: props.verdict }),
+        onPointerMove: tilt, onPointerLeave: untilt },
+        h("div", { ref: sweepRef, className: "tnr-pass-sweep", "aria-hidden": true }),
+        h("div", { className: "tnr-pass-top", "aria-hidden": true },
+          h("span", null, "TENURE"),
+          h("span", null, t("passport.card.title") + " · " + (d.signature ? "ED25519" : t("passport.value.unsigned")) + " ",
+            h("span", { ref: okRef, className: "tnr-pass-ok" }, "✓"))),
+        h("div", { className: "tnr-pass-emblem", "aria-hidden": true },
+          h(Emblem, { share: autonomyShare(types), size: 192, cells: 64, rotate: true, developMs: 1400 })),
+        h("div", { ref: nameRef, className: "tnr-pass-name", "aria-hidden": true }),
+        h("div", { className: "tnr-pass-rows", "aria-hidden": true },
+          types.map(function (ty, i) {
+            var cap = !!(ty.guarantee && ty.guarantee.capped);
+            return h("div", { key: ty.type, className: "tnr-pass-row" },
+              h("span", { className: "tnr-pass-k" }, h("span", { className: "tnr-pass-n" }, nth(i + 1)), h("code", null, ty.type)),
+              h("span", { className: "tnr-pass-tier" }, h("b", null, cap ? t("tier.capped.chip") : TIER[ty.tier]), " " + tierLabel(ty.tier, cap)),
+              h("canvas", { className: "tnr-dbar tnr-pass-bar" }));
+          })),
+        h("div", { className: "tnr-pass-foot", "aria-hidden": true },
+          h("span", null, t("passport.card.signature")),
+          h("span", { className: "tnr-mono" }, ledger[0], h("span", { ref: hashRef, className: "tnr-pass-hash" }), ledger[1] || "")),
+        h("canvas", { ref: sealRef, className: "tnr-pass-seal", "aria-hidden": true })));
+  }
+
   function PassportView(props) {
     var agents = props.rows;
     var selS = useState(""), sel = selS[0], setSel = selS[1];
@@ -3410,6 +3960,7 @@ const TENURE_LOCALES = {
     var res = usePoll(function () {
       return row ? apiGet("/passport", { agent: row.agent.agent, of: row.profile, raw: props.raw }) : null;
     }, [row && row.key, props.raw, props.version], !!row, PASSPORT_MS);
+    var fresh = useFresh(!!(res.data && res.data.passport));
     if (!agents.length) return h(Empty, { title: t("passport.empty.title") }, t("passport.empty.body"));
     var d = res.data && res.data.passport;
     var v = res.data ? verdict(res.data.verify, d) : null;
@@ -3431,6 +3982,7 @@ const TENURE_LOCALES = {
         h("span", { className: "tnr-dim tnr-small" }, t("passport.note"))),
       res.error && !res.data ? h("div", { className: "tnr-error" }, errText(res.error)) : h(Stale, { res: res }),
       !d ? h("div", { className: "tnr-dim tnr-pad" }, t("common.loading")) : h("div", { className: "tnr-passport-grid" },
+        h(PassportCard, { key: row.key, doc: d, ok: !!(res.data.verify && !res.data.verify.length), verdict: v.title }),
         h("section", { className: cx("tnr-verdict", "tnr-verdict--" + v.tone) },
           h("div", { className: "tnr-verdict-title" }, v.title),
           h("ul", null, v.lines.map(function (l, i) { return h("li", { key: i }, l); })),
@@ -3449,16 +4001,16 @@ const TENURE_LOCALES = {
               return h(Fragment, { key: kv[0] }, h("dt", null, t("passport.field." + kv[0])), h("dd", { className: "tnr-mono" }, kv[1]));
             }))),
         h("section", { className: "tnr-passport-types" },
-          h("div", { className: "tnr-section-title" }, t("passport.types_title")),
+          h(Eyebrow, { n: 1 }, t("passport.types_title")),
           h("table", { className: "tnr-dtable" },
             h("thead", null, h("tr", null, h("th", null, t("th.type")), h("th", null, t("th.tier")), h("th", { className: "tnr-num" }, t("th.series")),
               h("th", { className: "tnr-num" }, t("th.sessions")), h("th", null, t("th.guarantee")))),
-            h("tbody", null, d.types.map(function (ty) {
+            h("tbody", null, d.types.map(function (ty, pi) {
               var g = ty.guarantee || {};
               var gtext = g.capped ? t("legend.capped") : t("passport.guarantee", { aoql: pct(g.aoql), worst: pct(g.worst_case) });
-              return h("tr", { key: ty.type },
+              return h("tr", { key: ty.type, className: fresh ? "tnr-in" : undefined, style: { "--i": pi } },
                 h("td", null, h("code", null, ty.type), h("div", { className: "tnr-dim tnr-small" }, t("stakes." + ty.stakes))),
-                h("td", null, h(TierChip, { tier: ty.tier, capped: !!g.capped })),
+                h("td", null, h(TierChip, { tier: ty.tier, capped: !!g.capped, label: true })),
                 h("td", { className: "tnr-num" }, ty.required == null ? "—" : num(ty.series) + "/" + num(ty.required)),
                 h("td", { className: "tnr-num" }, num(ty.sessions)),
                 h("td", { className: "tnr-small" }, !g.capped && g.conditional ? gtext + " · " + t("flag.provisional") : gtext));
@@ -3468,6 +4020,7 @@ const TENURE_LOCALES = {
   // --------------------------------------------------------------------------------------------------------- undo
   function UndoView(props) {
     var list = props.undoable || [];
+    var fresh = useFresh(list.length > 0);
     if (!list.length) {
       return h(Empty, { title: t("undo.empty.title") }, t("undo.empty.body"));
     }
@@ -3477,9 +4030,9 @@ const TENURE_LOCALES = {
         h("table", { className: "tnr-dtable" },
           h("thead", null, h("tr", null, h("th", { className: "tnr-num" }, "#"), h("th", null, t("th.when")), h("th", null, t("th.agent")), h("th", null, t("th.type")),
             h("th", null, t("th.undo_effect")), h("th", null, ""))),
-          h("tbody", null, list.map(function (u) {
+          h("tbody", null, list.map(function (u, ui) {
             var mine = u.profile === props.current;
-            return h("tr", { key: u.profile + u.id },
+            return h("tr", { key: u.profile + u.id, className: fresh ? "tnr-in" : undefined, style: { "--i": ui } },
               h("td", { className: "tnr-num tnr-dim" }, u.id),
               h("td", { className: "tnr-mono" }, ago(u.age), h("div", { className: "tnr-dim tnr-small" }, t("undo.window_ends", { duration: duration(86400 - u.age) }))),
               h("td", null, u.agent, h("div", { className: "tnr-dim tnr-small" }, t("common.profile", { profile: u.profile }))),
@@ -3552,7 +4105,7 @@ const TENURE_LOCALES = {
     return h("div", { className: "tnr-settings" },
       h("section", { className: "tnr-dial" },
         h("div", { className: "tnr-dial-head" },
-          h("div", null, h("div", { className: "tnr-section-title" }, t("settings.risk_title")),
+          h("div", null, h(Eyebrow, { n: 1 }, t("settings.risk_title")),
             h("div", { className: "tnr-dim tnr-small" }, t("settings.risk_help"))),
           h("div", { className: "tnr-seg", role: "radiogroup", "aria-label": t("settings.preset_aria") },
             ["careful", "balanced", "fast"].map(function (n) {
@@ -3565,7 +4118,7 @@ const TENURE_LOCALES = {
         h("div", { className: "tnr-dial-rows" },
           STAKES.map(function (s) {
             var n = studyN(rk[s]), was = studyN(cur.risks[s]);
-            return h("div", { key: s, className: "tnr-dial-row" },
+            return h("div", { key: s, className: "tnr-dial-row tnr-in", style: { "--i": STAKES.indexOf(s) } },
               h("div", { className: "tnr-dial-level" }, h("span", { className: "tnr-stakes-dot tnr-stakes--" + s }), t("settings.stakes." + s)),
               h("div", { className: "tnr-ladder", role: "radiogroup", "aria-label": t("settings.stakes_risk." + s) },
                 LADDER.map(function (k) {
@@ -3598,7 +4151,7 @@ const TENURE_LOCALES = {
               t("settings.in_force_profile", { profile: props.profile })))),
       msg ? h("div", { className: "tnr-msg tnr-tone--" + msg.tone }, msg.text) : null,
       h("section", { className: "tnr-about" },
-        h("div", { className: "tnr-section-title" }, t("settings.about.title")),
+        h(Eyebrow, { n: 2 }, t("settings.about.title")),
         h("p", null, t("settings.about.body", { spot: oneIn(cur.spot) })),
         h("p", { className: "tnr-dim" }, t("settings.about.carry"))));
   }
@@ -3611,10 +4164,29 @@ const TENURE_LOCALES = {
       ["r", t("help.raw")], ["esc", t("help.close")], ["?", t("help.help")]];
     return h("div", { className: "tnr-drawer-wrap", onClick: props.onClose },
       h("div", { className: "tnr-help", role: "dialog", "aria-label": t("help.aria") },
-        h("div", { className: "tnr-section-title" }, t("help.title")),
+        h(Eyebrow, { n: 0 }, t("help.title")),
         h("dl", null, keys.map(function (k) {
           return h(Fragment, { key: k[0] }, h("dt", null, h(Kbd, null, k[0])), h("dd", null, k[1]));
         }))));
+  }
+
+  // ------------------------------------------------------------------------------------------------- big moments
+  /** A type reached T3 (Tenure granted), T2 (Under review), or fell back to T1 after a fault (Back on probation):
+   *  a band at the top of the tab, its title revealed by a wipe, a dither fade below; it folds away after 6 s. */
+  function Moment(props) {
+    var m = props.moment;
+    var granted = m.kind === "granted", down = m.kind === "probation";
+    var title = granted ? t("moment.granted") : down ? t("moment.probation") : t("moment.review");
+    return h("div", { className: cx("tnr-moment", "tnr-moment--" + m.kind), role: "status" },
+      h("div", { className: "tnr-moment-in" },
+        h("div", { className: "tnr-moment-eyebrow" }, "#", down ? t("moment.eyebrow.down") : t("moment.eyebrow.up"), " · ", h("code", null, m.type)),
+        h("div", { className: "tnr-moment-title" }, title),
+        h("div", { className: "tnr-moment-sub" },
+          h("span", { className: "tnr-mono" }, m.agent), " · ",
+          h("b", null, TIER[m.to]), " " + tierLabel(m.to) + (m.repair ? " · " + m.repair : ""))),
+      h("button", { type: "button", className: "tnr-moment-x", onClick: props.onClose, "aria-label": t("moment.dismiss"),
+        title: t("moment.dismiss") }, "×"),
+      granted ? h(DitherFade) : null);
   }
 
   // ------------------------------------------------------------------------------------------------------ page
@@ -3630,6 +4202,18 @@ const TENURE_LOCALES = {
     var prev = useRef(null);
     var toneS = useState("dark"), tone = toneS[0], setTone = toneS[1];
     var roS = useState(false), settingsRO = roS[0], setSettingsRO = roS[1];   // 501 once: read-only for the visit
+    var animS = useState(readAnimPref), animOn = animS[0], setAnimOn = animS[1];
+    var momS = useState(null), moment = momS[0], setMoment = momS[1];
+    var rmS = useState(reducedMotion()), reduced = rmS[0], setReduced = rmS[1];
+    ANIM = animOn;
+    useEffect(function () {
+      if (!REDUCED) return undefined;
+      function on() { setReduced(REDUCED.matches); }
+      if (REDUCED.addEventListener) REDUCED.addEventListener("change", on); else if (REDUCED.addListener) REDUCED.addListener(on);
+      return function () {
+        if (REDUCED.removeEventListener) REDUCED.removeEventListener("change", on); else if (REDUCED.removeListener) REDUCED.removeListener(on);
+      };
+    }, []);
     // The dashboard's language: reading the host's i18n context re-renders the tab when the user switches language.
     var i18n = typeof SDK.useI18n === "function" ? SDK.useI18n() : null;
     setLocale(i18n && i18n.locale);
@@ -3676,6 +4260,16 @@ const TENURE_LOCALES = {
       });
       if (found.length) {
         setTransitions(function (xs) { return found.concat(xs).slice(0, 30); });
+        var RANK = { ask: 0, notify: 1, alone: 2 };
+        var up3 = found.filter(function (x) { return x.to === "alone"; })[0];
+        var fell = found.filter(function (x) { return x.to === "ask" && RANK[x.from] > 0 && x.why === "after_fault"; })[0];
+        var up2 = found.filter(function (x) { return x.to === "notify" && x.from === "ask"; })[0];
+        var pick = up3 ? ["granted", up3] : fell ? ["probation", fell] : up2 ? ["review", up2] : null;
+        if (pick) {
+          var cur = now[Object.keys(now).filter(function (k) { return now[k].t.type === pick[1].type && now[k].r.agent.agent === pick[1].agent; })[0]];
+          setMoment({ kind: pick[0], type: pick[1].type, agent: cur ? cur.r.agent.model : pick[1].agent, to: pick[1].to,
+            repair: pick[0] === "probation" && cur ? missing(cur.t).text : "", at: Date.now() });
+        }
         var f = found[0];
         setToast({ text: t("toast.transition", { agent: f.agent, type: f.type, from: TIER[f.from], to: TIER[f.to] }), type: "info", at: Date.now() });
       }
@@ -3686,6 +4280,12 @@ const TENURE_LOCALES = {
       var tn = luminance(getComputedStyle(document.documentElement).getPropertyValue("--background-base")) > 0.5 ? "light" : "dark";
       if (tn !== tone) setTone(tn);
     });
+
+    useEffect(function () {
+      if (!moment) return undefined;
+      var tm = setTimeout(function () { setMoment(null); }, 6000);
+      return function () { clearTimeout(tm); };
+    }, [moment]);
 
     useEffect(function () {
       if (!toast) return undefined;
@@ -3739,23 +4339,32 @@ const TENURE_LOCALES = {
     else body = h(SettingsView, { settings: current && current.settings, profile: currentProfile, raw: raw, onDone: done,
       readOnly: settingsRO, onReadOnly: setSettingsRO });
 
-    return h("div", { className: "tnr", "data-tone": tone, ref: rootRef, tabIndex: -1, onKeyDown: onKey, style: { outline: "none" } },
+    var moving = animOn && !reduced;
+    return h("div", { className: "tnr", "data-tone": tone, "data-anim": moving ? "on" : "off", ref: rootRef, tabIndex: -1, onKeyDown: onKey,
+      style: { outline: "none" } },
       h("header", { className: "tnr-head" },
         h("div", { className: "tnr-title-row" },
-          h("h1", { className: "tnr-title" }, t("page.title")),
-          h("span", { className: "tnr-subtitle" }, t("page.subtitle")),
+          h("div", { className: "tnr-title-block" },
+            h("div", { className: "tnr-eyebrow" }, h("span", { className: "tnr-eyebrow-n" }, nth(0)), t("passport.card.signature")),
+            h("h1", { className: "tnr-title" }, t("page.title")),
+            h("span", { className: "tnr-subtitle" }, t("page.subtitle"))),
           h("div", { className: "tnr-head-right" },
             h("span", { className: cx("tnr-live", err && "is-stale"), title: err ? errText(err) : t("page.polling", { s: POLL_MS / 1000 }) },
               h("span", { className: "tnr-live-dot", "aria-hidden": true }), err ? t("page.retrying") : t("page.live"),
               h("span", { className: "tnr-mono" }, updated)),
             h("button", { type: "button", className: cx("tnr-chip-btn", raw && "is-on"), onClick: function () { setRaw(!raw); }, title: t("page.raw_title") },
               raw ? t("page.raw_on") : t("page.raw_off")),
+            h("button", { type: "button", className: cx("tnr-chip-btn", moving && "is-on"), "aria-pressed": moving, disabled: reduced,
+              onClick: function () { writeAnimPref(!animOn); setAnimOn(!animOn); },
+              title: reduced ? t("page.anim_reduced") : t("page.anim_title") },
+              h("span", { className: "tnr-anim-dot", "aria-hidden": true }), moving ? t("page.anim_on") : t("page.anim_off")),
             h("button", { type: "button", className: "tnr-chip-btn", onClick: function () { setHelp(true); }, title: t("help.aria") }, h(Kbd, null, "?")))),
         h(Counters, { totals: activity && activity.totals })),
       h(Tabs, { view: view, onView: function (v) { setView(v); setDrawer(null); }, undoCount: activity && activity.undoable ? activity.undoable.length : 0 }),
       unreadable.length ? h("div", { className: "tnr-msg tnr-tone--warn" }, t("page.unreadable", {
         profiles: unreadable.map(function (p) { return p.profile; }).join(t("common.list_sep")) })) : null,
       data && err ? h("div", { className: "tnr-msg tnr-tone--warn" }, t("stale.message", { error: errText(err), time: updated })) : null,
+      moment ? h(Moment, { key: moment.at, moment: moment, onClose: function () { setMoment(null); } }) : null,
       h("main", { className: "tnr-body", "data-view": view, id: "tnr-panel", role: "tabpanel", "aria-labelledby": "tnr-tab-" + view }, body),
       drawerRow ? h(AgentDrawer, { row: drawerRow, raw: raw, version: version, onClose: function () { setDrawer(null); }, onDone: done }) : null,
       help ? h(Help, { onClose: function () { setHelp(false); } }) : null,
