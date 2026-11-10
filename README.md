@@ -37,9 +37,9 @@ verified record and climbs three tiers, only on evidence:
 
 | Tier | What happens |
 |---|---|
-| **T1 · Asks first** | Every action of the type asks you first. Everything starts here. |
-| **T2 · Acts, then tells you** | The agent acts, then tells you, with an undo: the files it touched were saved first (24 hours, 5 MB per action). Only for reversible types at low or medium stakes. |
-| **T3 · Acts on its own** | The agent acts on its own. A random share of actions (one in ten by default) still asks, as a spot check. |
+| **T1 · Probation** (asks first) | Every action of the type asks you first. Everything starts here. |
+| **T2 · Under review** (acts, then tells you) | The agent acts, then tells you, with an undo: the files it touched were saved first (24 hours, 5 MB per action). Only for reversible types at low or medium stakes. |
+| **T3 · Tenured** (acts on its own) | The agent acts on its own. A random share of actions (one in ten by default) still asks, as a spot check. |
 
 One fault and the type drops back. Ordinary reads never ask; secrets, sensitive files, the agent's own skills and
 plugins, and anything that could switch tenure off always do (see [Self-protection](#self-protection)).
@@ -70,6 +70,14 @@ same tiers (`hermes tenure verify`). The format is in [docs/protocol.md](docs/pr
 your benchmark, passport), a status-bar chip with the tiers of the model in use, and ⌘K commands to open the map, show the
 current model's passport or revoke it. Like every desktop half, it is opt-in: enable it once in
 **Capabilities → Plugins**.
+
+**Made to be looked at.** Tenure speaks Hermes' visual language: one colour (your accent), condensed titles, and
+1-bit dithered progress bars that densify into a solid fill as an action type nears tenure. Each agent carries an
+original dithered emblem whose density is the share of autonomy it has earned, and its passport is an animated
+card: the emblem develops, the ledger head settles and a seal prints only when the signature verifies. Moments
+play on real transitions only: "Tenure granted" when a type reaches T3, "Back on probation" after a fault, with the
+way back. Reduced motion is honoured, and one switch turns animations off. `hermes tenure card` gives the same
+record as a short text card to paste anywhere.
 
 **In your language.** Every surface (desktop page, dashboard tab, chat messages, `hermes tenure` output) speaks
 English, French, Spanish, Simplified Chinese and Arabic (right to left), and follows Hermes' own language setting
