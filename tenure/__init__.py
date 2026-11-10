@@ -45,7 +45,8 @@ import uuid
 from collections import OrderedDict
 from contextlib import contextmanager
 
-from . import benchmarks, classify, params, passport, personal, proofs, rule, store, undo
+from . import benchmarks, classify, i18n, params, passport, personal, proofs, rule, store, undo
+from .i18n import tr
 
 log = logging.getLogger("tenure")
 PREFIX = "tenure"
@@ -55,9 +56,22 @@ MAX_SESSIONS = 4096              # sessions whose agent, or suspension, this pro
 LOCK_TIMEOUT = 10.0              # seconds a hook waits for another thread's transaction before giving up
 HOOK_BUDGET = 25.0               # seconds pre_tool_call may take in all (Hermes stops waiting at 30)
 SESSIONLESS_TAINT = 3600         # seconds a read outside any session suspends sessionless calls of this process
-_TIER_NAMES = {rule.T1: "T1 asks first", rule.T2: "T2 acts, then notifies", rule.T3: "T3 acts on its own"}
-_TIER = {rule.T1: "T1, asking first", rule.T2: "T2, acting then notifying you with an undo",
-         rule.T3: "T3, acting on its own"}
+_TIERS = (rule.T1, rule.T2, rule.T3)
+
+
+def tier_name(tier) -> str:
+    """"T1 asks first", in the owner's language."""
+    return tr(f"tier.short.{tier}") if tier in _TIERS else str(tier)
+
+
+def _tier_long(tier) -> str:
+    """"T1, asking first", in the owner's language."""
+    return tr(f"tier.long.{tier}") if tier in _TIERS else str(tier)
+
+
+def stakes_name(stakes) -> str:
+    """A stakes level as the owner reads it (the level itself stays the identifier in settings)."""
+    return tr(f"stakes.{stakes}") if stakes in params.LEVELS else str(stakes)
 
 
 class LockTimeout(RuntimeError):
@@ -459,29 +473,25 @@ def _say(events: list[dict], spot: float) -> list[str]:
     for ev in events:
         t, kind, reason = ev.get("type"), ev.get("event"), ev.get("reason")
         if kind == "tier" and reason == "stakes":
-            out.append(f"tenure: {t} now has {ev.get('stakes')} stakes: its record starts over at these stakes "
-                       f"(a trial and the faults on record stay).")
+            out.append(tr("notice.tier.stakes", type=t, stakes=stakes_name(ev.get("stakes"))))
         elif kind == "tier" and reason == "series":
-            out.append(f"tenure: {t} now acts on its own, after {ev.get('required')} verified successes in a row from "
-                       f"{ev.get('sessions')} sessions. 1 action in {round(1 / spot)} is still spot-checked, and a "
-                       f"fault sends it back down.")
+            out.append(tr("notice.tier.series", type=t, spot=round(1 / spot),
+                          successes=tr("notice.count.successes_in_a_row", n=ev.get("required")),
+                          sessions=tr("notice.count.sessions", n=ev.get("sessions"))))
         elif kind == "tier" and reason == "wald":
-            out.append(f"tenure: {t} now acts, then notifies you with an undo, after a run of verified successes.")
+            out.append(tr("notice.tier.wald", type=t))
         elif kind == "tier" and reason in ("fault", "settings"):
-            why = "after a fault" if reason == "fault" else "under your new settings"
-            out.append(f"tenure: {t} is back at {_TIER.get(ev.get('to'), ev.get('to'))}, {why}.")
+            out.append(tr(f"notice.tier.{reason}", type=t, tier=_tier_long(ev.get("to"))))
         elif kind == "trial" and reason == "fault":
-            out.append(f"tenure: {t} is on trial: its next {ev.get('left')} actions ask, and all must succeed.")
+            out.append(tr("notice.trial.fault", type=t, n=ev.get("left")))
         elif kind == "trial" and reason == "passed":
-            out.append(f"tenure: {t} passed its trial.")
+            out.append(tr("notice.trial.passed", type=t))
         elif kind == "trial" and reason == "failed":
-            out.append(f"tenure: {t} failed its trial: every action asks, and a new trial opens after "
-                       f"{ev.get('wait')} more actions of this type.")
+            out.append(tr("notice.trial.failed", type=t, n=ev.get("wait")))
         elif kind == "trial" and reason == "wait over":
-            out.append(f"tenure: {t} gets a new trial: its next {ev.get('left')} actions ask.")
+            out.append(tr("notice.trial.wait_over", type=t, n=ev.get("left")))
         elif kind == "confirmed":
-            out.append(f"tenure: {t}: the record carried over from the previous agent is now confirmed by this "
-                       f"agent's own successes.")
+            out.append(tr("notice.confirmed", type=t))
     return out
 
 
@@ -561,29 +571,25 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
     snapshot is kept, so the owner can try again. The settings are the configured ones, synced into the ledger."""
     entry = st.get_undo(id)
     if entry is None:
-        return UndoMessage(f"No undo entry {id}.", False)
+        return UndoMessage(tr("undo.missing", id=id), False)
     if entry["undone"]:
-        return UndoMessage(f"Undo {id} is already undone.", False)
+        return UndoMessage(tr("undo.already", id=id), False)
     if time.time() - entry["at"] > UNDO_WINDOW:
-        return UndoMessage(f"Undo {id} is older than {UNDO_WINDOW // 3600} h: the snapshot is no longer kept.", False)
+        return UndoMessage(tr("undo.expired", id=id, n=UNDO_WINDOW // 3600), False)
     if not entry["snap_id"]:
-        return UndoMessage(f"Undo {id}: no snapshot was saved for this action, nothing to restore.", False)
+        return UndoMessage(tr("undo.no_snapshot", id=id), False)
     try:
         restored, failed = undo.restore(entry["snap_id"], data_dir(), keep=True, key=undo_key())
     except undo.Refused as e:
-        return UndoMessage(f"Undo {id} refused: {e}. Nothing was restored, nothing is marked undone and no fault is "
-                           f"recorded.", False)
+        return UndoMessage(tr("undo.refused", id=id, reason=e), False)
     if failed:
-        return UndoMessage(f"Undo {id}: {failed} file(s) could not be restored ({restored} were). Nothing is marked "
-                           f"undone and no fault is recorded: fix the cause (permissions, a locked file) and try "
-                           f"again.", False)
+        return UndoMessage(tr("undo.partial", id=id, n=failed, restored=restored), False)
     if restored == 0:
-        return UndoMessage(f"Undo {id}: the snapshot is gone, nothing restored.", False)
+        return UndoMessage(tr("undo.gone", id=id), False)
     agent, key = entry["agent"], entry["type"]
     st.mark_undone(id)
     if entry["fault"]:
-        return UndoMessage(f"Undo {id}: files restored. The automatic check had already counted this action as a "
-                           f"fault of {key}; no second fault is recorded.", True, entry["snap_id"])
+        return UndoMessage(tr("undo.done_already_fault", id=id, type=key), True, entry["snap_id"])
     recorded = st.recorded(agent, key)
     stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
     cfg = settings()
@@ -592,8 +598,7 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
                    result="fault", source="undo")
     st.bump(agent, "faults")
     s = st.get_state(agent, key, stakes, reversible)
-    return UndoMessage(f"Undo {id}: files restored. Counted as a fault of {key} for {agent}; it is now at "
-                       f"{_TIER_NAMES[s.tier]}.", True, entry["snap_id"])
+    return UndoMessage(tr("undo.done", id=id, type=key, agent=agent, tier=tier_name(s.tier)), True, entry["snap_id"])
 
 
 def _bump(st: store.Store, agent: str, result: str, *, checked: bool = False, alone: bool = False) -> None:
@@ -642,15 +647,14 @@ def _carry(st: store.Store, cfg: dict, old: str, new: str) -> str:
         else:
             reset += 1
     st.log({"event": "agent", "old": old, "new": new, "mode": "strict" if strict else "carry", "vetoed": vetoed})
-    text = (f"tenure: new agent {new} (was {old}). Action types: {carried} carried over on trial, {reset} reset, "
-            f"{len(vetoed)} vetoed by a public benchmark.")
+    parts = [tr("carry.new_agent", new=new, old=old, carried=carried, reset=reset, vetoed=len(vetoed))]
     if kept:
-        text += f" {kept} kept this agent's own record."
+        parts.append(tr("carry.kept", n=kept))
     if strict:
-        text += " Strict mode: every type starts over, and a fault on record becomes a trial."
+        parts.append(tr("carry.strict"))
     elif carried:
-        text += " A carried-over record is half the old series, provisional until this agent's own successes match it."
-    return text
+        parts.append(tr("carry.carried"))
+    return " ".join(parts)
 
 
 # --------------------------------------------------------------------------------------------------- decision
@@ -683,34 +687,28 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
 
 def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool,
                  earned_at: str | None) -> str:
+    labels = i18n.buttons()                          # Hermes' own approval buttons, as the owner sees them
+    stakes = stakes_name(act.stakes)
     if decision == rule.SPOT:
-        return (f"tenure spot check — {act.summary}\n{act.type} acts on its own; 1 action in {round(1 / spot)} is "
-                f"still checked at random.\nRun it if it is right; Reject it if it is wrong (the type goes back down). "
-                f"Session/Always = one Run.")
+        return tr("ask.spot", summary=act.summary, type=act.type, spot=round(1 / spot), **labels)
     if n is None:
-        why = (f"{act.type} ({act.stakes} stakes) is capped by your settings: always asked ({s.successes} verified "
-               f"successes on record).")
+        why = tr("ask.why.capped", type=act.type, stakes=stakes, n=s.successes)
     elif suspended:
-        why = "This session read external content, so every action asks again (suspended: external content read)."
+        why = tr("ask.why.suspended")
     elif s.trial_left:
-        why = f"{act.type} is on trial after a fault: {s.trial_left} more verified successes needed, without a fault."
+        why = tr("ask.why.trial", type=act.type, n=s.trial_left)
     elif s.trial_wait:
-        why = (f"{act.type} failed its trial: every action asks, and a new trial opens after {s.trial_wait} more "
-               f"actions of this type.")
+        why = tr("ask.why.trial_wait", type=act.type, n=s.trial_wait)
     elif earned_at and earned_at != act.stakes:
-        why = (f"{act.type} earned its record at {earned_at} stakes, and this action has {act.stakes} stakes: it "
-               f"asks.")
+        why = tr("ask.why.other_stakes", type=act.type, earned=stakes_name(earned_at), stakes=stakes)
     elif unsaved:
-        why = (f"{act.type} would act and then notify you, but an undo cannot be prepared for this action (a file "
-               f"too large, binary or unreadable): asking instead.")
+        why = tr("ask.why.unsaved", type=act.type)
     else:
-        k = len(s.sessions)
-        why = (f"{act.type} ({act.stakes} stakes) asks first: {s.series}/{rule.required(s, n)} clean runs in a row, "
-               f"{k} of 2 sessions, before it acts on its own.")
+        why = tr("ask.why.series", type=act.type, stakes=stakes, series=s.series, required=rule.required(s, n),
+                 sessions=len(s.sessions), needed=rule.SESSIONS)
         if s.provisional:
-            why += f" {s.provisional} of them carried over from the previous agent, provisional."
-    return (f"tenure — {act.summary}\n{why}\nRun it if it is right; Reject it if it is wrong (a fault). "
-            f"Session/Always = one Run; tenure decides when it stops asking.")
+            why += " " + tr("ask.why.provisional", n=s.provisional)
+    return tr("ask.prompt", summary=act.summary, why=why, **labels)
 
 
 # Seconds: Hermes runs a longer terminal call in the background (its TERMINAL_MAX_FOREGROUND_TIMEOUT default).
@@ -778,12 +776,11 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         _push("acted", {"agent": agent, "type": key, "undo_id": undo_id, "fault": bool(reason),
                         "profile": _profile_name()})
         if reason:
-            posts.append(f"tenure: {key} acted, then told you, but the automatic check failed ({reason}); counted as "
-                         f"a fault · /tenure undo {undo_id}")
+            posts.append(tr("settle.acted_fault", type=key, reason=reason, command="/tenure undo", id=undo_id))
         else:
-            posts.append(f"tenure: {key} acted, then told you · /tenure undo {undo_id}")
+            posts.append(tr("settle.acted", type=key, command="/tenure undo", id=undo_id))
     elif reason:
-        posts.append(f"tenure: {key}: the automatic check failed ({reason}); counted as a fault.")
+        posts.append(tr("settle.check_failed", type=key, reason=reason))
     return posts + _say(events, cfg["spot"])
 
 
@@ -844,7 +841,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         uid = uuid.uuid4().hex
         if act.stakes == classify.CAP:
             return {"action": "approve", "rule_key": f"{PREFIX}:cap:{act.type}:{uid}",
-                    "message": f"tenure — {act.summary}\n{act.type} is capped: always asked."}
+                    "message": tr("ask.capped", summary=act.summary, type=act.type)}
         call, sid = str(tool_call_id or ""), str(session_id or task_id or "")
         session, agent, nobody = anon(sid), agent_of(sid, deadline), nobody_answers()
         n = params.required_n(cfg["risks"], act.stakes)
@@ -892,8 +889,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         if act is not None and act.stakes == classify.FREE:
             return None
         return {"action": "approve", "rule_key": f"{PREFIX}:ask:{act.type if act else 'unknown'}:{uuid.uuid4().hex}",
-                "message": f"tenure: internal error ({type(e).__name__}); asking you instead of letting the action "
-                           f"through."}
+                "message": tr("ask.internal_error", error=type(e).__name__)}
 
 
 def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs):

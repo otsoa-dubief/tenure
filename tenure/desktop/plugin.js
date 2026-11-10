@@ -51,115 +51,221 @@ const ID = 'tenure'
 const ROUTE = '/tenure'
 const HEARTBEAT_MS = 60_000
 
-// One vocabulary for the tiers, shared with the CLI and the dashboard tab.
-const EN = {
-  nav: 'Tenure',
-  title: 'Tenure',
-  viewAgents: 'Agents',
-  viewBenchmark: 'Your benchmark',
-  search: 'Search agents',
-  searchTypes: 'Search action types',
-  noMatch: 'No match',
-  loading: 'Reading the evidence…',
-  backendTitle: 'The agent half is not answering',
-  backendDesc: err => `Enable tenure for this profile in Capabilities → Plugins (Agent column). ${err}`,
-  retry: 'Try again',
-  emptyTitle: 'No agent has acted yet',
-  emptyDesc: 'Work as usual. Every change asks first, and each action type earns its tier from the answers you give.',
-  pickAgent: 'Pick an agent to see what it has earned.',
-  introTitle: 'How an action type earns its tier',
-  introBody: k =>
-    `Every action type of every model starts at T1: it asks first. A run of clean, approved actions moves it to T2: it acts, then tells you, with an Undo. A longer run, over two sessions, moves it to T3: it acts on its own, and 1 action in ${k} still asks, as a spot check. One fault sends the type back down.`,
-  gotIt: 'Got it',
-  tierT1: 'T1 · asks first',
-  tierT2: 'T2 · acts, then tells you, with an Undo',
-  tierT3: 'T3 · acts on its own, spot-checked',
-  tierCap: 'Capped · always asks',
-  provisional: 'provisional',
-  provisionalTip: 'Carried over from the previous model, halved, until its own approvals confirm it.',
-  trial: 'trial',
-  trialTip: 'A medium or high fault opened a trial: 3 verified successes in a row.',
-  fault: 'fault',
-  faultTip: 'A medium or high fault stays on record until a trial is passed.',
-  suspended: 'suspended',
-  suspendedTip: 'A session read outside content: it asks for everything until it ends.',
-  revoke: 'Revoke…',
-  revokeTitle: 'Revoke earned autonomy?',
-  revokeDescBefore: '',
-  revokeDescAfter: ' will ask before every action again. Its record stays in the ledger.',
-  revokeConfirm: 'Revoke',
-  revoking: 'Revoking…',
-  revoked: name => `${name} asks first again on every action type.`,
-  revokeFailed: 'Could not revoke',
-  metaProfile: 'Profile',
-  metaProvider: 'Provider',
-  metaActions: 'Actions',
-  metaActionsTip: 'Every action of this agent tenure saw. Actions nobody verified (no answer, a timeout) count for nothing.',
-  metaChecked: 'By you',
-  metaAlone: 'On its own',
-  metaFaults: 'Faults',
-  showAll: n => `Show all ${n}`,
-  showFewer: 'Show fewer',
-  metaPreset: 'Preset',
-  presetValue: (p, spot, pending) => `${p} · 1 in ${Math.round(1 / (spot || 0.1))} spot-checked` + (pending ? ' · applies from the next action' : ''),
-  types: 'Action types',
-  stakes: s => `${s} stakes`,
-  inARow: (s, r) => `${s} of ${r} in a row`,
-  sessions: n => `${n} ${n === 1 ? 'session' : 'sessions'}`,
-  alwaysAsks: 'always asks',
-  guarantee: (a, w) => `At most ${a}% of this type's actions run with an error nobody approved; ${w}% if the model turns bad.`,
-  conditional: ' Provisional: carried-over evidence.',
-  recent: 'Acted without asking',
-  recentNone: 'Nothing to undo in the last 24 hours.',
-  ago: s => (s < 90 ? 'just now' : s < 5400 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`),
-  undo: 'Undo',
-  undoTip: 'Restore the files as they were. Counts as a fault: the type goes back down.',
-  undone: 'Files restored. Counted as a fault.',
-  undoFailed: 'Could not undo',
-  flag: 'Flag',
-  flagTip: 'It made an error nobody caught: revoke this type.',
-  flagged: type => `${type} revoked: it asks first again.`,
-  flagFailed: 'Could not flag',
-  actedToast: (type, n, name) => (n > 1 ? `${type}: ${n} changes, then told you (${name}).` : `${type} changed, then told you (${name}).`),
-  actedDetail: 'Undo restores the files of the last change and counts as a fault.',
-  passportSection: 'Signed passport',
-  verifying: 'Verifying…',
-  verified: 'Verified: signature valid, hash chain intact, and replaying the ledger gives the same tiers.',
-  problems: p => `Does not verify: ${p}`,
-  unavailable: e => `Not available: ${e}`,
-  protocol: 'Protocol',
-  rule: 'Rule',
-  ledger: 'Ledger',
-  generated: 'Generated',
-  ledgerValue: (c, h) => `${c} events · head ${h}`,
-  copyPassport: 'Copy passport',
-  verifyHint: 'Anyone can check it:',
-  verifyCommand: 'hermes tenure verify passport.json ledger.jsonl',
-  benchmarkNote:
-    "Each model's verified record on your work for this action type, with the 95% range of its fault rate, ranked by the top of that range. The public score is context: capability on their tasks, not reliability on yours.",
-  faults: (f, n) => `${f} ${f === 1 ? 'fault' : 'faults'} / ${n}`,
-  colFaults: 'Faults',
-  colRange: '95% range',
-  colRate: 'Rate',
-  colPublic: 'Public',
-  moreFiles: n => ` +${n}`,
-  checkFailed: 'check failed',
-  checkFailedTip: 'The automatic check failed: already counted as a fault. Undo restores the files.',
-  flagTitle: 'Flag this change as an error?',
-  flagDesc: type => `This counts as a fault: ${type} will drop at least one tier and climb again. Use it for an error nobody caught.`,
-  flagConfirm: 'Flag',
-  copyCommand: 'Copy command',
-  notEnough: 'not enough evidence',
-  rate: (r, lo, hi) => `${r}% (${lo}–${hi}%)`,
-  rangeTip: 'Fault rate and its 95% range, on a 0–70% axis',
-  publicScore: (b, s) => `Public score: ${b}, ${s}`,
-  noPublic: '—',
-  chipTip: (name, earned, total) => `${name}: ${earned} of ${total} action types have earned autonomy (T2 or T3). Open Tenure.`,
-  menuBadge: tier => `${tier} earned`,
-  paletteOpen: 'Tenure: Open',
-  palettePassport: 'Tenure: Show passport for current model',
-  paletteRevoke: 'Tenure: Revoke current model…',
-  noCurrent: 'The current model has no record yet: every change asks first.'
+// Every user-visible string lives in tenure/locales/<lang>/desktop.json (one vocabulary for the tiers, shared with
+// the CLI and the dashboard tab). scripts/build_locales.py embeds the catalogs between the two markers below: do not
+// edit that block by hand. Values are strings with {placeholders}, or plural objects ({one, other, …}) chosen by {n}.
+/* TENURE_LOCALES_BEGIN */
+const TENURE_LOCALES = {
+  "en": {
+    "agents.pick": "Pick an agent to see what it has earned.",
+    "agents.search": "Search agents",
+    "backend.desc": "Enable tenure for this profile in Capabilities → Plugins (Agent column). {error}",
+    "backend.title": "The agent half is not answering",
+    "benchmark.col_faults": "Faults",
+    "benchmark.col_public": "Public",
+    "benchmark.col_range": "95% range",
+    "benchmark.col_rate": "Rate",
+    "benchmark.faults": {
+      "one": "{n} fault / {total}",
+      "other": "{n} faults / {total}"
+    },
+    "benchmark.no_public": "—",
+    "benchmark.not_enough": "not enough evidence",
+    "benchmark.note": "Each model's verified record on your work for this action type, with the 95% range of its fault rate, ranked by the top of that range. The public score is context: capability on their tasks, not reliability on yours.",
+    "benchmark.public_score": "Public score: {benchmark}, {source}",
+    "benchmark.public_score_accessed": "Public score: {benchmark}, {source}, {accessed}.",
+    "benchmark.public_value": "{value}%",
+    "benchmark.range_tip": "Fault rate and its 95% range, on a 0–70% axis",
+    "benchmark.rate": "{rate}% ({low}–{high}%)",
+    "benchmark.search": "Search action types",
+    "chip.tip": {
+      "one": "{name}: {earned} of {n} action type has earned autonomy (T2 or T3). Open Tenure.",
+      "other": "{name}: {earned} of {n} action types have earned autonomy (T2 or T3). Open Tenure."
+    },
+    "common.loading": "Reading the evidence…",
+    "common.no_match": "No match",
+    "common.retry": "Try again",
+    "empty.desc": "Work as usual. Every change asks first, and each action type earns its tier from the answers you give.",
+    "empty.title": "No agent has acted yet",
+    "flag.confirm": "Flag",
+    "flag.desc": "This counts as a fault: {type} will drop at least one tier and climb again. Use it for an error nobody caught.",
+    "flag.title": "Flag this change as an error?",
+    "intro.body": "Every action type of every model starts at T1: it asks first. A run of clean, approved actions moves it to T2: it acts, then tells you, with an Undo. A longer run, over two sessions, moves it to T3: it acts on its own, and 1 action in {k} still asks, as a spot check. One fault sends the type back down.",
+    "intro.got_it": "Got it",
+    "intro.title": "How an action type earns its tier",
+    "meta.actions": "Actions",
+    "meta.actions_tip": "Every action of this agent tenure saw. Actions nobody verified (no answer, a timeout) count for nothing.",
+    "meta.alone": "On its own",
+    "meta.checked": "By you",
+    "meta.faults": "Faults",
+    "meta.preset": "Preset",
+    "meta.profile": "Profile",
+    "meta.provider": "Provider",
+    "model_menu.badge": "{tier} earned",
+    "nav.label": "Tenure",
+    "page.title": "Tenure",
+    "page.view_agents": "Agents",
+    "page.view_benchmark": "Your benchmark",
+    "palette.no_current": "The current model has no record yet: every change asks first.",
+    "palette.open": "Tenure: Open",
+    "palette.passport": "Tenure: Show passport for current model",
+    "palette.revoke": "Tenure: Revoke current model…",
+    "passport.copy": "Copy passport",
+    "passport.copy_command": "Copy command",
+    "passport.generated": "Generated",
+    "passport.ledger": "Ledger",
+    "passport.ledger_value": {
+      "one": "{n} event · head {head}",
+      "other": "{n} events · head {head}"
+    },
+    "passport.problems": "Does not verify: {problems}",
+    "passport.protocol": "Protocol",
+    "passport.rule": "Rule",
+    "passport.title": "Signed passport",
+    "passport.unavailable": "Not available: {error}",
+    "passport.verified": "Verified: signature valid, hash chain intact, and replaying the ledger gives the same tiers.",
+    "passport.verify_hint": "Anyone can check it:",
+    "passport.verifying": "Verifying…",
+    "preset.value": "{preset} · 1 in {k} spot-checked",
+    "preset.value_pending": "{preset} · 1 in {k} spot-checked · applies from the next action",
+    "recent.check_failed": "check failed",
+    "recent.check_failed_tip": "The automatic check failed: already counted as a fault. Undo restores the files.",
+    "recent.flag": "Flag",
+    "recent.flag_tip": "It made an error nobody caught: revoke this type.",
+    "recent.flagged": "{type} revoked: it asks first again.",
+    "recent.hours_ago": {
+      "one": "{n} h ago",
+      "other": "{n} h ago"
+    },
+    "recent.just_now": "just now",
+    "recent.minutes_ago": {
+      "one": "{n} min ago",
+      "other": "{n} min ago"
+    },
+    "recent.more_files": "+{n}",
+    "recent.none": "Nothing to undo in the last 24 hours.",
+    "recent.show_all": "Show all {n}",
+    "recent.show_fewer": "Show fewer",
+    "recent.title": "Acted without asking",
+    "recent.undo": "Undo",
+    "recent.undo_failed": "Could not undo",
+    "recent.undo_tip": "Restore the files as they were. Counts as a fault: the type goes back down.",
+    "recent.undone": "Files restored. Counted as a fault.",
+    "revoke.action": "Revoke…",
+    "revoke.busy": "Revoking…",
+    "revoke.confirm": "Revoke",
+    "revoke.desc": "{name} will ask before every action again. Its record stays in the ledger.",
+    "revoke.done": "{name} asks first again on every action type.",
+    "revoke.title": "Revoke earned autonomy?",
+    "state.aria": "{label}: {tip}",
+    "state.fault": "fault",
+    "state.fault_tip": "A medium or high fault stays on record until a trial is passed.",
+    "state.provisional": "provisional",
+    "state.provisional_tip": "Carried over from the previous model, halved, until its own approvals confirm it.",
+    "state.suspended": "suspended",
+    "state.suspended_tip": "A session read outside content: it asks for everything until it ends.",
+    "state.trial": "trial",
+    "state.trial_tip": "A medium or high fault opened a trial: 3 verified successes in a row.",
+    "tier.cap": "Capped · always asks",
+    "tier.t1": "T1 · asks first",
+    "tier.t2": "T2 · acts, then tells you, with an Undo",
+    "tier.t3": "T3 · acts on its own, spot-checked",
+    "toast.acted": {
+      "one": "{type} changed, then told you ({name}).",
+      "other": "{type}: {n} changes, then told you ({name})."
+    },
+    "toast.acted_detail": "Undo restores the files of the last change and counts as a fault.",
+    "type.always_asks": "always asks",
+    "type.guarantee": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad.",
+    "type.guarantee_provisional": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad. Provisional: carried-over evidence.",
+    "type.in_a_row": "{series} of {required} in a row",
+    "type.sessions": {
+      "one": "{n} session",
+      "other": "{n} sessions"
+    },
+    "type.stakes_high": "high stakes",
+    "type.stakes_low": "low stakes",
+    "type.stakes_medium": "medium stakes",
+    "type.stakes_other": "{stakes} stakes",
+    "types.title": "Action types"
+  }
+};
+/* TENURE_LOCALES_END */
+
+// Commands the user types stay out of the catalogs.
+const VERIFY_COMMAND = 'hermes tenure verify passport.json ledger.jsonl'
+
+/* TENURE_I18N_BEGIN */
+// The host picks the locale (the app's display.language) and falls back to `en` per key; it resolves dotted keys as
+// paths into nested bundles and calls function leaves with the translator's arguments. So each flat catalog is
+// registered as a nested tree whose leaves format {placeholders} and pick the plural category for {n}.
+const HOST_LOCALES = ['en', 'zh', 'zh-hant', 'ja', 'ar', 'ru', 'fr', 'de', 'es']
+
+const baseLang = lang => String(lang || '').toLowerCase().split(/[-_]/)[0]
+
+// exact -> base language (zh-hant -> zh) -> en. Returns [lang, catalog].
+function pickCatalog(locales, lang) {
+  const exact = String(lang || '').toLowerCase()
+  if (locales[exact]) return [exact, locales[exact]]
+  const base = baseLang(exact)
+  if (locales[base]) return [base, locales[base]]
+  return ['en', locales.en || {}]
+}
+
+function pluralCategory(lang, n) {
+  try {
+    return new Intl.PluralRules(lang).select(Number(n))
+  } catch {
+    return 'other'
+  }
+}
+
+function formatMessage(value, lang, vars) {
+  let text = value
+  if (text && typeof text === 'object') {
+    const n = vars && typeof vars === 'object' ? vars.n : undefined
+    text = text[pluralCategory(lang, n)] ?? text.other
+  }
+  if (typeof text !== 'string') return null
+  return text.replace(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (m, name) =>
+    vars && typeof vars === 'object' && Object.prototype.hasOwnProperty.call(vars, name) ? String(vars[name]) : m
+  )
+}
+
+// Pure lookup, same chain as the host: active catalog -> en -> the key itself.
+function translate(locales, lang, key, vars) {
+  const [picked, catalog] = pickCatalog(locales, lang)
+  if (catalog[key] != null) {
+    const out = formatMessage(catalog[key], picked, vars)
+    if (out != null) return out
+  }
+  const out = locales.en && locales.en[key] != null ? formatMessage(locales.en[key], 'en', vars) : null
+  return out != null ? out : key
+}
+
+// { lang: nested tree of formatter functions } for ctx.i18n.register, one bundle per locale the host can select.
+function hostBundles(locales) {
+  const bundles = {}
+  for (const lang of new Set([...HOST_LOCALES, ...Object.keys(locales)])) {
+    const [picked, catalog] = pickCatalog(locales, lang)
+    if (picked === 'en' && lang !== 'en') continue // the host falls back to en by itself
+    const tree = {}
+    for (const [key, value] of Object.entries(catalog)) {
+      const parts = key.split('.')
+      let node = tree
+      for (const part of parts.slice(0, -1)) node = node[part] = node[part] || {}
+      node[parts[parts.length - 1]] = vars => formatMessage(value, picked, vars)
+    }
+    bundles[lang] = tree
+  }
+  return bundles
+}
+/* TENURE_I18N_END */
+
+// A sentence with one React node inside: format it around a sentinel, then interleave the node.
+function withNode(t, key, name, node) {
+  const parts = t(key, { [name]: '\u0000' }).split('\u0000')
+  return parts.flatMap((part, i) => (i === 0 ? [part] : [node, part]))
 }
 
 // ------------------------------------------------------------------------------------------------ data
@@ -222,15 +328,18 @@ function bestTier(agent) {
 const earned = agent => (agent.types || []).filter(t => ['notify', 'alone'].includes(tierKey(t))).length
 const pct = x => (x * 100).toFixed(1)
 
+const ago = (t, s) =>
+  s < 90 ? t('recent.just_now') : s < 5400 ? t('recent.minutes_ago', { n: Math.round(s / 60) }) : t('recent.hours_ago', { n: Math.round(s / 3600) })
+
 async function revokeAgent(a, t) {
   await rest('/revoke?of=' + encodeURIComponent(a.profile), { method: 'POST', body: { agent: a.agent, all: true } })
   haptic('success')
-  host.notify({ kind: 'success', message: t('revoked', displayName(a.model)) })
+  host.notify({ kind: 'success', message: t('revoke.done', { name: displayName(a.model) }) })
 }
 
 // ------------------------------------------------------------------------------------------------ pieces
 function TierLabel(tier, t) {
-  return { ask: t('tierT1'), notify: t('tierT2'), alone: t('tierT3'), cap: t('tierCap') }[tier]
+  return { ask: t('tier.t1'), notify: t('tier.t2'), alone: t('tier.t3'), cap: t('tier.cap') }[tier]
 }
 
 function TierPill({ tier, t }) {
@@ -248,11 +357,11 @@ function TierPill({ tier, t }) {
   })
 }
 
-function StatePill({ label, tip, tone }) {
+function StatePill({ label, tip, tone, t }) {
   return jsx(Tip, {
     label: tip,
     children: jsx('span', {
-      'aria-label': `${label}: ${tip}`,
+      'aria-label': t('state.aria', { label, tip }),
       className: 'inline-flex rounded-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50',
       tabIndex: 0,
       children: jsx(PanelPill, { tone, children: label })
@@ -270,7 +379,7 @@ function Progress({ value, max, label }) {
     className: 'relative inline-block h-1 shrink-0 overflow-hidden rounded-full bg-foreground/10',
     role: 'progressbar',
     style: { width: 64 },
-    children: jsx('span', { className: 'absolute inset-y-0 left-0 rounded-full bg-primary', style: { width: `${width}%` } })
+    children: jsx('span', { className: 'absolute inset-y-0 rounded-full bg-primary', style: { insetInlineStart: 0, width: `${width}%` } })
   })
 }
 
@@ -285,9 +394,9 @@ function Range({ rate, low, high, enough }) {
       jsx('span', { className: 'absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-foreground/15' }),
       jsx('span', {
         className: cn('absolute top-1/2 h-1 -translate-y-1/2 rounded-full', enough ? 'bg-primary' : 'bg-foreground/20'),
-        style: { left: at(low), width: `calc(${at(high)} - ${at(low)})`, minWidth: 2, opacity: enough ? 0.4 : 1 }
+        style: { insetInlineStart: at(low), width: `calc(${at(high)} - ${at(low)})`, minWidth: 2, opacity: enough ? 0.4 : 1 }
       }),
-      enough ? jsx('span', { className: 'absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary', style: { left: at(rate) } }) : null
+      enough ? jsx('span', { className: 'absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary', style: { insetInlineStart: at(rate), marginInlineStart: '-0.1875rem' } }) : null
     ]
   })
 }
@@ -303,23 +412,24 @@ function TypeRow({ type, t }) {
         children: [
           jsx(TierPill, { tier, t }),
           jsx('span', { className: 'min-w-0 flex-1 truncate font-mono text-[0.75rem] text-foreground/85', children: type.type }),
-          jsx('span', { className: 'shrink-0 text-[0.7rem] text-muted-foreground/70', children: t('stakes', type.stakes) }),
+          jsx('span', { className: 'shrink-0 text-[0.7rem] text-muted-foreground/70', children: ['low', 'medium', 'high'].includes(type.stakes) ? t('type.stakes_' + type.stakes) : t('type.stakes_other', { stakes: type.stakes }) }),
           type.capped
-            ? jsx('span', { className: 'shrink-0 text-[0.7rem] text-muted-foreground/70', children: t('alwaysAsks') })
+            ? jsx('span', { className: 'shrink-0 text-[0.7rem] text-muted-foreground/70', children: t('type.always_asks') })
             : jsxs('span', {
                 className: 'flex shrink-0 items-center gap-2 text-[0.7rem] tabular-nums text-muted-foreground/80',
                 children: [
-                  jsx(Progress, { value: type.series, max: type.required, label: t('inARow', type.series, type.required) }),
-                  jsx('span', { children: t('inARow', type.series, type.required) }),
-                  jsx('span', { className: 'text-muted-foreground/60', children: t('sessions', type.sessions) })
+                  jsx(Progress, { value: type.series, max: type.required, label: t('type.in_a_row', { series: type.series, required: type.required }) }),
+                  jsx('span', { children: t('type.in_a_row', { series: type.series, required: type.required }) }),
+                  jsx('span', { className: 'text-muted-foreground/60', children: t('type.sessions', { n: type.sessions }) })
                 ]
               })
         ]
       }),
       !type.capped && g
         ? jsx('p', {
-            className: 'mt-0.5 pl-10 text-[0.7rem] leading-relaxed text-muted-foreground/75',
-            children: t('guarantee', pct(g.aoql), pct(g.worst_case)) + (g.conditional ? t('conditional') : '')
+            className: 'mt-0.5 text-[0.7rem] leading-relaxed text-muted-foreground/75',
+            style: { paddingInlineStart: '2.5rem' },
+            children: t(g.conditional ? 'type.guarantee_provisional' : 'type.guarantee', { aoql: pct(g.aoql), worst: pct(g.worst_case) })
           })
         : null
     ]
@@ -336,8 +446,8 @@ function Intro({ t, spot }) {
       jsxs('div', {
         className: 'min-w-0 flex-1 space-y-0.5',
         children: [
-          jsx('p', { className: 'text-xs font-medium text-foreground', children: t('introTitle') }),
-          jsx('p', { className: 'max-w-3xl text-xs leading-relaxed text-muted-foreground/80', children: t('introBody', Math.round(1 / (spot || 0.1))) })
+          jsx('p', { className: 'text-xs font-medium text-foreground', children: t('intro.title') }),
+          jsx('p', { className: 'max-w-3xl text-xs leading-relaxed text-muted-foreground/80', children: t('intro.body', { k: Math.round(1 / (spot || 0.1)) }) })
         ]
       }),
       jsx(Button, {
@@ -347,7 +457,7 @@ function Intro({ t, spot }) {
         },
         size: 'xs',
         variant: 'ghost',
-        children: t('gotIt')
+        children: t('intro.got_it')
       })
     ]
   })
@@ -378,9 +488,9 @@ function RecentSection({ agent, t }) {
   return jsxs('section', {
     className: 'space-y-1.5',
     children: [
-      jsx(PanelSectionLabel, { children: t('recent') }),
+      jsx(PanelSectionLabel, { children: t('recent.title') }),
       rows.length === 0
-        ? jsx('p', { className: 'px-2 text-xs text-muted-foreground/70', children: t('recentNone') })
+        ? jsx('p', { className: 'px-2 text-xs text-muted-foreground/70', children: t('recent.none') })
         : jsx('div', {
             className: 'flex flex-col',
             children: rows.map(r =>
@@ -394,29 +504,29 @@ function RecentSection({ agent, t }) {
                       className: 'min-w-0 flex-1 truncate text-[0.75rem] text-foreground/85',
                       children: [
                         jsx('span', { className: 'font-mono', children: r.file || r.type }),
-                        r.files > 1 ? jsx('span', { className: 'text-muted-foreground/60', children: t('moreFiles', r.files - 1) }) : null,
-                        r.file ? jsx('span', { className: 'ml-2 font-mono text-[0.68rem] text-muted-foreground/55', children: r.type }) : null
+                        r.files > 1 ? jsx('span', { className: 'text-muted-foreground/60', children: ' ' + t('recent.more_files', { n: r.files - 1 }) }) : null,
+                        r.file ? jsx('span', { className: 'font-mono text-[0.68rem] text-muted-foreground/55', style: { marginInlineStart: '0.5rem' }, children: r.type }) : null
                       ]
                     }),
-                    r.counts_as_fault === false ? jsx(StatePill, { label: t('checkFailed'), tip: t('checkFailedTip'), tone: 'bad' }) : null,
-                    jsx('span', { className: 'shrink-0 text-[0.7rem] tabular-nums text-muted-foreground/60', children: t('ago', r.age) }),
+                    r.counts_as_fault === false ? jsx(StatePill, { label: t('recent.check_failed'), tip: t('recent.check_failed_tip'), tone: 'bad', t }) : null,
+                    jsx('span', { className: 'shrink-0 text-[0.7rem] tabular-nums text-muted-foreground/60', children: ago(t, r.age) }),
                     jsxs('span', {
                       className: 'flex shrink-0 items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/row:opacity-100',
                       children: [
                         jsx(Tip, {
-                          label: t('flagTip'),
-                          children: jsx(Button, { disabled: busy !== null, onClick: () => setFlagging(r), size: 'xs', variant: 'ghost', children: t('flag') })
+                          label: t('recent.flag_tip'),
+                          children: jsx(Button, { disabled: busy !== null, onClick: () => setFlagging(r), size: 'xs', variant: 'ghost', children: t('recent.flag') })
                         }),
                         jsx(Tip, {
-                          label: t('undoTip'),
+                          label: t('recent.undo_tip'),
                           children: jsxs(Button, {
                             'aria-busy': busy === 'undo' + r.id || undefined,
                             disabled: busy !== null,
                             onClick: () =>
-                              act('undo' + r.id, () => rest('/undo?of=' + encodeURIComponent(r.profile), { method: 'POST', body: { id: r.id } }), t('undone'), t('undoFailed')),
+                              act('undo' + r.id, () => rest('/undo?of=' + encodeURIComponent(r.profile), { method: 'POST', body: { id: r.id } }), t('recent.undone'), t('recent.undo_failed')),
                             size: 'xs',
                             variant: 'outline',
-                            children: [busy === 'undo' + r.id ? jsx(Codicon, { name: 'loading', size: '0.75rem', spinning: true }) : null, t('undo')]
+                            children: [busy === 'undo' + r.id ? jsx(Codicon, { name: 'loading', size: '0.75rem', spinning: true }) : null, t('recent.undo')]
                           })
                         })
                       ]
@@ -427,25 +537,25 @@ function RecentSection({ agent, t }) {
               )
             ).concat(
               every.length > 5
-                ? [jsx('div', { className: 'px-2 pt-1', children: jsx(Button, { onClick: () => setAll(!all), size: 'xs', variant: 'ghost', children: all ? t('showFewer') : t('showAll', every.length) }) }, 'more')]
+                ? [jsx('div', { className: 'px-2 pt-1', children: jsx(Button, { onClick: () => setAll(!all), size: 'xs', variant: 'ghost', children: all ? t('recent.show_fewer') : t('recent.show_all', { n: every.length }) }) }, 'more')]
                 : []
             )
           }),
       jsx(ConfirmDialog, {
-        busyLabel: t('revoking'),
-        confirmLabel: t('flagConfirm'),
-        description: flagging ? t('flagDesc', flagging.type) : null,
+        busyLabel: t('revoke.busy'),
+        confirmLabel: t('flag.confirm'),
+        description: flagging ? t('flag.desc', { type: flagging.type }) : null,
         destructive: true,
         onClose: () => setFlagging(null),
         onConfirm: async () => {
           const r = flagging
           await rest('/flag?of=' + encodeURIComponent(r.profile), { method: 'POST', body: { agent: r.agent, type: r.type } })
           haptic('success')
-          host.notify({ kind: 'success', message: t('flagged', r.type) })
+          host.notify({ kind: 'success', message: t('recent.flagged', { type: r.type }) })
           qc.invalidateQueries({ queryKey: ['tenure'] })
         },
         open: flagging !== null,
-        title: t('flagTitle')
+        title: t('flag.title')
       })
     ]
   })
@@ -467,12 +577,12 @@ function PassportSection({ agent, t }) {
       jsxs('div', {
         className: 'flex items-center justify-between gap-2',
         children: [
-          jsx(PanelSectionLabel, { children: t('passportSection') }),
-          p ? jsx(CopyButton, { buttonSize: 'xs', label: t('copyPassport'), showLabel: true, text: JSON.stringify(p, null, 2) }) : null
+          jsx(PanelSectionLabel, { children: t('passport.title') }),
+          p ? jsx(CopyButton, { buttonSize: 'xs', label: t('passport.copy'), showLabel: true, text: JSON.stringify(p, null, 2) }) : null
         ]
       }),
       isLoading && !doc
-        ? jsxs('p', { className: 'flex items-center gap-1.5 text-xs text-muted-foreground/70', children: [jsx(Codicon, { name: 'loading', size: '0.8rem', spinning: true }), t('verifying')] })
+        ? jsxs('p', { className: 'flex items-center gap-1.5 text-xs text-muted-foreground/70', children: [jsx(Codicon, { name: 'loading', size: '0.8rem', spinning: true }), t('passport.verifying')] })
         : jsxs('div', {
             className: cn('flex items-start gap-1.5 rounded p-2 text-[0.72rem]', ok ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'),
             role: 'status',
@@ -480,17 +590,21 @@ function PassportSection({ agent, t }) {
               jsx(Codicon, { className: 'mt-px shrink-0', name: ok ? 'verified-filled' : 'warning', size: '0.85rem' }),
               jsx('span', {
                 className: 'min-w-0 break-words',
-                children: error ? t('unavailable', error.message || String(error)) : ok ? t('verified') : t('problems', ((doc && doc.verify) || []).join('; '))
+                children: error
+                  ? t('passport.unavailable', { error: error.message || String(error) })
+                  : ok
+                    ? t('passport.verified')
+                    : t('passport.problems', { problems: ((doc && doc.verify) || []).join('; ') })
               })
             ]
           }),
       p
         ? jsx(PanelMeta, {
             rows: [
-              { label: t('protocol'), value: jsx('span', { className: 'font-mono', children: p.protocol }) },
-              { label: t('rule'), value: jsx('span', { className: 'font-mono', children: `${p.rule.name} · ${String(p.rule.fingerprint).slice(0, 16)}` }) },
-              { label: t('ledger'), value: jsx('span', { className: 'font-mono', children: t('ledgerValue', p.ledger.count, String(p.ledger.head).slice(0, 12)) }) },
-              { label: t('generated'), value: new Date(p.generated_at).toLocaleString() }
+              { label: t('passport.protocol'), value: jsx('span', { className: 'font-mono', children: p.protocol }) },
+              { label: t('passport.rule'), value: jsx('span', { className: 'font-mono', children: `${p.rule.name} · ${String(p.rule.fingerprint).slice(0, 16)}` }) },
+              { label: t('passport.ledger'), value: jsx('span', { className: 'font-mono', children: t('passport.ledger_value', { n: p.ledger.count, head: String(p.ledger.head).slice(0, 12) }) }) },
+              { label: t('passport.generated'), value: new Date(p.generated_at).toLocaleString() }
             ]
           })
         : null,
@@ -498,12 +612,12 @@ function PassportSection({ agent, t }) {
         ? jsxs('div', {
             className: 'space-y-1',
             children: [
-              jsx('p', { className: 'text-[0.7rem] text-muted-foreground/75', children: t('verifyHint') }),
+              jsx('p', { className: 'text-[0.7rem] text-muted-foreground/75', children: t('passport.verify_hint') }),
               jsxs('div', {
                 className: 'flex items-start gap-1',
                 children: [
-                  jsx(PanelBlock, { className: 'min-w-0 flex-1', children: t('verifyCommand') }),
-                  jsx(CopyButton, { appearance: 'icon', label: t('copyCommand'), text: t('verifyCommand') })
+                  jsx(PanelBlock, { className: 'min-w-0 flex-1', children: VERIFY_COMMAND }),
+                  jsx(CopyButton, { appearance: 'icon', label: t('passport.copy_command'), text: VERIFY_COMMAND })
                 ]
               })
             ]
@@ -530,31 +644,31 @@ function AgentDetail({ agent, t, onRevoke }) {
                 children: [
                   jsx(Tip, { label: agent.agent, children: jsx('h3', { className: 'text-[0.95rem] font-semibold tracking-tight text-foreground', children: displayName(agent.model) }) }),
                   jsx(TierPill, { tier: bestTier(agent), t }),
-                  agent.provisional ? jsx(StatePill, { label: t('provisional'), tip: t('provisionalTip'), tone: 'warn' }) : null,
-                  agent.trial ? jsx(StatePill, { label: t('trial'), tip: t('trialTip'), tone: 'warn' }) : null,
-                  agent.unresolved_fault ? jsx(StatePill, { label: t('fault'), tip: t('faultTip'), tone: 'bad' }) : null,
-                  agent.suspended ? jsx(StatePill, { label: t('suspended'), tip: t('suspendedTip'), tone: 'bad' }) : null
+                  agent.provisional ? jsx(StatePill, { label: t('state.provisional'), tip: t('state.provisional_tip'), tone: 'warn', t }) : null,
+                  agent.trial ? jsx(StatePill, { label: t('state.trial'), tip: t('state.trial_tip'), tone: 'warn', t }) : null,
+                  agent.unresolved_fault ? jsx(StatePill, { label: t('state.fault'), tip: t('state.fault_tip'), tone: 'bad', t }) : null,
+                  agent.suspended ? jsx(StatePill, { label: t('state.suspended'), tip: t('state.suspended_tip'), tone: 'bad', t }) : null
                 ]
               }),
-              jsx('div', { className: 'flex shrink-0 items-center gap-0.5', children: jsx(PanelAction, { icon: 'circle-slash', onClick: onRevoke, children: t('revoke') }) })
+              jsx('div', { className: 'flex shrink-0 items-center gap-0.5', children: jsx(PanelAction, { icon: 'circle-slash', onClick: onRevoke, children: t('revoke.action') }) })
             ]
           }),
           jsx(PanelMeta, {
             rows: [
-              { label: t('metaProfile'), value: agent.profile },
-              { label: t('metaProvider'), value: agent.provider },
-              { label: t('metaActions'), value: jsx(Tip, { label: t('metaActionsTip'), children: jsx('span', { tabIndex: 0, children: String(tot.actions || 0) }) }) },
-              { label: t('metaChecked'), value: String(tot.checked || 0) },
-              { label: t('metaAlone'), value: String(tot.alone || 0) },
-              { label: t('metaFaults'), value: String(tot.faults || 0) },
-              { label: t('metaPreset'), value: t('presetValue', s.preset || 'balanced', s.spot, s.pending) }
+              { label: t('meta.profile'), value: agent.profile },
+              { label: t('meta.provider'), value: agent.provider },
+              { label: t('meta.actions'), value: jsx(Tip, { label: t('meta.actions_tip'), children: jsx('span', { tabIndex: 0, children: String(tot.actions || 0) }) }) },
+              { label: t('meta.checked'), value: String(tot.checked || 0) },
+              { label: t('meta.alone'), value: String(tot.alone || 0) },
+              { label: t('meta.faults'), value: String(tot.faults || 0) },
+              { label: t('meta.preset'), value: t(s.pending ? 'preset.value_pending' : 'preset.value', { preset: s.preset || 'balanced', k: Math.round(1 / (s.spot || 0.1)) }) }
             ]
           })
         ]
       }),
       jsxs('section', {
         className: 'space-y-1.5',
-        children: [jsx(PanelSectionLabel, { children: t('types') }), jsx('div', { className: 'flex flex-col', children: (agent.types || []).map(ty => jsx(TypeRow, { type: ty, t }, ty.type)) })]
+        children: [jsx(PanelSectionLabel, { children: t('types.title') }), jsx('div', { className: 'flex flex-col', children: (agent.types || []).map(ty => jsx(TypeRow, { type: ty, t }, ty.type)) })]
       }),
       jsx(RecentSection, { agent, t }),
       jsx(PassportSection, { agent, t })
@@ -588,8 +702,8 @@ function AgentsView({ data, t }) {
     children: [
       jsxs(PanelList, {
         onSearchChange: setQuery,
-        searchLabel: t('search'),
-        searchPlaceholder: t('search'),
+        searchLabel: t('agents.search'),
+        searchPlaceholder: t('agents.search'),
         searchValue: query,
         children: [
           ...profiles.flatMap(profile => [
@@ -602,7 +716,7 @@ function AgentsView({ data, t }) {
                   {
                     active: !!agent && agent.key === a.key,
                     dotClassName: TIER_DOT[bestTier(a)],
-                    menuItems: [{ icon: 'circle-slash', label: t('revoke'), onSelect: () => setPending(a), tone: 'danger' }],
+                    menuItems: [{ icon: 'circle-slash', label: t('revoke.action'), onSelect: () => setPending(a), tone: 'danger' }],
                     menuLabel: displayName(a.model),
                     meta: TIER_SHORT[bestTier(a)],
                     onSelect: () => setSelected(a.key),
@@ -613,15 +727,15 @@ function AgentsView({ data, t }) {
                 )
               )
           ]),
-          visible.length === 0 ? jsx('p', { className: 'px-2 py-4 text-center text-xs text-muted-foreground', children: t('noMatch') }, 'nomatch') : null
+          visible.length === 0 ? jsx('p', { className: 'px-2 py-4 text-center text-xs text-muted-foreground', children: t('common.no_match') }, 'nomatch') : null
         ]
       }),
-      agent ? jsx(AgentDetail, { agent, t, onRevoke: () => setPending(agent) }) : jsx(PanelEmpty, { description: q ? t('noMatch') : t('pickAgent'), icon: q ? 'search' : 'shield' }),
+      agent ? jsx(AgentDetail, { agent, t, onRevoke: () => setPending(agent) }) : jsx(PanelEmpty, { description: q ? t('common.no_match') : t('agents.pick'), icon: q ? 'search' : 'shield' }),
       jsx(ConfirmDialog, {
-        busyLabel: t('revoking'),
-        confirmLabel: t('revokeConfirm'),
+        busyLabel: t('revoke.busy'),
+        confirmLabel: t('revoke.confirm'),
         description: pending
-          ? jsxs('span', { children: [t('revokeDescBefore'), jsx('span', { className: 'font-medium text-foreground', children: displayName(pending.model) }), t('revokeDescAfter')] })
+          ? jsxs('span', { children: withNode(t, 'revoke.desc', 'name', jsx('span', { className: 'font-medium text-foreground', children: displayName(pending.model) }, 'name')) })
           : null,
         destructive: true,
         onClose: () => setPending(null),
@@ -630,7 +744,7 @@ function AgentsView({ data, t }) {
           qc.invalidateQueries({ queryKey: ['tenure'] })
         },
         open: pending !== null,
-        title: t('revokeTitle')
+        title: t('revoke.title')
       })
     ]
   })
@@ -641,15 +755,15 @@ function BenchmarkView({ t }) {
   const { data, error, isLoading, refetch } = useQuery({ queryKey: ['tenure', profile, 'models'], queryFn: () => rest('/models') })
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
-  if (isLoading) return jsx(PanelEmpty, { description: t('loading'), icon: 'loading~spin' })
+  if (isLoading) return jsx(PanelEmpty, { description: t('common.loading'), icon: 'loading~spin' })
   if (error)
     return jsx(ErrorState, {
       description: error.message || String(error),
-      title: t('backendTitle'),
-      children: jsx(Button, { onClick: () => refetch(), size: 'sm', children: t('retry') })
+      title: t('backend.title'),
+      children: jsx(Button, { onClick: () => refetch(), size: 'sm', children: t('common.retry') })
     })
   const rows = (data && data.rows) || []
-  if (!rows.length) return jsx(PanelEmpty, { description: t('emptyDesc'), icon: 'graph', title: t('emptyTitle') })
+  if (!rows.length) return jsx(PanelEmpty, { description: t('empty.desc'), icon: 'graph', title: t('empty.title') })
   const types = [...new Set(rows.map(r => r.type))]
   const q = query.trim().toLowerCase()
   const visibleTypes = types.filter(x => !q || x.toLowerCase().includes(q))
@@ -661,8 +775,8 @@ function BenchmarkView({ t }) {
     children: [
       jsxs(PanelList, {
         onSearchChange: setQuery,
-        searchLabel: t('searchTypes'),
-        searchPlaceholder: t('searchTypes'),
+        searchLabel: t('benchmark.search'),
+        searchPlaceholder: t('benchmark.search'),
         searchValue: query,
         children: [
           ...visibleTypes.map(x =>
@@ -679,11 +793,11 @@ function BenchmarkView({ t }) {
               x
             )
           ),
-          visibleTypes.length === 0 ? jsx('p', { className: 'px-2 py-4 text-center text-xs text-muted-foreground', children: t('noMatch') }, 'nomatch') : null
+          visibleTypes.length === 0 ? jsx('p', { className: 'px-2 py-4 text-center text-xs text-muted-foreground', children: t('common.no_match') }, 'nomatch') : null
         ]
       }),
       !type
-        ? jsx(PanelEmpty, { description: t('noMatch'), icon: 'search' })
+        ? jsx(PanelEmpty, { description: t('common.no_match'), icon: 'search' })
         : jsxs(PanelDetail, {
             className: 'max-w-3xl',
             children: [
@@ -691,7 +805,7 @@ function BenchmarkView({ t }) {
                 className: 'space-y-2',
                 children: [
                   jsx('h3', { className: 'font-mono text-[0.95rem] font-semibold tracking-tight text-foreground', children: type }),
-                  jsx('p', { className: 'text-xs leading-relaxed text-muted-foreground/80', children: t('benchmarkNote') })
+                  jsx('p', { className: 'text-xs leading-relaxed text-muted-foreground/80', children: t('benchmark.note') })
                 ]
               }),
               jsxs('div', {
@@ -703,10 +817,10 @@ function BenchmarkView({ t }) {
                   jsxs('span', {
                     className: 'flex shrink-0 items-center gap-3',
                     children: [
-                      jsx(PanelSectionLabel, { className: 'w-24 text-right', children: t('colFaults') }),
-                      jsx(PanelSectionLabel, { className: 'w-24', children: t('colRange') }),
-                      jsx(PanelSectionLabel, { className: 'w-28', children: t('colRate') }),
-                      jsx(PanelSectionLabel, { className: 'w-12 text-right', children: t('colPublic') })
+                      jsx('span', { className: 'w-24', style: { textAlign: 'end' }, children: jsx(PanelSectionLabel, { children: t('benchmark.col_faults') }) }),
+                      jsx(PanelSectionLabel, { className: 'w-24', children: t('benchmark.col_range') }),
+                      jsx(PanelSectionLabel, { className: 'w-28', children: t('benchmark.col_rate') }),
+                      jsx('span', { className: 'w-12', style: { textAlign: 'end' }, children: jsx(PanelSectionLabel, { children: t('benchmark.col_public') }) })
                     ]
                   })
                 ]
@@ -730,14 +844,15 @@ function BenchmarkView({ t }) {
                         jsxs('span', {
                           className: 'flex shrink-0 items-center gap-3',
                           children: [
-                            jsx('span', { className: 'w-24 whitespace-nowrap text-right font-mono text-[0.72rem] tabular-nums', children: t('faults', r.faults, r.successes + r.faults) }),
-                            jsx(Tip, { label: t('rangeTip'), children: jsx('span', { className: 'inline-flex', tabIndex: 0, children: jsx(Range, { rate: r.rate, low: r.low, high: r.high, enough: r.enough }) }) }),
-                            jsx('span', { className: 'w-28 text-[0.7rem] tabular-nums text-muted-foreground/80', children: r.enough ? t('rate', pct(r.rate), pct(r.low), pct(r.high)) : t('notEnough') }),
+                            jsx('span', { className: 'w-24 whitespace-nowrap font-mono text-[0.72rem] tabular-nums', style: { textAlign: 'end' }, children: t('benchmark.faults', { n: r.faults, total: r.successes + r.faults }) }),
+                            jsx(Tip, { label: t('benchmark.range_tip'), children: jsx('span', { className: 'inline-flex', tabIndex: 0, children: jsx(Range, { rate: r.rate, low: r.low, high: r.high, enough: r.enough }) }) }),
+                            jsx('span', { className: 'w-28 text-[0.7rem] tabular-nums text-muted-foreground/80', children: r.enough ? t('benchmark.rate', { rate: pct(r.rate), low: pct(r.low), high: pct(r.high) }) : t('benchmark.not_enough') }),
                             jsx(Tip, {
-                              label: pub ? t('publicScore', pub.benchmark, pub.source) : '',
+                              label: pub ? t('benchmark.public_score', { benchmark: pub.benchmark, source: pub.source }) : '',
                               children: jsx('span', {
-                                className: 'w-12 text-right text-[0.7rem] tabular-nums text-muted-foreground/80',
-                                children: r.public && r.public.new != null ? `${Number(r.public.new).toFixed(1)}%` : t('noPublic')
+                                className: 'w-12 text-[0.7rem] tabular-nums text-muted-foreground/80',
+                                style: { textAlign: 'end' },
+                                children: r.public && r.public.new != null ? t('benchmark.public_value', { value: Number(r.public.new).toFixed(1) }) : t('benchmark.no_public')
                               })
                             })
                           ]
@@ -748,7 +863,7 @@ function BenchmarkView({ t }) {
                   )
                 )
               }),
-              pub ? jsx('p', { className: 'text-[0.7rem] text-muted-foreground/70', children: `${t('publicScore', pub.benchmark, pub.source)}, ${pub.accessed}.` }) : null
+              pub ? jsx('p', { className: 'text-[0.7rem] text-muted-foreground/70', children: t('benchmark.public_score_accessed', { benchmark: pub.benchmark, source: pub.source, accessed: pub.accessed }) }) : null
             ]
           })
     ]
@@ -769,14 +884,14 @@ function TenurePage() {
   }, [])
   const agents = allAgents(data)
   let body
-  if (isLoading && !data) body = jsx(PanelEmpty, { description: t('loading'), icon: 'loading~spin' })
+  if (isLoading && !data) body = jsx(PanelEmpty, { description: t('common.loading'), icon: 'loading~spin' })
   else if (error && !data)
     body = jsx(ErrorState, {
-      description: t('backendDesc', error.message || String(error)),
-      title: t('backendTitle'),
-      children: jsx(Button, { onClick: () => refetch(), size: 'sm', children: t('retry') })
+      description: t('backend.desc', { error: error.message || String(error) }),
+      title: t('backend.title'),
+      children: jsx(Button, { onClick: () => refetch(), size: 'sm', children: t('common.retry') })
     })
-  else if (!agents.length) body = jsx(PanelEmpty, { description: t('emptyDesc'), icon: 'shield', title: t('emptyTitle') })
+  else if (!agents.length) body = jsx(PanelEmpty, { description: t('empty.desc'), icon: 'shield', title: t('empty.title') })
   else if (view === 'benchmark') body = jsx(BenchmarkView, { t })
   else body = jsx(AgentsView, { data, t })
   return jsxs('div', {
@@ -785,7 +900,7 @@ function TenurePage() {
       jsxs('header', {
         className: 'flex shrink-0 flex-wrap items-center gap-2 px-4 py-2',
         children: [
-          jsx('h1', { className: 'text-sm font-semibold text-foreground', children: t('title') }),
+          jsx('h1', { className: 'text-sm font-semibold text-foreground', children: t('page.title') }),
           agents.length
             ? jsx('span', { className: 'rounded-full bg-(--ui-bg-quaternary) px-1.5 py-px text-[0.625rem] tabular-nums text-(--ui-text-tertiary)', children: String(agents.length) })
             : null,
@@ -793,12 +908,12 @@ function TenurePage() {
             ? jsx(WorkspacePageHeaderControl, {
                 id: 'tenure:view',
                 children: jsx('div', {
-                  className: 'ml-auto',
+                  style: { marginInlineStart: 'auto' },
                   children: jsx(SegmentedControl, {
                     onChange: setView,
                     options: [
-                      { id: 'agents', label: t('viewAgents') },
-                      { id: 'benchmark', label: t('viewBenchmark') }
+                      { id: 'agents', label: t('page.view_agents') },
+                      { id: 'benchmark', label: t('page.view_benchmark') }
                     ],
                     sizing: 'content',
                     value: view
@@ -823,7 +938,7 @@ function Chip() {
   if (!a) return null
   const total = (a.types || []).filter(x => !x.capped).length
   const n = earned(a)
-  const tip = t('chipTip', displayName(a.model), n, total)
+  const tip = t('chip.tip', { name: displayName(a.model), earned: n, n: total })
   return jsx(Tip, {
     label: tip,
     children: jsxs('button', {
@@ -848,7 +963,7 @@ export default {
   name: 'Tenure',
   description: 'Autonomy each action type earns on verified evidence: tiers, your own benchmark, a signed passport.',
   register(ctx) {
-    ctx.i18n.register({ en: EN })
+    ctx.i18n.register(hostBundles(TENURE_LOCALES))
     rest = ctx.rest
     storage = ctx.storage
     ctx.onDispose(() => {
@@ -877,17 +992,17 @@ export default {
       host.notify({
         id: 'tenure-acted-' + payload.type,
         kind: payload.fault ? 'warning' : 'info',
-        message: tr('actedToast', payload.type, n, name),
-        detail: tr('actedDetail'),
+        message: tr('toast.acted', { type: payload.type, n, name }),
+        detail: tr('toast.acted_detail'),
         action: {
-          label: tr('undo'),
+          label: tr('recent.undo'),
           onClick: async () => {
             try {
               await ctx.rest('/undo' + (payload.profile ? '?of=' + encodeURIComponent(payload.profile) : ''), { method: 'POST', body: { id: payload.undo_id } })
-              host.notify({ kind: 'success', message: tr('undone') })
+              host.notify({ kind: 'success', message: tr('recent.undone') })
               bus.dispatchEvent(new Event('changed'))
             } catch (e) {
-              host.notifyError(e, tr('undoFailed'))
+              host.notifyError(e, tr('recent.undo_failed'))
             }
           }
         }
@@ -896,19 +1011,19 @@ export default {
 
     const contributions = () => [
       { id: 'page', area: ROUTES_AREA, data: { path: ROUTE }, render: () => jsx(TenurePage, {}) },
-      { id: 'nav', area: SIDEBAR_NAV_AREA, order: 60, data: { codicon: 'shield', label: tr('nav'), path: ROUTE } },
+      { id: 'nav', area: SIDEBAR_NAV_AREA, order: 60, data: { codicon: 'shield', label: tr('nav.label'), path: ROUTE } },
       { id: 'chip', area: STATUSBAR_AREAS.right, order: 85, render: () => jsx(Chip, {}) },
-      { id: 'open', area: PALETTE_AREA, data: { id: 'tenure.open', label: tr('paletteOpen'), keywords: ['tenure', 'autonomy', 'tier', 'trust'], run: () => host.navigate(ROUTE) } },
+      { id: 'open', area: PALETTE_AREA, data: { id: 'tenure.open', label: tr('palette.open'), keywords: ['tenure', 'autonomy', 'tier', 'trust'], run: () => host.navigate(ROUTE) } },
       {
         id: 'passport',
         area: PALETTE_AREA,
         data: {
           id: 'tenure.passport',
-          label: tr('palettePassport'),
+          label: tr('palette.passport'),
           keywords: ['tenure', 'passport', 'verify'],
           run: () => {
             const a = current()
-            if (!a) return host.notify({ kind: 'info', message: tr('noCurrent') })
+            if (!a) return host.notify({ kind: 'info', message: tr('palette.no_current') })
             focus(a.key, false)
           }
         }
@@ -918,11 +1033,11 @@ export default {
         area: PALETTE_AREA,
         data: {
           id: 'tenure.revoke',
-          label: tr('paletteRevoke'),
+          label: tr('palette.revoke'),
           keywords: ['tenure', 'revoke', 'trust'],
           run: () => {
             const a = current()
-            if (!a) return host.notify({ kind: 'info', message: tr('noCurrent') })
+            if (!a) return host.notify({ kind: 'info', message: tr('palette.no_current') })
             focus(a.key, true)
           }
         }
@@ -938,7 +1053,7 @@ export default {
             const a = agentForModel(cache.agents, model)
             if (!a) return null
             const tier = bestTier(a)
-            return tier === 'ask' || tier === 'cap' ? null : { badge: tr('menuBadge', TIER_SHORT[tier]) }
+            return tier === 'ask' || tier === 'cap' ? null : { badge: tr('model_menu.badge', { tier: TIER_SHORT[tier] }) }
           }
         }
       })

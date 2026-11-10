@@ -1,0 +1,303 @@
+{
+  "approval.button.always": "Always",
+  "approval.button.reject": "Reject",
+  "approval.button.run": "Run",
+  "approval.button.session": "Session",
+  "ask.capped": "tenure — {summary}\n{type} is capped: always asked.",
+  "ask.internal_error": "tenure: internal error ({error}); asking you instead of letting the action through.",
+  "ask.prompt": "tenure — {summary}\n{why}\n{run} it if it is right; {reject} it if it is wrong (a fault). {session}/{always} = one {run}; tenure decides when it stops asking.",
+  "ask.spot": "tenure spot check — {summary}\n{type} acts on its own; 1 action in {spot} is still checked at random.\n{run} it if it is right; {reject} it if it is wrong (the type goes back down). {session}/{always} = one {run}.",
+  "ask.why.capped": {
+    "one": "{type} ({stakes} stakes) is capped by your settings: always asked ({n} verified success on record).",
+    "other": "{type} ({stakes} stakes) is capped by your settings: always asked ({n} verified successes on record)."
+  },
+  "ask.why.other_stakes": "{type} earned its record at {earned} stakes, and this action has {stakes} stakes: it asks.",
+  "ask.why.provisional": {
+    "one": "{n} of them carried over from the previous agent, provisional.",
+    "other": "{n} of them carried over from the previous agent, provisional."
+  },
+  "ask.why.series": "{type} ({stakes} stakes) asks first: {series}/{required} clean runs in a row, {sessions} of {needed} sessions, before it acts on its own.",
+  "ask.why.suspended": "This session read external content, so every action asks again (suspended: external content read).",
+  "ask.why.trial": {
+    "one": "{type} is on trial after a fault: {n} more verified success needed, without a fault.",
+    "other": "{type} is on trial after a fault: {n} more verified successes needed, without a fault."
+  },
+  "ask.why.trial_wait": {
+    "one": "{type} failed its trial: every action asks, and a new trial opens after {n} more action of this type.",
+    "other": "{type} failed its trial: every action asks, and a new trial opens after {n} more actions of this type."
+  },
+  "ask.why.unsaved": "{type} would act and then notify you, but an undo cannot be prepared for this action (a file too large, binary or unreadable): asking instead.",
+  "benchmarks.note.no_model": "No public measure for {model} on {benchmark}.",
+  "benchmarks.note.no_previous": "No previous model to compare with.",
+  "benchmarks.note.no_type": "No public measure for this action type.",
+  "benchmarks.note.published": "Each score is the model's best published score (any harness), not a controlled comparison.",
+  "benchmarks.note.scores": "{benchmark} {version}, percent. Public scores inform; they never grant autonomy.",
+  "carry.carried": "A carried-over record is half the old series, provisional until this agent's own successes match it.",
+  "carry.kept": {
+    "one": "{n} kept this agent's own record.",
+    "other": "{n} kept this agent's own record."
+  },
+  "carry.new_agent": "tenure: new agent {new} (was {old}). Action types: {carried} carried over on trial, {reset} reset, {vetoed} vetoed by a public benchmark.",
+  "carry.strict": "Strict mode: every type starts over, and a fault on record becomes a trial.",
+  "cli.ago.h": {
+    "one": "{n} h ago",
+    "other": "{n} h ago"
+  },
+  "cli.ago.min": {
+    "one": "{n} min ago",
+    "other": "{n} min ago"
+  },
+  "cli.ago.s": {
+    "one": "{n} s ago",
+    "other": "{n} s ago"
+  },
+  "cli.cleanup.dead": {
+    "one": "{n} dead tenure key in the permanent allowlist ({setting}), of {total} entries. Every ask uses a one-off key: it never matches again.",
+    "other": "{n} dead tenure keys in the permanent allowlist ({setting}), of {total} entries. Every ask uses a one-off key: these never match again."
+  },
+  "cli.cleanup.no_config": "Cannot read Hermes' config ({module} is not available here): nothing checked.",
+  "cli.cleanup.none": {
+    "one": "No tenure key in the permanent allowlist ({n} entry checked).",
+    "other": "No tenure key in the permanent allowlist ({n} entries checked)."
+  },
+  "cli.cleanup.remove": "Remove them (tenure does not edit your config):",
+  "cli.col.agent": "agent",
+  "cli.col.fault_rate": "fault rate",
+  "cli.col.guarantee": "guarantee",
+  "cli.col.model": "model",
+  "cli.col.note": "note",
+  "cli.col.number": "#",
+  "cli.col.provider": "provider",
+  "cli.col.record": "record",
+  "cli.col.restores": "restores",
+  "cli.col.series": "series",
+  "cli.col.sessions": "sessions",
+  "cli.col.stakes": "stakes",
+  "cli.col.tier_now": "tier now",
+  "cli.col.type": "type",
+  "cli.col.when": "when",
+  "cli.count.agents": {
+    "one": "{n} agent",
+    "other": "{n} agents"
+  },
+  "cli.count.checks": {
+    "one": "{n} check",
+    "other": "{n} checks"
+  },
+  "cli.count.events": {
+    "one": "{n} event",
+    "other": "{n} events"
+  },
+  "cli.count.faults": {
+    "one": "{n} fault",
+    "other": "{n} faults"
+  },
+  "cli.count.ledger_events": {
+    "one": "{n} ledger event",
+    "other": "{n} ledger events"
+  },
+  "cli.count.types": {
+    "one": "{n} type",
+    "other": "{n} types"
+  },
+  "cli.err.ambiguous": {
+    "one": "{wanted} matches {n} agents ({agents}): be more specific.",
+    "other": "{wanted} matches {n} agents ({agents}): be more specific."
+  },
+  "cli.err.no_agents": "No agent has a record yet.",
+  "cli.err.no_match": "No agent starts with {wanted}. Agents: {agents}.",
+  "cli.err.not_json": "{path} is not valid JSON ({error}).",
+  "cli.err.not_ledger": "{path} is not an exported ledger ({error}).",
+  "cli.err.profile_missing": "No tenure record for profile {profile} (looked for {path}).",
+  "cli.err.profile_unreadable": "Cannot read the record of profile {profile}: {error}",
+  "cli.err.unreadable": "Cannot read {path}: {error}.",
+  "cli.explain.fault": "One fault, a refused spot check or an error you flag, sends the type back down: a low-stakes reversible type at T3 drops to T2 (already at T2, its score decides between T2 and T1); every other fault sends it to T1. At medium or high stakes the next climb is 25 % longer.",
+  "cli.explain.footer": "The guarantee covers the errors you would refuse when asked; an error nobody would notice cannot be counted. Measured against theory by simulation in the test suite.",
+  "cli.explain.guarantee_title": "What it guarantees, with your settings (errors you catch never run: a refused action is blocked):",
+  "cli.explain.level": "{level}: i = {n}. For an agent whose error rate is stable, errors that run without your approval stay under {aoql} of its actions of that type. For an agent that turns bad after tenure, at most {worst} until the first caught error.",
+  "cli.explain.level_capped": "{level}: always asked.",
+  "cli.explain.new_model": "A new model starts with half of the previous model's series, marked provisional until it confirms it (strict mode: an empty record).",
+  "cli.explain.new_model_strict": "A new model starts with an empty record (strict mode).",
+  "cli.explain.reads": "Reads never ask; secrets, the agent's own skills and plugins, and sensitive files always ask.",
+  "cli.explain.t1": "T1 asks first. Every action of a new type asks you.",
+  "cli.explain.t2": "T2 acts, then tells you. After {low} approved in a row at low stakes, {medium} at medium, a reversible type acts and tells you, with an undo ({command}). High stakes and irreversible types never get T2.",
+  "cli.explain.t3": "T3 acts on its own. After i approved in a row, over at least {sessions} sessions (i below, Dodge's clearance number, continuous sampling plan CSP-1); 1 action in {spot} is still spot-checked at random.",
+  "cli.explain.title": "How tenure decides, one action type at a time:",
+  "cli.export.written": {
+    "one": "Evidence written: {path} ({n} entry). Check a passport against it: {command} {path}",
+    "other": "Evidence written: {path} ({n} entries). Check a passport against it: {command} {path}"
+  },
+  "cli.flag.done": "tenure: fault recorded on {type} for {agent}; it is now at {tier}.",
+  "cli.flag.unknown_type": "No record of {type} for {agent}. Types: {types}.",
+  "cli.list.joiner": "; ",
+  "cli.list.separator": ", ",
+  "cli.models.few": {
+    "one": "under {n} check: too few to compare",
+    "other": "under {n} checks: too few to compare"
+  },
+  "cli.models.no_check": "no check yet",
+  "cli.models.none": "No record yet.",
+  "cli.models.none_type": "No record yet for {type}.",
+  "cli.models.rate": "{rate} (95% range {low} to {high})",
+  "cli.models.title": "Verified record per model, on your own work (faults / checks):",
+  "cli.none_yet": "none yet",
+  "cli.passport.check": "Anyone can check it: {command} {path} <exported ledger>",
+  "cli.passport.none": "No record for {agent}: nothing to put in a passport.",
+  "cli.passport.not_redacted": "NOT redacted",
+  "cli.passport.redacted": "redacted",
+  "cli.passport.signed": "signed",
+  "cli.passport.summary": "{agent}: {types}, {redaction}, {signature}, ledger head {head} ({events})",
+  "cli.passport.unsigned": "UNSIGNED (the cryptography package is missing)",
+  "cli.passport.warning": "Warning: type names are written as they are. A name can carry a script, a make target or a git alias of yours. Share only a redacted passport.",
+  "cli.passport.written": "Passport written: {path}",
+  "cli.presets.capped": "{level}: always asked",
+  "cli.presets.footer": "Low stakes: files in the project, memory, reactions. Medium: commands, code, files elsewhere, internal tools. High: anything that leaves the machine (messages to others, pushes, uploads, publications) and money. Use one: {command}. Or set {setting} in config.yaml (e.g. {example}).",
+  "cli.presets.header": "Recommendations (1 spot check in {spot} once a type is cleared):",
+  "cli.presets.level": {
+    "one": "{level}: {n} approval (risk {risk})",
+    "other": "{level}: {n} approvals (risk {risk})"
+  },
+  "cli.presets.line": "{name}: {levels}",
+  "cli.presets.line_default": "{name} (default): {levels}",
+  "cli.revoke.done": "tenure revoked for {who}: {types}.",
+  "cli.revoke.item_agent": "{type} ({agent})",
+  "cli.revoke.nothing": "Nothing to revoke.",
+  "cli.setup.in_force": "Preset {name} in force.",
+  "cli.setup.no_context": "no Hermes context",
+  "cli.setup.paused": "learning is paused: {setting} is off. Set {setting}: smart or manual to let tenure learn.",
+  "cli.setup.save_failed": "Could not save the preset ({error}). Set {setting}: {name}",
+  "cli.setup.unknown": "Unknown preset {name}.",
+  "cli.status.capped": "capped: always asked",
+  "cli.status.chain_broken": {
+    "one": "Evidence: {n} entry, CHAIN BROKEN ({problem}).",
+    "other": "Evidence: {n} entries, CHAIN BROKEN ({problem})."
+  },
+  "cli.status.chain_ok": {
+    "one": "Evidence: {n} entry, chain intact.",
+    "other": "Evidence: {n} entries, chain intact."
+  },
+  "cli.status.disabled": "tenure is disabled ({setting}: false).",
+  "cli.status.empty": "No action type has a record yet. Reads never ask; everything else asks until its type earns autonomy.",
+  "cli.status.guarantee": "unchecked errors under {rate} of its actions",
+  "cli.status.guarantee_provisional": "unchecked errors under {rate} of its actions (provisional)",
+  "cli.status.header.here": "tenure: this profile, preset {preset}, 1 spot check in {spot}",
+  "cli.status.header.here_strict": "tenure: this profile, preset {preset}, 1 spot check in {spot}, strict mode",
+  "cli.status.header.profile": "tenure: profile {profile}, preset as last logged, 1 spot check in {spot}",
+  "cli.status.header.profile_strict": "tenure: profile {profile}, preset as last logged, 1 spot check in {spot}, strict mode",
+  "cli.status.note.provisional": {
+    "one": "{n} provisional",
+    "other": "{n} provisional"
+  },
+  "cli.status.note.trial": {
+    "one": "trial: {n} to go",
+    "other": "trial: {n} to go"
+  },
+  "cli.status.note.trial_wait": {
+    "one": "trial failed: {n} action to wait",
+    "other": "trial failed: {n} actions to wait"
+  },
+  "cli.status.notes": "{guarantee} [{notes}]",
+  "cli.status.others": {
+    "one": "{n} other agent has a record ({agents}): {command}",
+    "other": "{n} other agents have a record ({agents}): {command}"
+  },
+  "cli.status.paused": "Learning paused here: nobody answers approvals ({why}). Earned tiers still run.",
+  "cli.strict.off": "Strict mode off: a new model inherits half of the previous model's record, unless a public benchmark vetoes the type.",
+  "cli.strict.on": "Strict mode on: a new model starts with an empty record, nothing is carried over.",
+  "cli.strict.save_failed": "Could not save strict mode ({error}). Set {setting}: {value}",
+  "cli.tier.held": "{tier} (held: settings)",
+  "cli.undo.footer": "Undo one: {command} <number>",
+  "cli.undo.footer_more": "The {shown} newest of {total}. Undo one: {command} <number>",
+  "cli.undo.more_files": {
+    "one": "{file} (+{n} more)",
+    "other": "{file} (+{n} more)"
+  },
+  "cli.undo.none": {
+    "one": "Nothing to undo: no action was taken alone in the last {n} hour.",
+    "other": "Nothing to undo: no action was taken alone in the last {n} hours."
+  },
+  "cli.undo.title": {
+    "one": "Actions taken alone in the last {n} hour (undoing one counts as a fault):",
+    "other": "Actions taken alone in the last {n} hours (undoing one counts as a fault):"
+  },
+  "cli.usage": "    status [--profile P] [--model M] [--all]   what each agent has earned, per action type\n    setup [careful|balanced|fast]              the three recommendations; with a name, use it\n    explain                                    how tenure decides, and what the numbers guarantee\n    models [--type T]                          each model's verified record on your own work\n    undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list\n    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked\n    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error\n    passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)\n    verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay\n    anchor                                     one line to publish: the ledger's head, date and length\n    export [PATH]                              write the evidence ledger (hash-chained JSON lines)\n    strict on|off                              strict mode: a new model starts with an empty record\n    cleanup                                    list dead tenure keys in Hermes' permanent allowlist\n",
+  "cli.verify.after": {
+    "one": "Note: the ledger has {n} event after this passport; the tiers are unchanged.",
+    "other": "Note: the ledger has {n} events after this passport; the tiers are unchanged."
+  },
+  "cli.verify.after_changed": {
+    "one": "Note: the ledger has {n} event after this passport; now: {changes}",
+    "other": "Note: the ledger has {n} events after this passport; now: {changes}"
+  },
+  "cli.verify.key_differs": "public key differs from the one you expected ({option}): someone else signed it",
+  "cli.verify.no_ledger": "signature and chain not checked against types: pass the ledger",
+  "cli.verify.no_ledger_types": "types not checked: pass the ledger",
+  "cli.verify.ok": "OK: signature valid, ledger chain intact, {types} recomputed by replay of {events}.",
+  "cli.verify.pin": "The signature shows the passport matches this ledger, not who made it: pass {option} with the owner's public key to pin it.",
+  "cli.verify.problems": {
+    "one": "{n} problem:",
+    "other": "{n} problems:"
+  },
+  "notice.confirmed": "tenure: {type}: the record carried over from the previous agent is now confirmed by this agent's own successes.",
+  "notice.count.sessions": {
+    "one": "{n} session",
+    "other": "{n} sessions"
+  },
+  "notice.count.successes_in_a_row": {
+    "one": "{n} verified success in a row",
+    "other": "{n} verified successes in a row"
+  },
+  "notice.tier.fault": "tenure: {type} is back at {tier}, after a fault.",
+  "notice.tier.series": "tenure: {type} now acts on its own, after {successes} from {sessions}. 1 action in {spot} is still spot-checked, and a fault sends it back down.",
+  "notice.tier.settings": "tenure: {type} is back at {tier}, under your new settings.",
+  "notice.tier.stakes": "tenure: {type} now has {stakes} stakes: its record starts over at these stakes (a trial and the faults on record stay).",
+  "notice.tier.wald": "tenure: {type} now acts, then notifies you with an undo, after a run of verified successes.",
+  "notice.trial.failed": {
+    "one": "tenure: {type} failed its trial: every action asks, and a new trial opens after {n} more action of this type.",
+    "other": "tenure: {type} failed its trial: every action asks, and a new trial opens after {n} more actions of this type."
+  },
+  "notice.trial.fault": {
+    "one": "tenure: {type} is on trial: its next {n} action asks, and it must succeed.",
+    "other": "tenure: {type} is on trial: its next {n} actions ask, and all must succeed."
+  },
+  "notice.trial.passed": "tenure: {type} passed its trial.",
+  "notice.trial.wait_over": {
+    "one": "tenure: {type} gets a new trial: its next {n} action asks.",
+    "other": "tenure: {type} gets a new trial: its next {n} actions ask."
+  },
+  "settle.acted": "tenure: {type} acted, then told you · {command} {id}",
+  "settle.acted_fault": "tenure: {type} acted, then told you, but the automatic check failed ({reason}); counted as a fault · {command} {id}",
+  "settle.check_failed": "tenure: {type}: the automatic check failed ({reason}); counted as a fault.",
+  "stakes.high": "high",
+  "stakes.low": "low",
+  "stakes.medium": "medium",
+  "tier.long.alone": "T3, acting on its own",
+  "tier.long.ask": "T1, asking first",
+  "tier.long.notify": "T2, acting then notifying you with an undo",
+  "tier.short.alone": "T3 acts on its own",
+  "tier.short.ask": "T1 asks first",
+  "tier.short.notify": "T2 acts, then notifies",
+  "undo.already": "Undo {id} is already undone.",
+  "undo.done": "Undo {id}: files restored. Counted as a fault of {type} for {agent}; it is now at {tier}.",
+  "undo.done_already_fault": "Undo {id}: files restored. The automatic check had already counted this action as a fault of {type}; no second fault is recorded.",
+  "undo.expired": {
+    "one": "Undo {id} is older than {n} hour: the snapshot is no longer kept.",
+    "other": "Undo {id} is older than {n} h: the snapshot is no longer kept."
+  },
+  "undo.gone": "Undo {id}: the snapshot is gone, nothing restored.",
+  "undo.missing": "No undo entry {id}.",
+  "undo.no_snapshot": "Undo {id}: no snapshot was saved for this action, nothing to restore.",
+  "undo.partial": {
+    "one": "Undo {id}: {n} file could not be restored ({restored} were). Nothing is marked undone and no fault is recorded: fix the cause (permissions, a locked file) and try again.",
+    "other": "Undo {id}: {n} files could not be restored ({restored} were). Nothing is marked undone and no fault is recorded: fix the cause (permissions, a locked file) and try again."
+  },
+  "undo.refused": "Undo {id} refused: {reason}. Nothing was restored, nothing is marked undone and no fault is recorded.",
+  "undo.refused.changed": "the snapshot was changed after it was taken",
+  "undo.refused.file_changed": "a saved file was changed after the snapshot",
+  "undo.refused.folder": "a target's folder now resolves elsewhere (a symlink was put on its path)",
+  "undo.refused.manifest": "the manifest cannot be read ({error})",
+  "undo.refused.no_mac": "the snapshot has no MAC",
+  "undo.refused.not_absolute": "a recorded path is not absolute",
+  "undo.refused.protected": "a target is a protected file",
+  "undo.refused.symlink": "a target is now a symlink"
+}

@@ -12,6 +12,8 @@ import json
 import re
 from pathlib import Path
 
+from .i18n import tr
+
 DATA_PATH = Path(__file__).parent / "data" / "benchmarks.json"
 VETO_MARGIN = 5.0          # points; the snapshot stores every score as a percentage
 
@@ -98,20 +100,20 @@ def card(old_model: str | None, new_model: str, type_key: str) -> dict:
     out = {"benchmark": bench, "version": None, "source": snap["source"], "accessed": snap["accessed"],
            "old": None, "new": None, "delta": None, "note": ""}
     if bench is None:
-        out["note"] = "No public measure for this action type."
+        out["note"] = tr("benchmarks.note.no_type")
         return out
     out["version"] = snap["benchmarks"][bench].get("version")
     out["old"], out["new"] = _score(old_model, bench), _score(new_model, bench)
     if out["new"] is None:
-        out["note"] = f"No public measure for {new_model} on {bench}."
+        out["note"] = tr("benchmarks.note.no_model", model=new_model, benchmark=bench)
     elif out["old"] is None:
-        out["note"] = (f"No public measure for {old_model} on {bench}." if old_model
-                       else "No previous model to compare with.")
+        out["note"] = (tr("benchmarks.note.no_model", model=old_model, benchmark=bench) if old_model
+                       else tr("benchmarks.note.no_previous"))
     else:
         out["delta"] = round(out["new"] - out["old"], 1)
-        out["note"] = f"{bench} {out['version']}, percent. Public scores inform; they never grant autonomy."
+        out["note"] = tr("benchmarks.note.scores", benchmark=bench, version=out["version"])
     if out["old"] is not None or out["new"] is not None:
-        out["note"] += f" Each score is the model's {_PUBLISHED}."
+        out["note"] += " " + tr("benchmarks.note.published")
     return out
 
 

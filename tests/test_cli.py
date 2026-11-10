@@ -329,7 +329,7 @@ def test_verify_reports_tampering(plugin, tmp_path):
     p["types"][0]["series"] += 1
     pfile.write_text(json.dumps(p))
     text, code = mod.cli.verify_cmd(str(pfile), str(lfile))
-    assert code == 1 and "problem(s)" in text and "signature" in text
+    assert code == 1 and re.search(r"\d+ problems?:", text) and "signature" in text
     assert mod.cli.verify_cmd(str(tmp_path / "missing.json"))[1] == 1
     (tmp_path / "bad.json").write_text("{nope")
     assert "not valid JSON" in mod.cli.verify_cmd(str(tmp_path / "bad.json"))[0]
@@ -357,7 +357,7 @@ def test_cleanup_lists_dead_keys_and_never_edits_config(plugin, monkeypatch):
                                     "tenure:spot:shell:npm:" + "b" * 32]}
     fake_hermes_config(monkeypatch, config)
     out = mod.cli.slash("cleanup")
-    assert "2 dead tenure key(s)" in out and "tenure:spot:shell:npm:" + "b" * 32 in out
+    assert "2 dead tenure keys" in out and "tenure:spot:shell:npm:" + "b" * 32 in out
     assert """hermes config set command_allowlist '["recursive delete"]'""" in out
     assert len(config["command_allowlist"]) == 3
     fake_hermes_config(monkeypatch, {"command_allowlist": ["recursive delete"]})
@@ -432,7 +432,7 @@ def test_partial_undo_keeps_the_entry_open_and_records_no_fault(plugin, monkeypa
     faults, n = state(mod, "file:write").faults, len(ledger(mod))
     monkeypatch.setattr(mod.undo, "restore", lambda snap, root, keep=False, key=None: (1, 2))
     text, code = run_line(mod, f"undo {uid}")
-    assert code == 1 and "2 file(s) could not be restored" in text and "try again" in text
+    assert code == 1 and "2 files could not be restored" in text and "try again" in text
     assert mod.store_().get_undo(uid)["undone"] is False
     assert state(mod, "file:write").faults == faults and len(ledger(mod)) == n
 

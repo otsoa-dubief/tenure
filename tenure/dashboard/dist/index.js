@@ -26,6 +26,490 @@
   var useCallback = SDK.hooks.useCallback;
 
   var UI = SDK.components || {};
+
+  // ---------------------------------------------------------------------------------------------------- i18n
+  // Catalogs: tenure/locales/<lang>/dashboard.json, embedded below by scripts/build_locales.py (do not edit by hand).
+  /* TENURE_LOCALES_BEGIN */
+const TENURE_LOCALES = {
+  "en": {
+    "cell.asked_suffix": " asked",
+    "cell.capped_by_settings": "Capped by the risk settings",
+    "cell.held": "stored {tier} (held: settings)",
+    "cell.kind_irreversible": "{type} · {stakes}, irreversible",
+    "cell.kind_reversible": "{type} · {stakes}, reversible",
+    "cell.provisional_long": {
+      "one": "{count} carried over from the previous model, provisional",
+      "other": "{count} carried over from the previous model, provisional"
+    },
+    "cell.record": "Record: {successes} successes · {faults} faults · {neutrals} neutral · {spot} spot checks",
+    "cell.series": "Series {series}/{required} in a row",
+    "cell.sessions": {
+      "one": "{count} session",
+      "other": "{count} sessions"
+    },
+    "cell.tier_now": "Tier now: {tier} ({name})",
+    "common.arrow": "→",
+    "common.capped": "capped",
+    "common.list_sep": ", ",
+    "common.loading": "Loading…",
+    "common.no_public_measure": "no public measure",
+    "common.one_in": "1 in {k}",
+    "common.percent": "{v}%",
+    "common.profile": "profile {profile}",
+    "confirm.again": "Click again to confirm",
+    "confirm.default": "Confirm",
+    "copy.button": "Copy",
+    "copy.done": "Copied",
+    "count.agents": {
+      "one": "{n} agent",
+      "other": "{n} agents"
+    },
+    "count.faults": {
+      "one": "{n} fault",
+      "other": "{n} faults"
+    },
+    "count.sessions": {
+      "one": "{n} session",
+      "other": "{n} sessions"
+    },
+    "counters.actions.label": {
+      "one": "action",
+      "other": "actions"
+    },
+    "counters.actions.sub": "covered",
+    "counters.alone.label": "acted without asking",
+    "counters.alone.sub": "ran without asking, of {total}",
+    "counters.aria": "Last 7 days",
+    "counters.checked.label": "checked",
+    "counters.checked.sub": "by you, of {total}",
+    "counters.faults.label": "faults caught",
+    "counters.faults.sub": {
+      "one": "{faults} / {n} check",
+      "other": "{faults} / {n} checks"
+    },
+    "counters.window": "last 7 days, every profile",
+    "drawer.aria": "Agent {agent}",
+    "drawer.close": "Close",
+    "drawer.close_title": "Close (Esc)",
+    "drawer.eyebrow": "Agent · profile {profile}",
+    "drawer.eyebrow_read_only": "Agent · profile {profile} (read-only here)",
+    "drawer.flag.button": "Flag",
+    "drawer.flag.confirm": "Flag?",
+    "drawer.flag.done": "Fault recorded on {type}: now {tier}.",
+    "drawer.flag.title": "Record a fault on this type, after the fact",
+    "drawer.mobile_summary": "{sessions} · {faults} / {checks} faults / checks · ",
+    "drawer.own_profile_only": "Actions apply to this dashboard's profile only",
+    "drawer.revoke.button": "Revoke",
+    "drawer.revoke.confirm": "Revoke?",
+    "drawer.revoke.done": "Revoked {type}: back to T1.",
+    "drawer.revoke.title": "Take back what this type earned: back to T1",
+    "drawer.revoke_all.button": "Revoke all",
+    "drawer.revoke_all.confirm": "Revoke every type?",
+    "drawer.revoke_all.done": {
+      "one": "Revoked {count} type: back to T1.",
+      "other": "Revoked {count} types: back to T1."
+    },
+    "drawer.revoke_note": "Takes effect at the next action. Every revocation is a ledger event.",
+    "drawer.revoke_note_other": "Flag and revoke act on the dashboard's own profile. Use: {cmd}",
+    "drawer.sessions_of": {
+      "one": "{n}/{total} session",
+      "other": "{n}/{total} sessions"
+    },
+    "drawer.stakes_reversible": "{stakes} · reversible",
+    "drawer.types_title": "Action types",
+    "error.request_failed": "request failed",
+    "event.confirmed": "carried-over evidence confirmed by its own",
+    "event.fault.check": "automatic check failed",
+    "event.fault.flag": "flagged as a fault by you",
+    "event.fault.other": "fault ({source})",
+    "event.fault.refusal": "refused by you",
+    "event.fault.spot": "spot check refused or failed",
+    "event.fault.undo": "undone by you",
+    "event.neutral.alone": "acted alone (earned)",
+    "event.neutral.ambiguous": "ambiguous call · no evidence",
+    "event.neutral.blocked": "blocked by another guard · no evidence",
+    "event.neutral.error": "tool error · no evidence",
+    "event.neutral.expired": "never reported back · no evidence",
+    "event.neutral.nobody": "nobody to answer · no evidence",
+    "event.neutral.other": "neutral ({source})",
+    "event.neutral.timeout": "no answer · no evidence",
+    "event.neutral_expired": "pending action expired · no evidence",
+    "event.revoked": "revoked by you",
+    "event.success.approved": "approved by you, ran cleanly",
+    "event.success.notify": "acted, then notified · not undone",
+    "event.success.spot": "spot check approved by you",
+    "event.switch": "model switch",
+    "event.switch_from": "model switch from {from}",
+    "event.tier": "tier {from} → {to} · {why}",
+    "event.trial.failed": {
+      "one": "trial failed: wait {wait} action",
+      "other": "trial failed: wait {wait} actions"
+    },
+    "event.trial.opened": {
+      "one": "trial opened: next {left} must succeed",
+      "other": "trial opened: next {left} must succeed"
+    },
+    "event.trial.passed": "trial passed",
+    "event.trial.reopens": {
+      "one": "trial reopens: next {left} must succeed",
+      "other": "trial reopens: next {left} must succeed"
+    },
+    "event.why.fault": "fault",
+    "event.why.series_complete": "series complete",
+    "event.why.series_n": "series {required}/{required}",
+    "event.why.sessions": {
+      "one": "{count} session",
+      "other": "{count} sessions"
+    },
+    "event.why.settings": "stricter settings",
+    "event.why.stakes": "stakes changed",
+    "event.why.wald": "sequential test passed",
+    "flag.carried_over": "carried over",
+    "flag.carried_over_n": {
+      "one": "{n} carried over",
+      "other": "{n} carried over"
+    },
+    "flag.carried_over_provisional": {
+      "one": "{n} carried over, provisional",
+      "other": "{n} carried over, provisional"
+    },
+    "flag.carried_over_title": {
+      "one": "{count} carried over, provisional",
+      "other": "{count} carried over, provisional"
+    },
+    "flag.fault_on_record": "fault on record",
+    "flag.fault_on_record_title": "Fault on record",
+    "flag.provisional": "provisional",
+    "flag.trial": "trial",
+    "guarantee.capped": "Capped: every action asks.",
+    "guarantee.text": "Unchecked errors stay under {aoql} of its actions of this type; for an agent that turns bad after tenure, at most {worst} until the first caught error.",
+    "guarantee.text_conditional": "Unchecked errors stay under {aoql} of its actions of this type; for an agent that turns bad after tenure, at most {worst} until the first caught error. Conditional on the previous model's evidence still holding.",
+    "help.agent": "Agent drawer of the focused row",
+    "help.aria": "Keyboard shortcuts",
+    "help.close": "Close",
+    "help.help": "This help",
+    "help.next_prev": "Next / previous agent",
+    "help.open": "Open the focused agent",
+    "help.raw": "Raw type names on / off",
+    "help.title": "Keyboard",
+    "legend.a_share": "a share",
+    "legend.alone": "acts on its own, {share} spot-checked",
+    "legend.ask": "asks first",
+    "legend.capped": "capped: always asks",
+    "legend.carried": "from the previous model, provisional",
+    "legend.notify": "acts, then notifies with an undo (reversible types)",
+    "legend.series": "clean runs in a row, of the N needed",
+    "map.aria": "Agents by action type",
+    "map.empty.after": ", and climbs only on verified successes: reversible types reach the middle tier after a run of verified successes without a fault, and T3 after a full series of N from two sessions.",
+    "map.empty.before": "tenure starts counting at the first action an agent asks to run. Reads never ask. Every action type starts at ",
+    "map.empty.bold": "T1, asks first",
+    "map.empty.title": "No evidence yet",
+    "map.open_hint": "open ",
+    "map.th.agent": "Agent",
+    "map.th.agent_sub": "profile · model@provider",
+    "map.th.capped": "capped · always asks",
+    "map.th.risk": {
+      "one": "risk {risk} · {n} in a row to act on its own",
+      "other": "risk {risk} · {n} in a row to act on its own"
+    },
+    "missing.always_asks": "always asks",
+    "missing.earned": "earned · spot-checked",
+    "missing.more_to_t2": {
+      "one": "{n} more to T2",
+      "other": "{n} more to T2"
+    },
+    "missing.more_to_t3": {
+      "one": "{n} more to T3",
+      "other": "{n} more to T3"
+    },
+    "missing.rechecking": "re-checking",
+    "missing.second_session": "needs a 2nd session",
+    "missing.trial_left": {
+      "one": "trial · {n} of {total} to go",
+      "other": "trial · {n} of {total} to go"
+    },
+    "missing.trial_wait": {
+      "one": "trial failed · wait {n}",
+      "other": "trial failed · wait {n}"
+    },
+    "models.empty.body": "Each verified action adds to the model's record on that type, here and in {cmd}.",
+    "models.empty.title": "No record yet",
+    "models.lede": "Your own benchmark: each model's verified record on your work, per action type, with the 95% range of its fault rate. Ranked by the top of its range, never by one score. Beside it, the public measure, as information: ",
+    "models.lede_bold": "public capability on their tasks, not reliability on yours.",
+    "models.no_checks": "no checks yet",
+    "models.no_public": "No public measure for this action type.",
+    "models.not_enough": "not enough evidence",
+    "models.personal_title": "On your work",
+    "models.public_note": "Public capability on their tasks, not reliability on yours.",
+    "models.public_title": "Public measure",
+    "models.source": "{source}. Best published score, any harness; not a controlled comparison.",
+    "models.source_accessed": "{source}, accessed {accessed}. Best published score, any harness; not a controlled comparison.",
+    "page.error": "Could not read tenure: {error}",
+    "page.live": "live · ",
+    "page.loading": "Loading the record…",
+    "page.polling": "Polling every {s} s",
+    "page.raw_off": "redacted names",
+    "page.raw_on": "raw names",
+    "page.raw_title": "Show raw action type names (r)",
+    "page.retrying": "retrying · ",
+    "page.subtitle": "Autonomy earned per action type, on verified evidence",
+    "page.title": "Tenure",
+    "page.unreadable": "Unreadable: {profiles}. Its database exists but cannot be opened; other profiles are shown.",
+    "passport.agent": "Agent",
+    "passport.checked_by": "Checked by the dashboard against this profile's ledger. Anyone can re-check it:",
+    "passport.download": "Download JSON",
+    "passport.empty.body": "A passport covers an agent's record; it appears with the first verified action.",
+    "passport.empty.title": "No passport yet",
+    "passport.field.agent": "Agent",
+    "passport.field.generated": "Generated",
+    "passport.field.ledger": "Ledger",
+    "passport.field.profile": "Profile",
+    "passport.field.protocol": "Protocol",
+    "passport.field.public_key": "Public key",
+    "passport.field.rule": "Rule",
+    "passport.field.settings": "Settings",
+    "passport.field.signature": "Signature",
+    "passport.field.type_names": "Type names",
+    "passport.guarantee": "unchecked errors under {aoql} · {worst} if it turns bad",
+    "passport.note": "Signed and tamper-evident: a change after it is signed or anchored shows on verification. An older passport still verifies against a longer ledger; the verifier says what changed since.",
+    "passport.types_title": "Attested types",
+    "passport.value.hashed": "{profile} (hashed)",
+    "passport.value.ledger": {
+      "one": "{n} event · head {head}",
+      "other": "{n} events · head {head}"
+    },
+    "passport.value.none": "none",
+    "passport.value.raw": "raw",
+    "passport.value.redacted": "redacted after the program and subcommand",
+    "passport.value.unsigned": "unsigned",
+    "preset.balanced": "balanced",
+    "preset.careful": "careful",
+    "preset.custom": "custom",
+    "preset.fast": "fast",
+    "profile.pending": "applies from the next action",
+    "profile.preset": "{preset} preset",
+    "profile.read_only": " · read-only here",
+    "profile.sessions_suspended": {
+      "one": "{n} session suspended: external content read",
+      "other": "{n} sessions suspended: external content read"
+    },
+    "profile.spot": "spot checks {rate}",
+    "profile.strict": "strict",
+    "profile.suspended": {
+      "one": "{n} suspended: external content read",
+      "other": "{n} suspended: external content read"
+    },
+    "profile.this_dashboard": " · this dashboard",
+    "settings.about.body": "The same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending). Added layers make it stricter: spot checks ({spot} cleared actions still asks), two distinct sessions in the series that reaches T3, and suspension after a session reads external content.",
+    "settings.about.carry": "Carry-over is our addition; strict mode is the study.",
+    "settings.about.title": "About the rule",
+    "settings.apply": "Apply",
+    "settings.checks_in_row": {
+      "one": " check in a row",
+      "other": " checks in a row"
+    },
+    "settings.empty.body": "The balanced preset applies until the first action is recorded.",
+    "settings.empty.title": "No settings logged yet",
+    "settings.in_force": "in force: {value}",
+    "settings.in_force_profile": "In force in profile {profile}.",
+    "settings.preset_aria": "Preset",
+    "settings.read_only.body": "This dashboard process cannot write tenure's settings (Hermes gives plugins no other public writer). Run:",
+    "settings.read_only.bold": "Read-only here.",
+    "settings.reset": "Reset",
+    "settings.risk_help": "The share of errors you accept running unchecked, per stakes level. N is the series of verified successes in a row a type needs to act on its own.",
+    "settings.risk_title": "Accepted risk",
+    "settings.rung_cap": "cap",
+    "settings.same_as": "Same as: {cmds}",
+    "settings.saved": "Settings saved.",
+    "settings.saved_long": "Saved. The new settings are logged in the ledger and apply from the next action.",
+    "settings.stakes.high": "High stakes",
+    "settings.stakes.low": "Low stakes",
+    "settings.stakes.medium": "Medium stakes",
+    "settings.stakes_risk.high": "high stakes risk",
+    "settings.stakes_risk.low": "low stakes risk",
+    "settings.stakes_risk.medium": "medium stakes risk",
+    "settings.strict": "Strict mode",
+    "settings.strict_off": "Off: a new model inherits part of the previous record, provisionally",
+    "settings.strict_on": "On: a new model starts with an empty record (the study's rule)",
+    "stakes.group.high": "high stakes",
+    "stakes.group.low": "low stakes",
+    "stakes.group.medium": "medium stakes",
+    "stakes.high": "high",
+    "stakes.low": "low",
+    "stakes.medium": "medium",
+    "stale.message": "Last refresh failed ({error}). Showing the data from {time}.",
+    "switch.count.carried": {
+      "one": "{n} carried",
+      "other": "{n} carried"
+    },
+    "switch.count.kept": {
+      "one": "{n} kept",
+      "other": "{n} kept"
+    },
+    "switch.count.reset": {
+      "one": "{n} reset",
+      "other": "{n} reset"
+    },
+    "switch.count.vetoed": {
+      "one": "{n} vetoed",
+      "other": "{n} vetoed"
+    },
+    "switch.delta": " ({delta})",
+    "switch.empty": "No agent to preview yet",
+    "switch.footnote": "Public scores inform; they never grant autonomy. A veto only blocks carry-over, beyond a fixed margin.",
+    "switch.from": "From",
+    "switch.lede": "Before you change model: what the new agent would inherit, type by type. A new model or provider is a new agent. Carry-over is our addition; strict mode is the study.",
+    "switch.none": "none",
+    "switch.pick.body": "Type any model id. Nothing changes until Hermes actually runs the new model.",
+    "switch.pick.title": "Pick a target model",
+    "switch.placeholder": "model id, e.g. {example} or model@provider",
+    "switch.preview": "Preview",
+    "switch.provisional": {
+      "one": "{n} provisional",
+      "other": "{n} provisional"
+    },
+    "switch.status.carried.label": "carried, provisional",
+    "switch.status.carried.text": "Part of the series carries over, marked provisional until the new model adds its own.",
+    "switch.status.kept.label": "kept",
+    "switch.status.kept.text": "The new agent already has its own record here; it is never overwritten.",
+    "switch.status.reset.label": "reset",
+    "switch.status.reset.text": "Starts from zero: high stakes, capped, or strict mode.",
+    "switch.status.vetoed.label": "vetoed",
+    "switch.status.vetoed.text": "The public benchmark shows the new model weaker on this type: nothing carries over.",
+    "switch.strict": "strict mode: nothing carries over",
+    "switch.to": "To model",
+    "switch.to_aria": "Target model",
+    "tabs.aria": "Tenure views",
+    "th.after_switch": "after the switch",
+    "th.agent": "agent",
+    "th.faults_checks": "faults / checks",
+    "th.guarantee": "guarantee",
+    "th.now": "now",
+    "th.outcome": "outcome",
+    "th.public_measure": "public measure",
+    "th.range": "95% range · 0–{max}",
+    "th.rate": "rate",
+    "th.series": "series",
+    "th.sessions": "sessions",
+    "th.tier": "tier",
+    "th.type": "type",
+    "th.undo_effect": "effect of undo",
+    "th.when": "when",
+    "th.your_record": "your record",
+    "tier.capped.chip": "CAP",
+    "tier.capped.title": "Capped: always asks",
+    "tier.chip.title": "{tier}, {name}",
+    "tier.name.alone": "acts on its own",
+    "tier.name.ask": "asks first",
+    "tier.name.notify": "acts, then notifies",
+    "time.ago": "{duration} ago",
+    "time.days": {
+      "one": "{n}d",
+      "other": "{n}d"
+    },
+    "time.hours_minutes": {
+      "one": "{n}h {mm}m",
+      "other": "{n}h {mm}m"
+    },
+    "time.minutes": {
+      "one": "{n}m",
+      "other": "{n}m"
+    },
+    "time.seconds": {
+      "one": "{n}s",
+      "other": "{n}s"
+    },
+    "timeline.all_types": "All types",
+    "timeline.count": {
+      "one": "{n}×",
+      "other": "{n}×"
+    },
+    "timeline.empty": "No evidence for this filter",
+    "timeline.filter_label": "Filter by type",
+    "timeline.loading": "Loading the evidence…",
+    "timeline.note": "From the hash-chained ledger, newest first, last 200 events. Repeated outcomes are grouped.",
+    "timeline.title": "Evidence timeline",
+    "toast.transition": "{agent} · {type}: {from} → {to}",
+    "totals.actions": {
+      "one": "{n} action",
+      "other": "{n} actions"
+    },
+    "totals.alone": "{n} without asking",
+    "totals.checked": "{n} checked",
+    "totals.faults": {
+      "one": "{n} fault",
+      "other": "{n} faults"
+    },
+    "transitions.empty": "None since this page opened. Every automatic tier change is listed here and in each agent's timeline.",
+    "transitions.title": "Tier changes seen on this page",
+    "transitions.why.after_fault": "after a fault",
+    "transitions.why.on_evidence": "on evidence",
+    "transitions.why.trial_open": "trial open",
+    "undo.button": "Undo",
+    "undo.confirm": "Undo #{id}?",
+    "undo.effect.already": "restores the files · the automatic check already counted a fault",
+    "undo.effect.fault": "restores the files · counts as a fault",
+    "undo.empty.body": "Actions at T2 (act, then notify) keep a snapshot of the files they wrote for 24 hours. They appear here, newest first, each with its own undo.",
+    "undo.empty.title": "Nothing to undo",
+    "undo.lede": "Recent act-then-notify actions. Undo restores the files from their snapshot and counts as a fault of the type.",
+    "undo.own_profile_only": "Undo acts on this dashboard's profile only",
+    "undo.title": "Restore the files",
+    "undo.window_ends": "window ends in {duration}",
+    "verdict.chain": "Hash chain intact",
+    "verdict.ok.replay": "Replaying the ledger with the rule gives the same tiers",
+    "verdict.ok.signature": "Signature valid (Ed25519)",
+    "verdict.ok.title": "Verified",
+    "verdict.problems": {
+      "one": "{count} problem found",
+      "other": "{count} problems found"
+    },
+    "verdict.unsigned.no_key": "No signing key yet: {cmd} creates one",
+    "verdict.unsigned.replay": "Replay gives the same tiers",
+    "verdict.unsigned.title": "Unsigned, otherwise verified",
+    "view.map": "Map",
+    "view.models": "Your benchmark",
+    "view.passport": "Passport",
+    "view.settings": "Settings",
+    "view.switch": "Switch preview",
+    "view.undo": "Undo"
+  }
+};
+/* TENURE_LOCALES_END */
+
+  // The dashboard's language (SDK.useI18n().locale), set by TenurePage on every render so that switching language
+  // in the dashboard re-renders the whole tab. Fallback chain: exact -> base language (zh-hant -> zh) -> en.
+  var LANG = "en";
+  function resolveLang(loc) {
+    var l = String(loc || "en").toLowerCase().replace(/_/g, "-");
+    if (TENURE_LOCALES[l]) return l;
+    var base = l.split("-")[0];
+    return TENURE_LOCALES[base] ? base : "en";
+  }
+  function setLocale(loc) { LANG = resolveLang(loc); }
+  var PLURALS = {};
+  function pluralCategory(lang, n) {
+    try {
+      return (PLURALS[lang] || (PLURALS[lang] = new Intl.PluralRules(lang))).select(n);
+    } catch (e) { return n === 1 ? "one" : "other"; }
+  }
+  /** The active locale's text for ``key`` (en if missing), ``{name}`` replaced from ``vars`` (numbers through num()).
+   * A value that is an object of CLDR plural categories is chosen by ``vars.n``. */
+  function t(key, vars) {
+    var lang = LANG, cat = TENURE_LOCALES[lang], v = cat ? cat[key] : undefined;
+    if (v == null) { lang = "en"; v = TENURE_LOCALES.en[key]; }
+    if (v == null) return key;
+    if (typeof v === "object") {
+      var c = pluralCategory(lang, Number(vars && vars.n));
+      v = v[c] != null ? v[c] : v.other;
+    }
+    return String(v).replace(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g, function (m, name) {
+      if (!vars || !Object.prototype.hasOwnProperty.call(vars, name)) return m;
+      var x = vars[name];
+      return x == null || typeof x === "number" ? num(x) : String(x);     // num: "—" when unknown, as before
+    });
+  }
+  function isRtl() { return (document.documentElement.getAttribute("dir") || "").toLowerCase() === "rtl"; }
+
   var BASE = "/api/plugins/tenure";
   var POLL_MS = 2000;
   var WEEK = 7 * 86400;
@@ -34,7 +518,7 @@
   // ----------------------------------------------------------------------------------------- pinned rule values
   // Mirrors of tenure/params.py and rule.py, used only to say what evidence is still missing and to preview N.
   var TIER = { ask: "T1", notify: "T2", alone: "T3" };
-  var TIER_NAME = { ask: "asks first", notify: "acts, then notifies", alone: "acts on its own" };
+  function tierName(tier) { return t("tier.name." + tier); }
   var STAKES = ["low", "medium", "high"];
   var TRIAL = 3;            // rule.TRIAL
   var SESSIONS = 2;         // rule.SESSIONS
@@ -59,11 +543,11 @@
   }
 
   /** Verified successes without a fault still needed before the middle tier (T2), from the Wald score. */
-  function toT2(t) {
-    var w = WALD[t.stakes];
-    if (!w || !t.reversible) return null;
+  function toT2(ty) {
+    var w = WALD[ty.stakes];
+    if (!w || !ty.reversible) return null;
     var step = -Math.log((1 - w[1]) / (1 - w[0]));
-    return Math.max(0, Math.ceil((t.wald - LN_B) / step - 1e-9));
+    return Math.max(0, Math.ceil((ty.wald - LN_B) / step - 1e-9));
   }
 
   // --------------------------------------------------------------------------------------------------- helpers
@@ -94,7 +578,7 @@
       var d = JSON.parse(body);
       if (d && typeof d.detail === "string") return d.detail;
     } catch (e) { /* not JSON */ }
-    return body || "request failed";
+    return body || t("error.request_failed");
   }
   // Newer hosts throw an ApiError (``status``, human ``message``); older ones Error("<status>: <body>").
   function errStatus(err) {
@@ -102,31 +586,55 @@
     var m = String((err && err.message) || "").match(/^(\d{3}):/);
     return m ? Number(m[1]) : 0;
   }
-  function num(n) { return n == null ? "—" : Number(n).toLocaleString("en-US"); }
+  // Numbers and percents follow the active locale (en: en-US, as before); the wording around them is in the catalog.
+  var NUMFMT = {};
+  function numFormat(opts, key) {
+    var id = LANG + "|" + key;
+    if (!NUMFMT[id]) {
+      try { NUMFMT[id] = new Intl.NumberFormat(LANG === "en" ? "en-US" : LANG, opts); }
+      catch (e) { NUMFMT[id] = new Intl.NumberFormat("en-US", opts); }
+    }
+    return NUMFMT[id];
+  }
+  function num(n) { return n == null ? "—" : numFormat(undefined, "n").format(Number(n)); }
   function pct(x) {
     if (x == null) return "—";
     var v = x * 100;
-    if (v === 0 || v < 0.005) return "0%";
-    return (v < 10 ? v.toFixed(2) : v.toFixed(1)).replace(/\.?0+$/, "") + "%";
+    if (LANG === "en") {
+      if (v === 0 || v < 0.005) return "0%";
+      return (v < 10 ? v.toFixed(2) : v.toFixed(1)).replace(/\.?0+$/, "") + "%";
+    }
+    if (v === 0 || v < 0.005) return numFormat({ style: "percent" }, "p0").format(0);
+    return numFormat({ style: "percent", maximumFractionDigits: v < 10 ? 2 : 1 }, v < 10 ? "p2" : "p1").format(x);
   }
-  function plural(n, word) { return num(n) + " " + word + (n === 1 ? "" : "s"); }
-  function totals(t) {
-    t = t || {};
-    return plural(t.actions, "action") + " · " + num(t.checked) + " checked · " + num(t.alone) + " without asking · " + plural(t.faults, "fault");
+  /** One decimal, as the public scores are published (en: toFixed(1), as before). */
+  function dec1(x) {
+    if (LANG === "en") return x.toFixed(1);
+    return numFormat({ minimumFractionDigits: 1, maximumFractionDigits: 1 }, "d1").format(x);
   }
-  function totalsLines(t) {
-    t = t || {};
-    return [h("div", { key: 1 }, plural(t.actions, "action") + " · " + num(t.checked) + " checked"),
-      h("div", { key: 2 }, num(t.alone) + " without asking · " + plural(t.faults, "fault"))];
+  function totals(tot) {
+    tot = tot || {};
+    return [t("totals.actions", { n: tot.actions }), t("totals.checked", { n: tot.checked }),
+      t("totals.alone", { n: tot.alone }), t("totals.faults", { n: tot.faults })].join(" · ");
   }
-  function oneIn(r) { return r == null ? "capped" : "1 in " + num(Math.round(1 / r)); }
-  function ago(sec) {
+  function totalsLines(tot) {
+    tot = tot || {};
+    return [h("div", { key: 1 }, t("totals.actions", { n: tot.actions }) + " · " + t("totals.checked", { n: tot.checked })),
+      h("div", { key: 2 }, t("totals.alone", { n: tot.alone }) + " · " + t("totals.faults", { n: tot.faults }))];
+  }
+  function oneIn(r) { return r == null ? t("common.capped") : t("common.one_in", { k: Math.round(1 / r) }); }
+  /** A duration in seconds, short units: "12s", "5m", "2h 05m", "3d". */
+  function duration(sec) {
     sec = Math.max(0, Math.round(sec));
-    if (sec < 60) return sec + "s ago";
-    if (sec < 3600) return Math.floor(sec / 60) + "m ago";
-    if (sec < 86400) return Math.floor(sec / 3600) + "h " + String(Math.floor(sec % 3600 / 60)).padStart(2, "0") + "m ago";
-    return Math.floor(sec / 86400) + "d ago";
+    if (sec < 60) return t("time.seconds", { n: sec });
+    if (sec < 3600) return t("time.minutes", { n: Math.floor(sec / 60) });
+    if (sec < 86400) {
+      return t("time.hours_minutes", { n: Math.floor(sec / 3600), mm: String(Math.floor(sec % 3600 / 60)).padStart(2, "0") });
+    }
+    return t("time.days", { n: Math.floor(sec / 86400) });
   }
+  function ago(sec) { return t("time.ago", { duration: duration(sec) }); }
+  // English day labels as before ("Mon 9 Nov"); other languages take the browser's own short date.
   var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   function hm(at) {
@@ -139,6 +647,10 @@
   }
   function dayLabel(at) {
     var d = new Date(at * 1000);
+    if (LANG !== "en") {
+      try { return new Intl.DateTimeFormat(LANG, { weekday: "short", day: "numeric", month: "short" }).format(d); }
+      catch (e) { /* fall back to English */ }
+    }
     return DAYS[d.getDay()] + " " + d.getDate() + " " + MONTHS[d.getMonth()];
   }
   function dayKey(at) { var d = new Date(at * 1000); return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); }
@@ -162,10 +674,10 @@
     return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   }
   function typing(e) {
-    var t = e.target;
-    if (!t) return false;
-    var tag = (t.tagName || "").toLowerCase();
-    return tag === "input" || tag === "textarea" || tag === "select" || t.isContentEditable;
+    var el = e.target;
+    if (!el) return false;
+    var tag = (el.tagName || "").toLowerCase();
+    return tag === "input" || tag === "textarea" || tag === "select" || el.isContentEditable;
   }
 
   /** Poll ``fn`` every POLL_MS while the page is visible; ``deps`` restart it. */
@@ -221,10 +733,11 @@
 
   var TIER_TONE = { ask: "outline", notify: "secondary", alone: "success" };
   function TierChip(props) {
-    var t = props.tier;
+    var tier = props.tier;
     var B = UI.Badge || "span";
-    if (props.capped) return h(B, { tone: "outline", className: "tnr-tier", title: "Capped: always asks" }, "CAP");
-    return h(B, { tone: TIER_TONE[t] || "outline", className: "tnr-tier tnr-tier--" + t, title: TIER[t] + ", " + TIER_NAME[t] }, TIER[t]);
+    if (props.capped) return h(B, { tone: "outline", className: "tnr-tier", title: t("tier.capped.title") }, t("tier.capped.chip"));
+    return h(B, { tone: TIER_TONE[tier] || "outline", className: "tnr-tier tnr-tier--" + tier,
+      title: t("tier.chip.title", { tier: TIER[tier], name: tierName(tier) }) }, TIER[tier]);
   }
 
   // State flags keep the tab's own readable style: the SDK Badge uses a display face too small for a phrase.
@@ -270,18 +783,18 @@
     var b = useState(false), busy = b[0], setBusy = b[1];
     useEffect(function () {
       if (!armed) return undefined;
-      var t = setTimeout(function () { setArmed(false); }, 4000);
-      return function () { clearTimeout(t); };
+      var tm = setTimeout(function () { setArmed(false); }, 4000);
+      return function () { clearTimeout(tm); };
     }, [armed]);
     return h(Btn, {
       kind: armed ? "danger" : props.kind, disabled: props.disabled || busy, live: true,
-      title: armed ? "Click again to confirm" : props.title,
+      title: armed ? t("confirm.again") : props.title,
       onClick: function () {
         if (!armed) { setArmed(true); return; }
         setArmed(false); setBusy(true);
         Promise.resolve(props.onConfirm()).then(function () { setBusy(false); }, function () { setBusy(false); });
       }
-    }, busy ? "…" : armed ? props.confirm || "Confirm" : props.children);
+    }, busy ? "…" : armed ? props.confirm || t("confirm.default") : props.children);
   }
 
   function CopyCmd(props) {
@@ -292,59 +805,67 @@
         kind: "ghost", onClick: function () {
           copyText(props.cmd).then(function () { setDone(true); setTimeout(function () { setDone(false); }, 1500); });
         }
-      }, done ? "Copied" : "Copy"));
+      }, done ? t("copy.done") : t("copy.button")));
   }
 
   // ----------------------------------------------------------------------------------------- evidence wording
   /** What a type still needs, said as missing evidence (never a gauge). */
-  function missing(t) {
-    if (t.capped) return { text: "always asks", tone: "muted" };
-    if (t.trial_wait) return { text: "trial failed · wait " + num(t.trial_wait), tone: "warn" };
-    if (t.trial_left) return { text: "trial · " + t.trial_left + " of " + TRIAL + " to go", tone: "warn" };
-    var eff = t.effective_tier;
-    if (eff === "alone") return { text: "earned · spot-checked", tone: "ok" };
-    var gap = (t.required || 0) - t.series;
-    if (gap <= 0 && t.sessions < SESSIONS) return { text: "needs a 2nd session", tone: "muted" };
+  function missing(ty) {
+    if (ty.capped) return { text: t("missing.always_asks"), tone: "muted" };
+    if (ty.trial_wait) return { text: t("missing.trial_wait", { n: ty.trial_wait }), tone: "warn" };
+    if (ty.trial_left) return { text: t("missing.trial_left", { n: String(ty.trial_left), total: String(TRIAL) }), tone: "warn" };
+    var eff = ty.effective_tier;
+    if (eff === "alone") return { text: t("missing.earned"), tone: "ok" };
+    var gap = (ty.required || 0) - ty.series;
+    if (gap <= 0 && ty.sessions < SESSIONS) return { text: t("missing.second_session"), tone: "muted" };
     var parts = [];
     if (eff === "ask") {
-      var t2 = toT2(t);
-      if (t2) parts.push(num(t2) + " more to T2");
+      var t2 = toT2(ty);
+      if (t2) parts.push(t("missing.more_to_t2", { n: t2 }));
     }
-    if (gap > 0) parts.push(num(gap) + " more to T3");
-    return { text: parts.join(" · ") || "re-checking", tone: "muted" };
+    if (gap > 0) parts.push(t("missing.more_to_t3", { n: gap }));
+    return { text: parts.join(" · ") || t("missing.rechecking"), tone: "muted" };
   }
 
   function guaranteeText(g) {
-    if (!g || g.capped) return "Capped: every action asks.";
-    var s = "Unchecked errors stay under " + pct(g.aoql) + " of its actions of this type; for an agent that turns bad " +
-      "after tenure, at most " + pct(g.worst_case) + " until the first caught error.";
-    if (g.conditional) s += " Conditional on the previous model's evidence still holding.";
-    return s;
+    if (!g || g.capped) return t("guarantee.capped");
+    return t(g.conditional ? "guarantee.text_conditional" : "guarantee.text", { aoql: pct(g.aoql), worst: pct(g.worst_case) });
   }
 
-  function cellTitle(t) {
-    var lines = [t.type + " · " + t.stakes + " stakes" + (t.reversible ? ", reversible" : ", irreversible"),
-      "Tier now: " + TIER[t.effective_tier] + " (" + TIER_NAME[t.effective_tier] + ")" +
-        (t.tier !== t.effective_tier ? " · stored " + TIER[t.tier] + " (held: settings)" : ""),
-      t.capped ? "Capped by the risk settings" : "Series " + t.series + "/" + t.required + " in a row · " +
-        t.sessions + " session" + (t.sessions === 1 ? "" : "s"),
-      "Record: " + t.successes + " successes · " + t.faults + " faults · " + t.neutrals + " neutral · " +
-        t.spot_checks + " spot checks"];
-    if (t.provisional) lines.push(t.provisional + " carried over from the previous model, provisional");
-    if (t.unresolved_fault) lines.push("Fault on record");
+  var PRESET_IDS = ["careful", "balanced", "fast", "custom"];
+  function presetName(p) { return PRESET_IDS.indexOf(p) >= 0 ? t("preset." + p) : p; }
+  function profileSettings(st) {
+    var parts = [t("profile.preset", { preset: presetName(st.preset) }), t("profile.spot", { rate: oneIn(st.spot) })];
+    if (st.strict) parts.push(t("profile.strict"));
+    if (st.pending) parts.push(t("profile.pending"));
+    return parts.join(" · ");
+  }
+
+  function cellTitle(ty) {
+    var stakes = t("stakes.group." + ty.stakes);
+    var tierNow = t("cell.tier_now", { tier: TIER[ty.effective_tier], name: tierName(ty.effective_tier) });
+    var lines = [t(ty.reversible ? "cell.kind_reversible" : "cell.kind_irreversible", { type: ty.type, stakes: stakes }),
+      ty.tier !== ty.effective_tier ? tierNow + " · " + t("cell.held", { tier: TIER[ty.tier] }) : tierNow,
+      ty.capped ? t("cell.capped_by_settings") : t("cell.series", { series: String(ty.series), required: String(ty.required) }) +
+        " · " + t("cell.sessions", { n: ty.sessions, count: String(ty.sessions) }),
+      t("cell.record", { successes: String(ty.successes), faults: String(ty.faults), neutrals: String(ty.neutrals),
+        spot: String(ty.spot_checks) })];
+    if (ty.provisional) lines.push(t("cell.provisional_long", { n: ty.provisional, count: String(ty.provisional) }));
+    if (ty.unresolved_fault) lines.push(t("flag.fault_on_record_title"));
     return lines.join("\n");
   }
 
   // ------------------------------------------------------------------------------------------------ the header
   function Counters(props) {
-    var t = props.totals;
+    var tot = props.totals;
     var cells = [
-      { n: t ? t.actions : null, label: "actions", sub: "covered" },
-      { n: t ? t.checked : null, label: "checked", sub: t ? "by you, of " + num(t.actions) : "" },
-      { n: t ? t.alone : null, label: "acted without asking", sub: t ? "ran without asking, of " + num(t.actions) : "" },
-      { n: t ? t.faults : null, label: "faults caught", sub: t ? num(t.faults) + " / " + num(t.checked) + " checks" : "" }
+      { n: tot ? tot.actions : null, label: t("counters.actions.label", { n: tot ? tot.actions : 0 }), sub: t("counters.actions.sub") },
+      { n: tot ? tot.checked : null, label: t("counters.checked.label"), sub: tot ? t("counters.checked.sub", { total: tot.actions }) : "" },
+      { n: tot ? tot.alone : null, label: t("counters.alone.label"), sub: tot ? t("counters.alone.sub", { total: tot.actions }) : "" },
+      { n: tot ? tot.faults : null, label: t("counters.faults.label"),
+        sub: tot ? t("counters.faults.sub", { faults: tot.faults, n: tot.checked }) : "" }
     ];
-    return h("div", { className: "tnr-counters", "aria-label": "Last 7 days" },
+    return h("div", { className: "tnr-counters", "aria-label": t("counters.aria") },
       cells.map(function (c, i) {
         return h(Fragment, { key: i },
           i ? h("span", { className: "tnr-counter-dot", "aria-hidden": true }, "·") : null,
@@ -353,21 +874,21 @@
             h("span", { className: "tnr-counter-label" }, c.label),
             h("span", { className: "tnr-counter-sub" }, c.sub)));
       }),
-      h("span", { className: "tnr-counter-window" }, "last 7 days, every profile"));
+      h("span", { className: "tnr-counter-window" }, t("counters.window")));
   }
 
   var VIEWS = [
-    { id: "map", label: "Map", key: "m" },
-    { id: "models", label: "Your benchmark", key: "b" },
-    { id: "switch", label: "Switch preview", key: "w" },
-    { id: "passport", label: "Passport", key: "p" },
-    { id: "undo", label: "Undo", key: "u" },
-    { id: "settings", label: "Settings", key: "s" }
+    { id: "map", key: "m" },            // label: the catalog key view.<id>
+    { id: "models", key: "b" },
+    { id: "switch", key: "w" },
+    { id: "passport", key: "p" },
+    { id: "undo", key: "u" },
+    { id: "settings", key: "s" }
   ];
 
   function Tabs(props) {
     var List = UI.TabsList || "div", Trigger = UI.TabsTrigger || "button";
-    return h("nav", { className: "tnr-tabs", "aria-label": "Tenure views" },
+    return h("nav", { className: "tnr-tabs", "aria-label": t("tabs.aria") },
       h(List, { role: "tablist", className: "tnr-tablist" },
         VIEWS.map(function (v) {
           var badge = v.id === "undo" && props.undoCount ? h("span", { className: "tnr-tab-count" }, num(props.undoCount)) : null;
@@ -378,14 +899,15 @@
             className: cx("tnr-tab", active && "is-active"),
             onClick: function () { props.onView(v.id); },
             onKeyDown: function (e) {
-              var i = VIEWS.indexOf(v), next = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : null;
+              var fwd = isRtl() ? "ArrowLeft" : "ArrowRight", back = isRtl() ? "ArrowRight" : "ArrowLeft";
+              var i = VIEWS.indexOf(v), next = e.key === fwd ? i + 1 : e.key === back ? i - 1 : null;
               if (next === null) return;
               var w = VIEWS[(next + VIEWS.length) % VIEWS.length];
               props.onView(w.id);
               e.preventDefault();
               setTimeout(function () { var el = document.getElementById("tnr-tab-" + w.id); if (el) el.focus(); }, 0);
             }
-          }, v.label, badge);
+          }, t("view." + v.id), badge);
         })));
   }
 
@@ -394,10 +916,10 @@
     var seen = {}, groups = { low: [], medium: [], high: [] };
     profiles.forEach(function (p) {
       (p.agents || []).forEach(function (a) {
-        a.types.forEach(function (t) {
-          if (seen[t.type]) return;
-          seen[t.type] = 1;
-          (groups[t.stakes] || (groups[t.stakes] = [])).push(t.type);
+        a.types.forEach(function (ty) {
+          if (seen[ty.type]) return;
+          seen[ty.type] = 1;
+          (groups[ty.stakes] || (groups[ty.stakes] = [])).push(ty.type);
         });
       });
     });
@@ -412,25 +934,28 @@
   }
 
   function Cell(props) {
-    var t = props.t;
-    if (!t) return h("td", { className: "tnr-cell tnr-cell--none" }, h("span", { className: "tnr-none" }, "—"));
-    var miss = missing(t);
-    var held = t.tier !== t.effective_tier;
+    var ty = props.t;
+    if (!ty) return h("td", { className: "tnr-cell tnr-cell--none" }, h("span", { className: "tnr-none" }, "—"));
+    var miss = missing(ty);
+    var held = ty.tier !== ty.effective_tier;
     var flags = [];
-    if (t.provisional) flags.push(h(Flag, { key: "p", kind: "prov", title: t.provisional + " carried over, provisional" }, num(t.provisional) + " carried over"));
-    if (t.unresolved_fault) flags.push(h(Flag, { key: "f", kind: "fault", title: "Fault on record" }, "fault on record"));
+    if (ty.provisional) {
+      flags.push(h(Flag, { key: "p", kind: "prov", title: t("flag.carried_over_title", { n: ty.provisional, count: String(ty.provisional) }) },
+        t("flag.carried_over_n", { n: ty.provisional })));
+    }
+    if (ty.unresolved_fault) flags.push(h(Flag, { key: "f", kind: "fault", title: t("flag.fault_on_record_title") }, t("flag.fault_on_record")));
     return h("td", {
-      className: cx("tnr-cell", "tnr-cell--" + (t.capped ? "cap" : t.effective_tier), t.provisional && "is-prov",
-        (t.trial_left || t.trial_wait) && "is-trial"),
-      title: cellTitle(t)
+      className: cx("tnr-cell", "tnr-cell--" + (ty.capped ? "cap" : ty.effective_tier), ty.provisional && "is-prov",
+        (ty.trial_left || ty.trial_wait) && "is-trial"),
+      title: cellTitle(ty)
     },
       h("div", { className: "tnr-cell-top" },
-        h(TierChip, { tier: t.effective_tier, capped: t.capped }),
-        t.capped ? h("span", { className: "tnr-cell-ev" }, num(t.successes + t.faults), h("span", { className: "tnr-dim" }, " asked"))
-          : h("span", { className: "tnr-cell-ev" }, num(t.series), h("span", { className: "tnr-dim" }, "/" + num(t.required)))),
+        h(TierChip, { tier: ty.effective_tier, capped: ty.capped }),
+        ty.capped ? h("span", { className: "tnr-cell-ev" }, num(ty.successes + ty.faults), h("span", { className: "tnr-dim" }, t("cell.asked_suffix")))
+          : h("span", { className: "tnr-cell-ev" }, num(ty.series), h("span", { className: "tnr-dim" }, "/" + num(ty.required)))),
       h("div", { className: "tnr-cell-mid" },
-        t.capped ? h("span", null, plural(t.faults, "fault")) : h("span", null, plural(t.sessions, "session")),
-        held ? h("span", { className: "tnr-held" }, "stored " + TIER[t.tier] + " (held: settings)") : null),
+        ty.capped ? h("span", null, t("count.faults", { n: ty.faults })) : h("span", null, t("count.sessions", { n: ty.sessions })),
+        held ? h("span", { className: "tnr-held" }, t("cell.held", { tier: TIER[ty.tier] })) : null),
       h("div", { className: "tnr-cell-miss tnr-tone--" + miss.tone }, miss.text),
       flags.length ? h("div", { className: "tnr-cell-flags" }, flags) : null);
   }
@@ -440,10 +965,8 @@
     var cols = useMemo(function () { return columns(profiles); }, [profiles]);
     var rows = props.rows;
     if (!rows.length) {
-      return h(Empty, { title: "No evidence yet" },
-        "tenure starts counting at the first action an agent asks to run. Reads never ask. Every action type starts at ",
-        h("b", null, "T1, asks first"), ", and climbs only on verified successes: ",
-        "reversible types reach the middle tier after a run of verified successes without a fault, and T3 after a full series of N from two sessions.");
+      return h(Empty, { title: t("map.empty.title") },
+        t("map.empty.before"), h("b", null, t("map.empty.bold")), t("map.empty.after"));
     }
     var current = props.settings;
     var byProfile = [];
@@ -454,7 +977,7 @@
     });
     var ncols = cols.reduce(function (n, g) { return n + g.types.length; }, 0);
     var table = h("div", { className: "tnr-map-scroll" },
-      h("table", { className: "tnr-map", role: "grid", "aria-label": "Agents by action type", style: { minWidth: 248 + ncols * 140 } },
+      h("table", { className: "tnr-map", role: "grid", "aria-label": t("map.aria"), style: { minWidth: 248 + ncols * 140 } },
         h("colgroup", null, h("col", { className: "tnr-col-agent" }),
           cols.map(function (g) {
             return g.types.map(function (ty) {
@@ -464,14 +987,14 @@
         h("thead", null,
           h("tr", { className: "tnr-map-groups" },
             h("th", { className: "tnr-th-agent", rowSpan: 2, scope: "col" },
-              h("span", { className: "tnr-th-label" }, "Agent"),
-              h("span", { className: "tnr-th-sub" }, "profile · model@provider")),
+              h("span", { className: "tnr-th-label" }, t("map.th.agent")),
+              h("span", { className: "tnr-th-sub" }, t("map.th.agent_sub"))),
             cols.map(function (g) {
               var n = current ? studyN(current.risks[g.stakes]) : null;
               return h("th", { key: g.stakes, colSpan: g.types.length, className: "tnr-th-group tnr-stakes--" + g.stakes, scope: "colgroup" },
-                h("span", { className: "tnr-th-label" }, g.stakes + " stakes"),
-                h("span", { className: "tnr-th-sub" }, n == null ? (g.stakes === "high" ? "capped · always asks" : "") :
-                  "risk " + oneIn(current.risks[g.stakes]) + " · " + num(n) + " in a row to act on its own"));
+                h("span", { className: "tnr-th-label" }, t("stakes.group." + g.stakes)),
+                h("span", { className: "tnr-th-sub" }, n == null ? (g.stakes === "high" ? t("map.th.capped") : "") :
+                  t("map.th.risk", { risk: oneIn(current.risks[g.stakes]), n: n })));
             })),
           h("tr", { className: "tnr-map-types" },
             cols.map(function (g) {
@@ -484,13 +1007,13 @@
             h("tr", { className: "tnr-map-profile" },
               h("th", { colSpan: ncols + 1, scope: "rowgroup" },
                 h("span", { className: "tnr-profile-name" }, grp.profile),
-                grp.info.current ? h("span", { className: "tnr-dim" }, " · this dashboard") : h("span", { className: "tnr-dim" }, " · read-only here"),
-                grp.info.suspended ? h(Flag, { kind: "warn" }, num(grp.info.suspended) + " session" + (grp.info.suspended === 1 ? "" : "s") + " suspended: external content read") : null,
-                grp.info.settings ? h("span", { className: "tnr-dim tnr-profile-preset" }, grp.info.settings.preset + " preset · spot checks " + oneIn(grp.info.settings.spot) + (grp.info.settings.strict ? " · strict" : "") + (grp.info.settings.pending ? " · applies from the next action" : "")) : null)),
+                h("span", { className: "tnr-dim" }, grp.info.current ? t("profile.this_dashboard") : t("profile.read_only")),
+                grp.info.suspended ? h(Flag, { kind: "warn" }, t("profile.sessions_suspended", { n: grp.info.suspended })) : null,
+                grp.info.settings ? h("span", { className: "tnr-dim tnr-profile-preset" }, profileSettings(grp.info.settings)) : null)),
             grp.rows.map(function (x) {
               var r = x.r, a = r.agent;
               var byType = {};
-              a.types.forEach(function (t) { byType[t.type] = t; });
+              a.types.forEach(function (ty) { byType[ty.type] = ty; });
               var tot = a.totals || {};
               return h("tr", {
                 key: r.key, className: cx("tnr-map-row", x.i === props.focus && "is-focus"),
@@ -501,10 +1024,10 @@
                   h("div", { className: "tnr-agent-model" }, a.model, h("span", { className: "tnr-dim" }, "@" + a.provider)),
                   h("div", { className: "tnr-agent-tot" }, totalsLines(tot)),
                   h("div", { className: "tnr-agent-flags" },
-                    a.provisional ? h(Flag, { kind: "prov" }, "provisional") : null,
-                    a.trial ? h(Flag, { kind: "warn" }, "trial") : null,
-                    a.unresolved_fault ? h(Flag, { kind: "fault" }, "fault on record") : null,
-                    h("span", { className: "tnr-open-hint" }, "open ", h(Kbd, null, "↵")))),
+                    a.provisional ? h(Flag, { kind: "prov" }, t("flag.provisional")) : null,
+                    a.trial ? h(Flag, { kind: "warn" }, t("flag.trial")) : null,
+                    a.unresolved_fault ? h(Flag, { kind: "fault" }, t("flag.fault_on_record")) : null,
+                    h("span", { className: "tnr-open-hint" }, t("map.open_hint"), h(Kbd, null, "↵")))),
                 cols.map(function (g) {
                   return g.types.map(function (ty) { return h(Cell, { key: ty, t: byType[ty] }); });
                 }));
@@ -516,8 +1039,8 @@
         return h("section", { key: grp.profile, className: "tnr-card-group" },
           h("div", { className: "tnr-map-profile tnr-map-profile--card" },
             h("span", { className: "tnr-profile-name" }, grp.profile),
-            grp.info.current ? h("span", { className: "tnr-dim" }, " · this dashboard") : h("span", { className: "tnr-dim" }, " · read-only here"),
-            grp.info.suspended ? h(Flag, { kind: "warn" }, num(grp.info.suspended) + " suspended: external content read") : null),
+            h("span", { className: "tnr-dim" }, grp.info.current ? t("profile.this_dashboard") : t("profile.read_only")),
+            grp.info.suspended ? h(Flag, { kind: "warn" }, t("profile.suspended", { n: grp.info.suspended })) : null),
           grp.rows.map(function (x) {
             var r = x.r, a = r.agent, tot = a.totals || {};
             return h("button", {
@@ -529,16 +1052,16 @@
               h("div", { className: "tnr-card-types" },
                 a.types.slice().sort(function (p, q) {
                   return STAKES.indexOf(p.stakes) - STAKES.indexOf(q.stakes) || (p.type < q.type ? -1 : 1);
-                }).map(function (t) {
-                  var miss = missing(t);
-                  return h("div", { key: t.type, className: "tnr-card-type" },
-                    h(TierChip, { tier: t.effective_tier, capped: t.capped }),
-                    h("code", { className: "tnr-card-type-name" }, t.type),
-                    h("span", { className: "tnr-card-type-ev" }, t.capped ? "capped" : num(t.series) + "/" + num(t.required)),
+                }).map(function (ty) {
+                  var miss = missing(ty);
+                  return h("div", { key: ty.type, className: "tnr-card-type" },
+                    h(TierChip, { tier: ty.effective_tier, capped: ty.capped }),
+                    h("code", { className: "tnr-card-type-name" }, ty.type),
+                    h("span", { className: "tnr-card-type-ev" }, ty.capped ? t("common.capped") : num(ty.series) + "/" + num(ty.required)),
                     h("span", { className: "tnr-card-type-miss tnr-tone--" + miss.tone },
-                      t.tier !== t.effective_tier ? "stored " + TIER[t.tier] + " (held: settings)" :
-                        t.provisional ? num(t.provisional) + " carried over · " + miss.text :
-                          t.unresolved_fault ? "fault on record · " + miss.text : miss.text));
+                      ty.tier !== ty.effective_tier ? t("cell.held", { tier: TIER[ty.tier] }) :
+                        ty.provisional ? t("flag.carried_over_n", { n: ty.provisional }) + " · " + miss.text :
+                          ty.unresolved_fault ? t("flag.fault_on_record") + " · " + miss.text : miss.text));
                 })));
           }));
       }));
@@ -551,64 +1074,61 @@
 
   function Legend(props) {
     return h("div", { className: "tnr-legend" },
-      h("span", null, h(TierChip, { tier: "ask" }), " asks first"),
-      h("span", null, h(TierChip, { tier: "notify" }), " acts, then notifies with an undo (reversible types)"),
-      h("span", null, h(TierChip, { tier: "alone" }), " acts on its own, " + (props.spot ? oneIn(props.spot) : "a share") + " spot-checked"),
-      h("span", null, h(TierChip, { capped: true }), " capped: always asks"),
-      h("span", null, h("span", { className: "tnr-mono" }, "n/N"), " clean runs in a row, of the N needed"),
-      h("span", null, h(Flag, { kind: "prov" }, "carried over"), " from the previous model, provisional"));
+      h("span", null, h(TierChip, { tier: "ask" }), " " + t("legend.ask")),
+      h("span", null, h(TierChip, { tier: "notify" }), " " + t("legend.notify")),
+      h("span", null, h(TierChip, { tier: "alone" }), " " + t("legend.alone", { share: props.spot ? oneIn(props.spot) : t("legend.a_share") })),
+      h("span", null, h(TierChip, { capped: true }), " " + t("legend.capped")),
+      h("span", null, h("span", { className: "tnr-mono" }, "n/N"), " " + t("legend.series")),
+      h("span", null, h(Flag, { kind: "prov" }, t("flag.carried_over")), " " + t("legend.carried")));
   }
 
   function Transitions(props) {
     return h("section", { className: "tnr-transitions", "aria-live": "polite" },
-      h("div", { className: "tnr-section-title" }, "Tier changes seen on this page"),
+      h("div", { className: "tnr-section-title" }, t("transitions.title")),
       props.items.length ? h("ol", { className: "tnr-trans-list" },
         props.items.slice(0, 8).map(function (x) {
           return h("li", { key: x.id },
             h("span", { className: "tnr-mono tnr-dim" }, hms(x.at)),
             h("span", null, x.agent),
             h("code", null, x.type),
-            h("span", { className: "tnr-trans-move" }, h(TierChip, { tier: x.from, capped: false }), " → ", h(TierChip, { tier: x.to, capped: false })),
-            h("span", { className: "tnr-dim" }, x.why));
-        })) : h("div", { className: "tnr-dim tnr-trans-empty" },
-          "None since this page opened. Every automatic tier change is listed here and in each agent's timeline."));
+            h("span", { className: "tnr-trans-move" }, h(TierChip, { tier: x.from, capped: false }), " " + t("common.arrow") + " ", h(TierChip, { tier: x.to, capped: false })),
+            h("span", { className: "tnr-dim" }, t("transitions.why." + x.why)));
+        })) : h("div", { className: "tnr-dim tnr-trans-empty" }, t("transitions.empty")));
   }
 
   // ---------------------------------------------------------------------------------------------- agent drawer
+  var FAULT_SOURCES = ["refusal", "spot", "check", "undo", "flag"];
+  var NEUTRAL_SOURCES = ["alone", "error", "blocked", "timeout", "nobody", "expired", "ambiguous"];
+  var TIER_REASONS = ["wald", "fault", "settings", "stakes"];
   function describeEvent(e) {
     var src = e.source;
     if (e.event === "outcome") {
       if (e.result === "success") {
-        return { glyph: "✓", tone: "ok", text: src === "notify" ? "acted, then notified · not undone" :
-          src === "spot" ? "spot check approved by you" : "approved by you, ran cleanly" };
+        return { glyph: "✓", tone: "ok", text: src === "notify" ? t("event.success.notify") :
+          src === "spot" ? t("event.success.spot") : t("event.success.approved") };
       }
       if (e.result === "fault") {
-        return { glyph: "✕", tone: "fault", text: {
-          refusal: "refused by you", spot: "spot check refused or failed", check: "automatic check failed",
-          undo: "undone by you", flag: "flagged as a fault by you"
-        }[src] || "fault (" + src + ")" };
+        return { glyph: "✕", tone: "fault", text: FAULT_SOURCES.indexOf(src) >= 0 ? t("event.fault." + src) : t("event.fault.other", { source: String(src) }) };
       }
-      return { glyph: "○", tone: "muted", text: {
-        alone: "acted alone (earned)", error: "tool error · no evidence", blocked: "blocked by another guard · no evidence",
-        timeout: "no answer · no evidence", nobody: "nobody to answer · no evidence", expired: "never reported back · no evidence",
-        ambiguous: "ambiguous call · no evidence"
-      }[src] || "neutral (" + src + ")" };
+      return { glyph: "○", tone: "muted", text: NEUTRAL_SOURCES.indexOf(src) >= 0 ? t("event.neutral." + src) : t("event.neutral.other", { source: String(src) }) };
     }
     if (e.event === "tier") {
-      var why = { series: "series " + (e.required ? e.required + "/" + e.required : "complete") + (e.sessions ? " · " + e.sessions + " sessions" : ""),
-        wald: "sequential test passed", fault: "fault", settings: "stricter settings", stakes: "stakes changed" }[e.reason] || e.reason;
-      return { glyph: "◆", tone: "move", move: [e.from, e.to], text: "tier " + TIER[e.from] + " → " + TIER[e.to] + " · " + why };
+      var series = e.required ? t("event.why.series_n", { required: String(e.required) }) : t("event.why.series_complete");
+      var why = e.reason === "series" ? (e.sessions ? series + " · " + t("event.why.sessions", { n: e.sessions, count: String(e.sessions) }) : series) :
+        TIER_REASONS.indexOf(e.reason) >= 0 ? t("event.why." + e.reason) : e.reason;
+      return { glyph: "◆", tone: "move", move: [e.from, e.to], text: t("event.tier", { from: TIER[e.from], to: TIER[e.to], why: why }) };
     }
     if (e.event === "trial") {
-      var tt = e.to === "open" ? (e.reason === "wait over" ? "trial reopens: next " + (e.left || TRIAL) + " must succeed" :
-        "trial opened: next " + (e.left || TRIAL) + " must succeed") :
-        e.to === "wait" ? "trial failed: wait " + (e.wait || "") + " actions" : "trial passed";
+      var left = String(e.left || TRIAL);
+      var tt = e.to === "open" ? (e.reason === "wait over" ? t("event.trial.reopens", { n: e.left || TRIAL, left: left }) :
+        t("event.trial.opened", { n: e.left || TRIAL, left: left })) :
+        e.to === "wait" ? t("event.trial.failed", { n: Number(e.wait) || 0, wait: String(e.wait || "") }) : t("event.trial.passed");
       return { glyph: "◇", tone: "warn", text: tt };
     }
-    if (e.event === "revoke" || e.event === "revoked") return { glyph: "↺", tone: "fault", text: "revoked by you" };
-    if (e.event === "confirmed") return { glyph: "✓", tone: "ok", text: "carried-over evidence confirmed by its own" };
-    if (e.event === "agent") return { glyph: "⇄", tone: "move", text: "model switch" + (e.from ? " from " + e.from : "") };
-    if (e.event === "neutral_expired") return { glyph: "○", tone: "muted", text: "pending action expired · no evidence" };
+    if (e.event === "revoke" || e.event === "revoked") return { glyph: "↺", tone: "fault", text: t("event.revoked") };
+    if (e.event === "confirmed") return { glyph: "✓", tone: "ok", text: t("event.confirmed") };
+    if (e.event === "agent") return { glyph: "⇄", tone: "move", text: e.from ? t("event.switch_from", { from: e.from }) : t("event.switch") };
+    if (e.event === "neutral_expired") return { glyph: "○", tone: "muted", text: t("event.neutral_expired") };
     return { glyph: "·", tone: "muted", text: e.event };
   }
 
@@ -627,8 +1147,8 @@
 
   function Timeline(props) {
     var events = props.events;
-    if (!events) return h("div", { className: "tnr-dim tnr-pad" }, "Loading the evidence…");
-    if (!events.length) return h(Empty, { title: "No evidence for this filter" });
+    if (!events) return h("div", { className: "tnr-dim tnr-pad" }, t("timeline.loading"));
+    if (!events.length) return h(Empty, { title: t("timeline.empty") });
     var groups = [];
     runs(events).forEach(function (r) {
       var k = dayKey(r.first.at);
@@ -647,7 +1167,7 @@
               h("span", { className: "tnr-tl-time" }, span),
               h("span", { className: "tnr-tl-glyph", "aria-hidden": true }, d.glyph),
               h("span", { className: "tnr-tl-text" },
-                r.count > 1 ? h("b", { className: "tnr-tl-count" }, num(r.count) + "×") : null,
+                r.count > 1 ? h("b", { className: "tnr-tl-count" }, t("timeline.count", { n: r.count })) : null,
                 d.text),
               r.first.type ? h("code", { className: "tnr-tl-type" }, r.first.type) : null,
               h("span", { className: "tnr-tl-seq" }, "#" + (r.count > 1 ? r.last.seq + "–" + r.first.seq : r.first.seq)));
@@ -682,7 +1202,7 @@
     var tot = a.totals || {};
     return h("div", { className: "tnr-drawer-wrap", style: top ? { top: top } : null,
       onClick: function (e) { if (e.target === e.currentTarget) props.onClose(); } },
-      h("aside", { className: "tnr-drawer", role: "dialog", "aria-modal": true, "aria-label": "Agent " + a.agent,
+      h("aside", { className: "tnr-drawer", role: "dialog", "aria-modal": true, "aria-label": t("drawer.aria", { agent: a.agent }),
         onKeyDown: function (e) {                       // focus stays in the dialog: Tab wraps around
           if (e.key !== "Tab") return;
           var f = e.currentTarget.querySelectorAll("button:not([disabled]), select, input, [tabindex='0']");
@@ -693,69 +1213,71 @@
         } },
         h("header", { className: "tnr-drawer-head" },
           h("div", null,
-            h("div", { className: "tnr-drawer-eyebrow" }, "Agent · profile " + row.profile + (mine ? "" : " (read-only here)")),
+            h("div", { className: "tnr-drawer-eyebrow" }, t(mine ? "drawer.eyebrow" : "drawer.eyebrow_read_only", { profile: row.profile })),
             h("div", { className: "tnr-drawer-title" }, a.model, h("span", { className: "tnr-dim" }, "@" + a.provider)),
             h("div", { className: "tnr-agent-tot" }, totals(tot),
-              row.info.suspended ? h(Flag, { kind: "warn" }, num(row.info.suspended) + " suspended: external content read") : null)),
-          h("span", { ref: closeRef }, h(Btn, { kind: "ghost", onClick: props.onClose, title: "Close (Esc)" }, "Close"))),
+              row.info.suspended ? h(Flag, { kind: "warn" }, t("profile.suspended", { n: row.info.suspended })) : null)),
+          h("span", { ref: closeRef }, h(Btn, { kind: "ghost", onClick: props.onClose, title: t("drawer.close_title") }, t("drawer.close")))),
         h("div", { className: "tnr-drawer-body" },
-          h("div", { className: "tnr-section-title" }, "Action types"),
+          h("div", { className: "tnr-section-title" }, t("drawer.types_title")),
           h("table", { className: "tnr-dtable" },
             h("thead", null, h("tr", null,
-              h("th", null, "type"), h("th", null, "tier"), h("th", { className: "tnr-num" }, "series"),
-              h("th", { className: "tnr-num" }, "sessions"), h("th", { className: "tnr-num" }, "faults / checks"), h("th", null, ""))),
-            h("tbody", null, types.map(function (t) {
-              var miss = missing(t);
-              return h(Fragment, { key: t.type },
+              h("th", null, t("th.type")), h("th", null, t("th.tier")), h("th", { className: "tnr-num" }, t("th.series")),
+              h("th", { className: "tnr-num" }, t("th.sessions")), h("th", { className: "tnr-num" }, t("th.faults_checks")), h("th", null, ""))),
+            h("tbody", null, types.map(function (ty) {
+              var miss = missing(ty);
+              return h(Fragment, { key: ty.type },
                 h("tr", { className: "tnr-dtable-main" },
-                  h("td", null, h("code", null, t.type), h("div", { className: "tnr-dim tnr-small" }, t.stakes + (t.reversible ? " · reversible" : ""))),
-                  h("td", null, h(TierChip, { tier: t.effective_tier, capped: t.capped }),
-                    t.tier !== t.effective_tier ? h("div", { className: "tnr-held" }, "stored " + TIER[t.tier] + " (held: settings)") : null),
-                  h("td", { className: "tnr-num" }, t.capped ? "—" : num(t.series) + "/" + num(t.required)),
-                  h("td", { className: "tnr-num" }, t.capped ? "—" : num(t.sessions) + "/" + SESSIONS),
-                  h("td", { className: "tnr-num" }, num(t.faults) + " / " + num(t.successes + t.faults)),
+                  h("td", null, h("code", null, ty.type), h("div", { className: "tnr-dim tnr-small" },
+                    ty.reversible ? t("drawer.stakes_reversible", { stakes: t("stakes." + ty.stakes) }) : t("stakes." + ty.stakes))),
+                  h("td", null, h(TierChip, { tier: ty.effective_tier, capped: ty.capped }),
+                    ty.tier !== ty.effective_tier ? h("div", { className: "tnr-held" }, t("cell.held", { tier: TIER[ty.tier] })) : null),
+                  h("td", { className: "tnr-num" }, ty.capped ? "—" : num(ty.series) + "/" + num(ty.required)),
+                  h("td", { className: "tnr-num" }, ty.capped ? "—" : num(ty.sessions) + "/" + SESSIONS),
+                  h("td", { className: "tnr-num" }, num(ty.faults) + " / " + num(ty.successes + ty.faults)),
                   h("td", { className: "tnr-dtable-actions" },
                     h(ConfirmBtn, {
-                      disabled: !mine, confirm: "Flag?",
-                      title: mine ? "Record a fault on this type, after the fact" : "Actions apply to this dashboard's profile only",
+                      disabled: !mine, confirm: t("drawer.flag.confirm"),
+                      title: mine ? t("drawer.flag.title") : t("drawer.own_profile_only"),
                       onConfirm: function () {
-                        return act("/flag", { agent: a.agent, type: t.type }, function (r) {
-                          return "Fault recorded on " + t.type + ": now " + TIER[r.tier] + ".";
+                        return act("/flag", { agent: a.agent, type: ty.type }, function (r) {
+                          return t("drawer.flag.done", { type: ty.type, tier: TIER[r.tier] });
                         });
                       }
-                    }, "Flag"),
+                    }, t("drawer.flag.button")),
                     h(ConfirmBtn, {
-                      disabled: !mine, confirm: "Revoke?",
-                      title: mine ? "Take back what this type earned: back to T1" : "Actions apply to this dashboard's profile only",
+                      disabled: !mine, confirm: t("drawer.revoke.confirm"),
+                      title: mine ? t("drawer.revoke.title") : t("drawer.own_profile_only"),
                       onConfirm: function () {
-                        return act("/revoke", { agent: a.agent, type: t.type }, function () { return "Revoked " + t.type + ": back to T1."; });
+                        return act("/revoke", { agent: a.agent, type: ty.type }, function () { return t("drawer.revoke.done", { type: ty.type }); });
                       }
-                    }, "Revoke"))),
+                    }, t("drawer.revoke.button")))),
                 h("tr", { className: "tnr-dtable-sub" },
                   h("td", { colSpan: 6 },
-                    h("span", { className: "tnr-mobile-only" }, (t.capped ? "capped" : num(t.sessions) + "/" + SESSIONS + " sessions") + " · " +
-                      num(t.faults) + " / " + num(t.successes + t.faults) + " faults / checks · "),
+                    h("span", { className: "tnr-mobile-only" }, t("drawer.mobile_summary", {
+                      sessions: ty.capped ? t("common.capped") : t("drawer.sessions_of", { n: ty.sessions, total: String(SESSIONS) }),
+                      faults: ty.faults, checks: ty.successes + ty.faults })),
                     h("span", { className: "tnr-tone--" + miss.tone }, miss.text),
-                    t.provisional ? h("span", null, " · " + num(t.provisional) + " carried over, provisional") : null,
-                    t.unresolved_fault ? h("span", { className: "tnr-tone--fault" }, " · fault on record") : null,
-                    t.effective_tier === "alone" ? h("div", { className: "tnr-guarantee" }, guaranteeText(t.guarantee)) : null)));
+                    ty.provisional ? h("span", null, " · " + t("flag.carried_over_provisional", { n: ty.provisional })) : null,
+                    ty.unresolved_fault ? h("span", { className: "tnr-tone--fault" }, " · " + t("flag.fault_on_record")) : null,
+                    ty.effective_tier === "alone" ? h("div", { className: "tnr-guarantee" }, guaranteeText(ty.guarantee)) : null)));
             }))),
           h("div", { className: "tnr-drawer-revoke" },
             h(ConfirmBtn, {
-              kind: "danger-ghost", disabled: !mine, confirm: "Revoke every type?",
+              kind: "danger-ghost", disabled: !mine, confirm: t("drawer.revoke_all.confirm"),
               onConfirm: function () {
                 return act("/revoke", { agent: a.agent, all: true }, function (r) {
-                  return "Revoked " + r.revoked.length + " type" + (r.revoked.length === 1 ? "" : "s") + ": back to T1.";
+                  return t("drawer.revoke_all.done", { n: r.revoked.length, count: String(r.revoked.length) });
                 });
               }
-            }, "Revoke all"),
-            h("span", { className: "tnr-dim tnr-small" }, mine ? "Takes effect at the next action. Every revocation is a ledger event." :
-              "Flag and revoke act on the dashboard's own profile. Use: hermes -p " + row.profile + " tenure revoke")),
+            }, t("drawer.revoke_all.button")),
+            h("span", { className: "tnr-dim tnr-small" }, mine ? t("drawer.revoke_note") :
+              t("drawer.revoke_note_other", { cmd: "hermes -p " + row.profile + " tenure revoke" }))),
           h("div", { className: "tnr-section-title tnr-tl-head" },
-            h("span", null, "Evidence timeline"),
-            h(Sel, { value: filter, onChange: setFilter, label: "Filter by type",
-              options: [["all", "All types"]].concat(types.map(function (t) { return [t.type, t.type]; })) })),
-          h("div", { className: "tnr-dim tnr-small tnr-tl-note" }, "From the hash-chained ledger, newest first, last 200 events. Repeated outcomes are grouped."),
+            h("span", null, t("timeline.title")),
+            h(Sel, { value: filter, onChange: setFilter, label: t("timeline.filter_label"),
+              options: [["all", t("timeline.all_types")]].concat(types.map(function (ty) { return [ty.type, ty.type]; })) })),
+          h("div", { className: "tnr-dim tnr-small tnr-tl-note" }, t("timeline.note")),
           tl.error ? h("div", { className: "tnr-error" }, errText(tl.error)) : h(Timeline, { events: shown }))));
   }
 
@@ -774,15 +1296,15 @@
 
   function Stale(props) {
     return props.res.error && props.res.data ? h("div", { className: "tnr-msg tnr-tone--warn" },
-      "Last refresh failed (" + errText(props.res.error) + "). Showing the data from " + hms(props.res.at) + ".") : null;
+      t("stale.message", { error: errText(props.res.error), time: hms(props.res.at) })) : null;
   }
 
   function ModelsView(props) {
     var res = usePoll(function () { return apiGet("/models", { raw: props.raw }); }, [props.raw, props.version]);
     if (res.error && !res.data) return h("div", { className: "tnr-error" }, errText(res.error));
-    if (!res.data) return h("div", { className: "tnr-dim tnr-pad" }, "Loading…");
+    if (!res.data) return h("div", { className: "tnr-dim tnr-pad" }, t("common.loading"));
     var rows = res.data.rows;
-    if (!rows.length) return h(Empty, { title: "No record yet" }, "Each verified action adds to the model's record on that type, here and in hermes tenure models.");
+    if (!rows.length) return h(Empty, { title: t("models.empty.title") }, t("models.empty.body", { cmd: "hermes tenure models" }));
     var byType = [];
     rows.forEach(function (r) {
       var g = byType[byType.length - 1];
@@ -791,9 +1313,7 @@
     });
     return h("div", { className: "tnr-models" }, h(Stale, { res: res }),
       h("p", { className: "tnr-lede" },
-        "Your own benchmark: each model's verified record on your work, per action type, with the 95% range of its fault rate. ",
-        "Ranked by the top of its range, never by one score. Beside it, the public measure, as information: ",
-        h("b", null, "public capability on their tasks, not reliability on yours.")),
+        t("models.lede"), h("b", null, t("models.lede_bold"))),
       byType.map(function (g) {
         var max = Math.max.apply(null, g.rows.filter(function (r) { return r.successes + r.faults; }).map(function (r) { return r.high; }).concat([0.05]));
         max = Math.min(1, Math.ceil(max * 20) / 20);
@@ -801,50 +1321,49 @@
         var card = g.rows[0].public || {};
         return h("section", { key: g.type, className: "tnr-model-block" },
           h("div", { className: "tnr-model-head" }, h("code", null, g.type),
-            h("span", { className: "tnr-dim" }, num(g.rows.length) + " agent" + (g.rows.length === 1 ? "" : "s"))),
+            h("span", { className: "tnr-dim" }, t("count.agents", { n: g.rows.length }))),
           h("div", { className: "tnr-model-split" },
             h("div", { className: "tnr-model-personal" },
-              h("div", { className: "tnr-section-title" }, "On your work"),
+              h("div", { className: "tnr-section-title" }, t("models.personal_title")),
               h("table", { className: "tnr-dtable tnr-dtable--models" },
                 h("thead", null, h("tr", null,
-                  h("th", { className: "tnr-num" }, "#"), h("th", null, "agent"), h("th", { className: "tnr-num" }, "faults / checks"),
-                  h("th", { className: "tnr-num" }, "rate"), h("th", null, "95% range · 0–" + pct(max)), h("th", { className: "tnr-num" }, "sessions"))),
+                  h("th", { className: "tnr-num" }, "#"), h("th", null, t("th.agent")), h("th", { className: "tnr-num" }, t("th.faults_checks")),
+                  h("th", { className: "tnr-num" }, t("th.rate")), h("th", null, t("th.range", { max: pct(max) })), h("th", { className: "tnr-num" }, t("th.sessions")))),
                 h("tbody", null, g.rows.map(function (r, i) {
                   var n = r.successes + r.faults;
                   return h("tr", { key: r.profile + r.agent },
                     h("td", { className: "tnr-num tnr-dim" }, i + 1),
                     h("td", null, h("div", null, r.model, h("span", { className: "tnr-dim" }, "@" + r.provider)),
-                      h("div", { className: "tnr-dim tnr-small" }, "profile " + r.profile)),
+                      h("div", { className: "tnr-dim tnr-small" }, t("common.profile", { profile: r.profile }))),
                     h("td", { className: "tnr-num" }, num(r.faults) + " / " + num(n)),
-                    h("td", { className: "tnr-num" }, !n ? h("span", { className: "tnr-dim" }, "no checks yet") : r.enough ? pct(r.rate) :
-                      h("span", { className: "tnr-dim" }, "not enough evidence")),
+                    h("td", { className: "tnr-num" }, !n ? h("span", { className: "tnr-dim" }, t("models.no_checks")) : r.enough ? pct(r.rate) :
+                      h("span", { className: "tnr-dim" }, t("models.not_enough"))),
                     h("td", null, n ? h("div", { className: "tnr-interval-cell" }, h(Interval, { low: r.low, high: r.high, rate: r.rate, max: max }),
                       h("span", { className: "tnr-mono tnr-small" }, pct(r.low) + "–" + pct(r.high))) : h("span", { className: "tnr-dim tnr-small" }, "—")),
                     h("td", { className: "tnr-num" }, num(r.sessions_in_series)));
                 })))),
             h("div", { className: "tnr-model-public" },
-              h("div", { className: "tnr-section-title" }, "Public measure"),
+              h("div", { className: "tnr-section-title" }, t("models.public_title")),
               bench ? h(Fragment, null,
                 h("div", { className: "tnr-public-bench" }, bench, h("span", { className: "tnr-dim" }, card.version ? " · " + card.version : "")),
                 h("table", { className: "tnr-dtable" }, h("tbody", null, g.rows.map(function (r) {
                   return h("tr", { key: r.profile + r.agent },
                     h("td", null, r.model),
-                    h("td", { className: "tnr-num" }, r.public && r.public.new != null ? r.public.new.toFixed(1) + "%" : h("span", { className: "tnr-dim" }, "no public measure")));
+                    h("td", { className: "tnr-num" }, r.public && r.public.new != null ? t("common.percent", { v: dec1(r.public.new) }) :
+                      h("span", { className: "tnr-dim" }, t("common.no_public_measure"))));
                 }))),
-                h("div", { className: "tnr-public-src tnr-small tnr-dim" }, (card.source || "") + (card.accessed ? ", accessed " + card.accessed : "") +
-                  ". Best published score, any harness; not a controlled comparison."))
-                : h("div", { className: "tnr-dim" }, "No public measure for this action type."),
-              h("div", { className: "tnr-public-note" }, "Public capability on their tasks, not reliability on yours."))));
+                h("div", { className: "tnr-public-src tnr-small tnr-dim" },
+                  t(card.accessed ? "models.source_accessed" : "models.source", { source: card.source || "", accessed: card.accessed || "" })))
+                : h("div", { className: "tnr-dim" }, t("models.no_public")),
+              h("div", { className: "tnr-public-note" }, t("models.public_note")))));
       }));
   }
 
   // ---------------------------------------------------------------------------------------------- switch preview
-  var STATUS = {
-    carried: { label: "carried, provisional", tone: "prov", text: "Part of the series carries over, marked provisional until the new model adds its own." },
-    reset: { label: "reset", tone: "muted", text: "Starts from zero: high stakes, capped, or strict mode." },
-    vetoed: { label: "vetoed", tone: "fault", text: "The public benchmark shows the new model weaker on this type: nothing carries over." },
-    kept: { label: "kept", tone: "ok", text: "The new agent already has its own record here; it is never overwritten." }
-  };
+  // Labels and texts: catalog keys switch.status.<id>.label and switch.status.<id>.text.
+  var STATUS = { carried: { tone: "prov" }, reset: { tone: "muted" }, vetoed: { tone: "fault" }, kept: { tone: "ok" } };
+  function statusLabel(k) { return STATUS[k] ? t("switch.status." + k + ".label") : k; }
+  function statusText(k) { return STATUS[k] ? t("switch.status." + k + ".text") : ""; }
 
   function SwitchView(props) {
     var agents = props.rows;
@@ -869,75 +1388,77 @@
       }, function (e) { if (alive) { setRes(null); setErr(errText(e)); } });
       return function () { alive = false; };
     }, [fromRow && fromRow.key, to, props.raw, props.version]);
-    if (!agents.length) return h(Empty, { title: "No agent to preview yet" });
+    if (!agents.length) return h(Empty, { title: t("switch.empty") });
     var counts = {};
-    if (res) res.types.forEach(function (t) { counts[t.status] = (counts[t.status] || 0) + 1; });
+    if (res) res.types.forEach(function (ty) { counts[ty.status] = (counts[ty.status] || 0) + 1; });
     return h("div", { className: "tnr-switch" },
-      h("p", { className: "tnr-lede" }, "Before you change model: what the new agent would inherit, type by type. ",
-        "A new model or provider is a new agent. Carry-over is our addition; strict mode is the study."),
+      h("p", { className: "tnr-lede" }, t("switch.lede")),
       h("form", {
         className: "tnr-switch-form", onSubmit: function (e) { e.preventDefault(); setTo(draft.trim()); }
       },
-        h("label", { className: "tnr-field" }, h("span", null, "From"),
-          h(Sel, { value: fromRow ? fromRow.key : "", onChange: setFrom, label: "From",
+        h("label", { className: "tnr-field" }, h("span", null, t("switch.from")),
+          h(Sel, { value: fromRow ? fromRow.key : "", onChange: setFrom, label: t("switch.from"),
             options: agents.map(function (r) { return [r.key, r.agent.agent + " · " + r.profile]; }) })),
-        h("span", { className: "tnr-switch-arrow", "aria-hidden": true }, "→"),
-        h("label", { className: "tnr-field tnr-field--grow" }, h("span", null, "To model"),
+        h("span", { className: "tnr-switch-arrow", "aria-hidden": true }, t("common.arrow")),
+        h("label", { className: "tnr-field tnr-field--grow" }, h("span", null, t("switch.to")),
           h("input", {
-            className: "tnr-input", list: "tnr-models-list", placeholder: "model id, e.g. " + (models[0] || "gpt-5") + " or model@provider",
-            value: draft, onChange: function (e) { setDraft(e.target.value); }, "aria-label": "Target model", name: "to"
+            className: "tnr-input", list: "tnr-models-list", placeholder: t("switch.placeholder", { example: models[0] || "gpt-5" }),
+            value: draft, onChange: function (e) { setDraft(e.target.value); }, "aria-label": t("switch.to_aria"), name: "to"
           }),
           h("datalist", { id: "tnr-models-list" }, models.map(function (m) { return h("option", { key: m, value: m }); }))),
-        h(Btn, { kind: "primary", className: "tnr-switch-go" }, "Preview")),
+        h(Btn, { kind: "primary", className: "tnr-switch-go" }, t("switch.preview"))),
       err ? h("div", { className: "tnr-error" }, err) : null,
-      !to ? h(Empty, { title: "Pick a target model" }, "Type any model id. Nothing changes until Hermes actually runs the new model.") : null,
+      !to ? h(Empty, { title: t("switch.pick.title") }, t("switch.pick.body")) : null,
       res ? h(Fragment, null,
         h("div", { className: "tnr-switch-summary" },
-          h("span", null, h("b", null, res.from), " → ", h("b", null, res.to)),
+          h("span", null, h("b", null, res.from), " " + t("common.arrow") + " ", h("b", null, res.to)),
           ["carried", "reset", "vetoed", "kept"].map(function (k) {
-            return counts[k] ? h(Flag, { key: k, kind: STATUS[k].tone }, num(counts[k]) + " " + k) : null;
+            return counts[k] ? h(Flag, { key: k, kind: STATUS[k].tone }, t("switch.count." + k, { n: counts[k] })) : null;
           }),
-          res.strict ? h(Flag, { kind: "warn" }, "strict mode: nothing carries over") : null),
+          res.strict ? h(Flag, { kind: "warn" }, t("switch.strict")) : null),
         h("dl", { className: "tnr-switch-legend" }, ["carried", "reset", "vetoed", "kept"].map(function (k) {
-          return h(Fragment, { key: k }, h("dt", null, h(Flag, { kind: STATUS[k].tone }, STATUS[k].label)), h("dd", null, STATUS[k].text));
+          return h(Fragment, { key: k }, h("dt", null, h(Flag, { kind: STATUS[k].tone }, statusLabel(k))), h("dd", null, statusText(k)));
         })),
         h("div", { className: "tnr-table-scroll" },
           h("table", { className: "tnr-dtable tnr-dtable--switch" },
-            h("thead", null, h("tr", null, h("th", null, "type"), h("th", null, "outcome"), h("th", null, "now"),
-              h("th", null, "after the switch"), h("th", null, "public measure"), h("th", null, "your record"))),
-            h("tbody", null, res.types.map(function (t) {
-              var st = STATUS[t.status] || { label: t.status, tone: "muted", text: "" };
-              var c = t.card || {};
-              return h("tr", { key: t.type },
-                h("td", null, h("code", null, t.type), h("div", { className: "tnr-dim tnr-small" }, t.stakes)),
-                h("td", null, h(Flag, { kind: st.tone }, st.label)),
-                h("td", null, h(TierChip, { tier: t.old.effective_tier, capped: t.old.capped }), " ",
-                  h("span", { className: "tnr-mono" }, t.old.capped ? "capped" : num(t.old.series) + "/" + num(t.old.required))),
-                h("td", null, h(TierChip, { tier: t.new.effective_tier, capped: t.new.capped }), " ",
-                  h("span", { className: "tnr-mono" }, t.new.capped ? "capped" : num(t.new.series) + "/" + num(t.new.required)),
-                  t.new.provisional ? h("div", { className: "tnr-small tnr-tone--prov" }, num(t.new.provisional) + " provisional") : null),
+            h("thead", null, h("tr", null, h("th", null, t("th.type")), h("th", null, t("th.outcome")), h("th", null, t("th.now")),
+              h("th", null, t("th.after_switch")), h("th", null, t("th.public_measure")), h("th", null, t("th.your_record")))),
+            h("tbody", null, res.types.map(function (ty) {
+              var st = STATUS[ty.status] || { tone: "muted" };
+              var c = ty.card || {};
+              var delta = c.delta != null ? t("switch.delta", { delta: (c.delta > 0 ? "+" : "") + dec1(c.delta) }) : "";
+              return h("tr", { key: ty.type },
+                h("td", null, h("code", null, ty.type), h("div", { className: "tnr-dim tnr-small" }, t("stakes." + ty.stakes))),
+                h("td", null, h(Flag, { kind: st.tone }, statusLabel(ty.status))),
+                h("td", null, h(TierChip, { tier: ty.old.effective_tier, capped: ty.old.capped }), " ",
+                  h("span", { className: "tnr-mono" }, ty.old.capped ? t("common.capped") : num(ty.old.series) + "/" + num(ty.old.required))),
+                h("td", null, h(TierChip, { tier: ty.new.effective_tier, capped: ty.new.capped }), " ",
+                  h("span", { className: "tnr-mono" }, ty.new.capped ? t("common.capped") : num(ty.new.series) + "/" + num(ty.new.required)),
+                  ty.new.provisional ? h("div", { className: "tnr-small tnr-tone--prov" }, t("switch.provisional", { n: ty.new.provisional })) : null),
                 h("td", null, c.benchmark ? h(Fragment, null,
                   h("div", { className: "tnr-small" }, c.benchmark),
-                  h("div", { className: "tnr-mono" }, (c.old != null ? c.old.toFixed(1) : "—") + " → " + (c.new != null ? c.new.toFixed(1) : "—") +
-                    (c.delta != null ? " (" + (c.delta > 0 ? "+" : "") + c.delta.toFixed(1) + ")" : ""))) :
-                  h("span", { className: "tnr-dim tnr-small" }, "no public measure")),
-                h("td", null, t.personal.length ? t.personal.map(function (p) {
+                  h("div", { className: "tnr-mono" }, (c.old != null ? dec1(c.old) : "—") + " " + t("common.arrow") + " " + (c.new != null ? dec1(c.new) : "—") + delta)) :
+                  h("span", { className: "tnr-dim tnr-small" }, t("common.no_public_measure"))),
+                h("td", null, ty.personal.length ? ty.personal.map(function (p) {
                   return h("div", { key: p.agent, className: "tnr-small" }, h("span", { className: "tnr-mono" }, num(p.faults) + " / " + num(p.successes + p.faults)),
                     h("span", { className: "tnr-dim" }, " " + p.model));
-                }) : h("span", { className: "tnr-dim tnr-small" }, "none")));
+                }) : h("span", { className: "tnr-dim tnr-small" }, t("switch.none"))));
             })))),
-        h("div", { className: "tnr-dim tnr-small tnr-pad-top" }, "Public scores inform; they never grant autonomy. A veto only blocks carry-over, beyond a fixed margin.")) : null);
+        h("div", { className: "tnr-dim tnr-small tnr-pad-top" }, t("switch.footnote"))) : null);
   }
 
   // ---------------------------------------------------------------------------------------------------- passport
   function verdict(verify, doc) {
     if (!verify) return null;
-    if (!verify.length) return { tone: "ok", title: "Verified", lines: ["Signature valid (Ed25519)", "Hash chain intact", "Replaying the ledger with the rule gives the same tiers"] };
-    if (verify.length === 1 && verify[0] === "unsigned") {
-      return { tone: "warn", title: "Unsigned, otherwise verified", lines: ["Hash chain intact", "Replay gives the same tiers",
-        "No signing key yet: hermes tenure passport creates one"] };
+    if (!verify.length) {
+      return { tone: "ok", title: t("verdict.ok.title"), lines: [t("verdict.ok.signature"), t("verdict.chain"), t("verdict.ok.replay")] };
     }
-    return { tone: "fault", title: verify.length + " problem" + (verify.length === 1 ? "" : "s") + " found", lines: verify };
+    if (verify.length === 1 && verify[0] === "unsigned") {
+      return { tone: "warn", title: t("verdict.unsigned.title"), lines: [t("verdict.chain"), t("verdict.unsigned.replay"),
+        t("verdict.unsigned.no_key", { cmd: "hermes tenure passport" })] };
+    }
+    // The problems themselves come from the verifier (tenure/passport.py), in the core catalog's language.
+    return { tone: "fault", title: t("verdict.problems", { n: verify.length, count: String(verify.length) }), lines: verify };
   }
 
   function PassportView(props) {
@@ -947,7 +1468,7 @@
     var res = usePoll(function () {
       return row ? apiGet("/passport", { agent: row.agent.agent, of: row.profile, raw: props.raw }) : null;
     }, [row && row.key, props.raw, props.version], !!row, PASSPORT_MS);
-    if (!agents.length) return h(Empty, { title: "No passport yet" }, "A passport covers an agent's record; it appears with the first verified action.");
+    if (!agents.length) return h(Empty, { title: t("passport.empty.title") }, t("passport.empty.body"));
     var d = res.data && res.data.passport;
     var v = res.data ? verdict(res.data.verify, d) : null;
     function download() {
@@ -961,42 +1482,44 @@
     }
     return h("div", { className: "tnr-passport" },
       h("div", { className: "tnr-passport-bar" },
-        h("label", { className: "tnr-field" }, h("span", null, "Agent"),
-          h(Sel, { value: row ? row.key : "", onChange: setSel, label: "Agent",
+        h("label", { className: "tnr-field" }, h("span", null, t("passport.agent")),
+          h(Sel, { value: row ? row.key : "", onChange: setSel, label: t("passport.agent"),
             options: agents.map(function (r) { return [r.key, r.agent.agent + " · " + r.profile]; }) })),
-        h(Btn, { kind: "primary", onClick: download, disabled: !d }, "Download JSON"),
-        h("span", { className: "tnr-dim tnr-small" }, "Signed and tamper-evident: a change after it is signed or anchored shows on verification. An older passport still verifies against a longer ledger; the verifier says what changed since.")),
+        h(Btn, { kind: "primary", onClick: download, disabled: !d }, t("passport.download")),
+        h("span", { className: "tnr-dim tnr-small" }, t("passport.note"))),
       res.error && !res.data ? h("div", { className: "tnr-error" }, errText(res.error)) : h(Stale, { res: res }),
-      !d ? h("div", { className: "tnr-dim tnr-pad" }, "Loading…") : h("div", { className: "tnr-passport-grid" },
+      !d ? h("div", { className: "tnr-dim tnr-pad" }, t("common.loading")) : h("div", { className: "tnr-passport-grid" },
         h("section", { className: cx("tnr-verdict", "tnr-verdict--" + v.tone) },
           h("div", { className: "tnr-verdict-title" }, v.title),
           h("ul", null, v.lines.map(function (l, i) { return h("li", { key: i }, l); })),
-          h("div", { className: "tnr-small tnr-dim" }, "Checked by the dashboard against this profile's ledger. Anyone can re-check it:"),
+          h("div", { className: "tnr-small tnr-dim" }, t("passport.checked_by")),
           h(CopyCmd, { cmd: "hermes tenure verify " + "passport-" + row.agent.model.replace(/[^A-Za-z0-9._-]+/g, "_") + ".json" })),
         h("section", { className: "tnr-passport-fields" },
           h("dl", null,
-            [["Protocol", d.protocol], ["Agent", d.agent.model + "@" + d.agent.provider],
-              ["Profile", d.agent.profile + " (hashed)"], ["Rule", d.rule.name + " · " + short(d.rule.fingerprint, 16)],
-              ["Settings", short(d.settings_fingerprint, 16)], ["Ledger", num(d.ledger.count) + " events · head " + short(d.ledger.head, 16)],
-              ["Public key", short(d.public_key, 24) || "none"], ["Signature", d.signature ? short(d.signature, 24) + "…" : "unsigned"],
-              ["Generated", d.generated_at], ["Type names", d.redacted ? "redacted after the program and subcommand" : "raw"]
+            [["protocol", d.protocol], ["agent", d.agent.model + "@" + d.agent.provider],
+              ["profile", t("passport.value.hashed", { profile: d.agent.profile })], ["rule", d.rule.name + " · " + short(d.rule.fingerprint, 16)],
+              ["settings", short(d.settings_fingerprint, 16)],
+              ["ledger", t("passport.value.ledger", { n: d.ledger.count, head: short(d.ledger.head, 16) })],
+              ["public_key", short(d.public_key, 24) || t("passport.value.none")],
+              ["signature", d.signature ? short(d.signature, 24) + "…" : t("passport.value.unsigned")],
+              ["generated", d.generated_at], ["type_names", d.redacted ? t("passport.value.redacted") : t("passport.value.raw")]
             ].map(function (kv) {
-              return h(Fragment, { key: kv[0] }, h("dt", null, kv[0]), h("dd", { className: "tnr-mono" }, kv[1]));
+              return h(Fragment, { key: kv[0] }, h("dt", null, t("passport.field." + kv[0])), h("dd", { className: "tnr-mono" }, kv[1]));
             }))),
         h("section", { className: "tnr-passport-types" },
-          h("div", { className: "tnr-section-title" }, "Attested types"),
+          h("div", { className: "tnr-section-title" }, t("passport.types_title")),
           h("table", { className: "tnr-dtable" },
-            h("thead", null, h("tr", null, h("th", null, "type"), h("th", null, "tier"), h("th", { className: "tnr-num" }, "series"),
-              h("th", { className: "tnr-num" }, "sessions"), h("th", null, "guarantee"))),
-            h("tbody", null, d.types.map(function (t) {
-              var g = t.guarantee || {};
-              return h("tr", { key: t.type },
-                h("td", null, h("code", null, t.type), h("div", { className: "tnr-dim tnr-small" }, t.stakes)),
-                h("td", null, h(TierChip, { tier: t.tier, capped: !!g.capped })),
-                h("td", { className: "tnr-num" }, t.required == null ? "—" : num(t.series) + "/" + num(t.required)),
-                h("td", { className: "tnr-num" }, num(t.sessions)),
-                h("td", { className: "tnr-small" }, g.capped ? "capped: always asks" :
-                  "unchecked errors under " + pct(g.aoql) + " · " + pct(g.worst_case) + " if it turns bad" + (g.conditional ? " · provisional" : "")));
+            h("thead", null, h("tr", null, h("th", null, t("th.type")), h("th", null, t("th.tier")), h("th", { className: "tnr-num" }, t("th.series")),
+              h("th", { className: "tnr-num" }, t("th.sessions")), h("th", null, t("th.guarantee")))),
+            h("tbody", null, d.types.map(function (ty) {
+              var g = ty.guarantee || {};
+              var gtext = g.capped ? t("legend.capped") : t("passport.guarantee", { aoql: pct(g.aoql), worst: pct(g.worst_case) });
+              return h("tr", { key: ty.type },
+                h("td", null, h("code", null, ty.type), h("div", { className: "tnr-dim tnr-small" }, t("stakes." + ty.stakes))),
+                h("td", null, h(TierChip, { tier: ty.tier, capped: !!g.capped })),
+                h("td", { className: "tnr-num" }, ty.required == null ? "—" : num(ty.series) + "/" + num(ty.required)),
+                h("td", { className: "tnr-num" }, num(ty.sessions)),
+                h("td", { className: "tnr-small" }, !g.capped && g.conditional ? gtext + " · " + t("flag.provisional") : gtext));
             }))))));
   }
 
@@ -1004,32 +1527,31 @@
   function UndoView(props) {
     var list = props.undoable || [];
     if (!list.length) {
-      return h(Empty, { title: "Nothing to undo" }, "Actions at T2 (act, then notify) keep a snapshot of the files they wrote for 24 hours. ",
-        "They appear here, newest first, each with its own undo.");
+      return h(Empty, { title: t("undo.empty.title") }, t("undo.empty.body"));
     }
     return h("div", { className: "tnr-undo" },
-      h("p", { className: "tnr-lede" }, "Recent act-then-notify actions. Undo restores the files from their snapshot and counts as a fault of the type."),
+      h("p", { className: "tnr-lede" }, t("undo.lede")),
       h("div", { className: "tnr-table-scroll" },
         h("table", { className: "tnr-dtable" },
-          h("thead", null, h("tr", null, h("th", { className: "tnr-num" }, "#"), h("th", null, "when"), h("th", null, "agent"), h("th", null, "type"),
-            h("th", null, "effect of undo"), h("th", null, ""))),
+          h("thead", null, h("tr", null, h("th", { className: "tnr-num" }, "#"), h("th", null, t("th.when")), h("th", null, t("th.agent")), h("th", null, t("th.type")),
+            h("th", null, t("th.undo_effect")), h("th", null, ""))),
           h("tbody", null, list.map(function (u) {
             var mine = u.profile === props.current;
             return h("tr", { key: u.profile + u.id },
               h("td", { className: "tnr-num tnr-dim" }, u.id),
-              h("td", { className: "tnr-mono" }, ago(u.age), h("div", { className: "tnr-dim tnr-small" }, "window ends in " + ago(86400 - u.age).replace(" ago", ""))),
-              h("td", null, u.agent, h("div", { className: "tnr-dim tnr-small" }, "profile " + u.profile)),
+              h("td", { className: "tnr-mono" }, ago(u.age), h("div", { className: "tnr-dim tnr-small" }, t("undo.window_ends", { duration: duration(86400 - u.age) }))),
+              h("td", null, u.agent, h("div", { className: "tnr-dim tnr-small" }, t("common.profile", { profile: u.profile }))),
               h("td", null, h("code", null, u.type)),
-              h("td", { className: "tnr-small" }, u.counts_as_fault ? "restores the files · counts as a fault" : "restores the files · the automatic check already counted a fault"),
+              h("td", { className: "tnr-small" }, u.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already")),
               h("td", { className: "tnr-dtable-actions" }, h(ConfirmBtn, {
-                kind: "ghost", disabled: !mine, confirm: "Undo #" + u.id + "?",
-                title: mine ? "Restore the files" : "Undo acts on this dashboard's profile only",
+                kind: "ghost", disabled: !mine, confirm: t("undo.confirm", { id: String(u.id) }),
+                title: mine ? t("undo.title") : t("undo.own_profile_only"),
                 onConfirm: function () {
                   return apiPost("/undo", { id: u.id }, { raw: props.raw }).then(function (r) {
                     props.onDone(r.message, r.ok ? "success" : "error");
                   }, function (e) { props.onDone(errText(e), "error"); });
                 }
-              }, "Undo")));
+              }, t("undo.button"))));
           })))));
   }
 
@@ -1041,7 +1563,7 @@
     var strictS = useState(null), strict = strictS[0], setStrict = strictS[1];
     var readOnly = props.readOnly, setReadOnly = props.onReadOnly;
     var msgS = useState(null), msg = msgS[0], setMsg = msgS[1];
-    if (!cur) return h(Empty, { title: "No settings logged yet" }, "The balanced preset applies until the first action is recorded.");
+    if (!cur) return h(Empty, { title: t("settings.empty.title") }, t("settings.empty.body"));
     var pr = preset || cur.preset;
     var rk = risks || cur.risks;
     var sx = strict == null ? cur.strict : strict;
@@ -1073,9 +1595,9 @@
       else if (pr !== cur.preset) body.preset = pr;
       if (sx !== cur.strict) body.strict = sx;
       apiPost("/settings", body, { raw: props.raw }).then(function () {
-        setMsg({ tone: "ok", text: "Saved. The new settings are logged in the ledger and apply from the next action." });
+        setMsg({ tone: "ok", text: t("settings.saved_long") });
         setPreset(null); setRisks(null); setStrict(null);
-        props.onDone("Settings saved.", "success");
+        props.onDone(t("settings.saved"), "success");
       }, function (e) {
         if (errStatus(e) === 501) setReadOnly(true);
         else setMsg({ tone: "fault", text: errText(e) });
@@ -1086,65 +1608,66 @@
     return h("div", { className: "tnr-settings" },
       h("section", { className: "tnr-dial" },
         h("div", { className: "tnr-dial-head" },
-          h("div", null, h("div", { className: "tnr-section-title" }, "Accepted risk"),
-            h("div", { className: "tnr-dim tnr-small" }, "The share of errors you accept running unchecked, per stakes level. N is the series of verified successes in a row a type needs to act on its own.")),
-          h("div", { className: "tnr-seg", role: "radiogroup", "aria-label": "Preset" },
+          h("div", null, h("div", { className: "tnr-section-title" }, t("settings.risk_title")),
+            h("div", { className: "tnr-dim tnr-small" }, t("settings.risk_help"))),
+          h("div", { className: "tnr-seg", role: "radiogroup", "aria-label": t("settings.preset_aria") },
             ["careful", "balanced", "fast"].map(function (n) {
               return h("button", {
                 key: n, type: "button", role: "radio", "aria-checked": pr === n, disabled: readOnly,
                 className: cx("tnr-seg-btn", pr === n && "is-on"), onClick: function () { pickPreset(n); }
-              }, n);
+              }, presetName(n));
             }),
-            custom ? h("span", { className: "tnr-seg-btn is-on is-static" }, "custom") : null)),
+            custom ? h("span", { className: "tnr-seg-btn is-on is-static" }, presetName("custom")) : null)),
         h("div", { className: "tnr-dial-rows" },
           STAKES.map(function (s) {
             var n = studyN(rk[s]), was = studyN(cur.risks[s]);
             return h("div", { key: s, className: "tnr-dial-row" },
-              h("div", { className: "tnr-dial-level" }, h("span", { className: "tnr-stakes-dot tnr-stakes--" + s }), s.charAt(0).toUpperCase() + s.slice(1) + " stakes"),
-              h("div", { className: "tnr-ladder", role: "radiogroup", "aria-label": s + " stakes risk" },
+              h("div", { className: "tnr-dial-level" }, h("span", { className: "tnr-stakes-dot tnr-stakes--" + s }), t("settings.stakes." + s)),
+              h("div", { className: "tnr-ladder", role: "radiogroup", "aria-label": t("settings.stakes_risk." + s) },
                 LADDER.map(function (k) {
                   var on = k == null ? rk[s] == null : rk[s] != null && Math.abs(1 / rk[s] - k) < 1e-6;
                   return h("button", {
                     key: String(k), type: "button", role: "radio", "aria-checked": on, disabled: readOnly,
                     className: cx("tnr-rung", on && "is-on"), onClick: function () { pickRisk(s, k); }
-                  }, k == null ? "cap" : "1/" + k);
+                  }, k == null ? t("settings.rung_cap") : "1/" + k);
                 })),
               h("div", { className: "tnr-dial-n" },
-                n == null ? h("span", null, h("b", null, "capped"), h("span", { className: "tnr-dim" }, " · always asks")) :
-                  h("span", null, h("span", { className: "tnr-dim" }, oneIn(rk[s]) + " → "), h("b", { className: "tnr-mono" }, num(n)), h("span", { className: "tnr-dim" }, " checks in a row")),
-                n !== was ? h("span", { className: "tnr-dial-was tnr-small" }, "in force: " + (was == null ? "capped" : num(was))) : null));
+                n == null ? h("span", null, h("b", null, t("common.capped")), h("span", { className: "tnr-dim" }, " · " + t("missing.always_asks"))) :
+                  h("span", null, h("span", { className: "tnr-dim" }, oneIn(rk[s]) + " " + t("common.arrow") + " "), h("b", { className: "tnr-mono" }, num(n)),
+                    h("span", { className: "tnr-dim" }, t("settings.checks_in_row", { n: n }))),
+                n !== was ? h("span", { className: "tnr-dial-was tnr-small" }, t("settings.in_force", { value: was == null ? t("common.capped") : num(was) })) : null));
           })),
         h("div", { className: "tnr-dial-row tnr-dial-strict" },
-          h("div", { className: "tnr-dial-level" }, "Strict mode"),
+          h("div", { className: "tnr-dial-level" }, t("settings.strict")),
           h("label", { className: "tnr-switch-toggle" },
             h("input", { type: "checkbox", checked: sx, disabled: readOnly, onChange: function (e) { setStrict(e.target.checked); } }),
             h("span", { className: "tnr-toggle-track", "aria-hidden": true }),
-            h("span", null, sx ? "On: a new model starts with an empty record (the study's rule)" : "Off: a new model inherits part of the previous record, provisionally")),
-          h("div", { className: "tnr-dial-n tnr-dim tnr-small" }, "spot checks " + oneIn(cur.spot))),
+            h("span", null, sx ? t("settings.strict_on") : t("settings.strict_off"))),
+          h("div", { className: "tnr-dial-n tnr-dim tnr-small" }, t("profile.spot", { rate: oneIn(cur.spot) }))),
         readOnly ? h("div", { className: "tnr-readonly" },
-          h("div", null, h("b", null, "Read-only here."), " This dashboard process cannot write tenure's settings (Hermes gives plugins no other public writer). Run:"),
+          h("div", null, h("b", null, t("settings.read_only.bold")), " " + t("settings.read_only.body")),
           shownCmds.map(function (c) { return h(CopyCmd, { key: c, cmd: c }); }))
           : h("div", { className: "tnr-dial-foot" },
-            h(Btn, { kind: "primary", disabled: !dirty, onClick: apply }, "Apply"),
-            dirty ? h(Btn, { kind: "ghost", onClick: function () { setPreset(null); setRisks(null); setStrict(null); } }, "Reset") : null,
-            h("span", { className: "tnr-dim tnr-small" }, dirty ? "Same as: " + commands.join("  &&  ") : "In force in profile " + props.profile + "."))),
+            h(Btn, { kind: "primary", disabled: !dirty, onClick: apply }, t("settings.apply")),
+            dirty ? h(Btn, { kind: "ghost", onClick: function () { setPreset(null); setRisks(null); setStrict(null); } }, t("settings.reset")) : null,
+            h("span", { className: "tnr-dim tnr-small" }, dirty ? t("settings.same_as", { cmds: commands.join("  &&  ") }) :
+              t("settings.in_force_profile", { profile: props.profile })))),
       msg ? h("div", { className: "tnr-msg tnr-tone--" + msg.tone }, msg.text) : null,
       h("section", { className: "tnr-about" },
-        h("div", { className: "tnr-section-title" }, "About the rule"),
-        h("p", null, "The same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending). Added layers make it stricter: ",
-          "spot checks (" + oneIn(cur.spot) + " cleared actions still asks), two distinct sessions in the series that reaches T3, ",
-          "and suspension after a session reads external content."),
-        h("p", { className: "tnr-dim" }, "Carry-over is our addition; strict mode is the study.")));
+        h("div", { className: "tnr-section-title" }, t("settings.about.title")),
+        h("p", null, t("settings.about.body", { spot: oneIn(cur.spot) })),
+        h("p", { className: "tnr-dim" }, t("settings.about.carry"))));
   }
 
   // ------------------------------------------------------------------------------------------------------ help
   function Help(props) {
-    var keys = [["m", "Map"], ["b", "Your benchmark"], ["w", "Switch preview"], ["p", "Passport"], ["u", "Undo"], ["s", "Settings"],
-      ["a", "Agent drawer of the focused row"], ["j / k", "Next / previous agent"], ["↵", "Open the focused agent"],
-      ["r", "Raw type names on / off"], ["esc", "Close"], ["?", "This help"]];
+    // The keys stay as they are; only their descriptions are translated.
+    var keys = [["m", t("view.map")], ["b", t("view.models")], ["w", t("view.switch")], ["p", t("view.passport")], ["u", t("view.undo")],
+      ["s", t("view.settings")], ["a", t("help.agent")], ["j / k", t("help.next_prev")], ["↵", t("help.open")],
+      ["r", t("help.raw")], ["esc", t("help.close")], ["?", t("help.help")]];
     return h("div", { className: "tnr-drawer-wrap", onClick: props.onClose },
-      h("div", { className: "tnr-help", role: "dialog", "aria-label": "Keyboard shortcuts" },
-        h("div", { className: "tnr-section-title" }, "Keyboard"),
+      h("div", { className: "tnr-help", role: "dialog", "aria-label": t("help.aria") },
+        h("div", { className: "tnr-section-title" }, t("help.title")),
         h("dl", null, keys.map(function (k) {
           return h(Fragment, { key: k[0] }, h("dt", null, h(Kbd, null, k[0])), h("dd", null, k[1]));
         }))));
@@ -1163,6 +1686,9 @@
     var prev = useRef(null);
     var toneS = useState("dark"), tone = toneS[0], setTone = toneS[1];
     var roS = useState(false), settingsRO = roS[0], setSettingsRO = roS[1];   // 501 once: read-only for the visit
+    // The dashboard's language: reading the host's i18n context re-renders the tab when the user switches language.
+    var i18n = typeof SDK.useI18n === "function" ? SDK.useI18n() : null;
+    setLocale(i18n && i18n.locale);
 
     var tick = usePoll(function () {
       return Promise.all([apiGet("/agents", { raw: raw }),
@@ -1191,7 +1717,7 @@
       if (!data) return;
       var now = {};
       rows.forEach(function (r) {
-        r.agent.types.forEach(function (t) { now[r.key + "\u0000" + t.type] = { tier: t.effective_tier, r: r, t: t }; });
+        r.agent.types.forEach(function (ty) { now[r.key + "\u0000" + ty.type] = { tier: ty.effective_tier, r: r, t: ty }; });
       });
       var before = prev.current;
       prev.current = now;
@@ -1201,26 +1727,26 @@
         var b = before[k], n = now[k];
         if (b && b.tier !== n.tier) {
           found.push({ id: k + Date.now(), at: Date.now(), agent: n.r.agent.agent, type: n.t.type, from: b.tier, to: n.tier,
-            why: (n.t.trial_left ? "trial open" : n.t.faults > (b.t.faults || 0) ? "after a fault" : "on evidence") });
+            why: (n.t.trial_left ? "trial_open" : n.t.faults > (b.t.faults || 0) ? "after_fault" : "on_evidence") });
         }
       });
       if (found.length) {
         setTransitions(function (xs) { return found.concat(xs).slice(0, 30); });
         var f = found[0];
-        setToast({ text: f.agent + " · " + f.type + ": " + TIER[f.from] + " → " + TIER[f.to], type: "info", at: Date.now() });
+        setToast({ text: t("toast.transition", { agent: f.agent, type: f.type, from: TIER[f.from], to: TIER[f.to] }), type: "info", at: Date.now() });
       }
     }, [data]);
 
     // Hermes themes say nothing about light or dark: read it from the background, so status colors keep contrast.
     useEffect(function () {
-      var t = luminance(getComputedStyle(document.documentElement).getPropertyValue("--background-base")) > 0.5 ? "light" : "dark";
-      if (t !== tone) setTone(t);
+      var tn = luminance(getComputedStyle(document.documentElement).getPropertyValue("--background-base")) > 0.5 ? "light" : "dark";
+      if (tn !== tone) setTone(tn);
     });
 
     useEffect(function () {
       if (!toast) return undefined;
-      var t = setTimeout(function () { setToast(null); }, 4500);
-      return function () { clearTimeout(t); };
+      var tm = setTimeout(function () { setToast(null); }, 4500);
+      return function () { clearTimeout(tm); };
     }, [toast]);
 
     var focusRow = rows[Math.min(focus, Math.max(0, rows.length - 1))];
@@ -1257,8 +1783,8 @@
     var updated = agentsRes.at ? hms(agentsRes.at) : "—";
 
     var body;
-    if (!data && !err) body = h("div", { className: "tnr-dim tnr-pad" }, "Loading the record…");
-    else if (!data && err) body = h("div", { className: "tnr-error" }, "Could not read tenure: " + errText(err));
+    if (!data && !err) body = h("div", { className: "tnr-dim tnr-pad" }, t("page.loading"));
+    else if (!data && err) body = h("div", { className: "tnr-error" }, t("page.error", { error: errText(err) }));
     else if (view === "map") {
       body = h(MapView, { profiles: profiles, rows: rows, settings: current && current.settings, focus: focus, onFocus: setFocus,
         onOpen: function (r) { setDrawer(r.key); }, transitions: transitions });
@@ -1272,20 +1798,20 @@
     return h("div", { className: "tnr", "data-tone": tone, ref: rootRef, tabIndex: -1, onKeyDown: onKey, style: { outline: "none" } },
       h("header", { className: "tnr-head" },
         h("div", { className: "tnr-title-row" },
-          h("h1", { className: "tnr-title" }, "Tenure"),
-          h("span", { className: "tnr-subtitle" }, "Autonomy earned per action type, on verified evidence"),
+          h("h1", { className: "tnr-title" }, t("page.title")),
+          h("span", { className: "tnr-subtitle" }, t("page.subtitle")),
           h("div", { className: "tnr-head-right" },
-            h("span", { className: cx("tnr-live", err && "is-stale"), title: err ? errText(err) : "Polling every 2 s" },
-              h("span", { className: "tnr-live-dot", "aria-hidden": true }), err ? "retrying · " : "live · ",
+            h("span", { className: cx("tnr-live", err && "is-stale"), title: err ? errText(err) : t("page.polling", { s: POLL_MS / 1000 }) },
+              h("span", { className: "tnr-live-dot", "aria-hidden": true }), err ? t("page.retrying") : t("page.live"),
               h("span", { className: "tnr-mono" }, updated)),
-            h("button", { type: "button", className: cx("tnr-chip-btn", raw && "is-on"), onClick: function () { setRaw(!raw); }, title: "Show raw action type names (r)" },
-              raw ? "raw names" : "redacted names"),
-            h("button", { type: "button", className: "tnr-chip-btn", onClick: function () { setHelp(true); }, title: "Keyboard shortcuts" }, h(Kbd, null, "?")))),
+            h("button", { type: "button", className: cx("tnr-chip-btn", raw && "is-on"), onClick: function () { setRaw(!raw); }, title: t("page.raw_title") },
+              raw ? t("page.raw_on") : t("page.raw_off")),
+            h("button", { type: "button", className: "tnr-chip-btn", onClick: function () { setHelp(true); }, title: t("help.aria") }, h(Kbd, null, "?")))),
         h(Counters, { totals: activity && activity.totals })),
       h(Tabs, { view: view, onView: function (v) { setView(v); setDrawer(null); }, undoCount: activity && activity.undoable ? activity.undoable.length : 0 }),
-      unreadable.length ? h("div", { className: "tnr-msg tnr-tone--warn" }, "Unreadable: " + unreadable.map(function (p) { return p.profile; }).join(", ") +
-        ". Its database exists but cannot be opened; other profiles are shown.") : null,
-      data && err ? h("div", { className: "tnr-msg tnr-tone--warn" }, "Last refresh failed (" + errText(err) + "). Showing the data from " + updated + ".") : null,
+      unreadable.length ? h("div", { className: "tnr-msg tnr-tone--warn" }, t("page.unreadable", {
+        profiles: unreadable.map(function (p) { return p.profile; }).join(t("common.list_sep")) })) : null,
+      data && err ? h("div", { className: "tnr-msg tnr-tone--warn" }, t("stale.message", { error: errText(err), time: updated })) : null,
       h("main", { className: "tnr-body", "data-view": view, id: "tnr-panel", role: "tabpanel", "aria-labelledby": "tnr-tab-" + view }, body),
       drawerRow ? h(AgentDrawer, { row: drawerRow, raw: raw, version: version, onClose: function () { setDrawer(null); }, onDone: done }) : null,
       help ? h(Help, { onClose: function () { setHelp(false); } }) : null,

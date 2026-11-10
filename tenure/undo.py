@@ -25,6 +25,8 @@ import tempfile
 import time
 import uuid
 
+from .i18n import tr
+
 _ID_RE = re.compile(r"^[0-9a-f]{32}$")
 MAC_FILE = "manifest.mac"
 
@@ -138,9 +140,9 @@ def _checked(d: str, snap_id: str, key: bytes | None) -> tuple[list[dict], list[
         with open(os.path.join(d, MAC_FILE), "rb") as fh:
             mac = fh.read().decode("ascii", "replace").strip()
     except FileNotFoundError:
-        raise Refused("the snapshot has no MAC")
+        raise Refused(tr("undo.refused.no_mac"))
     if not key or not hmac.compare_digest(mac, _mac(key, snap_id, manifest)):
-        raise Refused("the snapshot was changed after it was taken")
+        raise Refused(tr("undo.refused.changed"))
     try:
         data = json.loads(manifest)
         files, cwd, home = data["files"], data.get("cwd"), data.get("home")
@@ -150,26 +152,26 @@ def _checked(d: str, snap_id: str, key: bytes | None) -> tuple[list[dict], list[
         for i, e in enumerate(files):
             path = e["path"]
             if not isinstance(path, str) or not os.path.isabs(path) or "\x00" in path:
-                raise Refused("a recorded path is not absolute")
+                raise Refused(tr("undo.refused.not_absolute"))
             if e["existed"]:
                 with open(os.path.join(d, str(i)), "rb") as fh:
                     data = fh.read()
                 if not hmac.compare_digest(hashlib.sha256(data).hexdigest(), e["sha256"]):
-                    raise Refused("a saved file was changed after the snapshot")
+                    raise Refused(tr("undo.refused.file_changed"))
                 blobs.append(data)
             else:
                 blobs.append(None)
     except (ValueError, KeyError, TypeError) as exc:
-        raise Refused(f"the manifest cannot be read ({type(exc).__name__})")
+        raise Refused(tr("undo.refused.manifest", error=type(exc).__name__))
     from . import classify
     for e in files:
         path = e["path"]
         if os.path.islink(path):
-            raise Refused("a target is now a symlink")
+            raise Refused(tr("undo.refused.symlink"))
         if _parent(path) != e["parent"]:
-            raise Refused("a target's folder now resolves elsewhere (a symlink was put on its path)")
+            raise Refused(tr("undo.refused.folder"))
         if classify.sensitive_path(path, cwd, home):
-            raise Refused("a target is a protected file")
+            raise Refused(tr("undo.refused.protected"))
     return files, blobs
 
 
