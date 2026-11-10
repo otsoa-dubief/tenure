@@ -33,6 +33,13 @@
   "common.profile": "الملف الشخصي {profile}",
   "confirm.again": "انقر مرة أخرى للتأكيد",
   "confirm.default": "تأكيد",
+  "confirm.flag.desc": "يُحتسب هذا إخفاقًا: ينزل {type} مستوى واحدًا على الأقل ويصعد من جديد. استخدمه لخطأ لم يلاحظه أحد.",
+  "confirm.flag.title": "الإبلاغ عن {type} كخطأ؟",
+  "confirm.revoke.desc": "سيسأل {type} أولًا من جديد، وتبدأ سلسلته من الصفر. هذا ليس إخفاقًا.",
+  "confirm.revoke.title": "سحب {type}؟",
+  "confirm.revoke_all.desc": "سيسأل كل نوع إجراء لدى {agent} أولًا من جديد، وتبدأ سلسلته من الصفر. هذا ليس إخفاقًا.",
+  "confirm.revoke_all.title": "سحب كل الاستقلالية المكتسبة لهذا الوكيل؟",
+  "confirm.undo.title": "التراجع عن الإجراء {id}؟",
   "copy.button": "نسخ",
   "copy.done": "تم النسخ",
   "count.agents": {

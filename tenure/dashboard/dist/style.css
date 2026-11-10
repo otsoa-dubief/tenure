@@ -523,3 +523,10 @@
    (from on the right, arrow pointing at to); Arabic letters must stay joined, so no letter spacing. */
 [dir="rtl"] .tnr-trans-move > *, [dir="rtl"] .tnr-switch-pair > b { unicode-bidi: isolate; }
 [dir="rtl"] .tnr, [dir="rtl"] .tnr * { letter-spacing: 0 !important; }
+/* Hermes' confirmation dialog (rendered outside the tab) spaces button letters: Arabic letters must stay joined. */
+[dir="rtl"] [role="alertdialog"], [dir="rtl"] [role="alertdialog"] * { letter-spacing: 0 !important; }
+[dir="rtl"] [role="alertdialog"] button, [dir="rtl"] [role="alertdialog"] button * {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif !important;
+}
+/* The dashboard's buttons and selects use a monospace font; Arabic needs a proportional one to stay joined. */
+[dir="rtl"] .tnr button, [dir="rtl"] .tnr button *, [dir="rtl"] .tnr select { font-family: system-ui, -apple-system, "Segoe UI", sans-serif !important; }

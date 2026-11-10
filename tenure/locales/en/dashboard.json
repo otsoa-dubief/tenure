@@ -25,6 +25,13 @@
   "common.profile": "profile {profile}",
   "confirm.again": "Click again to confirm",
   "confirm.default": "Confirm",
+  "confirm.flag.desc": "This counts as a fault: {type} drops at least one tier and climbs again. Use it for an error nobody caught.",
+  "confirm.flag.title": "Flag {type} as an error?",
+  "confirm.revoke.desc": "{type} asks first again and its series restarts from zero. Not a fault.",
+  "confirm.revoke.title": "Take back {type}?",
+  "confirm.revoke_all.desc": "Every action type of {agent} asks first again and its series restarts from zero. Not a fault.",
+  "confirm.revoke_all.title": "Revoke all of this agent's earned autonomy?",
+  "confirm.undo.title": "Undo action {id}?",
   "copy.button": "Copy",
   "copy.done": "Copied",
   "count.agents": {

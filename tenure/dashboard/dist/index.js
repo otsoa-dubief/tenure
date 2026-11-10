@@ -58,6 +58,13 @@ const TENURE_LOCALES = {
     "common.profile": "profile {profile}",
     "confirm.again": "Click again to confirm",
     "confirm.default": "Confirm",
+    "confirm.flag.desc": "This counts as a fault: {type} drops at least one tier and climbs again. Use it for an error nobody caught.",
+    "confirm.flag.title": "Flag {type} as an error?",
+    "confirm.revoke.desc": "{type} asks first again and its series restarts from zero. Not a fault.",
+    "confirm.revoke.title": "Take back {type}?",
+    "confirm.revoke_all.desc": "Every action type of {agent} asks first again and its series restarts from zero. Not a fault.",
+    "confirm.revoke_all.title": "Revoke all of this agent's earned autonomy?",
+    "confirm.undo.title": "Undo action {id}?",
     "copy.button": "Copy",
     "copy.done": "Copied",
     "count.agents": {
@@ -509,6 +516,13 @@ const TENURE_LOCALES = {
     "common.profile": "الملف الشخصي {profile}",
     "confirm.again": "انقر مرة أخرى للتأكيد",
     "confirm.default": "تأكيد",
+    "confirm.flag.desc": "يُحتسب هذا إخفاقًا: ينزل {type} مستوى واحدًا على الأقل ويصعد من جديد. استخدمه لخطأ لم يلاحظه أحد.",
+    "confirm.flag.title": "الإبلاغ عن {type} كخطأ؟",
+    "confirm.revoke.desc": "سيسأل {type} أولًا من جديد، وتبدأ سلسلته من الصفر. هذا ليس إخفاقًا.",
+    "confirm.revoke.title": "سحب {type}؟",
+    "confirm.revoke_all.desc": "سيسأل كل نوع إجراء لدى {agent} أولًا من جديد، وتبدأ سلسلته من الصفر. هذا ليس إخفاقًا.",
+    "confirm.revoke_all.title": "سحب كل الاستقلالية المكتسبة لهذا الوكيل؟",
+    "confirm.undo.title": "التراجع عن الإجراء {id}؟",
     "copy.button": "نسخ",
     "copy.done": "تم النسخ",
     "count.agents": {
@@ -1096,6 +1110,13 @@ const TENURE_LOCALES = {
     "common.profile": "perfil {profile}",
     "confirm.again": "Haz clic otra vez para confirmar",
     "confirm.default": "Confirmar",
+    "confirm.flag.desc": "Cuenta como fallo: {type} baja al menos un nivel y vuelve a subir. Úsalo para un error que nadie detectó.",
+    "confirm.flag.title": "¿Marcar {type} como error?",
+    "confirm.revoke.desc": "{type} vuelve a preguntar antes de actuar y su serie empieza de cero. No es un fallo.",
+    "confirm.revoke.title": "¿Revocar {type}?",
+    "confirm.revoke_all.desc": "Cada tipo de acción de {agent} vuelve a preguntar antes de actuar y su serie empieza de cero. No es un fallo.",
+    "confirm.revoke_all.title": "¿Revocar toda la autonomía ganada de este agente?",
+    "confirm.undo.title": "¿Deshacer la acción {id}?",
     "copy.button": "Copiar",
     "copy.done": "Copiado",
     "count.agents": {
@@ -1539,6 +1560,13 @@ const TENURE_LOCALES = {
     "common.profile": "profil {profile}",
     "confirm.again": "Cliquez de nouveau pour confirmer",
     "confirm.default": "Confirmer",
+    "confirm.flag.desc": "Cela compte comme une faute : {type} perd au moins un niveau et doit remonter. À utiliser pour une erreur que personne n'a repérée.",
+    "confirm.flag.title": "Signaler {type} comme une erreur ?",
+    "confirm.revoke.desc": "{type} vous demandera de nouveau avant d'agir, et sa série repart de zéro. Ce n'est pas une faute.",
+    "confirm.revoke.title": "Révoquer {type} ?",
+    "confirm.revoke_all.desc": "Chaque type d'action de {agent} vous demandera de nouveau avant d'agir, et sa série repart de zéro. Ce n'est pas une faute.",
+    "confirm.revoke_all.title": "Révoquer toute l'autonomie acquise de cet agent ?",
+    "confirm.undo.title": "Annuler l'action {id} ?",
     "copy.button": "Copier",
     "copy.done": "Copié",
     "count.agents": {
@@ -1980,6 +2008,13 @@ const TENURE_LOCALES = {
     "common.profile": "配置文件 {profile}",
     "confirm.again": "再次点击以确认",
     "confirm.default": "确认",
+    "confirm.flag.desc": "这会记为一次失误：{type} 至少降一级，需要重新晋升。用于没人发现的错误。",
+    "confirm.flag.title": "将 {type} 标记为错误？",
+    "confirm.revoke.desc": "{type} 会重新先询问，连续记录从零开始。这不算失误。",
+    "confirm.revoke.title": "收回 {type}？",
+    "confirm.revoke_all.desc": "{agent} 的每个操作类型都会重新先询问，连续记录从零开始。这不算失误。",
+    "confirm.revoke_all.title": "收回此智能体已获得的全部自主权？",
+    "confirm.undo.title": "撤销操作 {id}？",
     "copy.button": "复制",
     "copy.done": "已复制",
     "count.agents": {
@@ -2664,10 +2699,26 @@ const TENURE_LOCALES = {
     }, props.children);
   }
 
-  /** A button that asks once more before it acts: first click arms it, second click within 4 s confirms. */
+  /** A button that asks once more before it acts: Hermes' own confirmation dialog (title, consequence, confirm
+   *  label) when the dashboard SDK has one; else a first click arms it and a second click within 4 s confirms. */
   function ConfirmBtn(props) {
     var s = useState(false), armed = s[0], setArmed = s[1];
     var b = useState(false), busy = b[0], setBusy = b[1];
+    var o = useState(false), open = o[0], setOpen = o[1];
+    if (UI.ConfirmDialog && props.dialogTitle) {
+      var run = function () {
+        setBusy(true);
+        Promise.resolve(props.onConfirm()).then(function () { setBusy(false); setOpen(false); },
+          function () { setBusy(false); setOpen(false); });
+      };
+      return h(Fragment, null,
+        h(Btn, { kind: props.kind, disabled: props.disabled || busy, title: props.title,
+          onClick: function () { setOpen(true); } }, busy ? "…" : props.children),
+        h(UI.ConfirmDialog, { open: open, title: props.dialogTitle, description: props.dialogDesc,
+          confirmLabel: typeof props.children === "string" ? props.children : props.confirm || t("confirm.default"),
+          destructive: props.destructive !== false,
+          loading: busy, onCancel: function () { if (!busy) setOpen(false); }, onConfirm: run }));
+    }
     useEffect(function () {
       if (!armed) return undefined;
       var tm = setTimeout(function () { setArmed(false); }, 4000);
@@ -3126,6 +3177,7 @@ const TENURE_LOCALES = {
                   h("td", { className: "tnr-dtable-actions" },
                     h(ConfirmBtn, {
                       disabled: !mine, confirm: t("drawer.flag.confirm"),
+                      dialogTitle: t("confirm.flag.title", { type: ty.type }), dialogDesc: t("confirm.flag.desc", { type: ty.type }),
                       title: mine ? t("drawer.flag.title") : t("drawer.own_profile_only"),
                       onConfirm: function () {
                         return act("/flag", { agent: a.agent, type: ty.type }, function (r) {
@@ -3135,6 +3187,7 @@ const TENURE_LOCALES = {
                     }, t("drawer.flag.button")),
                     h(ConfirmBtn, {
                       disabled: !mine, confirm: t("drawer.revoke.confirm"),
+                      dialogTitle: t("confirm.revoke.title", { type: ty.type }), dialogDesc: t("confirm.revoke.desc", { type: ty.type }),
                       title: mine ? t("drawer.revoke.title") : t("drawer.own_profile_only"),
                       onConfirm: function () {
                         return act("/revoke", { agent: a.agent, type: ty.type }, function () { return t("drawer.revoke.done", { type: ty.type }); });
@@ -3153,6 +3206,7 @@ const TENURE_LOCALES = {
           h("div", { className: "tnr-drawer-revoke" },
             h(ConfirmBtn, {
               kind: "danger-ghost", disabled: !mine, confirm: t("drawer.revoke_all.confirm"),
+              dialogTitle: t("confirm.revoke_all.title"), dialogDesc: t("confirm.revoke_all.desc", { agent: a.agent }),
               onConfirm: function () {
                 return act("/revoke", { agent: a.agent, all: true }, function (r) {
                   return t("drawer.revoke_all.done", { n: r.revoked.length, count: String(r.revoked.length) });
@@ -3433,6 +3487,8 @@ const TENURE_LOCALES = {
               h("td", { className: "tnr-small" }, u.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already")),
               h("td", { className: "tnr-dtable-actions" }, h(ConfirmBtn, {
                 kind: "ghost", disabled: !mine, confirm: t("undo.confirm", { id: String(u.id) }),
+                dialogTitle: t("confirm.undo.title", { id: String(u.id) }),
+                dialogDesc: u.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already"),
                 title: mine ? t("undo.title") : t("undo.own_profile_only"),
                 onConfirm: function () {
                   return apiPost("/undo", { id: u.id }, { raw: props.raw }).then(function (r) {

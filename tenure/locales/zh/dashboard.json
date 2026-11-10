@@ -23,6 +23,13 @@
   "common.profile": "配置文件 {profile}",
   "confirm.again": "再次点击以确认",
   "confirm.default": "确认",
+  "confirm.flag.desc": "这会记为一次失误：{type} 至少降一级，需要重新晋升。用于没人发现的错误。",
+  "confirm.flag.title": "将 {type} 标记为错误？",
+  "confirm.revoke.desc": "{type} 会重新先询问，连续记录从零开始。这不算失误。",
+  "confirm.revoke.title": "收回 {type}？",
+  "confirm.revoke_all.desc": "{agent} 的每个操作类型都会重新先询问，连续记录从零开始。这不算失误。",
+  "confirm.revoke_all.title": "收回此智能体已获得的全部自主权？",
+  "confirm.undo.title": "撤销操作 {id}？",
   "copy.button": "复制",
   "copy.done": "已复制",
   "count.agents": {

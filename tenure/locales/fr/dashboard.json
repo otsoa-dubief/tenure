@@ -25,6 +25,13 @@
   "common.profile": "profil {profile}",
   "confirm.again": "Cliquez de nouveau pour confirmer",
   "confirm.default": "Confirmer",
+  "confirm.flag.desc": "Cela compte comme une faute : {type} perd au moins un niveau et doit remonter. À utiliser pour une erreur que personne n'a repérée.",
+  "confirm.flag.title": "Signaler {type} comme une erreur ?",
+  "confirm.revoke.desc": "{type} vous demandera de nouveau avant d'agir, et sa série repart de zéro. Ce n'est pas une faute.",
+  "confirm.revoke.title": "Révoquer {type} ?",
+  "confirm.revoke_all.desc": "Chaque type d'action de {agent} vous demandera de nouveau avant d'agir, et sa série repart de zéro. Ce n'est pas une faute.",
+  "confirm.revoke_all.title": "Révoquer toute l'autonomie acquise de cet agent ?",
+  "confirm.undo.title": "Annuler l'action {id} ?",
   "copy.button": "Copier",
   "copy.done": "Copié",
   "count.agents": {
