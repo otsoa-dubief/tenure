@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 320" width="880" height="320" role="img" aria-labelledby="t d">
+  <title id="t">The three tiers of clearance</title>
+  <desc id="d">Each action type starts at Ask, climbs to Act then notify and then Act alone on verified approvals, and drops back on one fault.</desc>
+  <style>
+    .bg { fill: #ffffff; }
+    .box { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1.5; }
+    .box.end { fill: #ecfdf3; stroke: #16a34a; }
+    .title { font: 600 20px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #1f2328; }
+    .sub { font: 14px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #57606a; }
+    .label { font: 13px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #57606a; }
+    .up { stroke: #16a34a; stroke-width: 2.5; fill: none; }
+    .down { stroke: #cf222e; stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+    .uphead { fill: #16a34a; }
+    .downhead { fill: #cf222e; }
+    .downlabel { font: 600 13px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #cf222e; }
+    .foot { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #57606a; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0d1117; }
+      .box { fill: #161b22; stroke: #30363d; }
+      .box.end { fill: #0f2a1a; stroke: #3fb950; }
+      .title { fill: #e6edf3; }
+      .sub, .label, .foot { fill: #8b949e; }
+      .up { stroke: #3fb950; }
+      .uphead { fill: #3fb950; }
+      .down { stroke: #f85149; }
+      .downhead { fill: #f85149; }
+      .downlabel { fill: #f85149; }
+    }
+  </style>
+  <rect class="bg" x="0" y="0" width="880" height="320" rx="12"/>
+
+  <rect class="box" x="30" y="60" width="220" height="110" rx="10"/>
+  <text class="title" x="140" y="100" text-anchor="middle">Ask</text>
+  <text class="sub" x="140" y="126" text-anchor="middle">every action asks first</text>
+  <text class="sub" x="140" y="148" text-anchor="middle">everything starts here</text>
+
+  <rect class="box" x="330" y="60" width="220" height="110" rx="10"/>
+  <text class="title" x="440" y="100" text-anchor="middle">Act, then notify</text>
+  <text class="sub" x="440" y="126" text-anchor="middle">acts, tells you, with undo</text>
+  <text class="sub" x="440" y="148" text-anchor="middle">reversible types only</text>
+
+  <rect class="box end" x="630" y="60" width="220" height="110" rx="10"/>
+  <text class="title" x="740" y="100" text-anchor="middle">Act alone</text>
+  <text class="sub" x="740" y="126" text-anchor="middle">1 in 10 still asks</text>
+  <text class="sub" x="740" y="148" text-anchor="middle">as a spot check</text>
+
+  <path class="up" d="M252 100 L322 100"/>
+  <polygon class="uphead" points="322,93 332,100 322,107"/>
+  <path class="up" d="M552 100 L622 100"/>
+  <polygon class="uphead" points="622,93 632,100 622,107"/>
+  <text class="label" x="290" y="50" text-anchor="middle">approvals in a row</text>
+  <text class="label" x="590" y="50" text-anchor="middle">more, over 2 sessions</text>
+
+  <path class="down" d="M740 172 C740 222, 140 222, 140 182"/>
+  <polygon class="downhead" points="133,182 140,170 147,182"/>
+  <text class="downlabel" x="440" y="242" text-anchor="middle">one fault: back down, and a longer climb</text>
+
+  <text class="foot" x="440" y="290" text-anchor="middle">per action type: git push, npm test, a file in the project, one MCP tool… each climbs on its own</text>
+</svg>

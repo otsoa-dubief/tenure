@@ -237,9 +237,11 @@ def test_hermes_auto_background_is_neutral(plugin, result):
 # --------------------------------------------------------------------------------------------- 5. wording
 def test_readme_names_the_protected_entries_and_the_undo_key():
     readme = " ".join((ROOT / "README.md").read_text(encoding="utf-8").split())
+    rules = " ".join((ROOT / "docs" / "self-protection.md").read_text(encoding="utf-8").split())
+    assert "docs/self-protection.md" in readme                 # the README links the full rules
     for entry in ("config.yaml", ".env", "auth.json", "plugins/", "plugin-data/", "skills/", "state.db",
                   "profiles/<name>/"):
-        assert entry in readme, entry
-    assert "workspace" in readme.lower()
+        assert entry in rules, entry
+    assert "workspace" in rules.lower()
     privacy = readme.split("## Privacy", 1)[1].split("## ", 1)[0]
     assert "HMAC key" in privacy

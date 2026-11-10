@@ -298,7 +298,9 @@ def test_not_external(tool, args):
 
 def test_readme_lists_every_external_server_and_program():
     import pathlib
-    readme = (pathlib.Path(__file__).resolve().parent.parent / "README.md").read_text(encoding="utf-8")
+    root = pathlib.Path(__file__).resolve().parent.parent
+    assert "docs/self-protection.md" in (root / "README.md").read_text(encoding="utf-8")
+    readme = (root / "docs" / "self-protection.md").read_text(encoding="utf-8")   # the full rules
     for server in c.EXTERNAL_SERVERS:
         assert server in readme, server
     for prog in sorted(c.EXTERNAL_PROGRAMS):
