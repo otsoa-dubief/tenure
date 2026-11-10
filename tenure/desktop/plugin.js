@@ -703,7 +703,7 @@ function BenchmarkView({ t }) {
                   jsxs('span', {
                     className: 'flex shrink-0 items-center gap-3',
                     children: [
-                      jsx(PanelSectionLabel, { className: 'w-14 text-right', children: t('colFaults') }),
+                      jsx(PanelSectionLabel, { className: 'w-24 text-right', children: t('colFaults') }),
                       jsx(PanelSectionLabel, { className: 'w-24', children: t('colRange') }),
                       jsx(PanelSectionLabel, { className: 'w-28', children: t('colRate') }),
                       jsx(PanelSectionLabel, { className: 'w-12 text-right', children: t('colPublic') })
@@ -730,7 +730,7 @@ function BenchmarkView({ t }) {
                         jsxs('span', {
                           className: 'flex shrink-0 items-center gap-3',
                           children: [
-                            jsx('span', { className: 'w-14 whitespace-nowrap text-right font-mono text-[0.72rem] tabular-nums', children: t('faults', r.faults, r.successes + r.faults) }),
+                            jsx('span', { className: 'w-24 whitespace-nowrap text-right font-mono text-[0.72rem] tabular-nums', children: t('faults', r.faults, r.successes + r.faults) }),
                             jsx(Tip, { label: t('rangeTip'), children: jsx('span', { className: 'inline-flex', tabIndex: 0, children: jsx(Range, { rate: r.rate, low: r.low, high: r.high, enough: r.enough }) }) }),
                             jsx('span', { className: 'w-28 text-[0.7rem] tabular-nums text-muted-foreground/80', children: r.enough ? t('rate', pct(r.rate), pct(r.low), pct(r.high)) : t('notEnough') }),
                             jsx(Tip, {
