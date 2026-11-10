@@ -620,6 +620,8 @@ def _say(events: list[dict], spot: float) -> list[str]:
                           sessions=tr("notice.count.sessions", n=ev.get("sessions"))))
         elif kind == "tier" and reason == "wald":
             out.append(tr("notice.tier.wald", type=t))
+        elif kind == "tier" and reason == "fault" and ev.get("to") == rule.T1:
+            out.append(tr("notice.tier.fault_probation", type=t))
         elif kind == "tier" and reason in ("fault", "settings"):
             out.append(tr(f"notice.tier.{reason}", type=t, tier=_tier_long(ev.get("to"))))
         elif kind == "trial" and reason == "fault":

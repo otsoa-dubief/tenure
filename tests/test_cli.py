@@ -470,3 +470,26 @@ def test_settings_come_from_hermes_config_without_a_plugin_context(plugin, monke
     monkeypatch.setitem(sys.modules, "hermes_cli.config", fake)
     cfg = mod.settings()
     assert (cfg["preset"], cfg["strict"], cfg["spot"]) == ("fast", True, 0.2)
+
+
+# ------------------------------------------------------------------------------------------------------- card
+def test_card_is_a_short_text_card_with_a_bar_per_type(plugin):
+    """`/tenure card`: the passport as a few lines of text to paste in a chat or a post, from the real record."""
+    mod, ctx = plugin(FAST)
+    to_t3(ctx)
+    climb(ctx, 1, "s3", tool="memory")
+    out = mod.cli.slash("card")
+    lines = out.splitlines()
+    assert lines[0] == "TENURE · model-a@nous"
+    assert re.search(r"^█{12} file:write\s+T3 Tenured$", out, re.M), out
+    assert re.search(r"^█[█░]{11} memory:write\s+T1 Probation$", out, re.M), out
+    assert lines[-1].endswith("a plugin for Hermes Agent") and "0 faults / 5 checks" in lines[-1]
+    assert mod.cli.slash("card --model nothing").startswith("No agent starts with 'nothing'")
+
+
+def test_tier_notices_speak_the_tenure_vocabulary(plugin):
+    mod, ctx = plugin(FAST)
+    to_t3(ctx)
+    granted = next(p for p in ctx.posted if "Tenure granted" in p)
+    assert granted.startswith("tenure · 🎓 Tenure granted · file:write") and "████████████ T3" in granted
+    assert "now acts on its own" in granted.lower()

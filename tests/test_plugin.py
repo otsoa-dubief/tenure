@@ -748,7 +748,7 @@ def test_full_climb_low_reversible_type(plugin):
     assert (s.tier, s.series, len(s.sessions)) == (mod.rule.T3, 52, 2)
     assert len(os.listdir(os.path.join(mod.data_dir(), "undo"))) == 40       # one snapshot per act-then-notify
     assert sum("/tenure undo" in p for p in ctx.posted) == 40
-    assert any("now acts on its own" in p for p in ctx.posted)
+    assert any("now acts on its own" in p.lower() for p in ctx.posted)
     assert pre(mod, "write_file", write("next"), "next") is None
     assert row(mod, "next")["decision"] in (mod.rule.ALLOW, mod.rule.SPOT)
 

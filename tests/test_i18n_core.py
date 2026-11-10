@@ -23,6 +23,7 @@ KEY = re.compile(r"""["']((?:%s)\.[a-z0-9_.]+)["']""" % "|".join(PREFIXES))
 VAR = re.compile(r"\{([^{}]*)\}")
 # Keys the code builds from a prefix: (literal prefix in the code, the suffixes it can take).
 DYNAMIC = {
+    "tier.rank.": ("ask", "notify", "alone"),
     "tier.short.": ("ask", "notify", "alone"),
     "tier.long.": ("ask", "notify", "alone"),
     "stakes.": ("low", "medium", "high"),

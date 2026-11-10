@@ -79,6 +79,9 @@
     "many": "قبل {n} ث",
     "other": "قبل {n} ث"
   },
+  "cli.card.empty": "لا يوجد سجل لـ {agent} بعد: لا شيء يوضع على البطاقة.",
+  "cli.card.foot": "{record} · إضافة لـ Hermes Agent",
+  "cli.card.title": "TENURE · {agent}",
   "cli.cleanup.dead": {
     "zero": "{n} مفاتيح tenure ميتة في قائمة السماح الدائمة ({setting})، من أصل {total} من الإدخالات. كل سؤال يستخدم مفتاحًا لمرة واحدة: هذه لن تتطابق أبدًا.",
     "one": "{n} مفتاح tenure ميت في قائمة السماح الدائمة ({setting})، من أصل {total} من الإدخالات. كل سؤال يستخدم مفتاحًا لمرة واحدة: لن يتطابق أبدًا.",
@@ -381,10 +384,11 @@
     "other": "{n} نجاح موثّق على التوالي"
   },
   "notice.tier.fault": "tenure: عاد {type} إلى {tier}، بعد إخفاق.",
-  "notice.tier.series": "tenure: أصبح {type} يعمل وحده، بعد {successes} عبر {sessions}. ويظل إجراء واحد من كل {spot} يُفحص عشوائيًا، وإخفاق واحد يُنزله من جديد.",
+  "notice.tier.fault_probation": "tenure · ↓ العودة إلى فترة الاختبار · {type}\nإخفاق: سيسألك أولًا من جديد. يبقى سجله، ويصعد من جديد من هنا.",
+  "notice.tier.series": "tenure · 🎓 مُنح التثبيت · {type}\n████████████ T3 · مُثبَّت\nيعمل وحده الآن، بعد {successes} عبر {sessions}. ويظل إجراء واحد من كل {spot} يُفحص عشوائيًا؛ وإخفاق واحد يُنزله.",
   "notice.tier.settings": "tenure: عاد {type} إلى {tier}، وفق إعداداتك الجديدة.",
   "notice.tier.stakes": "tenure: أصبحت خطورة {type} {stakes}: يبدأ سجله من جديد عند هذه الخطورة (يبقى الاختبار والإخفاقات المسجّلة).",
-  "notice.tier.wald": "tenure: أصبح {type} ينفّذ ثم يُبلغك مع إمكانية التراجع، بعد سلسلة من النجاحات الموثّقة.",
+  "notice.tier.wald": "tenure · ↑ قيد المراجعة · {type}\nيعمل الآن ثم يُبلغك، مع إمكانية التراجع، بعد سلسلة من النجاحات الموثّقة.",
   "notice.trial.failed": {
     "zero": "tenure: فشل {type} في اختباره: كل إجراء يسأل، ويُفتح اختبار جديد بعد {n} إجراءات إضافية من هذا النوع.",
     "one": "tenure: فشل {type} في اختباره: كل إجراء يسأل، ويُفتح اختبار جديد بعد {n} إجراء إضافي من هذا النوع.",
@@ -419,6 +423,10 @@
   "tier.long.alone": "T3، يعمل وحده",
   "tier.long.ask": "T1، يسأل أولًا",
   "tier.long.notify": "T2، ينفّذ ثم يُبلغك مع إمكانية التراجع",
+  "tier.rank.alone": "مُثبَّت",
+  "tier.rank.ask": "فترة اختبار",
+  "tier.rank.cap": "يسأل دائمًا",
+  "tier.rank.notify": "قيد المراجعة",
   "tier.short.alone": "T3 يعمل وحده",
   "tier.short.ask": "T1 يسأل أولًا",
   "tier.short.notify": "T2 ينفّذ ثم يُبلغ",

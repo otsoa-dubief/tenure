@@ -39,6 +39,9 @@
   "cli.ago.s": {
     "other": "{n} 秒前"
   },
+  "cli.card.empty": "{agent} 还没有记录：没有可放进卡片的内容。",
+  "cli.card.foot": "{record} · 一个 Hermes Agent 插件",
+  "cli.card.title": "TENURE · {agent}",
   "cli.cleanup.dead": {
     "other": "永久允许列表（{setting}）的 {total} 个条目中有 {n} 个失效的 tenure 键。每次询问都使用一次性键：它们永远不会再匹配。"
   },
@@ -211,10 +214,11 @@
     "other": "连续 {n} 次已验证的成功"
   },
   "notice.tier.fault": "tenure：{type} 因失误退回 {tier}。",
-  "notice.tier.series": "tenure：{type} 在 {sessions}中取得{successes}后，现可自主执行。每 {spot} 个操作仍会抽查 1 个，一次失误就会让它降级。",
+  "notice.tier.fault_probation": "tenure · ↓ 重回试用期 · {type}\n一次失误：它会重新先询问你。记录会保留，并从这里重新晋升。",
+  "notice.tier.series": "tenure · 🎓 已获转正 · {type}\n████████████ T3 · 已转正\n在 {sessions}中取得{successes}后，现可自主执行。每 {spot} 个操作仍会随机抽查 1 个；一次失误就会让它降级。",
   "notice.tier.settings": "tenure：按你的新设置，{type} 退回 {tier}。",
   "notice.tier.stakes": "tenure：{type} 现为{stakes}风险：它在此风险等级下的记录从头开始（考察期和已记录的失误保留）。",
-  "notice.tier.wald": "tenure：{type} 在一连串已验证的成功后，现在先执行后告知你，并可撤销。",
+  "notice.tier.wald": "tenure · ↑ 进入考察 · {type}\n在一连串经验证的成功之后，现在会先执行再告知你，并可撤销。",
   "notice.trial.failed": {
     "other": "tenure：{type} 未通过考察期：每次操作都会询问，再执行 {n} 个此类型的操作后将开启新的考察期。"
   },
@@ -234,6 +238,10 @@
   "tier.long.alone": "T3，自主执行",
   "tier.long.ask": "T1，先询问",
   "tier.long.notify": "T2，先执行后告知你，可撤销",
+  "tier.rank.alone": "已转正",
+  "tier.rank.ask": "试用期",
+  "tier.rank.cap": "始终询问",
+  "tier.rank.notify": "考察中",
   "tier.short.alone": "T3 自主执行",
   "tier.short.ask": "T1 先询问",
   "tier.short.notify": "T2 先执行后告知",

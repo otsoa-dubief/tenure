@@ -47,6 +47,9 @@
     "one": "hace {n} s",
     "other": "hace {n} s"
   },
+  "cli.card.empty": "Todavía no hay historial de {agent}: nada que poner en una tarjeta.",
+  "cli.card.foot": "{record} · un plugin para Hermes Agent",
+  "cli.card.title": "TENURE · {agent}",
   "cli.cleanup.dead": {
     "one": "{n} clave muerta de tenure en la lista de permitidos permanente ({setting}), de {total} entradas. Cada pregunta usa una clave de un solo uso: nunca vuelve a coincidir.",
     "other": "{n} claves muertas de tenure en la lista de permitidos permanente ({setting}), de {total} entradas. Cada pregunta usa una clave de un solo uso: estas nunca vuelven a coincidir."
@@ -245,10 +248,11 @@
     "other": "{n} éxitos verificados seguidos"
   },
   "notice.tier.fault": "tenure: {type} vuelve a {tier}, tras un fallo.",
-  "notice.tier.series": "tenure: {type} ahora actúa por su cuenta, tras {successes} en {sessions}. 1 acción de cada {spot} sigue pasando un control aleatorio, y un fallo lo hace bajar.",
+  "notice.tier.fault_probation": "tenure · ↓ De vuelta a prueba · {type}\nUn fallo: vuelve a preguntar antes de actuar. Su historial se conserva y vuelve a subir desde aquí.",
+  "notice.tier.series": "tenure · 🎓 Titularidad concedida · {type}\n████████████ T3 · titular\nAhora actúa por su cuenta, tras {successes} en {sessions}. 1 acción de cada {spot} sigue pasando un control aleatorio; un fallo lo hace bajar.",
   "notice.tier.settings": "tenure: {type} vuelve a {tier}, según tu nueva configuración.",
   "notice.tier.stakes": "tenure: {type} ahora tiene impacto {stakes}: su historial empieza de cero con este impacto (se mantienen el periodo de prueba y los fallos registrados).",
-  "notice.tier.wald": "tenure: {type} ahora actúa y luego te avisa, con opción de deshacer, tras una serie de éxitos verificados.",
+  "notice.tier.wald": "tenure · ↑ En revisión · {type}\nAhora actúa y luego te avisa, con opción de deshacer, tras una serie de éxitos verificados.",
   "notice.trial.failed": {
     "one": "tenure: {type} no superó su periodo de prueba: cada acción pregunta, y se abre uno nuevo tras {n} acción más de este tipo.",
     "other": "tenure: {type} no superó su periodo de prueba: cada acción pregunta, y se abre uno nuevo tras {n} acciones más de este tipo."
@@ -271,6 +275,10 @@
   "tier.long.alone": "T3, actúa por su cuenta",
   "tier.long.ask": "T1, pregunta antes",
   "tier.long.notify": "T2, actúa y luego te avisa, con opción de deshacer",
+  "tier.rank.alone": "Titular",
+  "tier.rank.ask": "Período de prueba",
+  "tier.rank.cap": "Siempre pregunta",
+  "tier.rank.notify": "En revisión",
   "tier.short.alone": "T3 actúa por su cuenta",
   "tier.short.ask": "T1 pregunta antes",
   "tier.short.notify": "T2 actúa y luego avisa",

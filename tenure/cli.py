@@ -10,6 +10,7 @@
     flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked
     revoke TYPE|all [--model M | --all]        take earned autonomy back without an error
     passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)
+    card [--model M]                           the passport as a short text card to paste in a chat or a post
     verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay
     anchor                                     one line to publish: the ledger's head, date and length
     export [PATH]                              write the evidence ledger (hash-chained JSON lines)
@@ -223,6 +224,45 @@ def status_text(agent: str | None = None, *, profile: str | None = None, model: 
     problems = store.verify(ledger)
     lines += ["", tr("cli.status.chain_ok", n=len(ledger)) if not problems else
               tr("cli.status.chain_broken", n=len(ledger), problem=problems[0])]
+    return "\n".join(lines)
+
+
+# ------------------------------------------------------------------------------------------------ card
+_RANK_KEY = {rule.T1: "ask", rule.T2: "notify", rule.T3: "alone"}
+_CODE = {rule.T1: "T1", rule.T2: "T2", rule.T3: "T3"}
+
+
+def _card_bar(s: rule.TypeState, n: int | None, eff: str, cells: int = 12) -> str:
+    """The type's progress as text blocks: full at T3, the share of the series toward T3 otherwise, dots when
+    capped. The same reading as the dithered bars of the screens."""
+    if n is None:
+        return "·" * cells
+    if eff == rule.T3:
+        return "█" * cells
+    done = min(cells, int(cells * s.series / max(1, rule.required(s, n))))
+    return "█" * max(done, 1 if s.series else 0) + "░" * (cells - max(done, 1 if s.series else 0))
+
+
+def card_text(model: str | None = None) -> str:
+    """The passport as a few lines of text to paste in a chat or a post: one bar per action type, from the real
+    record. Verifiable evidence is the signed passport (hermes tenure passport)."""
+    core = _core()
+    cfg = core.settings()
+    st = core.store_()
+    agent = _targets(core, st, model=model)[0]
+    rows = st.states(agent)
+    if not rows:
+        return tr("cli.card.empty", agent=agent)
+    lines = [tr("cli.card.title", agent=agent)]
+    width_k = max(width(s.key) for _, s in rows)
+    faults = successes = 0
+    for _, s in sorted(rows, key=lambda r: r[1].key):
+        n = params.required_n(cfg["risks"], s.stakes)
+        eff = effective_tier(s, n)
+        label = (f"CAP {tr('tier.rank.cap')}" if n is None else f"{_CODE[eff]} {tr(f"tier.rank.{_RANK_KEY[eff]}")}")
+        lines.append(f"{_card_bar(s, n, eff)} {ljust(s.key, width_k)}  {label}")
+        faults, successes = faults + s.faults, successes + s.successes
+    lines.append(tr("cli.card.foot", record=_record(faults, successes)))
     return "\n".join(lines)
 
 
@@ -545,6 +585,8 @@ def _add_subcommands(subparser) -> None:
     p.add_argument("--profile", help="Another Hermes profile (read only)")
     p.add_argument("--model", help="Start of an agent string, e.g. gpt-5")
     p.add_argument("--all", action="store_true", help="Every agent with a record")
+    p = subs.add_parser("card", help="The passport as a short text card to paste in a chat or a post")
+    p.add_argument("--model", help="Start of an agent string, e.g. gpt-5")
     p = subs.add_parser("setup", help="The three recommendations; with a name, use it")
     p.add_argument("preset", nargs="?", default="", help="careful, balanced or fast")
     subs.add_parser("explain", help="How tenure decides and what the numbers guarantee")
@@ -589,6 +631,8 @@ def execute(ns) -> tuple[str, int]:
     try:
         if cmd == "status":
             return status_text(profile=g("profile"), model=g("model"), every=bool(g("all"))), 0
+        if cmd == "card":
+            return card_text(model=g("model")), 0
         if cmd == "setup":
             return setup_preset(g("preset", "")), 0
         if cmd == "explain":

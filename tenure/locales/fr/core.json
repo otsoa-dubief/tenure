@@ -47,6 +47,9 @@
     "one": "il y a {n} s",
     "other": "il y a {n} s"
   },
+  "cli.card.empty": "Aucun historique pour {agent} : rien à mettre sur une carte.",
+  "cli.card.foot": "{record} · un plugin pour Hermes Agent",
+  "cli.card.title": "TENURE · {agent}",
   "cli.cleanup.dead": {
     "one": "{n} clé tenure inutile dans la liste d'autorisation permanente ({setting}), sur {total} entrées. Chaque demande utilise une clé à usage unique : celle-ci ne servira plus jamais.",
     "other": "{n} clés tenure inutiles dans la liste d'autorisation permanente ({setting}), sur {total} entrées. Chaque demande utilise une clé à usage unique : celles-ci ne serviront plus jamais."
@@ -245,10 +248,11 @@
     "other": "{n} succès vérifiés d'affilée"
   },
   "notice.tier.fault": "tenure : {type} est revenu en {tier}, après une faute.",
-  "notice.tier.series": "tenure : {type} agit désormais seul, après {successes} sur {sessions}. 1 action sur {spot} reste contrôlée au hasard, et une faute le fait redescendre.",
+  "notice.tier.fault_probation": "tenure · ↓ Retour en probation · {type}\nUne faute : il vous demande de nouveau avant d'agir. Son historique reste, et il remonte à partir d'ici.",
+  "notice.tier.series": "tenure · 🎓 Titularisé · {type}\n████████████ T3 · titulaire\nAgit désormais seul, après {successes}, répartis sur {sessions}. 1 action sur {spot} reste contrôlée au hasard ; une faute le fait redescendre.",
   "notice.tier.settings": "tenure : {type} est revenu en {tier}, selon vos nouveaux paramètres.",
   "notice.tier.stakes": "tenure : {type} est désormais à enjeu {stakes} : son historique repart de zéro à cet enjeu (un essai en cours et les fautes à l'historique sont conservés).",
-  "notice.tier.wald": "tenure : après une série de succès vérifiés, {type} agit désormais, puis vous prévient, avec une annulation possible.",
+  "notice.tier.wald": "tenure · ↑ En examen · {type}\nAgit désormais, puis vous prévient, avec une annulation, après une série de réussites vérifiées.",
   "notice.trial.failed": {
     "one": "tenure : {type} a échoué à son essai : chaque action vous est demandée, et un nouvel essai s'ouvrira après encore {n} action de ce type.",
     "other": "tenure : {type} a échoué à son essai : chaque action vous est demandée, et un nouvel essai s'ouvrira après encore {n} actions de ce type."
@@ -271,6 +275,10 @@
   "tier.long.alone": "T3, agit seul",
   "tier.long.ask": "T1, demande d'abord",
   "tier.long.notify": "T2, agit puis vous prévient, annulable",
+  "tier.rank.alone": "Titulaire",
+  "tier.rank.ask": "Probation",
+  "tier.rank.cap": "Toujours demandé",
+  "tier.rank.notify": "En examen",
   "tier.short.alone": "T3 agit seul",
   "tier.short.ask": "T1 demande d'abord",
   "tier.short.notify": "T2 agit, puis prévient",

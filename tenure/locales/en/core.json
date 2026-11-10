@@ -47,6 +47,9 @@
     "one": "{n} s ago",
     "other": "{n} s ago"
   },
+  "cli.card.empty": "No record yet for {agent}: nothing to put on a card.",
+  "cli.card.foot": "{record} · a plugin for Hermes Agent",
+  "cli.card.title": "TENURE · {agent}",
   "cli.cleanup.dead": {
     "one": "{n} dead tenure key in the permanent allowlist ({setting}), of {total} entries. Every ask uses a one-off key: it never matches again.",
     "other": "{n} dead tenure keys in the permanent allowlist ({setting}), of {total} entries. Every ask uses a one-off key: these never match again."
@@ -245,10 +248,11 @@
     "other": "{n} verified successes in a row"
   },
   "notice.tier.fault": "tenure: {type} is back at {tier}, after a fault.",
-  "notice.tier.series": "tenure: {type} now acts on its own, after {successes} over {sessions}. 1 action in {spot} is still spot-checked, and a fault sends it back down.",
+  "notice.tier.fault_probation": "tenure · ↓ Back on probation · {type}\nA fault: it asks first again. Its record stays, and it climbs again from here.",
+  "notice.tier.series": "tenure · 🎓 Tenure granted · {type}\n████████████ T3 · tenured\nNow acts on its own, after {successes} over {sessions}. 1 action in {spot} is still spot-checked; a fault sends it back down.",
   "notice.tier.settings": "tenure: {type} is back at {tier}, under your new settings.",
   "notice.tier.stakes": "tenure: {type} now has {stakes} stakes: its record starts over at these stakes (a trial and the faults on record stay).",
-  "notice.tier.wald": "tenure: {type} now acts, then tells you, with an undo, after a run of verified successes.",
+  "notice.tier.wald": "tenure · ↑ Under review · {type}\nNow acts, then tells you, with an undo, after a run of verified successes.",
   "notice.trial.failed": {
     "one": "tenure: {type} failed its trial: every action asks, and a new trial opens after {n} more action of this type.",
     "other": "tenure: {type} failed its trial: every action asks, and a new trial opens after {n} more actions of this type."
@@ -271,6 +275,10 @@
   "tier.long.alone": "T3, acting on its own",
   "tier.long.ask": "T1, asking first",
   "tier.long.notify": "T2, acting then telling you, with an undo",
+  "tier.rank.alone": "Tenured",
+  "tier.rank.ask": "Probation",
+  "tier.rank.cap": "Always asks",
+  "tier.rank.notify": "Under review",
   "tier.short.alone": "T3 acts on its own",
   "tier.short.ask": "T1 asks first",
   "tier.short.notify": "T2 acts, then tells you",

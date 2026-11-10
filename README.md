@@ -209,6 +209,7 @@ The full rules, every protected entry and every known gap: [docs/self-protection
 | `hermes tenure flag TYPE [note]` | Report an error the agent made on its own: revokes that type |
 | `hermes tenure revoke TYPE\|all [--model M\|--all]` | Take earned autonomy back: one type or every type, for the last active agent, one model, or every agent |
 | `hermes tenure passport [--agent A] [--out FILE] [--no-redact]` | Write the signed passport of an agent |
+| `hermes tenure card [--model M]` | The passport as a short text card, one bar per action type, to paste in a chat or a post |
 | `hermes tenure verify PASSPORT [LEDGER] [--key HEX]` | Check a passport, against the exported ledger when given; `--key` pins the owner's public key |
 | `hermes tenure anchor` | One line to publish: the ledger's head, date and length |
 | `hermes tenure export [PATH]` | Write the evidence ledger as hash-chained JSON lines |
