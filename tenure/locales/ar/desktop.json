@@ -80,6 +80,7 @@
   "passport.verified": "تم التحقق: التوقيع صالح، وسلسلة التجزئة سليمة، وإعادة تشغيل الدفتر تعطي المستويات نفسها.",
   "passport.verify_hint": "يمكن لأي شخص التحقق منه:",
   "passport.verifying": "جارٍ التحقق…",
+  "preset.copy_pending": "منسوخ من ملف شخصي آخر، يُفحص عند تشغيله",
   "preset.name.balanced": "متوازن",
   "preset.name.careful": "حذِر",
   "preset.name.custom": "مخصص",

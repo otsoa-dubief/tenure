@@ -126,6 +126,7 @@ const TENURE_LOCALES = {
     "passport.verified": "Verified: signature valid, hash chain intact, and replaying the ledger gives the same tiers.",
     "passport.verify_hint": "Anyone can check it:",
     "passport.verifying": "Verifying…",
+    "preset.copy_pending": "copied from another profile, checked when it starts",
     "preset.name.balanced": "balanced",
     "preset.name.careful": "careful",
     "preset.name.custom": "custom",
@@ -275,6 +276,7 @@ const TENURE_LOCALES = {
     "passport.verified": "تم التحقق: التوقيع صالح، وسلسلة التجزئة سليمة، وإعادة تشغيل الدفتر تعطي المستويات نفسها.",
     "passport.verify_hint": "يمكن لأي شخص التحقق منه:",
     "passport.verifying": "جارٍ التحقق…",
+    "preset.copy_pending": "منسوخ من ملف شخصي آخر، يُفحص عند تشغيله",
     "preset.name.balanced": "متوازن",
     "preset.name.careful": "حذِر",
     "preset.name.custom": "مخصص",
@@ -428,6 +430,7 @@ const TENURE_LOCALES = {
     "passport.verified": "Verificado: firma válida, cadena de hashes intacta, y al reproducir el registro se obtienen los mismos niveles.",
     "passport.verify_hint": "Cualquiera puede comprobarlo:",
     "passport.verifying": "Verificando…",
+    "preset.copy_pending": "copiado de otro perfil, se verifica al iniciarse",
     "preset.name.balanced": "equilibrado",
     "preset.name.careful": "prudente",
     "preset.name.custom": "personalizado",
@@ -565,6 +568,7 @@ const TENURE_LOCALES = {
     "passport.verified": "Vérifié : signature valide, chaîne de hachage intacte, et le registre rejoué redonne les mêmes niveaux.",
     "passport.verify_hint": "Tout le monde peut le vérifier :",
     "passport.verifying": "Vérification…",
+    "preset.copy_pending": "copié depuis un autre profil, vérifié à son démarrage",
     "preset.name.balanced": "équilibré",
     "preset.name.careful": "prudent",
     "preset.name.custom": "personnalisé",
@@ -699,6 +703,7 @@ const TENURE_LOCALES = {
     "passport.verified": "已验证：签名有效，哈希链完整，重放账本得到相同的级别。",
     "passport.verify_hint": "任何人都可以验证：",
     "passport.verifying": "正在验证…",
+    "preset.copy_pending": "从另一个配置文件复制而来，启动时检查",
     "preset.name.balanced": "平衡",
     "preset.name.careful": "谨慎",
     "preset.name.custom": "自定义",
@@ -1254,7 +1259,7 @@ function AgentDetail({ agent, t, onRevoke }) {
               { label: t('meta.checked'), value: String(tot.checked || 0) },
               { label: t('meta.alone'), value: String(tot.alone || 0) },
               { label: t('meta.faults'), value: String(tot.faults || 0) },
-              { label: t('meta.preset'), value: t(s.pending ? 'preset.value_pending' : 'preset.value', { preset: presetName(t, s.preset || 'balanced'), k: Math.round(1 / (s.spot || 0.1)) }) }
+              { label: t('meta.preset'), value: t(s.pending ? 'preset.value_pending' : 'preset.value', { preset: presetName(t, s.preset || 'balanced'), k: Math.round(1 / (s.spot || 0.1)) }) + (s.copy_pending ? ' · ' + t('preset.copy_pending') : '') }
             ]
           })
         ]

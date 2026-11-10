@@ -228,6 +228,11 @@ enabled: true
 
 ## Limits
 
+- **A copied profile is caught only inside one install, and only once the original has run this version.** The
+  check compares the database file with the other profiles of the same Hermes root. A copy made before the
+  original ever ran tenure 2026-11-10 or later, a copy whose original was deleted before the copy first started,
+  or a copy placed outside the install (another `HERMES_HOME`, another machine) keeps the original's record. Until
+  a copy starts, the dashboard shows it at T1 with "copied from another profile" and signs no passport for it.
 - **It over-asks by design.** Shell constructs outside the supported grammar (`if`, `for`, functions, globs in a
   write target), write targets it cannot resolve, and any name that looks sensitive are classified as high stakes
   or always-ask. Most wrong guesses cost you a question.

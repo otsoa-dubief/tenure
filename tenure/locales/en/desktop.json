@@ -68,6 +68,7 @@
   "passport.verified": "Verified: signature valid, hash chain intact, and replaying the ledger gives the same tiers.",
   "passport.verify_hint": "Anyone can check it:",
   "passport.verifying": "Verifying…",
+  "preset.copy_pending": "copied from another profile, checked when it starts",
   "preset.name.balanced": "balanced",
   "preset.name.careful": "careful",
   "preset.name.custom": "custom",

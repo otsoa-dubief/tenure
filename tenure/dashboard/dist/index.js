@@ -286,6 +286,7 @@ const TENURE_LOCALES = {
     "preset.careful": "careful",
     "preset.custom": "custom",
     "preset.fast": "fast",
+    "profile.copy_pending": "copied from another profile, checked when it starts",
     "profile.pending": "applies from the next action",
     "profile.preset": "{preset} preset",
     "profile.read_only": " · read-only here",
@@ -816,6 +817,7 @@ const TENURE_LOCALES = {
     "preset.careful": "حذِر",
     "preset.custom": "مخصص",
     "preset.fast": "سريع",
+    "profile.copy_pending": "منسوخ من ملف شخصي آخر، يُفحص عند تشغيله",
     "profile.pending": "يسري من الإجراء التالي",
     "profile.preset": "الإعداد المسبق {preset}",
     "profile.read_only": " · للقراءة فقط هنا",
@@ -1322,6 +1324,7 @@ const TENURE_LOCALES = {
     "preset.careful": "prudente",
     "preset.custom": "personalizado",
     "preset.fast": "rápido",
+    "profile.copy_pending": "copiado de otro perfil, se verifica al iniciarse",
     "profile.pending": "se aplica desde la próxima acción",
     "profile.preset": "preajuste {preset}",
     "profile.read_only": " · solo lectura aquí",
@@ -1764,6 +1767,7 @@ const TENURE_LOCALES = {
     "preset.careful": "prudent",
     "preset.custom": "personnalisé",
     "preset.fast": "rapide",
+    "profile.copy_pending": "copié depuis un autre profil, vérifié à son démarrage",
     "profile.pending": "s'applique dès la prochaine action",
     "profile.preset": "préréglage {preset}",
     "profile.read_only": " · lecture seule ici",
@@ -2184,6 +2188,7 @@ const TENURE_LOCALES = {
     "preset.careful": "谨慎",
     "preset.custom": "自定义",
     "preset.fast": "快速",
+    "profile.copy_pending": "从另一个配置文件复制而来，启动时检查",
     "profile.pending": "从下一个操作起生效",
     "profile.preset": "{preset}预设",
     "profile.read_only": " · 此处只读",
@@ -2720,6 +2725,7 @@ const TENURE_LOCALES = {
     var parts = [t("profile.preset", { preset: presetName(st.preset) }), t("profile.spot", { rate: oneIn(st.spot) })];
     if (st.strict) parts.push(t("profile.strict"));
     if (st.pending) parts.push(t("profile.pending"));
+    if (st.copy_pending) parts.push(t("profile.copy_pending"));
     return parts.join(" · ");
   }
 

@@ -574,3 +574,21 @@ def test_passport_is_signed_when_the_key_already_exists(env):
     d = get(client, "/passport", agent=A).json()
     assert d["passport"]["signature"] and "unsigned" not in d["verify"]
     assert files(root) == before
+
+
+def test_a_copy_that_has_not_started_shows_no_earned_tier_and_signs_nothing(env):
+    """The dashboard reads profiles without running the copy check: a profile whose database records another home
+    (a duplicated Bot that never started) shows T1 everywhere, says why, and gets no passport until it starts."""
+    import shutil
+    core, api, client, root = env
+    core.ST.store = None
+    core.store_()                                            # the default profile settles its identity
+    core.ST.store.db.close()
+    core.ST.store = None
+    shutil.copytree(root / "plugin-data", root / "profiles" / "bot2" / "plugin-data")
+    by = {p["profile"]: p for p in get(client, "/agents").json()["profiles"]}
+    assert by["bot2"]["settings"]["copy_pending"] is True and by["default"]["settings"]["copy_pending"] is False
+    t = by["bot2"]["agents"][0]["types"][0]
+    assert t["effective_tier"] == core.rule.T1
+    r = get(client, "/passport", agent=A, of="bot2")
+    assert r.status_code == 409 and "has not started" in r.json()["detail"]

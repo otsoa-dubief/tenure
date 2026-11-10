@@ -253,6 +253,7 @@
   "preset.careful": "careful",
   "preset.custom": "custom",
   "preset.fast": "fast",
+  "profile.copy_pending": "copied from another profile, checked when it starts",
   "profile.pending": "applies from the next action",
   "profile.preset": "{preset} preset",
   "profile.read_only": " · read-only here",

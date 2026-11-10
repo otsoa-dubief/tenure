@@ -341,6 +341,7 @@
   "preset.careful": "حذِر",
   "preset.custom": "مخصص",
   "preset.fast": "سريع",
+  "profile.copy_pending": "منسوخ من ملف شخصي آخر، يُفحص عند تشغيله",
   "profile.pending": "يسري من الإجراء التالي",
   "profile.preset": "الإعداد المسبق {preset}",
   "profile.read_only": " · للقراءة فقط هنا",

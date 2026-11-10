@@ -68,6 +68,7 @@
   "passport.verified": "Verificado: firma válida, cadena de hashes intacta, y al reproducir el registro se obtienen los mismos niveles.",
   "passport.verify_hint": "Cualquiera puede comprobarlo:",
   "passport.verifying": "Verificando…",
+  "preset.copy_pending": "copiado de otro perfil, se verifica al iniciarse",
   "preset.name.balanced": "equilibrado",
   "preset.name.careful": "prudente",
   "preset.name.custom": "personalizado",

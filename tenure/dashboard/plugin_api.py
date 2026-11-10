@@ -179,7 +179,9 @@ def _type_row(core, cfg: dict, s, raw: bool = False) -> dict:
     rule, params = core.rule, core.params
     n = params.required_n(cfg["risks"], s.stakes)
     return {"type": _name(core, s.key, raw), "stakes": s.stakes, "reversible": s.reversible,
-            "tier": s.tier, "effective_tier": rule.effective_tier(s, n, s.stakes),
+            "tier": s.tier,
+            # A copied profile that has not started yet will restart every type: nothing it shows is earned yet.
+            "effective_tier": rule.T1 if cfg.get("copy_pending") else rule.effective_tier(s, n, s.stakes),
             "capped": n is None, "required": None if n is None else rule.required(s, n),
             "series": s.series, "sessions": len(s.sessions), "wald": s.wald,
             "successes": s.successes, "faults": s.faults, "neutrals": s.neutrals, "spot_checks": s.spot_checks,
@@ -216,11 +218,13 @@ def _agents(raw: bool) -> dict:
                 if st is None:
                     continue
                 cfg = _settings(core, st, own=p["name"] == current)
+                cfg["copy_pending"] = core.copy_pending(st, str(p["home"]), os.path.join(_data_dir(p), _DB))
                 # Sessions are stored without their agent: the suspended count is the profile's, repeated on each agent.
                 suspended = st.db.execute("SELECT COUNT(*) FROM sessions WHERE tainted = 1").fetchone()[0]
                 out.append({"profile": p["name"], "current": p["name"] == current, "suspended": suspended,
                             "settings": {"preset": cfg["preset"], "risks": cfg["risks"], "spot": cfg["spot"],
-                                         "strict": cfg["strict"], "pending": cfg["pending"]},
+                                         "strict": cfg["strict"], "pending": cfg["pending"],
+                                         "copy_pending": cfg["copy_pending"]},
                             "agents": _agent_rows(core, st, cfg, suspended, raw)})
         except (_Unreadable, sqlite3.Error):
             out.append({"profile": p["name"], "current": p["name"] == current, "error": "unreadable"})
@@ -339,6 +343,9 @@ def _passport(agent: str, profile: str | None, raw: bool) -> dict:
     with _open(core, p) as st:
         if st is None or not st.states(agent):
             raise HTTPException(404, f"no record for {agent} in profile {p['name']}")
+        if core.copy_pending(st, str(p["home"]), os.path.join(_data_dir(p), _DB)):
+            raise HTTPException(409, f"profile {p['name']} was copied from another profile and has not started "
+                                     f"since: its record is checked, and its passport signed, when it starts")
         head = st.db.execute("SELECT seq, hash FROM ledger ORDER BY seq DESC LIMIT 1").fetchone()
         key = (st.path, agent, tuple(head or ()), os.path.exists(os.path.join(_data_dir(p), core.passport.KEY_FILE)),
                raw)

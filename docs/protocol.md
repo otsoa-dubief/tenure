@@ -28,7 +28,8 @@ An agent is `"<model>@<provider>"` (provider `unknown` when empty).
 
 ### 1.1 Input events
 
-Only these four kinds are read by a replay. They are applied in ledger order.
+Only these five kinds are read by a replay. They are applied in ledger order. (`copy` was added on 2026-11-10: a
+verifier from before that date rejects a ledger that contains one, with an unknown-event error.)
 
 | Event | Fields | Replay |
 |---|---|---|

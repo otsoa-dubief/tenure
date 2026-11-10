@@ -65,6 +65,7 @@
   "passport.verified": "已验证：签名有效，哈希链完整，重放账本得到相同的级别。",
   "passport.verify_hint": "任何人都可以验证：",
   "passport.verifying": "正在验证…",
+  "preset.copy_pending": "从另一个配置文件复制而来，启动时检查",
   "preset.name.balanced": "平衡",
   "preset.name.careful": "谨慎",
   "preset.name.custom": "自定义",

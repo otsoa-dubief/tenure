@@ -99,6 +99,8 @@ class _State:
         self.last_agent = ""
         self.rng = random.SystemRandom()
         self.purged_at = 0.0
+        self.copy_unchecked = False              # the copied-profile check has not settled yet: every action asks
+        self.copy_retry_at = 0.0                 # monotonic time of the next attempt while unsettled
 
 
 ST = _State()
@@ -127,19 +129,37 @@ def store_() -> store.Store:
     with ST.opening:
         if ST.store is None or ST.store_path != path:
             ST.store, ST.store_path = store.Store(path), path
+            ST.copy_unchecked, ST.copy_retry_at = True, 0.0
+        if ST.copy_unchecked and time.monotonic() >= ST.copy_retry_at:
             try:
                 _check_copied(ST.store)
-            except Exception as e:                 # never block the agent on this check; it runs again next start
-                log.warning("tenure: could not check whether this record was copied: %s", e)
+                ST.copy_unchecked = False
+            except Exception as e:                 # every action asks until the check settles; retried in a minute
+                ST.copy_retry_at = time.monotonic() + COPY_RETRY
+                log.warning("tenure: could not check whether this record was copied (every action asks): %s", e)
         return ST.store
 
 
-HOME_META, STORE_ID_META, COPIED_META = "profile:home", "store:id", "profile:copied_at"
+HOME_META, STORE_ID_META, FILE_META = "profile:home", "store:id", "profile:file"
+SALT_META, COPIED_META = "profile:salt", "profile:copied_at"
+COPY_RETRY = 60.0
 
 
-def _home_mark(home: str) -> str:
-    """What the database keeps of its Hermes home: a hash, never the path (the ledger and meta hold no paths)."""
-    return hashlib.sha256(home.encode("utf-8")).hexdigest()[:32]
+class CopyCheckFailed(Exception):
+    """Another profile's database exists but cannot be read now: the copy check cannot conclude."""
+
+
+def _home_mark(salt: str, home: str) -> str:
+    """What the database keeps of its Hermes home: a salted hash, never the path, and nothing a dictionary of usual
+    paths could reverse."""
+    import hmac
+    return hmac.new(bytes.fromhex(salt), home.encode("utf-8"), hashlib.sha256).hexdigest()[:32]
+
+
+def _file_id(path: str) -> str:
+    """The database file's identity on disk: a rename or move keeps it, a copy does not."""
+    s = os.stat(path)
+    return f"{s.st_dev}:{s.st_ino}"
 
 
 def _sibling_homes(home: str) -> list[str]:
@@ -156,7 +176,8 @@ def _sibling_homes(home: str) -> list[str]:
 
 
 def _store_id_at(home: str) -> str | None:
-    """The store id of the tenure database of another Hermes home, read only; None when there is none."""
+    """The store id of the tenure database of another Hermes home, read only; None when it has none (no database,
+    or one from before store ids); CopyCheckFailed when it exists but cannot be read now."""
     path = os.path.join(home, "plugin-data", PREFIX, "tenure.db")
     if not os.path.exists(path):
         return None
@@ -167,26 +188,51 @@ def _store_id_at(home: str) -> str | None:
             row = db.execute("SELECT value FROM meta WHERE key = ?", (STORE_ID_META,)).fetchone()
         finally:
             db.close()
-    except sqlite3.Error:
-        return None
+    except sqlite3.OperationalError as e:
+        if "no such table" in str(e):
+            return None
+        raise CopyCheckFailed(f"{os.path.basename(home)}: {e}")
+    except sqlite3.Error as e:
+        raise CopyCheckFailed(f"{os.path.basename(home)}: {e}")
     return row[0] if row else None
+
+
+def copy_pending(st: store.Store, home: str, db_path: str) -> bool:
+    """For a reader that does not run the check (the dashboard reading another profile): the database records a
+    home or a file that are not this one, so it was copied or moved and has not started since. Its tiers are not
+    to be trusted, nor signed, until that profile starts."""
+    salt, mark, fid = st.get_meta(SALT_META), st.get_meta(HOME_META), st.get_meta(FILE_META)
+    try:
+        return bool(salt and mark and fid) and (_home_mark(salt, os.path.realpath(home)) != mark
+                                                or _file_id(db_path) != fid)
+    except (OSError, ValueError):
+        return True
 
 
 def _check_copied(st: store.Store) -> None:
     """A record copied into another profile (``hermes profile create --clone-all``, the desktop's Duplicate Bot)
-    must not carry earned autonomy over silently: the copy is another agent setup (its own SOUL, skills, tools). The
-    database remembers a hash of the Hermes home it belongs to and a random store id. Opened from another home
-    while another profile of the same install still holds the same id, it is a copy: a ``copy`` event is logged (replayed by passports), every type
-    restarts as after a model change (half the series, provisional; strict mode: empty), the original's undo
-    snapshots and keys are dropped, and the copy gets ids and keys of its own. The original no longer existing means
-    the profile moved (a restored backup, a renamed folder): nothing changes."""
+    must not carry earned autonomy over silently: the copy is another agent setup (its own SOUL, skills, tools).
+
+    The database records a salted hash of its Hermes home, the identity of its file on disk and a random store id. A
+    different file (a copy, not a rename) whose store id another profile of the same install still holds is a copy:
+    a ``copy`` event is logged (replayed by passports), every type restarts as after a model change (half the
+    series, provisional; strict mode: empty), the original's undo snapshots, pending asks, keys and exported files
+    are dropped, and the copy gets ids of its own. A different file that no other profile claims moved (a restored
+    backup): nothing changes. Raises when it cannot conclude (CopyCheckFailed, or any error: the transaction rolls
+    back, file removals included); store_() then makes every action ask and tries again."""
     home = os.path.realpath(_hermes_home())
-    mark = _home_mark(home)
-    recorded, sid = st.get_meta(HOME_META), st.get_meta(STORE_ID_META)
-    if recorded == mark and sid:
+    fid = _file_id(st.path)
+    salt, mark, sid, recorded_fid = (st.get_meta(k) for k in (SALT_META, HOME_META, STORE_ID_META, FILE_META))
+    if salt and sid and mark == _home_mark(salt, home) and recorded_fid == fid:
         return
-    copied = bool(recorded and sid and any(_store_id_at(h) == sid for h in _sibling_homes(home)))
+    copied = bool(sid and recorded_fid and recorded_fid != fid
+                  and any(_store_id_at(h) == sid for h in _sibling_homes(home)))
     with st.transaction():
+        # Another process (gateway, CLI, dashboard) may have settled it since the first read: decide again on what
+        # the write lock shows, and never apply a stale decision twice.
+        if st.get_meta(STORE_ID_META) != sid or (st.get_meta(FILE_META) == fid and recorded_fid != fid):
+            return
+        salt = st.get_meta(SALT_META) or secrets.token_hex(16)
         if copied:
             cfg = settings()
             sync_settings(st, cfg)
@@ -196,16 +242,30 @@ def _check_copied(st: store.Store) -> None:
                 st.put_state(agent, rule.carry_over(s, n_new=params.required_n(cfg["risks"], s.stakes), veto=False,
                                                     strict=strict))
             st.db.execute("UPDATE undo SET undone = 1 WHERE undone = 0")
+            st.db.execute("DELETE FROM pending")
             st.db.execute("DELETE FROM meta WHERE key = ?", (UNDO_KEY,))
             st.set_meta(COPIED_META, str(time.time()))
+            _drop_copied_files()                         # before the commit: a failure rolls everything back
         if copied or not sid:
             st.set_meta(STORE_ID_META, secrets.token_hex(16))
-        st.set_meta(HOME_META, mark)
-    if copied:
-        import shutil
-        shutil.rmtree(os.path.join(data_dir(), "undo"), ignore_errors=True)
+        st.set_meta(SALT_META, salt)
+        st.set_meta(HOME_META, _home_mark(salt, home))
+        st.set_meta(FILE_META, fid)
+
+
+def _drop_copied_files() -> None:
+    """In a copy: the original's signing key (a new one is made at the next passport), undo snapshots, and the
+    passports and ledger exports it wrote."""
+    import glob
+    import shutil
+    d = data_dir()
+    undo_dir = os.path.join(d, "undo")
+    if os.path.isdir(undo_dir):
+        shutil.rmtree(undo_dir)
+    for f in [os.path.join(d, passport.KEY_FILE)] + glob.glob(os.path.join(d, "passport-*.json")) \
+            + glob.glob(os.path.join(d, "evidence-*.jsonl")):
         try:
-            os.remove(os.path.join(data_dir(), passport.KEY_FILE))
+            os.remove(f)
         except FileNotFoundError:
             pass
 
@@ -760,8 +820,8 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
     decision = rule.decide(s, n, cfg["spot"], suspended=suspended, rng=rng)
     if nobody and decision == rule.SPOT:
         decision = rule.ALLOW                           # nobody can answer a spot check: the earned tier runs
-    if not _earned(recorded, act, s, n, decision):
-        decision = rule.ASK
+    if not _earned(recorded, act, s, n, decision) or ST.copy_unchecked:
+        decision = rule.ASK                             # copy_unchecked: this record may be a copy, not yet settled
     return recorded, s, decision, suspended
 
 

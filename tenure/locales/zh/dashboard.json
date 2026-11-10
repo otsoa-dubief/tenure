@@ -231,6 +231,7 @@
   "preset.careful": "谨慎",
   "preset.custom": "自定义",
   "preset.fast": "快速",
+  "profile.copy_pending": "从另一个配置文件复制而来，启动时检查",
   "profile.pending": "从下一个操作起生效",
   "profile.preset": "{preset}预设",
   "profile.read_only": " · 此处只读",

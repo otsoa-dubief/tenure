@@ -68,6 +68,7 @@
   "passport.verified": "Vérifié : signature valide, chaîne de hachage intacte, et le registre rejoué redonne les mêmes niveaux.",
   "passport.verify_hint": "Tout le monde peut le vérifier :",
   "passport.verifying": "Vérification…",
+  "preset.copy_pending": "copié depuis un autre profil, vérifié à son démarrage",
   "preset.name.balanced": "équilibré",
   "preset.name.careful": "prudent",
   "preset.name.custom": "personnalisé",
