@@ -182,7 +182,7 @@ def test_p6_wrapped_hermes_never_runs_unasked(plugin):
 # --------------------------------------------------------------------------------------- 4. over-asking
 ORDINARY = [
     "grep -rn hermes src/", "pytest tests/hermes", 'git commit -m "fix hermes import"', "echo hermes", "mkdir hermes",
-    "cp -r hermes hermes.bak", "docker pull nousresearch/hermes-agent", "pip install -e ./hermes-agent",
+    "cp -r hermes hermes.bak", "docker pull nousresearch/hermes-agent", "pip install -e ./hermes-plugin",
     "npm run build", "code hermes", "make test HERMES=1", "python manage.py migrate", "pytest -k hermes_home",
     'echo "hermes is up" > notes.txt', "touch test_hermes_home.py", "sed -i s/a/b/ hermes_home.py",
     "ruff check hermes/", "python -c \"print('hermes ok')\"", "cat > a.py <<EOF\nprint(1)\nEOF",

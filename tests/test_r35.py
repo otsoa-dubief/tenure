@@ -121,7 +121,7 @@ def test_workspaces_inside_a_home_stay_ordinary(env):
         assert sh(cmd, ws)[1] == c.MEDIUM, cmd
 
 
-ORDINARY = ["mkdir hermes", "cp -r hermes hermes.bak", "ruff check hermes/", "pip install -e ./hermes-agent",
+ORDINARY = ["mkdir hermes", "cp -r hermes hermes.bak", "ruff check hermes/", "pip install -e ./hermes-plugin",
             "pip install -U hermes-agent", "docker pull nousresearch/hermes-agent", 'git commit -m "hermes plugins cleanup"',
             "git commit -m 'run hermes config set later'", "pytest tests/hermes", "docker compose up -d",
             "ln -s ../lib/libfoo.so libfoo.so", "tar xf deps.tar -C ./vendor", "cd ~ && npm test"]
