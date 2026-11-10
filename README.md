@@ -150,7 +150,8 @@ successes), except at high stakes or when it scores more than 5 points lower on 
 over instead. A returning model keeps its own record.
 
 **Bots and copied profiles.** Every Hermes profile, so every Bot of Bot Mode, keeps its own record: a Bot earns
-autonomy for itself. A profile copied from another one (`hermes profile create --clone-all`, the desktop's
+autonomy for itself. A Bot's messages to its teammates (`message_agent`) are a medium-stakes type it can earn, like
+delegating to a subagent; a message to a person (`send_message`) stays high stakes. A profile copied from another one (`hermes profile create --clone-all`, the desktop's
 **Duplicate**) has another SOUL, other skills and other tools, so it does not inherit earned autonomy silently:
 at its first start every type restarts as after a model change (half the series, provisional; strict mode: from
 zero), the original's undo snapshots are dropped, and the copy signs its passports with a key of its own. The

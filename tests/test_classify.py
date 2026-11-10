@@ -68,7 +68,10 @@ def test_curl_without_a_payload_is_a_read():
     ("react_to_message", "message:react", C.LOW), ("kanban_comment", "kanban:comment", C.LOW),
     ("image_generate", "media:generate", C.LOW), ("cronjob_manage", "cron:manage", C.HIGH),
     ("skill_manage", "self:skills", C.CAP), ("manage_catalog", "self:plugins", C.CAP),
-    ("browser_vault", "secrets:vault", C.CAP), ("send_message", "message:send", C.HIGH)])
+    ("browser_vault", "secrets:vault", C.CAP), ("send_message", "message:send", C.HIGH),
+    # Bot Mode: a message to another of the owner's Bots stays inside the install (that Bot acts under its own
+    # record); it can be earned like delegating to a subagent, not capped like a message to a person.
+    ("message_agent", "bot:message", C.MEDIUM)])
 def test_hermes_tools(tool, typ, stakes):
     assert k(tool) == (typ, stakes)
 

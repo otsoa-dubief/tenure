@@ -50,6 +50,7 @@ TOOLS = {
     "process_manage": ("process:manage", MEDIUM, True),
     "execute_code": ("code:execute", MEDIUM, False),
     "delegate_task": ("delegate:task", MEDIUM, False),
+    "message_agent": ("bot:message", MEDIUM, False),     # Bot Mode: to another of the owner's Bots, inside the install
     "browser_exec": ("browser:exec", MEDIUM, False),
     "browser_cdp": ("browser:cdp", MEDIUM, False),
     "browser_dialog": ("browser:dialog", LOW, False),
