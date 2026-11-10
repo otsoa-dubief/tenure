@@ -196,12 +196,18 @@ type override lowers them (`self:*`, `secrets:*`, `file:sensitive`):
   into your home folder asks (high stakes). A path argument the shell computes (a variable, a substitution, a brace
   list, `~user`, the `{}` of find or xargs), a `cd` to such a target, and `tar -P` ask too (high stakes), and are
   capped when their literal part names Hermes. Setting `CDPATH` is capped.
-- Code an ordinary command would run without asking: assigning `PATH`, the dynamic loader's variables (`LD_*`,
-  `DYLD_*`), shell start-up, pager and editor variables, git's own (`GIT_*`, except author and committer), `HOME`,
-  `XDG_CONFIG_*` or `HERMES_*`, as a prefix, behind `env` or with `export`; git configuration that can run a
-  program (`git -c` or `git config` on any key outside a short list such as `user.name`), and the files git reads
-  it from (`.git/config`, `.git/hooks/`, `.gitattributes`, `.gitmodules`, `~/.gitconfig`, `~/.config/git/`). Any
-  other assignment in front of a read-only command asks at high stakes.
+- Code an ordinary command would run without asking: assigning `PATH` (except after `$PATH`), the dynamic
+  loader's variables (`LD_*`, `DYLD_*`), shell start-up, pager, editor, askpass and browser variables, git's own
+  (`GIT_*`, except author, committer and tracing), `HOME`, `XDG_CONFIG_*` or `HERMES_*`: as a prefix, behind
+  `env`, `sudo` or `timeout`, with `export`, or through a builtin that assigns (`printf -v`, `read`, `for`);
+  git configuration that can run a program (`git -c`, `clone --config`, `--template`, or `git config` on any key
+  outside a short list such as `user.name`), and the files git reads it from (`.git/config`, `.git/hooks/`, those
+  of submodules and work trees, `~/.gitconfig`, `~/.config/git/config`), whoever writes them (`sed -i`,
+  `execute_code`); shell start-up files (`~/.zshrc`, `~/.bashrc`, `~/.profile`...), login agents and user
+  services, Python's `sitecustomize.py`, and `~/.local/bin/`. A program given by a path outside the system's
+  folders (`./bin/ls`) is never a free read. Any other assignment in front of a read-only command asks.
+- The dashboard's own API (`/api/plugins/clearance/...`, where settings, revoke and undo live) is capped when a
+  command or code names it.
 - A recursive copy (`cp -r`, `ditto`, `rsync`) or a git work tree into your home or into a folder above a Hermes
   home asks at high stakes, and is capped when it names a `.hermes` folder. Code piped into a shell or an
   interpreter (`| sh`, `| python3`, `bash -s`) asks at high stakes. An MCP or plugin tool whose arguments name one
@@ -228,7 +234,7 @@ type override lowers them (`self:*`, `secrets:*`, `file:sensitive`):
 | `hermes clearance flag TYPE [note]` | Report an error the agent made on its own: revokes that type |
 | `hermes clearance revoke TYPE\|all [--model M\|--all]` | Take a clearance back: one type or every type, for the last active agent, one model, or every agent |
 | `hermes clearance passport [--agent A] [--out FILE] [--no-redact]` | Write the signed passport of an agent |
-| `hermes clearance verify PASSPORT [LEDGER]` | Check a passport, against the exported ledger when given |
+| `hermes clearance verify PASSPORT [LEDGER] [--key HEX]` | Check a passport, against the exported ledger when given; `--key` pins the owner's public key |
 | `hermes clearance anchor` | One line to publish: the ledger's head, date and length |
 | `hermes clearance export [PATH]` | Write the evidence ledger as hash-chained JSON lines |
 | `hermes clearance strict on\|off` | Strict mode: a new model starts with an empty record |
@@ -256,6 +262,11 @@ enabled: true
   writing the files under `memories/` directly is capped. Reclassify `memory:write` if memories steer your agent.
 - **The passport is tamper-evident; it cannot prevent tampering.** It is signed by the owner's own key, so the owner can
   rewrite a whole history and re-sign it. Anchor its head (`hermes clearance anchor`) somewhere public to fix a point in time.
+  The signature shows that a passport matches a ledger, not who made it: pin the owner's key with `verify --key`.
+  An older passport still verifies against a longer ledger; `verify` then says what changed since.
+- **The database trusts itself.** clearance reads its tiers from its own database, and the hash chain is not a
+  secret. Code that is already allowed to run (see the limit under Self-protection) could rewrite both; writing
+  them by any command clearance can read is capped.
 - **Redaction uses unsalted hashes.** A redacted passport hides a type name from a casual reader, not from
   someone who guesses it.
 - **SQLite side files.** The dashboard opens each database read-only; on a database in WAL mode SQLite may still

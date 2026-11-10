@@ -347,16 +347,26 @@ def _load_ledger(path: str) -> list[dict]:
         raise CliError(f"{path} is not an exported ledger ({e}).")
 
 
-def verify_cmd(passport_path: str, ledger_path: str = "") -> tuple[str, int]:
+def verify_cmd(passport_path: str, ledger_path: str = "", key: str = "") -> tuple[str, int]:
     try:
         p = _load_json(passport_path)
         rows = _load_ledger(ledger_path) if ledger_path else None
     except CliError as e:
         return str(e), 1
     problems = passport.verify(p, rows)
+    if key and isinstance(p, dict) and str(p.get("public_key", "")).lower() != key.strip().lower():
+        problems = problems + ["public key differs from the one you expected (--key): someone else signed it"]
     if not problems:
-        return (f"OK: signature valid, ledger chain intact, {len(p['types'])} types recomputed by replay of "
-                f"{p['ledger']['count']} ledger events."), 0
+        lines = [f"OK: signature valid, ledger chain intact, {len(p['types'])} types recomputed by replay of "
+                 f"{p['ledger']['count']} ledger events."]
+        if not key:
+            lines.append("The signature shows the passport matches this ledger, not who made it: pass --key with the "
+                         "owner's public key to pin it.")
+        if rows and len(rows) > p["ledger"]["count"]:
+            changed = passport.changes_since(p, rows)
+            lines.append(f"Note: the ledger has {len(rows) - p['ledger']['count']} events after this passport"
+                         + (f"; now: " + "; ".join(changed) if changed else "; the tiers are unchanged."))
+        return "\n".join(lines), 0
     others = [x for x in problems if x != passport.NO_LEDGER]
     lines = []
     if others:
@@ -506,6 +516,7 @@ def _add_subcommands(subparser) -> None:
     p = subs.add_parser("verify", help="Check a passport, against the exported ledger when given")
     p.add_argument("passport")
     p.add_argument("ledger", nargs="?", default="")
+    p.add_argument("--key", default="", help="The public key you expect (hex): anything else is reported")
     subs.add_parser("anchor", help="One line to publish: the ledger's head, date and length")
     p = subs.add_parser("export", help="Write the evidence ledger as hash-chained JSON lines")
     p.add_argument("path", nargs="?", default="")
@@ -542,7 +553,7 @@ def execute(ns) -> tuple[str, int]:
         if cmd == "passport":
             return passport_cmd(agent=g("agent"), out=g("out", ""), redact=not g("no_redact", False)), 0
         if cmd == "verify":
-            return verify_cmd(g("passport"), g("ledger", ""))
+            return verify_cmd(g("passport"), g("ledger", ""), g("key", "") or "")
         if cmd == "anchor":
             return anchor(), 0
         if cmd == "export":

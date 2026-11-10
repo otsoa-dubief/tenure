@@ -48,7 +48,7 @@ def test_a_code_hijacking_variables_are_capped(cmd):
 
 
 def test_a_other_assignments_lift_a_read_out_of_free():
-    assert sh("FOO=1 ls")[1] == HIGH
+    assert sh("FOO=1 ls")[1] == MEDIUM                        # like FOO=1 npm test: no higher than a command
     assert sh("LANG=C ls")[1] == FREE and sh("LC_ALL=C grep x a")[1] == FREE and sh("TZ=UTC date")[1] == FREE
     assert sh("echo PATH=x")[1] == FREE                       # an argument, not an assignment
     assert sh("grep 'PATH=' a.sh")[1] == FREE
@@ -64,6 +64,12 @@ def test_a_git_configuration_that_runs_code_is_capped(cmd):
     assert sh(cmd)[1] == CAP, cmd
 
 
+def test_a_attributes_and_modules_files_are_ordinary():
+    # an attribute only names a driver defined in the (capped) configuration; git ignores `!command` from .gitmodules
+    assert kind("write_file", {"path": ".gitattributes", "content": "*.psd filter=lfs"})[1] == LOW
+    assert kind("write_file", {"path": ".gitmodules", "content": "x"})[1] == LOW
+
+
 def test_a_harmless_git_stays_as_it_was():
     assert sh("git status")[1] == FREE and sh("git log --oneline")[1] == FREE and sh("git diff")[1] == FREE
     assert sh("git -c user.name=x -c user.email=y commit -m m")[1] == MEDIUM
@@ -71,8 +77,9 @@ def test_a_harmless_git_stays_as_it_was():
 
 
 @pytest.mark.parametrize("path", [
-    ".git/config", "sub/.git/config", ".git/hooks/pre-commit", ".git/info/attributes", ".gitattributes",
-    "sub/.gitattributes", ".gitmodules", "~/.gitconfig", "~/.config/git/config", "~/.config/git/attributes",
+    ".git/config", "sub/.git/config", ".git/hooks/pre-commit", ".git/config.worktree", ".git/modules/s/config",
+    ".git/modules/s/hooks/post-checkout", ".git/worktrees/w/config", ".git/commondir", "~/.gitconfig",
+    "~/.config/git/config",
 ])
 def test_a_files_git_reads_its_configuration_from_are_capped(path):
     assert kind("write_file", {"path": path, "content": "x"})[1] == CAP, path
@@ -140,3 +147,104 @@ def test_e_writing_verbs_are_not_free():
     assert kind("mcp__fs__download_file", {"url": "x", "path": "out.bin"})[1] != FREE
     assert kind("mcp__drive__export_file", {"id": "1", "path": "out.pdf"})[1] != FREE
     assert kind("mcp__notion__search", {"query": "hermes config"})[1] == FREE    # a read naming a word, not a path
+
+
+# ----------------------------------------------------------------------------------- counter-audit (10/11, later)
+@pytest.mark.parametrize("cmd", ["./bin/ls", "bin/cat a", "../ls", "/tmp/x/ls", "./git status", "xargs ./bin/ls < f",
+                                 "sub/dir/grep x a"])
+def test_c1_a_project_file_named_like_a_read_is_never_free(cmd):
+    assert sh(cmd)[1] not in (FREE,), cmd
+
+
+def test_c1_system_programs_by_path_stay_free():
+    assert sh("/bin/ls")[1] == FREE and sh("/usr/bin/grep x a")[1] == FREE and sh("ls")[1] == FREE
+
+
+@pytest.mark.parametrize("cmd", [
+    "env -u X PATH=bin ls", "env -C . PATH=bin ls", "timeout 5 env PATH=bin ls", "sudo -u root PATH=bin ls",
+    "xargs -a f env PATH=bin ls", "printf -v PATH %s bin; ls", "printf -v LD_PRELOAD %s x.so; ls",
+    "read PATH < f", "mapfile -t PATH < f", "getopts a PATH", "declare -n r=PATH; r=bin", "for PATH in bin; do ls; done",
+    "GCONV_PATH=. iconv -l", "SSH_ASKPASS=./x git fetch", "LESS='+!./x' less a", "BROWSER=./x gh pr view",
+    "TERMINFO=./t ls", "PERL5DB='system(1)' perl -d a.pl",
+])
+def test_c2_more_assignments_are_capped(cmd):
+    assert sh(cmd)[1] == CAP, cmd
+
+
+def test_c2_hijack_type_is_self_env_and_harmless_forms_pass():
+    assert sh("PATH=bin ls")[0] == "self:env"
+    assert sh("PATH=$PATH:./node_modules/.bin jest")[1] == MEDIUM      # appended after the system: not a hijack
+    assert sh("GIT_TRACE=1 git status")[1] != CAP and sh("PYTHONPATH=. pytest")[1] == MEDIUM
+    assert sh("read -r line < f")[1] != CAP
+
+
+@pytest.mark.parametrize("cmd", [
+    "sed -i s/a/b/ .git/config", "gsed -i s/a/b/ .git/config", "perl -pi -e 's/a/b/' .git/config",
+    "sed -i s/a/b/ ~/.gitconfig", "git clone --config core.hooksPath=h r d", "git clone -c core.fsmonitor=x r d",
+    "git init --template=./t", "git clone --template ./t r d",
+])
+def test_c3_git_configuration_written_by_other_programs_is_capped(cmd):
+    assert sh(cmd)[1] == CAP, cmd
+
+
+def test_c3_execute_code_on_git_configuration_is_capped():
+    assert kind("execute_code", {"code": "open('.git/config','a').write('[core]\\n fsmonitor=./x')"})[1] == CAP
+    assert kind("execute_code", {"code": "open('notes.txt','w').write('x')"})[1] == MEDIUM
+
+
+def test_c3_false_positives_lifted():
+    for cmd in ("git -c http.sslVerify=false fetch", "git -c protocol.version=2 fetch", "git -c core.longpaths=true status",
+                "git -c merge.conflictstyle=diff3 merge x", "git config remote.origin.url https://x",
+                "git config alias.co checkout", "git config core.excludesfile .ignore"):
+        assert sh(cmd)[1] != CAP, cmd
+    assert sh("git config alias.x '!sh x'")[1] == CAP
+
+
+def test_c4_mcp_arguments_hidden_or_split(home):
+    W = "mcp__fs__write_file"
+    assert kind(W, {"path": str(home).replace("custom-data", "custom%2Ddata") + "/config.yaml"})[1] == CAP
+    assert kind(W, {"path": "file://" + str(home) + "/config.yaml"})[1] == CAP
+    assert kind(W, {"path": "~/%2Ehermes/config.yaml"})[1] == CAP
+    assert kind(W, {"dir": str(home), "name": "config.yaml"})[1] == CAP      # a home level named alone
+    assert kind(W, {"parts": [str(home), "config.yaml"]})[1] == CAP
+    assert kind(W, {str(home) + "/config.yaml": "x"})[1] == CAP              # a path given as a key
+    assert kind(W, {"p": "~/.hermes"})[1] == CAP
+    deep = "x"
+    for _ in range(12):
+        deep = {"k": deep}
+    assert c.RANK[kind("mcp__fs__get_thing", deep)[1]] >= c.RANK[HIGH]       # too deep to read: never free
+    long = "x" * 5000 + " ~/.hermes/config.yaml"
+    assert kind(W, {"content": long})[1] == CAP
+
+
+def test_c4_tools_that_save_are_not_free():
+    for tool, args in (("mcp__x__get_file_and_store", {"id": 1}), ("mcp__x__readAndPersist", {"id": 1}),
+                       ("mcp__x__fetch_url", {"url": "u", "output_path": "o.html"}),
+                       ("mcp__x__get_screenshot", {"save_to": "s.png"})):
+        assert kind(tool, args)[1] != FREE, tool
+
+
+@pytest.mark.parametrize("cmd", ["cat x | csh", "cat x | tcsh", "cat x | ipython", "cat x | pypy3", "cat x | irb",
+                                 "cat x | julia", "sh /dev/stdin < x", "python3 /dev/fd/0 < x", "node /dev/stdin < x",
+                                 "cat x | xargs sh -c", "cat x | xargs bash -c"])
+def test_c7_more_stdin_code(cmd):
+    assert c.RANK[sh(cmd)[1]] >= c.RANK[HIGH], cmd
+
+
+@pytest.mark.parametrize("cmd", ["crontab -", "crontab x", "echo x | at now", "launchctl load x.plist"])
+def test_c7_scheduling_is_high(cmd):
+    assert c.RANK[sh(cmd)[1]] >= c.RANK[HIGH], cmd
+
+
+@pytest.mark.parametrize("path", ["~/.zshenv", "~/.zshrc", "~/.bashrc", "~/.bash_profile", "~/.profile", "~/.zprofile",
+                                  "~/Library/LaunchAgents/x.plist", "~/.config/systemd/user/x.service",
+                                  "~/.config/autostart/x.desktop", "~/.config/fish/config.fish", "~/.local/bin/git",
+                                  "lib/sitecustomize.py", "x/usercustomize.py"])
+def test_p1_shell_start_up_and_persistence_files_are_capped(path):
+    assert kind("write_file", {"path": path, "content": "x"})[1] == CAP, path
+
+
+@pytest.mark.parametrize("cmd", ["curl -X POST http://127.0.0.1:9119/api/plugins/clearance/settings -d x",
+                                 "python3 -c \"import urllib.request as u; u.urlopen('http://localhost:9119/api/plugins/clearance/revoke')\""])
+def test_p2_the_dashboard_api_is_capped(cmd):
+    assert sh(cmd)[1] == CAP, cmd

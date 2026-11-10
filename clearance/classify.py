@@ -130,7 +130,8 @@ SENSITIVE_FRAGMENTS = ("authorized_keys", "known_hosts", "id_ed25519", "id_ecdsa
 # ------------------------------------------------------------------------------------ the agent's own guardrails
 # clearance's own data: the database, its data folder (undo snapshots), the passport signing key. Whatever names
 # them, wherever the Hermes home is, is self:clearance (capped; no override lowers it).
-CLEARANCE_NAMES = re.compile(r"clearance\.db|plugin-data/clearance(?![\w.-])|passport-ed25519\.pem")
+CLEARANCE_NAMES = re.compile(r"clearance\.db|plugin-data/clearance(?![\w.-])|passport-ed25519\.pem"
+                             r"|api/plugins/clearance(?![\w.-])")      # the dashboard's settings, revoke and undo API
 # What Hermes keeps at the top of each home level (a home, a root, and each profiles/<name> under them). Only these are
 # protected: a project or a workspace under a home (kanban/workspaces/..., workspace/, home/) is ordinary.
 HERMES_ENTRIES = frozenset({
@@ -819,15 +820,25 @@ def _above_home(full: str) -> bool:
     return any(root == low or root.startswith(low + "/") for root in _roots())
 
 
-# Files git reads configuration (and so programs to run) from: a repository's config, hooks and attributes, any
-# .gitattributes or .gitmodules, the user's global configuration (audit 10/11).
-GIT_CONFIG_FILES = re.compile(r"(?:^|/)\.git/(?:config|hooks(?:/|$)|info/attributes)|(?:^|/)\.git(?:attributes|modules"
-                              r"|config)$|(?:^|/)\.config/git(?:/|$)")
+# Files git reads configuration (and so programs to run) from: a repository's config and hooks (submodules and work
+# trees included), the user's global configuration (audit 10/11). An attribute only names a driver defined in the
+# configuration, and git ignores `!command` in .gitmodules: those two files are ordinary.
+GIT_CONFIG_FILES = re.compile(r"(?:^|/)\.git/(?:(?:modules|worktrees)/(?:[^/]+/)*?)?(?:config(?:\.worktree)?$"
+                              r"|hooks(?:/|$)|commondir$)|(?:^|/)\.gitconfig$|(?:^|/)\.config/git/config$")
+
+
+# Files a shell, the session manager or Python runs by themselves: start-up files, login agents and services,
+# Python's site hooks, and the user's own program folder that comes before the system on PATH (counter-audit P1).
+START_UP_FILES = re.compile(r"(?:^|/)\.(?:zshenv|zshrc|zprofile|zlogin|zlogout|bashrc|bash_profile|bash_login|bash_logout"
+                            r"|profile|kshrc|cshrc|tcshrc|login|inputrc)$|/library/launchagents/|/library/launchdaemons/"
+                            r"|/\.config/(?:systemd/user|autostart|fish)/|(?:^|/)(?:site|user)customize\.py$"
+                            r"|/site-packages/[^/]*\.pth$|/\.local/bin/")
 
 
 def _sensitive(probe: str) -> bool:
     low = probe.casefold()
     return bool(any(f in low for f in SENSITIVE_FRAGMENTS) or GIT_CONFIG_FILES.search(low.rstrip("/"))
+                or START_UP_FILES.search(low.rstrip("/"))
                 or any(d.casefold() in low + "/" for d in SENSITIVE_DIRS)
                 or low.startswith(tuple(x.casefold() for x in SENSITIVE_PREFIXES))
                 or SENSITIVE_NAME.match(low.rstrip("/").rsplit("/", 1)[-1])
@@ -928,7 +939,8 @@ GH_READ = {"view", "list", "status", "diff", "checks"}
 WRAPPERS = {"sudo", "env", "nohup", "time", "nice", "command", "exec", "stdbuf", "doas", "builtin", "busybox",
             "setsid"}
 OUTSIDE = {"scp": "shell:scp", "sftp": "shell:sftp", "ssh": "shell:ssh", "ftp": "shell:ftp", "mail": "shell:mail",
-           "sendmail": "shell:mail", "mutt": "shell:mail", "nc": "shell:nc", "ncat": "shell:nc", "telnet": "shell:nc"}
+           "sendmail": "shell:mail", "mutt": "shell:mail", "nc": "shell:nc", "ncat": "shell:nc", "telnet": "shell:nc",
+           "crontab": "schedule:crontab", "at": "schedule:at", "batch": "schedule:at", "launchctl": "schedule:launchctl"}
 PUBLISH = {("npm", "publish"), ("pnpm", "publish"), ("yarn", "publish"), ("twine", "upload"), ("cargo", "publish"),
            ("gem", "push"), ("docker", "push"), ("podman", "push"), ("docker", "login"), ("git", "push")}
 CLOUD = {"aws", "gcloud", "az"}
@@ -952,13 +964,19 @@ ENV_ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 # a read-only command would otherwise run a project file without anyone being asked.
 HIJACK_VARS = re.compile(
     r"(?:PATH|LD_\w+|DYLD_\w+|BASH_ENV|ENV|ZDOTDIR|PROMPT_COMMAND|IFS|PS4|SHELLOPTS|BASHOPTS|CDPATH"
-    r"|GIT_(?!AUTHOR_|COMMITTER_|TERMINAL_PROMPT$)\w+|PAGER|MANPAGER|LESSOPEN|LESSCLOSE|LESSKEY\w*|EDITOR|VISUAL"
-    r"|PYTHONSTARTUP|PYTHONHOME|NODE_OPTIONS|PERL5OPT|RUBYOPT|JAVA_TOOL_OPTIONS|_JAVA_OPTIONS"
+    r"|GIT_(?!AUTHOR_|COMMITTER_|TERMINAL_PROMPT$|TRACE|OPTIONAL_LOCKS$|PROGRESS_DELAY$)\w+|PAGER|MANPAGER|LESSOPEN|LESSCLOSE|LESSKEY\w*|EDITOR|VISUAL"
+    r"|PYTHONSTARTUP|PYTHONHOME|PYTHONBREAKPOINT|PYTHONUSERBASE|NODE_OPTIONS|PERL5OPT|PERL5DB|RUBYOPT"
+    r"|JAVA_TOOL_OPTIONS|_JAVA_OPTIONS|GCONV_PATH|\w*ASKPASS|LESS|BROWSER|TERMINFO|TERMINFO_DIRS"
     r"|HOME|XDG_CONFIG_HOME|XDG_CONFIG_DIRS|XDG_DATA_HOME|HERMES_\w+)")
 # Assignments that change nothing a read-only command runs: it stays free. Any other assignment lifts it to high.
 HARMLESS_VARS = re.compile(r"(?:LANG|LANGUAGE|LC_\w+|TZ|TERM|COLUMNS|LINES|NO_COLOR|FORCE_COLOR|CLICOLOR\w*"
                            r"|GREP_COLOR\w*|LS_COLORS)")
 ASSIGN_WORD = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\+?=")
+APPENDED_PATH = re.compile(r"^PATH=(?:\$PATH|\$\{PATH\})(?::|$)")   # the system's programs still come first
+# Builtins that assign the variables they name (`printf -v PATH`, `read PATH`, `for PATH in`, `declare -n r=PATH`).
+ASSIGNING_BUILTINS = {"printf", "read", "mapfile", "readarray", "getopts", "for", "declare", "typeset", "local",
+                      "export", "readonly", "let", "unset"}
+SELF_ENV = ("self:env", CAP)
 OUT_OPS = {">", ">>", ">|", "&>", "&>>", ">&", "<>"}
 REDIR_OPS = OUT_OPS | {"<", "<<", "<<-", "<<<", "<&"}
 WRITERS = {"tee", "cp", "mv", "install", "ln", "rsync", "touch", "truncate", "rm", "chmod", "chown", "shred",
@@ -1117,9 +1135,10 @@ def _segments(command: str) -> list[list[str]]:
     return [s.tokens for s in _build(_tokens_whole(_join_lines(command)))]
 
 
-SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "fish", "ash", "mksh"}
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "fish", "ash", "mksh", "csh", "tcsh", "nu", "elvish", "xonsh"}
 INTERPRETERS = {"python", "python2", "python3", "node", "deno", "bun", "perl", "ruby", "php", "osascript", "pwsh",
-                "powershell", "Rscript", "lua", "tclsh"}
+                "powershell", "Rscript", "lua", "tclsh", "ipython", "pypy", "pypy3", "irb", "luajit", "julia", "R",
+                "swift", "guile", "racket", "sbcl", "elixir", "erl", "ocaml", "ghci", "groovy", "jshell", "nodejs"}
 INLINE_FLAGS = {"-c", "-e", "-r", "-Command", "--command", "--eval", "-p", "--print"}
 RUNNERS = {"npm", "pnpm", "yarn", "bun"}
 MAKES = {"make", "gmake", "just", "task"}
@@ -2083,6 +2102,13 @@ UNRESOLVED = "$`?*[{"
 
 
 def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
+    """One command (``_segment_main``); a segment that sets a code-hijacking variable is capped as self:env unless
+    it is already capped under a more precise type (Hermes' own CLI, a protected file)."""
+    r = _segment_main(tokens, cwd, home, depth)
+    return SELF_ENV if r[1] != CAP and _hijacks(tokens) else r
+
+
+def _segment_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     """One command. A sensitive path it writes (redirect or argument) caps it; a write target that cannot be
     resolved (variable, glob, brace, or a relative path while the working directory is unknown) is file:unknown.
     R36: a `cd`, `pushd` or `env -C` to a Hermes level or entry, or to a target that cannot be resolved, is capped
@@ -2141,6 +2167,8 @@ def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, s
     if unresolved:
         return "file:unknown", HIGH
     own = _core(tokens, cwd, home, depth)
+    if own[1] == FREE and any(not HARMLESS_VARS.fullmatch(n) for n in _assigned(tokens)):
+        own = (own[0], MEDIUM)                               # a read-only command, under an environment it chose
     return floor if floor and RANK[floor[1]] > RANK[own[1]] else own
 
 
@@ -2168,6 +2196,8 @@ def _env_chdir(tokens: list[str]) -> str | None:
 
 
 STDIN_CODE = ("shell:stdin-code", HIGH)
+# A program named by a path in the system's own folders is that program; any other path is a file someone wrote.
+SYSTEM_PROGRAM = re.compile(r"^/(?:usr/(?:local/)?)?s?bin/[^/]+$|^/opt/homebrew/bin/[^/]+$|^/opt/local/bin/[^/]+$")
 VERSION_FLAGS = {"--version", "-V", "-v", "--help", "-h", "-version"}
 
 
@@ -2178,12 +2208,18 @@ def _stdin_code(args: list[str], script: str) -> bool:
         return False
     if "-" in args or any(re.fullmatch(r"-[A-Za-z]*s[A-Za-z]*", a) for a in args if not a.startswith("--")):
         return True
+    if script in ("/dev/stdin", "/dev/fd/0", "/proc/self/fd/0"):
+        return True
     return not script
 
 
 def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     """One command, plus what it runs from a string or another program it names (``_wrapped``)."""
     own = _core_main(tokens, cwd, home, depth)
+    toks = _unwrap(tokens)
+    if (own[1] == FREE and toks and "/" in toks[0] and not SYSTEM_PROGRAM.match(_norm(toks[0]))
+            and not own[0].startswith("shell:hermes:")):     # Hermes' own read-only CLI, found under that path
+        own = (f"shell:exec:{os.path.basename(toks[0])}", MEDIUM)   # a project file named like a read (C1)
     if depth > MAX_DEPTH:
         return own
     inners = [_lit(r) for r in _wrapped(_unwrap(tokens), cwd, home, depth)]
@@ -2216,7 +2252,9 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     if prog in SHELLS:
         i = next((n for n, a in enumerate(args) if re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*", a)), None)
         if i is not None:
-            inner = args[i + 1] if i + 1 < len(args) else ""
+            if i + 1 >= len(args):
+                return STDIN_CODE                            # `xargs sh -c`: the code arrives as the argument
+            inner = args[i + 1]
             t, st, _ = _shell(inner, cwd, home, depth + 1)
             return t, st
         script = next((a for a in args if not a.startswith("-")), "")
@@ -2266,6 +2304,8 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     plain = _strip(args, SUB_VALUE_OPTS)
     sub = plain[0] if plain else ""
     if prog in OUTSIDE:
+        if (prog == "crontab" and args == ["-l"]) or (prog == "launchctl" and sub in ("list", "print", "blame")):
+            return OUTSIDE[prog], FREE                       # a listing
         return OUTSIDE[prog], HIGH
     if prog == "git":
         plain = _strip(args, GIT_VALUE_OPTS)
@@ -2330,30 +2370,52 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
 GIT_SAFE_KEYS = re.compile(r"user\.(?:name|email|signingkey)|color\..+|core\.(?:quotepath|autocrlf|eol|filemode"
                            r"|ignorecase)|init\.defaultbranch|advice\..+|commit\.gpgsign|tag\.gpgsign|pull\.(?:rebase|ff)"
                            r"|push\.(?:default|autosetupremote)|merge\.ff|fetch\.prune|rebase\.autosquash"
-                           r"|branch\.[^.]+\.(?:remote|merge|rebase)|safe\.directory")
+                           r"|branch\.[^.]+\.(?:remote|merge|rebase)|safe\.directory|http\.sslverify|protocol\.version"
+                           r"|core\.(?:longpaths|abbrev|excludesfile|precomposeunicode)|diff\.(?:noprefix|renames|algorithm)"
+                           r"|merge\.conflictstyle|rerere\.enabled|log\.(?:showsignature|date|decorate)"
+                           r"|remote\.[^.]+\.(?:url|pushurl|fetch)|commit\.template|status\.\w+|gc\.auto"
+                           r"|credential\.username|http\.version")
 GIT_CONFIG_READS = {"--get", "--get-all", "--get-regexp", "--get-urlmatch", "-l", "--list", "--show-origin",
                     "--show-scope", "--name-only", "--null", "-z", "--get-color", "--get-colorbool"}
 
 
+def _git_key_safe(key: str, value) -> bool:
+    key = key.casefold()
+    if key.startswith("alias."):
+        return value is not None and not value.lstrip("'\"").startswith("!")
+    return bool(GIT_SAFE_KEYS.fullmatch(key))
+
+
 def _git_config_runs_code(args: list[str], plain: list[str]) -> bool:
-    """`git -c key=value`, `--config-env=key=VAR` or `--exec-path` with a key that may run a program, or a
-    `git config` that sets such a key (or opens the editor on the file)."""
+    """A global `-c key=value`, `--config-env=key=VAR` or `--exec-path`, a `clone -c/--config`, a `--template`
+    (it installs hooks), with a key that may run a program; or a `git config` that sets such a key or opens the
+    editor on the file."""
+    sub = plain[0] if plain else ""
+    try:
+        at = args.index(sub) if sub else len(args)
+    except ValueError:
+        at = len(args)
     i = 0
     while i < len(args):
         a = args[i]
         value = None
-        if a in ("-c", "--config-env") and i + 1 < len(args):
+        scoped = i < at or sub == "clone"
+        if scoped and a in ("-c", "--config-env", "--config") and i + 1 < len(args):
             value, i = args[i + 1], i + 1
-        elif a.startswith("--config-env="):
+        elif scoped and a.startswith(("--config-env=", "--config=")):
             value = a.split("=", 1)[1]
-        elif a.startswith("-c") and len(a) > 2:
+        elif scoped and a.startswith("-c") and len(a) > 2 and not a.startswith("--"):
             value = a[2:]
-        elif a == "--exec-path" or a.startswith("--exec-path="):
+        elif i < at and (a == "--exec-path" or a.startswith("--exec-path=")):
             return True
-        if value is not None and not GIT_SAFE_KEYS.fullmatch(value.split("=", 1)[0].casefold()):
+        elif sub in ("init", "clone") and (a == "--template" or a.startswith("--template=")):
             return True
+        if value is not None:
+            key, eq, val = value.partition("=")
+            if not _git_key_safe(key, val if eq else None):
+                return True
         i += 1
-    if not plain or plain[0] != "config":
+    if sub != "config":
         return False
     rest = plain[1:]
     opts = {a.split("=", 1)[0] for a in args if a.startswith("-")}
@@ -2368,7 +2430,7 @@ def _git_config_runs_code(args: list[str], plain: list[str]) -> bool:
         words = words[1:]
     writes = len(words) >= 2 or bool(opts & {"--add", "--replace-all", "--unset", "--unset-all", "--rename-section",
                                                 "--remove-section"})
-    return writes and bool(words) and not GIT_SAFE_KEYS.fullmatch(words[0].casefold())
+    return writes and bool(words) and not _git_key_safe(words[0], words[1] if len(words) > 1 else None)
 
 
 # ------------------------------------------------------------------------------------------- Hermes' own CLI (C1)
@@ -2619,13 +2681,35 @@ def _assigned(tokens: list[str]) -> list[str]:
             names.append(m.group(1))
             i += 1
             continue
-        if os.path.basename(toks[i]) in WRAPPERS:
+        wrapper = os.path.basename(toks[i])
+        if wrapper in WRAPPERS or wrapper == "timeout":
             i += 1
+            values = WRAPPER_VALUE_OPTS.get(wrapper, set())
             while i < len(toks) and toks[i].startswith("-"):
-                i += 1
+                i += 2 if toks[i] in values and i + 1 < len(toks) else 1
+            if wrapper == "timeout" and i < len(toks) and not ASSIGN_WORD.match(toks[i]):
+                i += 1                                       # the duration
             continue
         break
     return names
+
+
+def _hijacks(tokens: list[str]) -> bool:
+    """The segment sets a variable that makes the next programs run code of the agent's choosing: by assignment
+    (prefix, behind env or another wrapper, after export), or by a builtin that assigns the variable it names
+    (printf -v, read, mapfile, getopts, for, declare -n). `PATH=$PATH:dir` keeps the system's programs first."""
+    toks = [t for t in tokens if t not in ("(", ")", "{", "}")]
+    names = set(_assigned(tokens))
+    for t in toks:
+        m = ASSIGN_WORD.match(t)
+        if m and m.group(1) in names and HIJACK_VARS.fullmatch(m.group(1)) and not APPENDED_PATH.match(t):
+            return True
+    if toks and os.path.basename(toks[0]) in ASSIGNING_BUILTINS:
+        for t in toks[1:]:
+            for word in (t, t.split("=", 1)[-1]):
+                if not word.startswith("-") and HIJACK_VARS.fullmatch(word):
+                    return True
+    return False
 
 
 def _run(segs: list[Seg], start: str, home: str, depth: int) -> tuple[str, str]:
@@ -2643,11 +2727,6 @@ def _run(segs: list[Seg], start: str, home: str, depth: int) -> tuple[str, str]:
                 top = r
         if any(t.startswith("CDPATH=") for t in seg.tokens) or (_cd_kind(seg.tokens) and "CDPATH" in known):
             top = ("self:clearance", CAP)                    # where the cd lands cannot be worked out
-        names = _assigned(seg.tokens)
-        if top[1] != CAP and any(HIJACK_VARS.fullmatch(n) for n in names):
-            top = ("self:clearance", CAP)                    # what the next programs run is the agent's choice
-        elif top[1] == FREE and any(not HARMLESS_VARS.fullmatch(n) for n in names):
-            top = (top[0], HIGH)                             # a read-only command, under an environment it chose
         if (first or RANK[top[1]] > RANK[best[1]]
                 or (RANK[top[1]] == RANK[best[1]] and top[0] in FLOORS and best[0] not in FLOORS)):
             best, first = top, False
@@ -2687,6 +2766,8 @@ def _frag(word: str) -> bool:
         if (any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.casefold() in "/" + low + "/" for d in SENSITIVE_DIRS)
                 or low.startswith(tuple(x.casefold() for x in SENSITIVE_PREFIXES))
                 or SENSITIVE_NAME.match(low.rstrip("/").rsplit("/", 1)[-1])
+                or GIT_CONFIG_FILES.search(low.rstrip("/"))
+                or GIT_CONFIG_FILES.search(_norm(_expand(cand, home)).casefold().rstrip("/"))
                 or _self_hit(low) or _self_hit(_norm(_expand(cand, home)).casefold())):
             return True
     return False
@@ -2919,7 +3000,10 @@ FREE_VERBS = {"get", "list", "search", "read", "fetch", "find", "query", "lookup
               "check", "status", "retrieve", "info", "inspect", "preview", "summarize"}
 # Verbs that save something to disk: never free (audit 10/11: download_file, export_* wrote under ~/.hermes).
 DISK_VERBS = {"download", "export", "save", "dump", "extract", "unpack", "unzip", "clone", "sync", "pull", "mirror",
-              "backup", "restore", "import", "install"}
+              "backup", "restore", "import", "install", "store", "persist", "write", "cache", "record"}
+# Argument names that say where something is written: a tool given one is never a free read.
+DISK_ARGS = re.compile(r"(?:^|_)(?:path|file|filename|dest|destination|target|output|out|save|save_to|saveto|dir"
+                       r"|directory|folder)(?:_|$)|^(?:output|save|dest)", re.I)
 
 
 BROWSE_VERBS = {"navigate", "scrape", "crawl", "browse", "snapshot", "screenshot"}   # reads, for reads_external only
@@ -3029,6 +3113,10 @@ def _code_levels(code: str, cwd, home: str) -> tuple[str, str] | None:
     return None
 
 
+CODE_GIT_CONFIG = re.compile(r"\.git/(?:(?:modules|worktrees)/\S*?)?(?:config\b|hooks\b|commondir\b)|\.gitconfig\b"
+                             r"|\.config/git/config\b")
+
+
 def _code(code: str, cwd=None, home: str | None = None) -> tuple[str, str, bool]:
     """execute_code: the same floors as ``python -c``. Code that calls Hermes' CLI or imports its modules is
     self:hermes; code naming clearance's data is self:clearance; a sensitive file or a Hermes home, file:sensitive;
@@ -3039,7 +3127,7 @@ def _code(code: str, cwd=None, home: str | None = None) -> tuple[str, str, bool]
     if CLEARANCE_NAMES.search(low):
         return "self:clearance", CAP, False
     if (any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.casefold() in low for d in SENSITIVE_DIRS)
-            or _self_hit(low) or CODE_PREFIX.search(code)):
+            or _self_hit(low) or CODE_PREFIX.search(code) or CODE_GIT_CONFIG.search(low)):
         return "file:sensitive", CAP, False
     level = _code_levels(code, cwd, home or os.path.expanduser("~"))
     if level:
@@ -3070,15 +3158,20 @@ def _summary(tool: str, args: dict, t: str) -> str:
     return f"{t}: {what[:200]}"
 
 
-def _strings(value, depth: int = 0, out: list | None = None) -> list[str]:
-    """Every string in a tool's arguments, nested dicts and lists included (bounded)."""
+def _strings(value, depth: int = 0, out: list | None = None) -> list:
+    """Every string in a tool's arguments, keys and nested values included; a None marks nesting too deep to read."""
     out = [] if out is None else out
-    if depth > 6 or len(out) > 500:
+    if len(out) > 2000:
+        return out
+    if depth > 8:
+        out.append(None)
         return out
     if isinstance(value, str):
         out.append(value)
     elif isinstance(value, dict):
         for k, v in value.items():
+            if isinstance(k, str):
+                out.append(k)
             _strings(v, depth + 1, out)
     elif isinstance(value, (list, tuple)):
         for v in value:
@@ -3086,23 +3179,48 @@ def _strings(value, depth: int = 0, out: list | None = None) -> list[str]:
     return out
 
 
+def _keys(value, depth: int = 0) -> list:
+    if depth > 8:
+        return []
+    if isinstance(value, dict):
+        return list(value) + [x for v in value.values() for x in _keys(v, depth + 1)]
+    if isinstance(value, (list, tuple)):
+        return [x for v in value for x in _keys(v, depth + 1)]
+    return []
+
+
 def _args_hit(args: dict, cwd, home: str) -> tuple[str, str] | None:
-    """An MCP or other plugin tool whose arguments name clearance's data, a sensitive file or one of Hermes' own
-    entries (audit 10/11): the tool name alone cannot say where it writes, so a protected path in the arguments
-    caps it. Words without a path (a search query) are left alone."""
+    """An MCP or other plugin tool whose arguments name clearance's data, a sensitive file, one of Hermes' own
+    entries or a Hermes home level (audit 10/11): the tool name alone cannot say where it writes, so a protected
+    path in the arguments caps it, percent-encoded, as a file:// URL, split into a folder and a name, or given as a
+    key. Arguments nested too deep to read make it high stakes. Words without a path (a search query) are left
+    alone."""
+    from urllib.parse import unquote
+    base = cwd if cwd and cwd != UNKNOWN else None
+    deep = False
     for s in _strings(args):
-        if len(s) > 4096:
+        if s is None:
+            deep = True
             continue
-        low = _norm(s).casefold()
-        if CLEARANCE_NAMES.search(low):
-            return "self:clearance", CAP
-        for cand in [s] + [w for w in re.split(r"[\s'\"`,;=()\[\]{}<>|]+", s) if w and w != s]:
-            if not ("/" in cand or cand.startswith(("~", ".", "$"))):
-                continue
-            found = _file(cand, cwd if cwd and cwd != UNKNOWN else None, home)
-            if found[1] == CAP:
-                return found[0], CAP
-    return None
+        for variant in dict.fromkeys((s, unquote(s), unquote(unquote(s)))):
+            low = _norm(variant).casefold()
+            if CLEARANCE_NAMES.search(low):
+                return "self:clearance", CAP
+            if HOME_MARKERS.search(low) or "/.hermes" in low:
+                return "file:sensitive", CAP
+            words = [variant] + [w for w in re.split(r"[\s'\"`,;=()\[\]{}<>|]+", variant) if w and w != variant]
+            for cand in words[:400]:
+                if cand.startswith("file://"):
+                    cand = cand[len("file://"):]
+                if len(cand) > 4096 or not ("/" in cand or cand.startswith(("~", ".", "$"))):
+                    continue
+                found = _file(cand, base, home)
+                if found[1] == CAP:
+                    return found[0], CAP
+                full = _abs(cand, base, home)
+                if _above_home(full) or _above_home(_real(full)):
+                    return "file:sensitive", CAP     # a whole Hermes home, or a folder above one
+    return ("tool:unreadable-args", HIGH) if deep else None
 
 
 def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overrides: dict | None = None,
@@ -3130,8 +3248,12 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         t, stakes, rev = f"tool:{tool_name}", HIGH, False
     if t.startswith(("mcp:", "tool:")):
         hit = _args_hit(args, cwd, home)                 # a path in the arguments that names a protected file
-        if hit:
+        if hit and hit[1] == CAP:
             t, stakes, rev = hit[0], CAP, False
+        elif hit and RANK[stakes] < RANK[HIGH]:
+            stakes = HIGH
+        if stakes == FREE and any(isinstance(k, str) and DISK_ARGS.search(k) for k in _keys(args)):
+            stakes = MEDIUM                              # a "read" told where to write
     stakes = _override(t, stakes, overrides)
     rev = rev and t == "file:write"                 # only a write inside the project can be undone
     return Action(type=t, stakes=stakes, reversible=rev, summary=_summary(tool_name, args, t))

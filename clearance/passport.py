@@ -454,6 +454,33 @@ def verify(passport: dict, rows: list[dict] | None = None, chain_ok: bool = Fals
     return problems
 
 
+def changes_since(passport: dict, rows: list[dict]) -> list[str]:
+    """What changed for the passport's agent in the ledger after the passport was made (counter-audit C6): an older
+    passport still verifies against a longer ledger, so the verifier says how the agent's types stand now."""
+    try:
+        count = passport["ledger"]["count"]
+        agent = passport["agent"]
+        name = f"{agent['model']}@{agent['provider'] or 'unknown'}"
+        if not isinstance(rows, list) or count >= len(rows):
+            return []
+        then, cfg_then = _replay(rows[:count])
+        now, cfg_now = _replay(rows)
+        redact = passport.get("redacted") is True
+        a = {e["type"]: e for e in _entries({k: s for (x, k), s in then.items() if x == name}, cfg_then, redact)}
+        b = {e["type"]: e for e in _entries({k: s for (x, k), s in now.items() if x == name}, cfg_now, redact)}
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return []
+    out = []
+    for key in sorted(set(a) | set(b)):
+        ea, eb = a.get(key) or {}, b.get(key) or {}
+        if (ea.get("tier"), ea.get("effective_tier")) != (eb.get("tier"), eb.get("effective_tier")):
+            out.append(f"type {key}: tier {ea.get('effective_tier', ea.get('tier'))} in the passport, "
+                       f"{eb.get('effective_tier', eb.get('tier'))} now")
+        elif ea != eb:
+            out.append(f"type {key}: same tier, record changed (series {ea.get('series')} then, {eb.get('series')} now)")
+    return out
+
+
 def anchor_line(st) -> str:
     """One line to publish anywhere (a post, a gist): the ledger's head, its date and its length."""
     row = st.db.execute("SELECT at, hash FROM ledger ORDER BY seq DESC LIMIT 1").fetchone()

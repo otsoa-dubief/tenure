@@ -474,3 +474,33 @@ def test_verify_can_skip_a_chain_the_caller_already_checked(plugin):
     rows[0]["hash"] = "0" * 64
     assert any("ledger:" in p for p in mod.passport.verify(doc, rows))
     assert not any("content changed" in p for p in mod.passport.verify(doc, rows, chain_ok=True))
+
+
+# --------------------------------------------------------------------- counter-audit (10/11): stale and foreign passports
+def test_an_older_passport_reports_what_changed_since(plugin):
+    mod, ctx = plugin(FAST)
+    to_t3(ctx)
+    p = make_passport(mod)
+    mod.cli.flag("file:write", agent=A)                  # an error reported after the passport: a fault
+    rows = mod.store_().ledger()
+    changed = mod.passport.changes_since(p, rows)
+    assert changed and any("file:write" in c or "type" in c for c in changed)
+    assert mod.passport.changes_since(make_passport(mod), rows) == []
+
+
+def test_verify_command_notes_a_stale_passport_and_pins_a_key(plugin, tmp_path):
+    from clearance import cli
+    mod, ctx = plugin(FAST)
+    to_t3(ctx)
+    p = make_passport(mod)
+    mod.cli.flag("file:write", agent=A)
+    pp, lp = tmp_path / "p.json", tmp_path / "l.jsonl"
+    pp.write_text(json.dumps(p))
+    lp.write_text("".join(json.dumps(r) + "\n" for r in mod.store_().ledger()))
+    out, code = cli.verify_cmd(str(pp), str(lp))
+    assert code == 0 and "after this passport" in out
+    if p.get("public_key"):
+        out, code = cli.verify_cmd(str(pp), str(lp), key="0" * 64)
+        assert code == 1 and "public key" in out
+        out, code = cli.verify_cmd(str(pp), str(lp), key=p["public_key"])
+        assert code == 0
