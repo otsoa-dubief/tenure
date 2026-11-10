@@ -25,6 +25,7 @@
   var useMemo = SDK.hooks.useMemo;
   var useCallback = SDK.hooks.useCallback;
 
+  var UI = SDK.components || {};
   var BASE = "/api/plugins/tenure";
   var POLL_MS = 2000;
   var WEEK = 7 * 86400;
@@ -203,7 +204,7 @@
     useEffect(function () {
       var el = document.elementFromPoint(Math.floor(window.innerWidth / 2), 2);
       while (el && el !== document.body) {
-        if (el.closest && el.closest(".clr")) break;
+        if (el.closest && el.closest(".tnr")) break;
         var pos = getComputedStyle(el).position;
         if (pos === "fixed" || pos === "sticky") {
           var r = el.getBoundingClientRect();
@@ -216,28 +217,50 @@
   }
 
   // ------------------------------------------------------------------------------------------------ small parts
-  function Kbd(props) { return h("kbd", { className: "clr-kbd" }, props.children); }
+  function Kbd(props) { return h("kbd", { className: "tnr-kbd" }, props.children); }
 
+  var TIER_TONE = { ask: "outline", notify: "secondary", alone: "success" };
   function TierChip(props) {
     var t = props.tier;
-    if (props.capped) return h("span", { className: "clr-tier clr-tier--cap", title: "Capped: always asks" }, "CAP");
-    return h("span", { className: "clr-tier clr-tier--" + t, title: TIER[t] + ", " + TIER_NAME[t] }, TIER[t]);
+    var B = UI.Badge || "span";
+    if (props.capped) return h(B, { tone: "outline", className: "tnr-tier", title: "Capped: always asks" }, "CAP");
+    return h(B, { tone: TIER_TONE[t] || "outline", className: "tnr-tier tnr-tier--" + t, title: TIER[t] + ", " + TIER_NAME[t] }, TIER[t]);
   }
 
+  // State flags keep the tab's own readable style: the SDK Badge uses a display face too small for a phrase.
   function Flag(props) {
-    return h("span", { className: "clr-flag clr-flag--" + props.kind, title: props.title || "" }, props.children);
+    return h("span", { className: "tnr-flag tnr-flag--" + props.kind, title: props.title || "" }, props.children);
+  }
+
+  /** The dashboard's Select (a native one if the SDK has none): options as [value, label] pairs. */
+  function Sel(props) {
+    if (UI.Select && UI.SelectOption) {
+      return h(UI.Select, { value: props.value, onValueChange: props.onChange, className: "tnr-select-ui" },
+        props.options.map(function (o) { return h(UI.SelectOption, { key: o[0], value: o[0] }, o[1]); }));
+    }
+    return h("select", { className: "tnr-select", value: props.value, "aria-label": props.label,
+      onChange: function (e) { props.onChange(e.target.value); } },
+      props.options.map(function (o) { return h("option", { key: o[0], value: o[0] }, o[1]); }));
   }
 
   function Empty(props) {
-    return h("div", { className: "clr-empty" },
-      h("div", { className: "clr-empty-title" }, props.title),
-      props.children ? h("div", { className: "clr-empty-body" }, props.children) : null);
+    return h("div", { className: "tnr-empty" },
+      h("div", { className: "tnr-empty-title" }, props.title),
+      props.children ? h("div", { className: "tnr-empty-body" }, props.children) : null);
   }
 
   function Btn(props) {
+    var k = props.kind;
+    if (UI.Button) {
+      return h(UI.Button, {
+        type: "button", size: "sm", className: props.className, onClick: props.onClick, disabled: props.disabled,
+        title: props.title, "aria-live": props.live ? "polite" : undefined,
+        ghost: k === "ghost" || k === "danger-ghost", destructive: k === "danger" || k === "danger-ghost", outlined: !k
+      }, props.children);
+    }
     return h("button", {
-      type: "button", className: cx("clr-btn", props.kind && "clr-btn--" + props.kind, props.className),
-      onClick: props.onClick, disabled: props.disabled, title: props.title
+      type: "button", className: cx("tnr-btn", k && "tnr-btn--" + k, props.className),
+      onClick: props.onClick, disabled: props.disabled, title: props.title, "aria-live": props.live ? "polite" : undefined
     }, props.children);
   }
 
@@ -251,7 +274,8 @@
       return function () { clearTimeout(t); };
     }, [armed]);
     return h(Btn, {
-      kind: armed ? "danger" : props.kind, disabled: props.disabled || busy, title: props.title,
+      kind: armed ? "danger" : props.kind, disabled: props.disabled || busy, live: true,
+      title: armed ? "Click again to confirm" : props.title,
       onClick: function () {
         if (!armed) { setArmed(true); return; }
         setArmed(false); setBusy(true);
@@ -262,7 +286,7 @@
 
   function CopyCmd(props) {
     var s = useState(false), done = s[0], setDone = s[1];
-    return h("div", { className: "clr-cmd" },
+    return h("div", { className: "tnr-cmd" },
       h("code", null, props.cmd),
       h(Btn, {
         kind: "ghost", onClick: function () {
@@ -284,9 +308,9 @@
     var parts = [];
     if (eff === "ask") {
       var t2 = toT2(t);
-      if (t2) parts.push(num(t2) + " to T2");
+      if (t2) parts.push(num(t2) + " more to T2");
     }
-    if (gap > 0) parts.push(num(gap) + " to T3");
+    if (gap > 0) parts.push(num(gap) + " more to T3");
     return { text: parts.join(" · ") || "re-checking", tone: "muted" };
   }
 
@@ -320,21 +344,21 @@
       { n: t ? t.alone : null, label: "earned alone", sub: t ? "ran without asking, of " + num(t.actions) : "" },
       { n: t ? t.faults : null, label: "faults caught", sub: t ? num(t.faults) + " / " + num(t.checked) + " checks" : "" }
     ];
-    return h("div", { className: "clr-counters", "aria-label": "Last 7 days" },
+    return h("div", { className: "tnr-counters", "aria-label": "Last 7 days" },
       cells.map(function (c, i) {
         return h(Fragment, { key: i },
-          i ? h("span", { className: "clr-counter-dot", "aria-hidden": true }, "·") : null,
-          h("div", { className: "clr-counter" },
-            h("span", { className: "clr-counter-n" }, num(c.n)),
-            h("span", { className: "clr-counter-label" }, c.label),
-            h("span", { className: "clr-counter-sub" }, c.sub)));
+          i ? h("span", { className: "tnr-counter-dot", "aria-hidden": true }, "·") : null,
+          h("div", { className: "tnr-counter" },
+            h("span", { className: "tnr-counter-n" }, num(c.n)),
+            h("span", { className: "tnr-counter-label" }, c.label),
+            h("span", { className: "tnr-counter-sub" }, c.sub)));
       }),
-      h("span", { className: "clr-counter-window" }, "last 7 days, every profile"));
+      h("span", { className: "tnr-counter-window" }, "last 7 days, every profile"));
   }
 
   var VIEWS = [
     { id: "map", label: "Map", key: "m" },
-    { id: "models", label: "Models", key: "b" },
+    { id: "models", label: "Your benchmark", key: "b" },
     { id: "switch", label: "Switch preview", key: "w" },
     { id: "passport", label: "Passport", key: "p" },
     { id: "undo", label: "Undo", key: "u" },
@@ -342,15 +366,27 @@
   ];
 
   function Tabs(props) {
-    return h("nav", { className: "clr-tabs", role: "tablist" },
-      VIEWS.map(function (v) {
-        var badge = v.id === "undo" && props.undoCount ? h("span", { className: "clr-tab-count" }, num(props.undoCount)) : null;
-        return h("button", {
-          key: v.id, type: "button", role: "tab", "aria-selected": props.view === v.id,
-          className: cx("clr-tab", props.view === v.id && "is-active"),
-          onClick: function () { props.onView(v.id); }
-        }, v.label, badge, h(Kbd, null, v.key));
-      }));
+    var List = UI.TabsList || "div", Trigger = UI.TabsTrigger || "button";
+    return h("nav", { className: "tnr-tabs", "aria-label": "Tenure views" },
+      h(List, { role: "tablist", className: "tnr-tablist" },
+        VIEWS.map(function (v) {
+          var badge = v.id === "undo" && props.undoCount ? h("span", { className: "tnr-tab-count" }, num(props.undoCount)) : null;
+          var active = props.view === v.id;
+          return h(Trigger, {
+            key: v.id, type: "button", role: "tab", "aria-selected": active, active: active, value: v.id,
+            tabIndex: active ? 0 : -1, id: "tnr-tab-" + v.id, "aria-controls": "tnr-panel",
+            className: cx("tnr-tab", active && "is-active"),
+            onClick: function () { props.onView(v.id); },
+            onKeyDown: function (e) {
+              var i = VIEWS.indexOf(v), next = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : null;
+              if (next === null) return;
+              var w = VIEWS[(next + VIEWS.length) % VIEWS.length];
+              props.onView(w.id);
+              e.preventDefault();
+              setTimeout(function () { var el = document.getElementById("tnr-tab-" + w.id); if (el) el.focus(); }, 0);
+            }
+          }, v.label, badge);
+        })));
   }
 
   // ------------------------------------------------------------------------------------------------------- map
@@ -377,26 +413,26 @@
 
   function Cell(props) {
     var t = props.t;
-    if (!t) return h("td", { className: "clr-cell clr-cell--none" }, h("span", { className: "clr-none" }, "—"));
+    if (!t) return h("td", { className: "tnr-cell tnr-cell--none" }, h("span", { className: "tnr-none" }, "—"));
     var miss = missing(t);
     var held = t.tier !== t.effective_tier;
     var flags = [];
-    if (t.provisional) flags.push(h(Flag, { key: "p", kind: "prov", title: t.provisional + " carried over, provisional" }, "prov " + num(t.provisional)));
+    if (t.provisional) flags.push(h(Flag, { key: "p", kind: "prov", title: t.provisional + " carried over, provisional" }, num(t.provisional) + " carried over"));
     if (t.unresolved_fault) flags.push(h(Flag, { key: "f", kind: "fault", title: "Fault on record" }, "fault on record"));
     return h("td", {
-      className: cx("clr-cell", "clr-cell--" + (t.capped ? "cap" : t.effective_tier), t.provisional && "is-prov",
+      className: cx("tnr-cell", "tnr-cell--" + (t.capped ? "cap" : t.effective_tier), t.provisional && "is-prov",
         (t.trial_left || t.trial_wait) && "is-trial"),
       title: cellTitle(t)
     },
-      h("div", { className: "clr-cell-top" },
+      h("div", { className: "tnr-cell-top" },
         h(TierChip, { tier: t.effective_tier, capped: t.capped }),
-        t.capped ? h("span", { className: "clr-cell-ev" }, num(t.successes + t.faults), h("span", { className: "clr-dim" }, " asked"))
-          : h("span", { className: "clr-cell-ev" }, num(t.series), h("span", { className: "clr-dim" }, "/" + num(t.required)))),
-      h("div", { className: "clr-cell-mid" },
-        t.capped ? h("span", null, plural(t.faults, "fault")) : h("span", null, num(t.sessions) + " sess"),
-        held ? h("span", { className: "clr-held" }, "stored " + TIER[t.tier] + " (held: settings)") : null),
-      h("div", { className: "clr-cell-miss clr-tone--" + miss.tone }, miss.text),
-      flags.length ? h("div", { className: "clr-cell-flags" }, flags) : null);
+        t.capped ? h("span", { className: "tnr-cell-ev" }, num(t.successes + t.faults), h("span", { className: "tnr-dim" }, " asked"))
+          : h("span", { className: "tnr-cell-ev" }, num(t.series), h("span", { className: "tnr-dim" }, "/" + num(t.required)))),
+      h("div", { className: "tnr-cell-mid" },
+        t.capped ? h("span", null, plural(t.faults, "fault")) : h("span", null, plural(t.sessions, "session")),
+        held ? h("span", { className: "tnr-held" }, "stored " + TIER[t.tier] + " (held: settings)") : null),
+      h("div", { className: "tnr-cell-miss tnr-tone--" + miss.tone }, miss.text),
+      flags.length ? h("div", { className: "tnr-cell-flags" }, flags) : null);
   }
 
   function MapView(props) {
@@ -417,124 +453,124 @@
       last.rows.push({ r: r, i: i });
     });
     var ncols = cols.reduce(function (n, g) { return n + g.types.length; }, 0);
-    var table = h("div", { className: "clr-map-scroll" },
-      h("table", { className: "clr-map", role: "grid", "aria-label": "Agents by action type", style: { minWidth: 248 + ncols * 140 } },
-        h("colgroup", null, h("col", { className: "clr-col-agent" }),
+    var table = h("div", { className: "tnr-map-scroll" },
+      h("table", { className: "tnr-map", role: "grid", "aria-label": "Agents by action type", style: { minWidth: 248 + ncols * 140 } },
+        h("colgroup", null, h("col", { className: "tnr-col-agent" }),
           cols.map(function (g) {
             return g.types.map(function (ty) {
-              return h("col", { key: ty, className: "clr-col-type", style: { width: "calc((100% - 248px) / " + ncols + ")" } });
+              return h("col", { key: ty, className: "tnr-col-type", style: { width: "calc((100% - 248px) / " + ncols + ")" } });
             });
           })),
         h("thead", null,
-          h("tr", { className: "clr-map-groups" },
-            h("th", { className: "clr-th-agent", rowSpan: 2, scope: "col" },
-              h("span", { className: "clr-th-label" }, "Agent"),
-              h("span", { className: "clr-th-sub" }, "profile · model@provider")),
+          h("tr", { className: "tnr-map-groups" },
+            h("th", { className: "tnr-th-agent", rowSpan: 2, scope: "col" },
+              h("span", { className: "tnr-th-label" }, "Agent"),
+              h("span", { className: "tnr-th-sub" }, "profile · model@provider")),
             cols.map(function (g) {
               var n = current ? studyN(current.risks[g.stakes]) : null;
-              return h("th", { key: g.stakes, colSpan: g.types.length, className: "clr-th-group clr-stakes--" + g.stakes, scope: "colgroup" },
-                h("span", { className: "clr-th-label" }, g.stakes + " stakes"),
-                h("span", { className: "clr-th-sub" }, n == null ? (g.stakes === "high" ? "capped · always asks" : "") :
-                  "risk " + oneIn(current.risks[g.stakes]) + " → N = " + num(n)));
+              return h("th", { key: g.stakes, colSpan: g.types.length, className: "tnr-th-group tnr-stakes--" + g.stakes, scope: "colgroup" },
+                h("span", { className: "tnr-th-label" }, g.stakes + " stakes"),
+                h("span", { className: "tnr-th-sub" }, n == null ? (g.stakes === "high" ? "capped · always asks" : "") :
+                  "risk " + oneIn(current.risks[g.stakes]) + " · " + num(n) + " in a row to act on its own"));
             })),
-          h("tr", { className: "clr-map-types" },
+          h("tr", { className: "tnr-map-types" },
             cols.map(function (g) {
               return g.types.map(function (ty) {
-                return h("th", { key: ty, scope: "col", className: "clr-th-type" }, h("code", null, ty));
+                return h("th", { key: ty, scope: "col", className: "tnr-th-type" }, h("code", null, ty));
               });
             }))),
         byProfile.map(function (grp) {
           return h("tbody", { key: grp.profile },
-            h("tr", { className: "clr-map-profile" },
+            h("tr", { className: "tnr-map-profile" },
               h("th", { colSpan: ncols + 1, scope: "rowgroup" },
-                h("span", { className: "clr-profile-name" }, grp.profile),
-                grp.info.current ? h("span", { className: "clr-dim" }, " · this dashboard") : h("span", { className: "clr-dim" }, " · read-only here"),
+                h("span", { className: "tnr-profile-name" }, grp.profile),
+                grp.info.current ? h("span", { className: "tnr-dim" }, " · this dashboard") : h("span", { className: "tnr-dim" }, " · read-only here"),
                 grp.info.suspended ? h(Flag, { kind: "warn" }, num(grp.info.suspended) + " session" + (grp.info.suspended === 1 ? "" : "s") + " suspended: external content read") : null,
-                grp.info.settings ? h("span", { className: "clr-dim clr-profile-preset" }, grp.info.settings.preset + " preset · spot checks " + oneIn(grp.info.settings.spot) + (grp.info.settings.strict ? " · strict" : "")) : null)),
+                grp.info.settings ? h("span", { className: "tnr-dim tnr-profile-preset" }, grp.info.settings.preset + " preset · spot checks " + oneIn(grp.info.settings.spot) + (grp.info.settings.strict ? " · strict" : "")) : null)),
             grp.rows.map(function (x) {
               var r = x.r, a = r.agent;
               var byType = {};
               a.types.forEach(function (t) { byType[t.type] = t; });
               var tot = a.totals || {};
               return h("tr", {
-                key: r.key, className: cx("clr-map-row", x.i === props.focus && "is-focus"),
+                key: r.key, className: cx("tnr-map-row", x.i === props.focus && "is-focus"),
                 onClick: function () { props.onFocus(x.i); props.onOpen(r); },
                 "aria-selected": x.i === props.focus
               },
-                h("th", { scope: "row", className: "clr-td-agent" },
-                  h("div", { className: "clr-agent-model" }, a.model, h("span", { className: "clr-dim" }, "@" + a.provider)),
-                  h("div", { className: "clr-agent-tot" }, totalsLines(tot)),
-                  h("div", { className: "clr-agent-flags" },
+                h("th", { scope: "row", className: "tnr-td-agent" },
+                  h("div", { className: "tnr-agent-model" }, a.model, h("span", { className: "tnr-dim" }, "@" + a.provider)),
+                  h("div", { className: "tnr-agent-tot" }, totalsLines(tot)),
+                  h("div", { className: "tnr-agent-flags" },
                     a.provisional ? h(Flag, { kind: "prov" }, "provisional") : null,
                     a.trial ? h(Flag, { kind: "warn" }, "trial") : null,
                     a.unresolved_fault ? h(Flag, { kind: "fault" }, "fault on record") : null,
-                    h("span", { className: "clr-open-hint" }, "open ", h(Kbd, null, "↵")))),
+                    h("span", { className: "tnr-open-hint" }, "open ", h(Kbd, null, "↵")))),
                 cols.map(function (g) {
                   return g.types.map(function (ty) { return h(Cell, { key: ty, t: byType[ty] }); });
                 }));
             }));
         })));
 
-    var cards = h("div", { className: "clr-map-cards" },
+    var cards = h("div", { className: "tnr-map-cards" },
       byProfile.map(function (grp) {
-        return h("section", { key: grp.profile, className: "clr-card-group" },
-          h("div", { className: "clr-map-profile clr-map-profile--card" },
-            h("span", { className: "clr-profile-name" }, grp.profile),
-            grp.info.current ? h("span", { className: "clr-dim" }, " · this dashboard") : h("span", { className: "clr-dim" }, " · read-only here"),
+        return h("section", { key: grp.profile, className: "tnr-card-group" },
+          h("div", { className: "tnr-map-profile tnr-map-profile--card" },
+            h("span", { className: "tnr-profile-name" }, grp.profile),
+            grp.info.current ? h("span", { className: "tnr-dim" }, " · this dashboard") : h("span", { className: "tnr-dim" }, " · read-only here"),
             grp.info.suspended ? h(Flag, { kind: "warn" }, num(grp.info.suspended) + " suspended: external content read") : null),
           grp.rows.map(function (x) {
             var r = x.r, a = r.agent, tot = a.totals || {};
             return h("button", {
-              type: "button", key: r.key, className: cx("clr-agent-card", x.i === props.focus && "is-focus"),
+              type: "button", key: r.key, className: cx("tnr-agent-card", x.i === props.focus && "is-focus"),
               onClick: function () { props.onFocus(x.i); props.onOpen(r); }
             },
-              h("div", { className: "clr-agent-model" }, a.model, h("span", { className: "clr-dim" }, "@" + a.provider)),
-              h("div", { className: "clr-agent-tot" }, totals(tot)),
-              h("div", { className: "clr-card-types" },
+              h("div", { className: "tnr-agent-model" }, a.model, h("span", { className: "tnr-dim" }, "@" + a.provider)),
+              h("div", { className: "tnr-agent-tot" }, totals(tot)),
+              h("div", { className: "tnr-card-types" },
                 a.types.slice().sort(function (p, q) {
                   return STAKES.indexOf(p.stakes) - STAKES.indexOf(q.stakes) || (p.type < q.type ? -1 : 1);
                 }).map(function (t) {
                   var miss = missing(t);
-                  return h("div", { key: t.type, className: "clr-card-type" },
+                  return h("div", { key: t.type, className: "tnr-card-type" },
                     h(TierChip, { tier: t.effective_tier, capped: t.capped }),
-                    h("code", { className: "clr-card-type-name" }, t.type),
-                    h("span", { className: "clr-card-type-ev" }, t.capped ? "capped" : num(t.series) + "/" + num(t.required)),
-                    h("span", { className: "clr-card-type-miss clr-tone--" + miss.tone },
+                    h("code", { className: "tnr-card-type-name" }, t.type),
+                    h("span", { className: "tnr-card-type-ev" }, t.capped ? "capped" : num(t.series) + "/" + num(t.required)),
+                    h("span", { className: "tnr-card-type-miss tnr-tone--" + miss.tone },
                       t.tier !== t.effective_tier ? "stored " + TIER[t.tier] + " (held: settings)" :
-                        t.provisional ? "prov " + num(t.provisional) + " · " + miss.text :
+                        t.provisional ? num(t.provisional) + " carried over · " + miss.text :
                           t.unresolved_fault ? "fault on record · " + miss.text : miss.text));
                 })));
           }));
       }));
 
-    return h("div", { className: "clr-mapview" },
+    return h("div", { className: "tnr-mapview" },
       table, cards,
       h(Legend, { spot: props.settings && props.settings.spot }),
       h(Transitions, { items: props.transitions }));
   }
 
   function Legend(props) {
-    return h("div", { className: "clr-legend" },
+    return h("div", { className: "tnr-legend" },
       h("span", null, h(TierChip, { tier: "ask" }), " asks first"),
       h("span", null, h(TierChip, { tier: "notify" }), " acts, then notifies with an undo (reversible types)"),
       h("span", null, h(TierChip, { tier: "alone" }), " acts alone, " + (props.spot ? oneIn(props.spot) : "a share") + " spot-checked"),
       h("span", null, h(TierChip, { capped: true }), " capped: always asks"),
-      h("span", null, h("span", { className: "clr-mono" }, "37/52"), " verified successes in a row / required"),
-      h("span", null, h(Flag, { kind: "prov" }, "prov"), " carried over from the previous model"));
+      h("span", null, h("span", { className: "tnr-mono" }, "n/N"), " clean runs in a row, of the N needed"),
+      h("span", null, h(Flag, { kind: "prov" }, "carried over"), " from the previous model, provisional"));
   }
 
   function Transitions(props) {
-    return h("section", { className: "clr-transitions", "aria-live": "polite" },
-      h("div", { className: "clr-section-title" }, "Tier changes seen on this page"),
-      props.items.length ? h("ol", { className: "clr-trans-list" },
+    return h("section", { className: "tnr-transitions", "aria-live": "polite" },
+      h("div", { className: "tnr-section-title" }, "Tier changes seen on this page"),
+      props.items.length ? h("ol", { className: "tnr-trans-list" },
         props.items.slice(0, 8).map(function (x) {
           return h("li", { key: x.id },
-            h("span", { className: "clr-mono clr-dim" }, hms(x.at)),
+            h("span", { className: "tnr-mono tnr-dim" }, hms(x.at)),
             h("span", null, x.agent),
             h("code", null, x.type),
-            h("span", { className: "clr-trans-move" }, h(TierChip, { tier: x.from, capped: false }), " → ", h(TierChip, { tier: x.to, capped: false })),
-            h("span", { className: "clr-dim" }, x.why));
-        })) : h("div", { className: "clr-dim clr-trans-empty" },
+            h("span", { className: "tnr-trans-move" }, h(TierChip, { tier: x.from, capped: false }), " → ", h(TierChip, { tier: x.to, capped: false })),
+            h("span", { className: "tnr-dim" }, x.why));
+        })) : h("div", { className: "tnr-dim tnr-trans-empty" },
           "None since this page opened. Every automatic tier change is listed here and in each agent's timeline."));
   }
 
@@ -591,7 +627,7 @@
 
   function Timeline(props) {
     var events = props.events;
-    if (!events) return h("div", { className: "clr-dim clr-pad" }, "Loading the evidence…");
+    if (!events) return h("div", { className: "tnr-dim tnr-pad" }, "Loading the evidence…");
     if (!events.length) return h(Empty, { title: "No evidence for this filter" });
     var groups = [];
     runs(events).forEach(function (r) {
@@ -600,27 +636,34 @@
       if (!g || g.key !== k) groups.push(g = { key: k, label: dayLabel(r.first.at), items: [] });
       g.items.push(r);
     });
-    return h("div", { className: "clr-timeline" },
+    return h("div", { className: "tnr-timeline" },
       groups.map(function (g) {
-        return h("section", { key: g.key, className: "clr-tl-day" },
-          h("div", { className: "clr-tl-daylabel" }, g.label),
+        return h("section", { key: g.key, className: "tnr-tl-day" },
+          h("div", { className: "tnr-tl-daylabel" }, g.label),
           h("ol", null, g.items.map(function (r) {
             var d = describeEvent(r.first);
-            var span = r.count > 1 ? hm(r.last.at) + "–" + hm(r.first.at) : hm(r.first.at);
-            return h("li", { key: r.first.seq, className: cx("clr-tl-item", "clr-tone--" + d.tone, d.tone === "move" && "is-move") },
-              h("span", { className: "clr-tl-time" }, span),
-              h("span", { className: "clr-tl-glyph", "aria-hidden": true }, d.glyph),
-              h("span", { className: "clr-tl-text" },
-                r.count > 1 ? h("b", { className: "clr-tl-count" }, num(r.count) + "×") : null,
+            var span = r.count > 1 && hm(r.last.at) !== hm(r.first.at) ? hm(r.last.at) + "–" + hm(r.first.at) : hm(r.first.at);
+            return h("li", { key: r.first.seq, className: cx("tnr-tl-item", "tnr-tone--" + d.tone, d.tone === "move" && "is-move") },
+              h("span", { className: "tnr-tl-time" }, span),
+              h("span", { className: "tnr-tl-glyph", "aria-hidden": true }, d.glyph),
+              h("span", { className: "tnr-tl-text" },
+                r.count > 1 ? h("b", { className: "tnr-tl-count" }, num(r.count) + "×") : null,
                 d.text),
-              r.first.type ? h("code", { className: "clr-tl-type" }, r.first.type) : null,
-              h("span", { className: "clr-tl-seq" }, "#" + (r.count > 1 ? r.last.seq + "–" + r.first.seq : r.first.seq)));
+              r.first.type ? h("code", { className: "tnr-tl-type" }, r.first.type) : null,
+              h("span", { className: "tnr-tl-seq" }, "#" + (r.count > 1 ? r.last.seq + "–" + r.first.seq : r.first.seq)));
           })));
       }));
   }
 
   function AgentDrawer(props) {
     var row = props.row, a = row.agent;
+    var closeRef = useRef(null);
+    useEffect(function () {
+      var before = document.activeElement;
+      var el = closeRef.current && (closeRef.current.querySelector ? closeRef.current.querySelector("button") || closeRef.current : closeRef.current);
+      if (el && el.focus) el.focus();
+      return function () { if (before && before.focus) before.focus(); };
+    }, []);
     var mine = row.info.current;
     var fs = useState("all"), filter = fs[0], setFilter = fs[1];
     var top = useHostBarOffset();
@@ -637,33 +680,33 @@
         function (err) { props.onDone(errText(err), "error"); throw err; });
     }
     var tot = a.totals || {};
-    return h("div", { className: "clr-drawer-wrap", style: top ? { top: top } : null,
+    return h("div", { className: "tnr-drawer-wrap", style: top ? { top: top } : null,
       onClick: function (e) { if (e.target === e.currentTarget) props.onClose(); } },
-      h("aside", { className: "clr-drawer", role: "dialog", "aria-label": "Agent " + a.agent },
-        h("header", { className: "clr-drawer-head" },
+      h("aside", { className: "tnr-drawer", role: "dialog", "aria-modal": true, "aria-label": "Agent " + a.agent },
+        h("header", { className: "tnr-drawer-head" },
           h("div", null,
-            h("div", { className: "clr-drawer-eyebrow" }, "Agent · profile " + row.profile + (mine ? "" : " (read-only here)")),
-            h("div", { className: "clr-drawer-title" }, a.model, h("span", { className: "clr-dim" }, "@" + a.provider)),
-            h("div", { className: "clr-agent-tot" }, totals(tot),
+            h("div", { className: "tnr-drawer-eyebrow" }, "Agent · profile " + row.profile + (mine ? "" : " (read-only here)")),
+            h("div", { className: "tnr-drawer-title" }, a.model, h("span", { className: "tnr-dim" }, "@" + a.provider)),
+            h("div", { className: "tnr-agent-tot" }, totals(tot),
               row.info.suspended ? h(Flag, { kind: "warn" }, num(row.info.suspended) + " suspended: external content read") : null)),
-          h(Btn, { kind: "ghost", onClick: props.onClose, title: "Close (Esc)" }, "Close ", h(Kbd, null, "esc"))),
-        h("div", { className: "clr-drawer-body" },
-          h("div", { className: "clr-section-title" }, "Action types"),
-          h("table", { className: "clr-dtable" },
+          h("span", { ref: closeRef }, h(Btn, { kind: "ghost", onClick: props.onClose, title: "Close (Esc)" }, "Close"))),
+        h("div", { className: "tnr-drawer-body" },
+          h("div", { className: "tnr-section-title" }, "Action types"),
+          h("table", { className: "tnr-dtable" },
             h("thead", null, h("tr", null,
-              h("th", null, "type"), h("th", null, "tier"), h("th", { className: "clr-num" }, "series"),
-              h("th", { className: "clr-num" }, "sess."), h("th", { className: "clr-num" }, "faults / checks"), h("th", null, ""))),
+              h("th", null, "type"), h("th", null, "tier"), h("th", { className: "tnr-num" }, "series"),
+              h("th", { className: "tnr-num" }, "sessions"), h("th", { className: "tnr-num" }, "faults / checks"), h("th", null, ""))),
             h("tbody", null, types.map(function (t) {
               var miss = missing(t);
               return h(Fragment, { key: t.type },
-                h("tr", { className: "clr-dtable-main" },
-                  h("td", null, h("code", null, t.type), h("div", { className: "clr-dim clr-small" }, t.stakes + (t.reversible ? " · reversible" : ""))),
+                h("tr", { className: "tnr-dtable-main" },
+                  h("td", null, h("code", null, t.type), h("div", { className: "tnr-dim tnr-small" }, t.stakes + (t.reversible ? " · reversible" : ""))),
                   h("td", null, h(TierChip, { tier: t.effective_tier, capped: t.capped }),
-                    t.tier !== t.effective_tier ? h("div", { className: "clr-held" }, "stored " + TIER[t.tier] + " (held: settings)") : null),
-                  h("td", { className: "clr-num" }, t.capped ? "—" : num(t.series) + "/" + num(t.required)),
-                  h("td", { className: "clr-num" }, t.capped ? "—" : num(t.sessions) + "/" + SESSIONS),
-                  h("td", { className: "clr-num" }, num(t.faults) + " / " + num(t.successes + t.faults)),
-                  h("td", { className: "clr-dtable-actions" },
+                    t.tier !== t.effective_tier ? h("div", { className: "tnr-held" }, "stored " + TIER[t.tier] + " (held: settings)") : null),
+                  h("td", { className: "tnr-num" }, t.capped ? "—" : num(t.series) + "/" + num(t.required)),
+                  h("td", { className: "tnr-num" }, t.capped ? "—" : num(t.sessions) + "/" + SESSIONS),
+                  h("td", { className: "tnr-num" }, num(t.faults) + " / " + num(t.successes + t.faults)),
+                  h("td", { className: "tnr-dtable-actions" },
                     h(ConfirmBtn, {
                       kind: "ghost", disabled: !mine, confirm: "Flag?",
                       title: mine ? "Record a fault on this type, after the fact" : "Actions apply to this dashboard's profile only",
@@ -680,16 +723,16 @@
                         return act("/revoke", { agent: a.agent, type: t.type }, function () { return "Revoked " + t.type + ": back to T1."; });
                       }
                     }, "Revoke"))),
-                h("tr", { className: "clr-dtable-sub" },
+                h("tr", { className: "tnr-dtable-sub" },
                   h("td", { colSpan: 6 },
-                    h("span", { className: "clr-mobile-only" }, (t.capped ? "capped" : num(t.sessions) + "/" + SESSIONS + " sessions") + " · " +
+                    h("span", { className: "tnr-mobile-only" }, (t.capped ? "capped" : num(t.sessions) + "/" + SESSIONS + " sessions") + " · " +
                       num(t.faults) + " / " + num(t.successes + t.faults) + " faults / checks · "),
-                    h("span", { className: "clr-tone--" + miss.tone }, miss.text),
+                    h("span", { className: "tnr-tone--" + miss.tone }, miss.text),
                     t.provisional ? h("span", null, " · " + num(t.provisional) + " carried over, provisional") : null,
-                    t.unresolved_fault ? h("span", { className: "clr-tone--fault" }, " · fault on record") : null,
-                    t.effective_tier === "alone" ? h("div", { className: "clr-guarantee" }, guaranteeText(t.guarantee)) : null)));
+                    t.unresolved_fault ? h("span", { className: "tnr-tone--fault" }, " · fault on record") : null,
+                    t.effective_tier === "alone" ? h("div", { className: "tnr-guarantee" }, guaranteeText(t.guarantee)) : null)));
             }))),
-          h("div", { className: "clr-drawer-revoke" },
+          h("div", { className: "tnr-drawer-revoke" },
             h(ConfirmBtn, {
               kind: "danger-ghost", disabled: !mine, confirm: "Revoke every type?",
               onConfirm: function () {
@@ -698,15 +741,14 @@
                 });
               }
             }, "Revoke all"),
-            h("span", { className: "clr-dim clr-small" }, mine ? "Takes effect at the next action. Every revocation is a ledger event." :
+            h("span", { className: "tnr-dim tnr-small" }, mine ? "Takes effect at the next action. Every revocation is a ledger event." :
               "Flag and revoke act on the dashboard's own profile. Use: hermes -p " + row.profile + " tenure revoke")),
-          h("div", { className: "clr-section-title clr-tl-head" },
+          h("div", { className: "tnr-section-title tnr-tl-head" },
             h("span", null, "Evidence timeline"),
-            h("select", { className: "clr-select", value: filter, onChange: function (e) { setFilter(e.target.value); }, "aria-label": "Filter by type" },
-              h("option", { value: "all" }, "All types"),
-              types.map(function (t) { return h("option", { key: t.type, value: t.type }, t.type); }))),
-          h("div", { className: "clr-dim clr-small clr-tl-note" }, "From the hash-chained ledger, newest first, last 200 events. Repeated outcomes are grouped."),
-          tl.error ? h("div", { className: "clr-error" }, errText(tl.error)) : h(Timeline, { events: shown }))));
+            h(Sel, { value: filter, onChange: setFilter, label: "Filter by type",
+              options: [["all", "All types"]].concat(types.map(function (t) { return [t.type, t.type]; })) })),
+          h("div", { className: "tnr-dim tnr-small tnr-tl-note" }, "From the hash-chained ledger, newest first, last 200 events. Repeated outcomes are grouped."),
+          tl.error ? h("div", { className: "tnr-error" }, errText(tl.error)) : h(Timeline, { events: shown }))));
   }
 
   // ---------------------------------------------------------------------------------------------------- models
@@ -714,23 +756,23 @@
     var w = 96, max = props.max || 1;
     var x = function (v) { return 2 + (w - 4) * Math.min(1, v / max); };
     var lo = x(props.low), hi = x(props.high), p = props.rate == null ? null : x(props.rate);
-    return h("svg", { className: "clr-interval", width: w, height: 14, viewBox: "0 0 " + w + " 14", "aria-hidden": true },
-      h("line", { x1: 2, x2: w - 2, y1: 7, y2: 7, className: "clr-interval-axis" }),
-      h("line", { x1: lo, x2: hi, y1: 7, y2: 7, className: "clr-interval-range" }),
-      h("line", { x1: lo, x2: lo, y1: 3, y2: 11, className: "clr-interval-range" }),
-      h("line", { x1: hi, x2: hi, y1: 3, y2: 11, className: "clr-interval-range" }),
-      p == null ? null : h("circle", { cx: p, cy: 7, r: 2.5, className: "clr-interval-point" }));
+    return h("svg", { className: "tnr-interval", width: w, height: 14, viewBox: "0 0 " + w + " 14", "aria-hidden": true },
+      h("line", { x1: 2, x2: w - 2, y1: 7, y2: 7, className: "tnr-interval-axis" }),
+      h("line", { x1: lo, x2: hi, y1: 7, y2: 7, className: "tnr-interval-range" }),
+      h("line", { x1: lo, x2: lo, y1: 3, y2: 11, className: "tnr-interval-range" }),
+      h("line", { x1: hi, x2: hi, y1: 3, y2: 11, className: "tnr-interval-range" }),
+      p == null ? null : h("circle", { cx: p, cy: 7, r: 2.5, className: "tnr-interval-point" }));
   }
 
   function Stale(props) {
-    return props.res.error && props.res.data ? h("div", { className: "clr-msg clr-tone--warn" },
+    return props.res.error && props.res.data ? h("div", { className: "tnr-msg tnr-tone--warn" },
       "Last refresh failed (" + errText(props.res.error) + "). Showing the data from " + hms(props.res.at) + ".") : null;
   }
 
   function ModelsView(props) {
     var res = usePoll(function () { return apiGet("/models", { raw: props.raw }); }, [props.raw, props.version]);
-    if (res.error && !res.data) return h("div", { className: "clr-error" }, errText(res.error));
-    if (!res.data) return h("div", { className: "clr-dim clr-pad" }, "Loading…");
+    if (res.error && !res.data) return h("div", { className: "tnr-error" }, errText(res.error));
+    if (!res.data) return h("div", { className: "tnr-dim tnr-pad" }, "Loading…");
     var rows = res.data.rows;
     if (!rows.length) return h(Empty, { title: "No record yet" }, "Each verified action adds to the model's record on that type, here and in hermes tenure models.");
     var byType = [];
@@ -739,9 +781,9 @@
       if (!g || g.type !== r.type) byType.push(g = { type: r.type, rows: [] });
       g.rows.push(r);
     });
-    return h("div", { className: "clr-models" }, h(Stale, { res: res }),
-      h("p", { className: "clr-lede" },
-        "Your own benchmark: each model's verified record on your work, per action type, with a 95% Wilson interval on its fault rate. ",
+    return h("div", { className: "tnr-models" }, h(Stale, { res: res }),
+      h("p", { className: "tnr-lede" },
+        "Your own benchmark: each model's verified record on your work, per action type, with the 95% range of its fault rate. ",
         "Ranked by the interval's upper bound, never by one score. Beside it, the public measure, as information: ",
         h("b", null, "public capability on their tasks, not reliability on yours.")),
       byType.map(function (g) {
@@ -749,42 +791,42 @@
         max = Math.min(1, Math.ceil(max * 20) / 20);
         var bench = g.rows[0].benchmark;
         var card = g.rows[0].public || {};
-        return h("section", { key: g.type, className: "clr-model-block" },
-          h("div", { className: "clr-model-head" }, h("code", null, g.type),
-            h("span", { className: "clr-dim" }, num(g.rows.length) + " agent" + (g.rows.length === 1 ? "" : "s"))),
-          h("div", { className: "clr-model-split" },
-            h("div", { className: "clr-model-personal" },
-              h("div", { className: "clr-section-title" }, "On your work"),
-              h("table", { className: "clr-dtable clr-dtable--models" },
+        return h("section", { key: g.type, className: "tnr-model-block" },
+          h("div", { className: "tnr-model-head" }, h("code", null, g.type),
+            h("span", { className: "tnr-dim" }, num(g.rows.length) + " agent" + (g.rows.length === 1 ? "" : "s"))),
+          h("div", { className: "tnr-model-split" },
+            h("div", { className: "tnr-model-personal" },
+              h("div", { className: "tnr-section-title" }, "On your work"),
+              h("table", { className: "tnr-dtable tnr-dtable--models" },
                 h("thead", null, h("tr", null,
-                  h("th", { className: "clr-num" }, "#"), h("th", null, "agent"), h("th", { className: "clr-num" }, "faults / checks"),
-                  h("th", { className: "clr-num" }, "rate"), h("th", null, "95% interval · 0–" + pct(max)), h("th", { className: "clr-num" }, "sess."))),
+                  h("th", { className: "tnr-num" }, "#"), h("th", null, "agent"), h("th", { className: "tnr-num" }, "faults / checks"),
+                  h("th", { className: "tnr-num" }, "rate"), h("th", null, "95% range · 0–" + pct(max)), h("th", { className: "tnr-num" }, "sessions"))),
                 h("tbody", null, g.rows.map(function (r, i) {
                   var n = r.successes + r.faults;
                   return h("tr", { key: r.profile + r.agent },
-                    h("td", { className: "clr-num clr-dim" }, i + 1),
-                    h("td", null, h("div", null, r.model, h("span", { className: "clr-dim" }, "@" + r.provider)),
-                      h("div", { className: "clr-dim clr-small" }, "profile " + r.profile)),
-                    h("td", { className: "clr-num" }, num(r.faults) + " / " + num(n)),
-                    h("td", { className: "clr-num" }, !n ? h("span", { className: "clr-dim" }, "no checks yet") : r.enough ? pct(r.rate) :
-                      h("span", { className: "clr-dim" }, "not enough evidence")),
-                    h("td", null, n ? h("div", { className: "clr-interval-cell" }, h(Interval, { low: r.low, high: r.high, rate: r.rate, max: max }),
-                      h("span", { className: "clr-mono clr-small" }, pct(r.low) + "–" + pct(r.high))) : h("span", { className: "clr-dim clr-small" }, "—")),
-                    h("td", { className: "clr-num" }, num(r.sessions_in_series)));
+                    h("td", { className: "tnr-num tnr-dim" }, i + 1),
+                    h("td", null, h("div", null, r.model, h("span", { className: "tnr-dim" }, "@" + r.provider)),
+                      h("div", { className: "tnr-dim tnr-small" }, "profile " + r.profile)),
+                    h("td", { className: "tnr-num" }, num(r.faults) + " / " + num(n)),
+                    h("td", { className: "tnr-num" }, !n ? h("span", { className: "tnr-dim" }, "no checks yet") : r.enough ? pct(r.rate) :
+                      h("span", { className: "tnr-dim" }, "not enough evidence")),
+                    h("td", null, n ? h("div", { className: "tnr-interval-cell" }, h(Interval, { low: r.low, high: r.high, rate: r.rate, max: max }),
+                      h("span", { className: "tnr-mono tnr-small" }, pct(r.low) + "–" + pct(r.high))) : h("span", { className: "tnr-dim tnr-small" }, "—")),
+                    h("td", { className: "tnr-num" }, num(r.sessions_in_series)));
                 })))),
-            h("div", { className: "clr-model-public" },
-              h("div", { className: "clr-section-title" }, "Public measure"),
+            h("div", { className: "tnr-model-public" },
+              h("div", { className: "tnr-section-title" }, "Public measure"),
               bench ? h(Fragment, null,
-                h("div", { className: "clr-public-bench" }, bench, h("span", { className: "clr-dim" }, card.version ? " · " + card.version : "")),
-                h("table", { className: "clr-dtable" }, h("tbody", null, g.rows.map(function (r) {
+                h("div", { className: "tnr-public-bench" }, bench, h("span", { className: "tnr-dim" }, card.version ? " · " + card.version : "")),
+                h("table", { className: "tnr-dtable" }, h("tbody", null, g.rows.map(function (r) {
                   return h("tr", { key: r.profile + r.agent },
                     h("td", null, r.model),
-                    h("td", { className: "clr-num" }, r.public && r.public.new != null ? r.public.new.toFixed(1) + "%" : h("span", { className: "clr-dim" }, "no public measure")));
+                    h("td", { className: "tnr-num" }, r.public && r.public.new != null ? r.public.new.toFixed(1) + "%" : h("span", { className: "tnr-dim" }, "no public measure")));
                 }))),
-                h("div", { className: "clr-public-src clr-small clr-dim" }, (card.source || "") + (card.accessed ? ", accessed " + card.accessed : "") +
+                h("div", { className: "tnr-public-src tnr-small tnr-dim" }, (card.source || "") + (card.accessed ? ", accessed " + card.accessed : "") +
                   ". Best published score, any harness; not a controlled comparison."))
-                : h("div", { className: "clr-dim" }, "No public measure for this action type."),
-              h("div", { className: "clr-public-note" }, "Public capability on their tasks, not reliability on yours."))));
+                : h("div", { className: "tnr-dim" }, "No public measure for this action type."),
+              h("div", { className: "tnr-public-note" }, "Public capability on their tasks, not reliability on yours."))));
       }));
   }
 
@@ -822,61 +864,61 @@
     if (!agents.length) return h(Empty, { title: "No agent to preview yet" });
     var counts = {};
     if (res) res.types.forEach(function (t) { counts[t.status] = (counts[t.status] || 0) + 1; });
-    return h("div", { className: "clr-switch" },
-      h("p", { className: "clr-lede" }, "Before you change model: what the new agent would inherit, type by type. ",
+    return h("div", { className: "tnr-switch" },
+      h("p", { className: "tnr-lede" }, "Before you change model: what the new agent would inherit, type by type. ",
         "A new model or provider is a new agent. Carry-over is our addition; strict mode is the study."),
       h("form", {
-        className: "clr-switch-form", onSubmit: function (e) { e.preventDefault(); setTo(draft.trim()); }
+        className: "tnr-switch-form", onSubmit: function (e) { e.preventDefault(); setTo(draft.trim()); }
       },
-        h("label", { className: "clr-field" }, h("span", null, "From"),
-          h("select", { className: "clr-select", value: fromRow ? fromRow.key : "", onChange: function (e) { setFrom(e.target.value); } },
-            agents.map(function (r) { return h("option", { key: r.key, value: r.key }, r.agent.agent + " · " + r.profile); }))),
-        h("span", { className: "clr-switch-arrow", "aria-hidden": true }, "→"),
-        h("label", { className: "clr-field clr-field--grow" }, h("span", null, "To model"),
+        h("label", { className: "tnr-field" }, h("span", null, "From"),
+          h(Sel, { value: fromRow ? fromRow.key : "", onChange: setFrom, label: "From",
+            options: agents.map(function (r) { return [r.key, r.agent.agent + " · " + r.profile]; }) })),
+        h("span", { className: "tnr-switch-arrow", "aria-hidden": true }, "→"),
+        h("label", { className: "tnr-field tnr-field--grow" }, h("span", null, "To model"),
           h("input", {
-            className: "clr-input", list: "clr-models-list", placeholder: "model id, e.g. " + (models[0] || "gpt-5") + " or model@provider",
+            className: "tnr-input", list: "tnr-models-list", placeholder: "model id, e.g. " + (models[0] || "gpt-5") + " or model@provider",
             value: draft, onChange: function (e) { setDraft(e.target.value); }, "aria-label": "Target model", name: "to"
           }),
-          h("datalist", { id: "clr-models-list" }, models.map(function (m) { return h("option", { key: m, value: m }); }))),
-        h(Btn, { kind: "primary", className: "clr-switch-go" }, "Preview")),
-      err ? h("div", { className: "clr-error" }, err) : null,
+          h("datalist", { id: "tnr-models-list" }, models.map(function (m) { return h("option", { key: m, value: m }); }))),
+        h(Btn, { kind: "primary", className: "tnr-switch-go" }, "Preview")),
+      err ? h("div", { className: "tnr-error" }, err) : null,
       !to ? h(Empty, { title: "Pick a target model" }, "Type any model id. Nothing changes until Hermes actually runs the new model.") : null,
       res ? h(Fragment, null,
-        h("div", { className: "clr-switch-summary" },
+        h("div", { className: "tnr-switch-summary" },
           h("span", null, h("b", null, res.from), " → ", h("b", null, res.to)),
           ["carried", "reset", "vetoed", "kept"].map(function (k) {
             return counts[k] ? h(Flag, { key: k, kind: STATUS[k].tone }, num(counts[k]) + " " + k) : null;
           }),
           res.strict ? h(Flag, { kind: "warn" }, "strict mode: nothing carries over") : null),
-        h("dl", { className: "clr-switch-legend" }, ["carried", "reset", "vetoed", "kept"].map(function (k) {
+        h("dl", { className: "tnr-switch-legend" }, ["carried", "reset", "vetoed", "kept"].map(function (k) {
           return h(Fragment, { key: k }, h("dt", null, h(Flag, { kind: STATUS[k].tone }, STATUS[k].label)), h("dd", null, STATUS[k].text));
         })),
-        h("div", { className: "clr-table-scroll" },
-          h("table", { className: "clr-dtable clr-dtable--switch" },
+        h("div", { className: "tnr-table-scroll" },
+          h("table", { className: "tnr-dtable tnr-dtable--switch" },
             h("thead", null, h("tr", null, h("th", null, "type"), h("th", null, "outcome"), h("th", null, "now"),
               h("th", null, "after the switch"), h("th", null, "public measure"), h("th", null, "your record"))),
             h("tbody", null, res.types.map(function (t) {
               var st = STATUS[t.status] || { label: t.status, tone: "muted", text: "" };
               var c = t.card || {};
               return h("tr", { key: t.type },
-                h("td", null, h("code", null, t.type), h("div", { className: "clr-dim clr-small" }, t.stakes)),
+                h("td", null, h("code", null, t.type), h("div", { className: "tnr-dim tnr-small" }, t.stakes)),
                 h("td", null, h(Flag, { kind: st.tone }, st.label)),
                 h("td", null, h(TierChip, { tier: t.old.effective_tier, capped: t.old.capped }), " ",
-                  h("span", { className: "clr-mono" }, t.old.capped ? "capped" : num(t.old.series) + "/" + num(t.old.required))),
+                  h("span", { className: "tnr-mono" }, t.old.capped ? "capped" : num(t.old.series) + "/" + num(t.old.required))),
                 h("td", null, h(TierChip, { tier: t.new.effective_tier, capped: t.new.capped }), " ",
-                  h("span", { className: "clr-mono" }, t.new.capped ? "capped" : num(t.new.series) + "/" + num(t.new.required)),
-                  t.new.provisional ? h("div", { className: "clr-small clr-tone--prov" }, num(t.new.provisional) + " provisional") : null),
+                  h("span", { className: "tnr-mono" }, t.new.capped ? "capped" : num(t.new.series) + "/" + num(t.new.required)),
+                  t.new.provisional ? h("div", { className: "tnr-small tnr-tone--prov" }, num(t.new.provisional) + " provisional") : null),
                 h("td", null, c.benchmark ? h(Fragment, null,
-                  h("div", { className: "clr-small" }, c.benchmark),
-                  h("div", { className: "clr-mono" }, (c.old != null ? c.old.toFixed(1) : "—") + " → " + (c.new != null ? c.new.toFixed(1) : "—") +
+                  h("div", { className: "tnr-small" }, c.benchmark),
+                  h("div", { className: "tnr-mono" }, (c.old != null ? c.old.toFixed(1) : "—") + " → " + (c.new != null ? c.new.toFixed(1) : "—") +
                     (c.delta != null ? " (" + (c.delta > 0 ? "+" : "") + c.delta.toFixed(1) + ")" : ""))) :
-                  h("span", { className: "clr-dim clr-small" }, "no public measure")),
+                  h("span", { className: "tnr-dim tnr-small" }, "no public measure")),
                 h("td", null, t.personal.length ? t.personal.map(function (p) {
-                  return h("div", { key: p.agent, className: "clr-small" }, h("span", { className: "clr-mono" }, num(p.faults) + " / " + num(p.successes + p.faults)),
-                    h("span", { className: "clr-dim" }, " " + p.model));
-                }) : h("span", { className: "clr-dim clr-small" }, "none")));
+                  return h("div", { key: p.agent, className: "tnr-small" }, h("span", { className: "tnr-mono" }, num(p.faults) + " / " + num(p.successes + p.faults)),
+                    h("span", { className: "tnr-dim" }, " " + p.model));
+                }) : h("span", { className: "tnr-dim tnr-small" }, "none")));
             })))),
-        h("div", { className: "clr-dim clr-small clr-pad-top" }, "Public scores inform; they never grant autonomy. A veto only blocks carry-over, beyond a fixed margin.")) : null);
+        h("div", { className: "tnr-dim tnr-small tnr-pad-top" }, "Public scores inform; they never grant autonomy. A veto only blocks carry-over, beyond a fixed margin.")) : null);
   }
 
   // ---------------------------------------------------------------------------------------------------- passport
@@ -909,21 +951,21 @@
       document.body.appendChild(link); link.click(); document.body.removeChild(link);
       setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
     }
-    return h("div", { className: "clr-passport" },
-      h("div", { className: "clr-passport-bar" },
-        h("label", { className: "clr-field" }, h("span", null, "Agent"),
-          h("select", { className: "clr-select", value: row ? row.key : "", onChange: function (e) { setSel(e.target.value); } },
-            agents.map(function (r) { return h("option", { key: r.key, value: r.key }, r.agent.agent + " · " + r.profile); }))),
+    return h("div", { className: "tnr-passport" },
+      h("div", { className: "tnr-passport-bar" },
+        h("label", { className: "tnr-field" }, h("span", null, "Agent"),
+          h(Sel, { value: row ? row.key : "", onChange: setSel, label: "Agent",
+            options: agents.map(function (r) { return [r.key, r.agent.agent + " · " + r.profile]; }) })),
         h(Btn, { kind: "primary", onClick: download, disabled: !d }, "Download JSON"),
-        h("span", { className: "clr-dim clr-small" }, "Signed and tamper-evident: a change after it is signed or anchored shows on verification. An older passport still verifies against a longer ledger; the verifier says what changed since.")),
-      res.error && !res.data ? h("div", { className: "clr-error" }, errText(res.error)) : h(Stale, { res: res }),
-      !d ? h("div", { className: "clr-dim clr-pad" }, "Loading…") : h("div", { className: "clr-passport-grid" },
-        h("section", { className: cx("clr-verdict", "clr-verdict--" + v.tone) },
-          h("div", { className: "clr-verdict-title" }, v.title),
+        h("span", { className: "tnr-dim tnr-small" }, "Signed and tamper-evident: a change after it is signed or anchored shows on verification. An older passport still verifies against a longer ledger; the verifier says what changed since.")),
+      res.error && !res.data ? h("div", { className: "tnr-error" }, errText(res.error)) : h(Stale, { res: res }),
+      !d ? h("div", { className: "tnr-dim tnr-pad" }, "Loading…") : h("div", { className: "tnr-passport-grid" },
+        h("section", { className: cx("tnr-verdict", "tnr-verdict--" + v.tone) },
+          h("div", { className: "tnr-verdict-title" }, v.title),
           h("ul", null, v.lines.map(function (l, i) { return h("li", { key: i }, l); })),
-          h("div", { className: "clr-small clr-dim" }, "Checked by the dashboard against this profile's ledger. Anyone can re-check it:"),
+          h("div", { className: "tnr-small tnr-dim" }, "Checked by the dashboard against this profile's ledger. Anyone can re-check it:"),
           h(CopyCmd, { cmd: "hermes tenure verify " + "passport-" + row.agent.model.replace(/[^A-Za-z0-9._-]+/g, "_") + ".json" })),
-        h("section", { className: "clr-passport-fields" },
+        h("section", { className: "tnr-passport-fields" },
           h("dl", null,
             [["Protocol", d.protocol], ["Agent", d.agent.model + "@" + d.agent.provider],
               ["Profile", d.agent.profile + " (hashed)"], ["Rule", d.rule.name + " · " + short(d.rule.fingerprint, 16)],
@@ -931,22 +973,22 @@
               ["Public key", short(d.public_key, 24) || "none"], ["Signature", d.signature ? short(d.signature, 24) + "…" : "unsigned"],
               ["Generated", d.generated_at], ["Type names", d.redacted ? "redacted after the program and subcommand" : "raw"]
             ].map(function (kv) {
-              return h(Fragment, { key: kv[0] }, h("dt", null, kv[0]), h("dd", { className: "clr-mono" }, kv[1]));
+              return h(Fragment, { key: kv[0] }, h("dt", null, kv[0]), h("dd", { className: "tnr-mono" }, kv[1]));
             }))),
-        h("section", { className: "clr-passport-types" },
-          h("div", { className: "clr-section-title" }, "Attested types"),
-          h("table", { className: "clr-dtable" },
-            h("thead", null, h("tr", null, h("th", null, "type"), h("th", null, "tier"), h("th", { className: "clr-num" }, "series"),
-              h("th", { className: "clr-num" }, "sess."), h("th", null, "guarantee"))),
+        h("section", { className: "tnr-passport-types" },
+          h("div", { className: "tnr-section-title" }, "Attested types"),
+          h("table", { className: "tnr-dtable" },
+            h("thead", null, h("tr", null, h("th", null, "type"), h("th", null, "tier"), h("th", { className: "tnr-num" }, "series"),
+              h("th", { className: "tnr-num" }, "sessions"), h("th", null, "guarantee"))),
             h("tbody", null, d.types.map(function (t) {
               var g = t.guarantee || {};
               return h("tr", { key: t.type },
-                h("td", null, h("code", null, t.type), h("div", { className: "clr-dim clr-small" }, t.stakes)),
+                h("td", null, h("code", null, t.type), h("div", { className: "tnr-dim tnr-small" }, t.stakes)),
                 h("td", null, h(TierChip, { tier: t.tier, capped: !!g.capped })),
-                h("td", { className: "clr-num" }, t.required == null ? "—" : num(t.series) + "/" + num(t.required)),
-                h("td", { className: "clr-num" }, num(t.sessions)),
-                h("td", { className: "clr-small" }, g.capped ? "capped: always asks" :
-                  "AOQL " + pct(g.aoql) + " · worst " + pct(g.worst_case) + (g.conditional ? " · provisional" : "")));
+                h("td", { className: "tnr-num" }, t.required == null ? "—" : num(t.series) + "/" + num(t.required)),
+                h("td", { className: "tnr-num" }, num(t.sessions)),
+                h("td", { className: "tnr-small" }, g.capped ? "capped: always asks" :
+                  "unchecked errors under " + pct(g.aoql) + " · " + pct(g.worst_case) + " if it turns bad" + (g.conditional ? " · provisional" : "")));
             }))))));
   }
 
@@ -957,21 +999,21 @@
       return h(Empty, { title: "Nothing to undo" }, "Actions at T2 (act, then notify) keep a snapshot of the files they wrote for 24 hours. ",
         "They appear here, newest first, each with its own undo.");
     }
-    return h("div", { className: "clr-undo" },
-      h("p", { className: "clr-lede" }, "Recent act-then-notify actions. Undo restores the files from their snapshot and counts as a fault of the type."),
-      h("div", { className: "clr-table-scroll" },
-        h("table", { className: "clr-dtable" },
-          h("thead", null, h("tr", null, h("th", { className: "clr-num" }, "#"), h("th", null, "when"), h("th", null, "agent"), h("th", null, "type"),
+    return h("div", { className: "tnr-undo" },
+      h("p", { className: "tnr-lede" }, "Recent act-then-notify actions. Undo restores the files from their snapshot and counts as a fault of the type."),
+      h("div", { className: "tnr-table-scroll" },
+        h("table", { className: "tnr-dtable" },
+          h("thead", null, h("tr", null, h("th", { className: "tnr-num" }, "#"), h("th", null, "when"), h("th", null, "agent"), h("th", null, "type"),
             h("th", null, "effect of undo"), h("th", null, ""))),
           h("tbody", null, list.map(function (u) {
             var mine = u.profile === props.current;
             return h("tr", { key: u.profile + u.id },
-              h("td", { className: "clr-num clr-dim" }, u.id),
-              h("td", { className: "clr-mono" }, ago(u.age), h("div", { className: "clr-dim clr-small" }, "window ends in " + ago(86400 - u.age).replace(" ago", ""))),
-              h("td", null, u.agent, h("div", { className: "clr-dim clr-small" }, "profile " + u.profile)),
+              h("td", { className: "tnr-num tnr-dim" }, u.id),
+              h("td", { className: "tnr-mono" }, ago(u.age), h("div", { className: "tnr-dim tnr-small" }, "window ends in " + ago(86400 - u.age).replace(" ago", ""))),
+              h("td", null, u.agent, h("div", { className: "tnr-dim tnr-small" }, "profile " + u.profile)),
               h("td", null, h("code", null, u.type)),
-              h("td", { className: "clr-small" }, u.counts_as_fault ? "restores the files · counts as a fault" : "restores the files · the automatic check already counted a fault"),
-              h("td", { className: "clr-dtable-actions" }, h(ConfirmBtn, {
+              h("td", { className: "tnr-small" }, u.counts_as_fault ? "restores the files · counts as a fault" : "restores the files · the automatic check already counted a fault"),
+              h("td", { className: "tnr-dtable-actions" }, h(ConfirmBtn, {
                 kind: "ghost", disabled: !mine, confirm: "Undo #" + u.id + "?",
                 title: mine ? "Restore the files" : "Undo acts on this dashboard's profile only",
                 onConfirm: function () {
@@ -1033,68 +1075,68 @@
     }
     var commands = cmds();
     var shownCmds = commands.length ? commands : ["hermes tenure setup " + (cur.preset === "custom" ? "balanced" : cur.preset)];
-    return h("div", { className: "clr-settings" },
-      h("section", { className: "clr-dial" },
-        h("div", { className: "clr-dial-head" },
-          h("div", null, h("div", { className: "clr-section-title" }, "Accepted risk"),
-            h("div", { className: "clr-dim clr-small" }, "The share of errors you accept running unchecked, per stakes level. N is the series of verified successes in a row a type needs to act alone.")),
-          h("div", { className: "clr-seg", role: "radiogroup", "aria-label": "Preset" },
+    return h("div", { className: "tnr-settings" },
+      h("section", { className: "tnr-dial" },
+        h("div", { className: "tnr-dial-head" },
+          h("div", null, h("div", { className: "tnr-section-title" }, "Accepted risk"),
+            h("div", { className: "tnr-dim tnr-small" }, "The share of errors you accept running unchecked, per stakes level. N is the series of verified successes in a row a type needs to act alone.")),
+          h("div", { className: "tnr-seg", role: "radiogroup", "aria-label": "Preset" },
             ["careful", "balanced", "fast"].map(function (n) {
               return h("button", {
                 key: n, type: "button", role: "radio", "aria-checked": pr === n, disabled: readOnly,
-                className: cx("clr-seg-btn", pr === n && "is-on"), onClick: function () { pickPreset(n); }
+                className: cx("tnr-seg-btn", pr === n && "is-on"), onClick: function () { pickPreset(n); }
               }, n);
             }),
-            custom ? h("span", { className: "clr-seg-btn is-on is-static" }, "custom") : null)),
-        h("div", { className: "clr-dial-rows" },
+            custom ? h("span", { className: "tnr-seg-btn is-on is-static" }, "custom") : null)),
+        h("div", { className: "tnr-dial-rows" },
           STAKES.map(function (s) {
             var n = studyN(rk[s]), was = studyN(cur.risks[s]);
-            return h("div", { key: s, className: "clr-dial-row" },
-              h("div", { className: "clr-dial-level" }, h("span", { className: "clr-stakes-dot clr-stakes--" + s }), s.charAt(0).toUpperCase() + s.slice(1) + " stakes"),
-              h("div", { className: "clr-ladder", role: "radiogroup", "aria-label": s + " stakes risk" },
+            return h("div", { key: s, className: "tnr-dial-row" },
+              h("div", { className: "tnr-dial-level" }, h("span", { className: "tnr-stakes-dot tnr-stakes--" + s }), s.charAt(0).toUpperCase() + s.slice(1) + " stakes"),
+              h("div", { className: "tnr-ladder", role: "radiogroup", "aria-label": s + " stakes risk" },
                 LADDER.map(function (k) {
                   var on = k == null ? rk[s] == null : rk[s] != null && Math.abs(1 / rk[s] - k) < 1e-6;
                   return h("button", {
                     key: String(k), type: "button", role: "radio", "aria-checked": on, disabled: readOnly,
-                    className: cx("clr-rung", on && "is-on"), onClick: function () { pickRisk(s, k); }
+                    className: cx("tnr-rung", on && "is-on"), onClick: function () { pickRisk(s, k); }
                   }, k == null ? "cap" : "1/" + k);
                 })),
-              h("div", { className: "clr-dial-n" },
-                n == null ? h("span", null, h("b", null, "capped"), h("span", { className: "clr-dim" }, " · always asks")) :
-                  h("span", null, h("span", { className: "clr-dim" }, oneIn(rk[s]) + " → "), h("b", { className: "clr-mono" }, num(n)), h("span", { className: "clr-dim" }, " checks in a row")),
-                n !== was ? h("span", { className: "clr-dial-was clr-small" }, "in force: " + (was == null ? "capped" : num(was))) : null));
+              h("div", { className: "tnr-dial-n" },
+                n == null ? h("span", null, h("b", null, "capped"), h("span", { className: "tnr-dim" }, " · always asks")) :
+                  h("span", null, h("span", { className: "tnr-dim" }, oneIn(rk[s]) + " → "), h("b", { className: "tnr-mono" }, num(n)), h("span", { className: "tnr-dim" }, " checks in a row")),
+                n !== was ? h("span", { className: "tnr-dial-was tnr-small" }, "in force: " + (was == null ? "capped" : num(was))) : null));
           })),
-        h("div", { className: "clr-dial-row clr-dial-strict" },
-          h("div", { className: "clr-dial-level" }, "Strict mode"),
-          h("label", { className: "clr-switch-toggle" },
+        h("div", { className: "tnr-dial-row tnr-dial-strict" },
+          h("div", { className: "tnr-dial-level" }, "Strict mode"),
+          h("label", { className: "tnr-switch-toggle" },
             h("input", { type: "checkbox", checked: sx, disabled: readOnly, onChange: function (e) { setStrict(e.target.checked); } }),
-            h("span", { className: "clr-toggle-track", "aria-hidden": true }),
+            h("span", { className: "tnr-toggle-track", "aria-hidden": true }),
             h("span", null, sx ? "On: a new model starts with an empty record (the study's rule)" : "Off: a new model inherits part of the previous record, provisionally")),
-          h("div", { className: "clr-dial-n clr-dim clr-small" }, "spot checks " + oneIn(cur.spot))),
-        readOnly ? h("div", { className: "clr-readonly" },
+          h("div", { className: "tnr-dial-n tnr-dim tnr-small" }, "spot checks " + oneIn(cur.spot))),
+        readOnly ? h("div", { className: "tnr-readonly" },
           h("div", null, h("b", null, "Read-only here."), " This dashboard process cannot write tenure's settings (Hermes gives plugins no other public writer). Run:"),
           shownCmds.map(function (c) { return h(CopyCmd, { key: c, cmd: c }); }))
-          : h("div", { className: "clr-dial-foot" },
+          : h("div", { className: "tnr-dial-foot" },
             h(Btn, { kind: "primary", disabled: !dirty, onClick: apply }, "Apply"),
             dirty ? h(Btn, { kind: "ghost", onClick: function () { setPreset(null); setRisks(null); setStrict(null); } }, "Reset") : null,
-            h("span", { className: "clr-dim clr-small" }, dirty ? "Same as: " + commands.join("  &&  ") : "In force in profile " + props.profile + "."))),
-      msg ? h("div", { className: "clr-msg clr-tone--" + msg.tone }, msg.text) : null,
-      h("section", { className: "clr-about" },
-        h("div", { className: "clr-section-title" }, "About the rule"),
+            h("span", { className: "tnr-dim tnr-small" }, dirty ? "Same as: " + commands.join("  &&  ") : "In force in profile " + props.profile + "."))),
+      msg ? h("div", { className: "tnr-msg tnr-tone--" + msg.tone }, msg.text) : null,
+      h("section", { className: "tnr-about" },
+        h("div", { className: "tnr-section-title" }, "About the rule"),
         h("p", null, "The same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending). Added layers make it stricter: ",
           "spot checks (" + oneIn(cur.spot) + " cleared actions still asks), two distinct sessions in the series that reaches T3, ",
           "and suspension after a session reads external content."),
-        h("p", { className: "clr-dim" }, "Carry-over is our addition; strict mode is the study.")));
+        h("p", { className: "tnr-dim" }, "Carry-over is our addition; strict mode is the study.")));
   }
 
   // ------------------------------------------------------------------------------------------------------ help
   function Help(props) {
-    var keys = [["m", "Map"], ["b", "Models"], ["w", "Switch preview"], ["p", "Passport"], ["u", "Undo"], ["s", "Settings"],
+    var keys = [["m", "Map"], ["b", "Your benchmark"], ["w", "Switch preview"], ["p", "Passport"], ["u", "Undo"], ["s", "Settings"],
       ["a", "Agent drawer of the focused row"], ["j / k", "Next / previous agent"], ["↵", "Open the focused agent"],
       ["r", "Raw type names on / off"], ["esc", "Close"], ["?", "This help"]];
-    return h("div", { className: "clr-drawer-wrap", onClick: props.onClose },
-      h("div", { className: "clr-help", role: "dialog", "aria-label": "Keyboard shortcuts" },
-        h("div", { className: "clr-section-title" }, "Keyboard"),
+    return h("div", { className: "tnr-drawer-wrap", onClick: props.onClose },
+      h("div", { className: "tnr-help", role: "dialog", "aria-label": "Keyboard shortcuts" },
+        h("div", { className: "tnr-section-title" }, "Keyboard"),
         h("dl", null, keys.map(function (k) {
           return h(Fragment, { key: k[0] }, h("dt", null, h(Kbd, null, k[0])), h("dd", null, k[1]));
         }))));
@@ -1195,10 +1237,9 @@
         setDrawer(focusRow.key);
       }
     }, [help, drawer, raw, view, focus, rows, focusRow]);
-    useEffect(function () {
-      window.addEventListener("keydown", onKey);
-      return function () { window.removeEventListener("keydown", onKey); };
-    }, [onKey]);
+    // Shortcuts only while focus is inside the tab (WCAG 2.1.4): the root takes focus when the tab opens.
+    var rootRef = useRef(null);
+    useEffect(function () { if (rootRef.current && document.activeElement === document.body) rootRef.current.focus(); }, []);
 
     function done(text, type) { setToast({ text: text, type: type, at: Date.now() }); setVersion(version + 1); }
 
@@ -1208,8 +1249,8 @@
     var updated = agentsRes.at ? hms(agentsRes.at) : "—";
 
     var body;
-    if (!data && !err) body = h("div", { className: "clr-dim clr-pad" }, "Loading the record…");
-    else if (!data && err) body = h("div", { className: "clr-error" }, "Could not read tenure: " + errText(err));
+    if (!data && !err) body = h("div", { className: "tnr-dim tnr-pad" }, "Loading the record…");
+    else if (!data && err) body = h("div", { className: "tnr-error" }, "Could not read tenure: " + errText(err));
     else if (view === "map") {
       body = h(MapView, { profiles: profiles, rows: rows, settings: current && current.settings, focus: focus, onFocus: setFocus,
         onOpen: function (r) { setDrawer(r.key); }, transitions: transitions });
@@ -1220,27 +1261,27 @@
     else body = h(SettingsView, { settings: current && current.settings, profile: currentProfile, raw: raw, onDone: done,
       readOnly: settingsRO, onReadOnly: setSettingsRO });
 
-    return h("div", { className: "clr", "data-tone": tone },
-      h("header", { className: "clr-head" },
-        h("div", { className: "clr-title-row" },
-          h("h1", { className: "clr-title" }, "Tenure"),
-          h("span", { className: "clr-subtitle" }, "Autonomy earned per action type, on verified evidence"),
-          h("div", { className: "clr-head-right" },
-            h("span", { className: cx("clr-live", err && "is-stale"), title: err ? errText(err) : "Polling every 2 s" },
-              h("span", { className: "clr-live-dot", "aria-hidden": true }), err ? "retrying · " : "live · ",
-              h("span", { className: "clr-mono" }, updated)),
-            h("button", { type: "button", className: cx("clr-chip-btn", raw && "is-on"), onClick: function () { setRaw(!raw); }, title: "Show raw action type names (r)" },
-              raw ? "raw names" : "redacted names", h(Kbd, null, "r")),
-            h("button", { type: "button", className: "clr-chip-btn", onClick: function () { setHelp(true); }, title: "Keyboard shortcuts" }, h(Kbd, null, "?")))),
+    return h("div", { className: "tnr", "data-tone": tone, ref: rootRef, tabIndex: -1, onKeyDown: onKey, style: { outline: "none" } },
+      h("header", { className: "tnr-head" },
+        h("div", { className: "tnr-title-row" },
+          h("h1", { className: "tnr-title" }, "Tenure"),
+          h("span", { className: "tnr-subtitle" }, "Autonomy earned per action type, on verified evidence"),
+          h("div", { className: "tnr-head-right" },
+            h("span", { className: cx("tnr-live", err && "is-stale"), title: err ? errText(err) : "Polling every 2 s" },
+              h("span", { className: "tnr-live-dot", "aria-hidden": true }), err ? "retrying · " : "live · ",
+              h("span", { className: "tnr-mono" }, updated)),
+            h("button", { type: "button", className: cx("tnr-chip-btn", raw && "is-on"), onClick: function () { setRaw(!raw); }, title: "Show raw action type names (r)" },
+              raw ? "raw names" : "redacted names"),
+            h("button", { type: "button", className: "tnr-chip-btn", onClick: function () { setHelp(true); }, title: "Keyboard shortcuts" }, h(Kbd, null, "?")))),
         h(Counters, { totals: activity && activity.totals })),
       h(Tabs, { view: view, onView: function (v) { setView(v); setDrawer(null); }, undoCount: activity && activity.undoable ? activity.undoable.length : 0 }),
-      unreadable.length ? h("div", { className: "clr-msg clr-tone--warn" }, "Unreadable: " + unreadable.map(function (p) { return p.profile; }).join(", ") +
+      unreadable.length ? h("div", { className: "tnr-msg tnr-tone--warn" }, "Unreadable: " + unreadable.map(function (p) { return p.profile; }).join(", ") +
         ". Its database exists but cannot be opened; other profiles are shown.") : null,
-      data && err ? h("div", { className: "clr-msg clr-tone--warn" }, "Last refresh failed (" + errText(err) + "). Showing the data from " + updated + ".") : null,
-      h("main", { className: "clr-body", "data-view": view }, body),
+      data && err ? h("div", { className: "tnr-msg tnr-tone--warn" }, "Last refresh failed (" + errText(err) + "). Showing the data from " + updated + ".") : null,
+      h("main", { className: "tnr-body", "data-view": view, id: "tnr-panel", role: "tabpanel", "aria-labelledby": "tnr-tab-" + view }, body),
       drawerRow ? h(AgentDrawer, { row: drawerRow, raw: raw, version: version, onClose: function () { setDrawer(null); }, onDone: done }) : null,
       help ? h(Help, { onClose: function () { setHelp(false); } }) : null,
-      toast ? h("div", { className: "clr-toast clr-toast--" + toast.type, role: "status" }, toast.text) : null);
+      toast ? h("div", { className: "tnr-toast tnr-toast--" + toast.type, role: "status" }, toast.text) : null);
   }
 
   REG.register("tenure", TenurePage);
