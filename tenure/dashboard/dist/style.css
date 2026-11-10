@@ -144,8 +144,7 @@
   .tnr-tabs[data-edges="end"] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
   .tnr-tabs[data-edges="start"] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); }
   .tnr-tabs[data-edges="both"] { -webkit-mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, transparent, #000 36px, #000 calc(100% - 36px), transparent); }
-  .tnr-tabs-help { display: inline-flex; position: sticky; inset-inline-end: 0; background: var(--tnr-bg); }
-  .tnr-head-help { display: none; }
+  /* the help stays in the header row, beside the motion switch: a sticky "?" over scrolling tabs read as overlap */
 }
 [dir="rtl"] .tnr-tabs[data-edges="end"] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 36px), transparent); }
 [dir="rtl"] .tnr-tabs[data-edges="start"] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
