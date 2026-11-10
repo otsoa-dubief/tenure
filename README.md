@@ -196,10 +196,25 @@ type override lowers them (`self:*`, `secrets:*`, `file:sensitive`):
   into your home folder asks (high stakes). A path argument the shell computes (a variable, a substitution, a brace
   list, `~user`, the `{}` of find or xargs), a `cd` to such a target, and `tar -P` ask too (high stakes), and are
   capped when their literal part names Hermes. Setting `CDPATH` is capped.
-- The limit, stated plainly: this is a static reading of the command, not a proof of what it will do. It is a
-  fail-safe floor: what it cannot read with certainty goes up to asking you, and a determined program can still
-  hide its target (code that builds a path at run time, a variable set by an earlier command) behind a high-stakes
-  ask rather than a cap.
+- Code an ordinary command would run without asking: assigning `PATH`, the dynamic loader's variables (`LD_*`,
+  `DYLD_*`), shell start-up, pager and editor variables, git's own (`GIT_*`, except author and committer), `HOME`,
+  `XDG_CONFIG_*` or `HERMES_*`, as a prefix, behind `env` or with `export`; git configuration that can run a
+  program (`git -c` or `git config` on any key outside a short list such as `user.name`), and the files git reads
+  it from (`.git/config`, `.git/hooks/`, `.gitattributes`, `.gitmodules`, `~/.gitconfig`, `~/.config/git/`). Any
+  other assignment in front of a read-only command asks at high stakes.
+- A recursive copy (`cp -r`, `ditto`, `rsync`) or a git work tree into your home or into a folder above a Hermes
+  home asks at high stakes, and is capped when it names a `.hermes` folder. Code piped into a shell or an
+  interpreter (`| sh`, `| python3`, `bash -s`) asks at high stakes. An MCP or plugin tool whose arguments name one
+  of these files is capped, whatever its name says, and a tool whose name saves to disk (`download`, `export`)
+  is never a free read.
+- Paths are compared the way a case-insensitive file system compares them: `.HERMES` and `.hermeſ` (with a long
+  s) are `.hermes`.
+- The limit, stated plainly: this is a static reading of each command, made before it runs, not a proof of what it
+  will do. What it cannot read with certainty goes up to asking you. But a type that runs code (a script,
+  `npm test`, `make`, an interpreter, `execute_code`) runs whatever that code does once the type is cleared, and an
+  earlier ordinary write can change that code; a link swapped between the check and the run is not seen either.
+  If your agent must never be able to reach Hermes' files, keep code-running types at `cap`
+  (`types: {"shell:npm*": cap, "shell:make*": cap, "code:execute": cap}`).
 
 ## Commands
 
@@ -237,6 +252,8 @@ enabled: true
   or always-ask. A wrong guess costs you a question, never a silent action.
 - **Granularity is per action type.** A cleared `shell:python` can run any Python. Reclassify broad types as `cap`
   if that matters to you.
+- **Memory is low stakes.** Hermes' `memory` tool is classed with project files (low stakes), so it can be cleared;
+  writing the files under `memories/` directly is capped. Reclassify `memory:write` if memories steer your agent.
 - **The passport is tamper-evident; it cannot prevent tampering.** It is signed by the owner's own key, so the owner can
   rewrite a whole history and re-sign it. Anchor its head (`hermes clearance anchor`) somewhere public to fix a point in time.
 - **Redaction uses unsalted hashes.** A redacted passport hides a type name from a casual reader, not from
