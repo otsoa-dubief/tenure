@@ -172,8 +172,9 @@ settings.
 An agent that can switch off its own supervision is not supervised. Self-protection comes in two tiers, both capped
 at **Ask**, and no type override lowers them (`self:*`, `secrets:*`, `file:sensitive`).
 
-**Guaranteed: the agent cannot switch clearance or Hermes off.** The check is on the path, whatever program writes
-it, and the latest independent review found no way around it:
+**Checked on the path: Hermes' own files, clearance's data and Hermes' CLI.** The check is on the path once it is
+normalised and resolved, whatever program is given it. It covers what a command, a tool call or a piece of code
+names in a way that can be read before it runs; what can still get through is listed after the rules:
 
 - Hermes' own CLI, when the program run is `hermes` (also through `sh -c`, `script -c`, `su -c`, `tmux`, `screen`,
   `expect`, `ssh`, `uvx`, `uv run`, `pipx run`, a git alias, `$(which hermes)`), or Python code that imports or runs
@@ -187,18 +188,41 @@ it, and the latest independent review found no way around it:
   `gateway.sock`, `gateway.pid` and `gateway.lock`; a whole profile, and removing or moving a home. A project or a
   workspace inside a home (`workspace/`, `kanban/workspaces/...`) is ordinary.
 - Anything naming clearance's own data: `clearance.db`, `plugin-data/clearance`, the passport key.
-- The fail-safe behind these rules: a command that writes is capped when one of its arguments resolves (through
-  symlinks, `$HERMES_HOME`, variables set earlier on the line, options glued to their value, or a glob that may
-  match) to a Hermes home level (a home, its root, the `.hermes` folder at the top of a home, a `profiles/<name>`
-  folder) or to the Hermes program (a path to `bin/hermes`, a link, hard link or copy of it, its installed package),
-  and when it runs inside a home level or an entry. A `cd`, `pushd` or `env -C` into one, or to a target that cannot
+- Hermes' CLI is recognised from any word of a command that is not a pure read, whatever stands in front of it
+  (`caffeinate`, `arch`, `flock`, `script -q /dev/null hermes ...`, a launcher nobody listed): a word whose base
+  name is `hermes`, `hermes-agent` or `hermes-acp` starts an invocation, and the reads above stay allowed; a word
+  that holds `hermes_cli` (`python -mhermes_cli.main`, `runpy`) is Hermes; a program name the shell computes that
+  can come out as `hermes` (`${H}ermes`, `herm?s`, `{hermes,x}`) is capped. A file, a folder or a branch that is
+  only named `hermes` is not the program.
+- The fail-safe behind these rules: for every command that is not a pure read, each argument that may be a path
+  (also the value glued to an option, and the paths inside a quoted string) is normalised (`/./`, `..`, a relative
+  path against the working directory, `~`), then resolved (symlinks, `$HERMES_HOME`, variables set earlier on the
+  line, each alternative of a brace list, a glob expanded on disk). The command is capped when the result is a
+  Hermes home level (a home, its root, the `.hermes` folder at the top of a home, a `profiles/<name>` folder), one
+  of the entries above, a hard link to one, clearance's data, the Hermes program (a path to `bin/hermes`, a link,
+  hard link or copy of it), any file of the installed `hermes-agent` distribution (`hermes_cli`, `agent`, `tools`,
+  `gateway`... as its own record lists them), or a folder above a Hermes home; and when it runs inside a home level
+  or an entry. `write_file` and `patch` get the same check, and so do the arguments of Hermes' own tools that say
+  where to write (`output_path` of the media tools, a kanban workspace, a cron script). A `cd`, `pushd` or `env -C` into one, or to a target that cannot
   be worked out, is capped even alone, and the terminal's working directory is followed from one call to the next.
-  The same holds for paths written in code (`execute_code`, `python -c`). A program that resolves to Hermes under
+  The same holds for paths written in code (`execute_code`, `python -c`): each string literal is checked, and the
+  literals of one `os.path.join`, of a `pathlib` chain or of a concatenation are read as one path. A program that resolves to Hermes under
   another name, looked up on PATH at each call, is Hermes. Workspaces below a home level stay ordinary, and so do a
   `.hermes` folder inside a project and your own home folder when Hermes lives there (Docker); unpacking an archive
   into your home folder asks (high stakes). A path argument the shell computes (a variable, a substitution, a brace
   list, `~user`, the `{}` of find or xargs), a `cd` to such a target, and `tar -P` ask too (high stakes), and are
   capped when their literal part names Hermes. Setting `CDPATH` is capped.
+
+**What can still get through.** The check reads what is written; it does not run anything. A path that only
+exists once the code runs is not seen: a name built piece by piece (`'.her' + 'mes'` across variables, `chr()`,
+`format`, an f-string, a string decoded or downloaded), the home taken from the environment and passed along, a
+`chdir` inside code followed by a relative path, a program in another language given its paths in its own syntax.
+A command that walks a tree (`find -L . -delete`, a formatter run on `.`) follows the links it meets there, and
+nobody listed them on the command line. Your own home folder is not capped as a whole (`git -C ~ clean -fdx`
+is judged like any other git command), because Hermes may live in it. And a type that runs code runs whatever that code does
+(see the limit at the end of this section). So this is a strong check on honest mistakes and on plain attempts,
+not a wall against an agent that hides what it does: **if the agent is not trusted, run Hermes in a container**,
+with only the project mounted, and keep code-running types at `cap`.
 
 **Watched, best effort: code that would run later without asking.** These are recognised command by command, so a
 spelling clearance does not know can slip through (see Limits). Every case found so far is capped and tested:
@@ -223,8 +247,8 @@ spelling clearance does not know can slip through (see Limits). Every case found
   folders (`./bin/ls`) is never a free read. Any other assignment in front of a read-only command asks.
 - The dashboard's own API (`/api/plugins/clearance/...`, where settings, revoke and undo live) is capped when a
   command or code names it.
-- A recursive copy (`cp -r`, `ditto`, `rsync`) or a git work tree into your home or into a folder above a Hermes
-  home asks at high stakes, and is capped when it names a `.hermes` folder. Code piped into a shell or an
+- A recursive copy (`cp -r`, `ditto`, `rsync`) or a git work tree into your home asks at high stakes, and is
+  capped when it names a `.hermes` folder or lands in a folder above a Hermes home. Code piped into a shell or an
   interpreter (`| sh`, `| python3`, `bash -s`) asks at high stakes. An MCP or plugin tool whose arguments name one
   of these files on this machine is capped, whatever its name says (the relative `path` of a GitHub, GitLab or Bitbucket tool
   given an owner and a repository is a file in that repository, not here; every other argument is checked); a tool whose name saves to disk (`download`, `export`), or that is told where

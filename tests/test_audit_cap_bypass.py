@@ -618,3 +618,291 @@ def test_k_common_commands_stay_ordinary(cmd):
 
 def test_k_stash_push_is_not_a_push():
     assert sh("git stash push -m wip")[1] != HIGH
+
+
+# ------------------------------------------------------------- second audit: paths are judged resolved, not as text
+# T1 a path that is not canonical (`/./`, `..`, relative, braces, a glob, a link) given to any program; T2 the same
+# in code; T3 Hermes' CLI behind a launcher nobody listed; T4 the Hermes program and its whole package as a file;
+# T5 native tools told where to write; T6 and T7 links and globs to a home level or an entry.
+@pytest.fixture
+def world(tmp_path, monkeypatch):
+    """A throwaway machine: a user home with ~/.hermes, a custom Hermes home elsewhere, a project full of links, a
+    fake Hermes program first on PATH and a fake installed package."""
+    import os
+    env = tmp_path
+    h, hh, fb = env / "home" / "u", env / "data" / "hh", env / "fb"
+    for root in (h / ".hermes", hh):
+        for d in ("plugins/clearance", "plugin-data/clearance", "skills", "profiles/work", "workspace", "bin"):
+            (root / d).mkdir(parents=True)
+        for f in ("config.yaml", ".env", "state.db", "plugin-data/clearance/clearance.db", "profiles/work/config.yaml"):
+            (root / f).write_text("x: 1\n")
+    fb.mkdir()
+    (fb / "hermes").write_text("#!/usr/bin/env python3\nfrom hermes_cli.main import main\nmain()\n")
+    (fb / "hermes").chmod(0o755)
+    proj = h / "proj"
+    (proj / "src").mkdir(parents=True)
+    (proj / ".hermes").mkdir()
+    os.symlink(hh, proj / "lnk")
+    os.symlink(hh / "config.yaml", proj / "lnkcfg")
+    os.symlink(hh / "plugins", proj / "lnkplug")
+    os.symlink(env / "data", proj / "up")
+    os.link(hh / "config.yaml", proj / "hl")
+    os.symlink(fb / "hermes", proj / "h2")
+    sp = env / "venv" / "lib" / "site-packages"
+    for f in ("hermes_cli/__init__.py", "hermes_cli/main.py", "agent/loop.py", "tools/approval.py", "gateway/run.py",
+              "run_agent.py", "requests/__init__.py"):
+        (sp / f).parent.mkdir(parents=True, exist_ok=True)
+        (sp / f).write_text("")
+    info = sp / "hermes_agent-0.23.0.dist-info"
+    info.mkdir()
+    (info / "METADATA").write_text("Metadata-Version: 2.1\nName: hermes-agent\nVersion: 0.23.0\n")
+    (info / "RECORD").write_text("".join(f"{f},,\n" for f in (
+        "hermes_cli/__init__.py", "hermes_cli/main.py", "agent/loop.py", "tools/approval.py", "gateway/run.py",
+        "run_agent.py", "hermes_agent-0.23.0.dist-info/METADATA", "hermes_agent-0.23.0.dist-info/RECORD")))
+    monkeypatch.syspath_prepend(str(sp))
+    monkeypatch.setenv("HOME", str(h))
+    monkeypatch.setenv("HERMES_HOME", str(hh))
+    monkeypatch.setenv("PATH", str(fb) + os.pathsep + os.environ.get("PATH", ""))
+    for mod in ("hermes_constants", "hermes_cli"):
+        monkeypatch.delitem(sys.modules, mod, raising=False)
+    c.reset_hermes_targets()
+    yield type("World", (), {"env": str(env), "h": str(h), "hh": str(hh), "fb": str(fb), "proj": str(proj),
+                             "sp": str(sp)})
+    c.reset_hermes_targets()
+
+
+def _fill(w, text):
+    return (text.replace("@HH@", w.hh).replace("@H@", w.h).replace("@PROJ@", w.proj).replace("@FB@", w.fb)
+            .replace("@SP@", w.sp).replace("@ENV@", w.env))
+
+
+def wsh(w, cmd, cwd=None):
+    return sh(_fill(w, cmd), cwd=_fill(w, cwd) if cwd else w.proj, home=w.h)
+
+
+def wcode(w, code, cwd=None):
+    return kind("execute_code", {"code": _fill(w, code)}, cwd=_fill(w, cwd) if cwd else w.proj, home=w.h)
+
+
+T1_COMMANDS = [
+    "unlink ~/.hermes/./config.yaml", "sqlite3 ~/.hermes/./state.db 'delete from sessions'",
+    "pip install -t ~/.hermes/./plugins x", "crudini --set ~/.hermes/./config.yaml a b c", "trash ~/.hermes/./plugins",
+    "unlink ~/./.hermes/./config.yaml", "unlink ~/.hermes/profiles/./work/config.yaml",
+    "unlink ~/.hermes/profiles/work/../../config.yaml", "trash ~/.hermes/profiles/work/..",
+    "sqlite3 ../../../data/hh/state.db x", "vim ../../../data/hh/config.yaml", "python3 e.py ../../../data/hh/config.yaml",
+    "npx prettier --write ../../../data/hh/config.yaml", "git -C ../../../data/hh clean -fdx", "trash ../../../data/hh",
+    "find ../../../data/hh -name '*.yaml' -delete", "pip install --target=@ENV@/data/./hh/plugins x",
+    "7z x a.7z -o@ENV@/data/./hh/plugins", "ffmpeg -y -i a.mp4 @ENV@/data/./hh/config.yaml",
+    "sqlite3 src/a.db '.output @ENV@/data/./hh/config.yaml' 'select 1'",
+    "osascript -e 'do shell script \"mv @ENV@/data/./hh /tmp/z\"'", "perl -i -pe s/a/b/ @ENV@/data/./hh/config.yaml",
+    "vim ~/.hermes/{config.yaml,}", "sqlite3 ~/.hermes/{state.db,} x", "python3 e.py @ENV@/data/h{h,x}/config.yaml",
+    "vim ~/.hermes/$(echo config.yaml)", "vim ~/.hermes/$X",
+    "sqlite3 lnk/state.db x", "vim lnkcfg", "python3 e.py lnkcfg", "yt-dlp -o lnkcfg https://x", "unlink lnkcfg",
+    "git -C lnkplug/clearance checkout HEAD~9 -- .", "git mv src/a lnkcfg", "black up/hh/plugins/clearance",
+    "truncate -s 0 hl", "echo x > hl",
+]
+
+
+@pytest.mark.parametrize("cmd", T1_COMMANDS)
+def test_t1_any_program_given_a_resolved_hermes_path_is_capped(world, cmd):
+    assert wsh(world, cmd)[1] == CAP, cmd
+
+
+@pytest.mark.parametrize("cmd", ["sqlite3 ../state.db 'delete from x'", "python3 edit.py ../config.yaml",
+                                 "vim ../config.yaml", "pip install --target ../plugins evil",
+                                 "npm install --prefix ../plugins evil", "perl -pi -e s/a/b/ ../config.yaml"])
+def test_t1_relative_paths_from_a_workspace_are_capped(world, cmd):
+    assert wsh(world, cmd, cwd="@HH@/workspace")[1] == CAP, cmd
+
+
+@pytest.mark.parametrize("cmd", ["trash ../../../data", "tar xf a.tar -C @ENV@/data", "unzip a.zip -d @ENV@",
+                                 "git -C @ENV@/data clean -fdx", "ln -s ../../../data x", "chflags -R uchg up",
+                                 "find ../../../data -delete",
+                                 "umount @ENV@/data"])
+def test_t1_a_folder_above_a_hermes_home_is_capped(world, cmd):
+    assert wsh(world, cmd)[1] == CAP, cmd
+
+
+@pytest.mark.parametrize("cmd", ["vim @HH@/*", "sqlite3 @HH@/s*.db x", "vim @ENV@/data/hh/config.y?ml",
+                                 "python3 e.py @ENV@/*/*/*", "python3 e.py @ENV@/data/hh/pl*/clearance/__init__.py",
+                                 "rm -rf @ENV@/data/*", "rm -rf @ENV@/d*", "rm -rf lnk/*", "rm -rf up/h*",
+                                 "rm -rf lnkplug/*", "chmod -R 000 up/*", "rm -rf ~/.h*", "rm -rf ../.[a-z]*",
+                                 "echo x > lnk/c*"])
+def test_t6_t7_globs_and_links_that_reach_hermes_are_capped(world, cmd):
+    assert wsh(world, cmd)[1] == CAP, cmd
+
+
+T2_CODE = [
+    "open('../../../data/hh/config.yaml','w')", "import shutil; shutil.rmtree('../../../data')",
+    "import os; os.rename('../../../data', '../../../d2')", "open('lnkcfg','w')", "open('lnk/config.yaml','w')",
+    "import shutil; shutil.rmtree('lnkplug/clearance')", "import os; os.symlink('../../../data/hh','x')",
+    "import os; os.remove(os.path.expanduser('~/.hermes/./config.yaml'))",
+    "import os; os.remove(os.path.join('@ENV@','data','hh','config.yaml'))",
+    "import os; os.remove('@ENV@/data' + '/hh/config.yaml')", "import os; os.remove('@ENV@/data/' 'hh/config.yaml')",
+    "import pathlib; (pathlib.Path('@ENV@')/'data'/'hh'/'config.yaml').unlink()",
+    "import shutil; shutil.rmtree('@ENV@/data')",
+]
+
+
+@pytest.mark.parametrize("code", T2_CODE)
+def test_t2_paths_written_in_code_are_resolved(world, code):
+    assert wcode(world, code)[1] == CAP, code
+    assert wsh(world, 'python3 -c "' + code + '"')[1] == CAP, code
+
+
+def test_t2_relative_code_paths_from_a_workspace(world):
+    assert wcode(world, "open('../config.yaml','w').write('')", cwd="@HH@/workspace")[1] == CAP
+    assert wcode(world, "import shutil; shutil.rmtree('../plugins/clearance')", cwd="@HH@/workspace")[1] == CAP
+
+
+@pytest.mark.parametrize("cmd", [
+    "caffeinate hermes -p default config set a b", "caffeinate -i hermes plugins disable clearance",
+    "arch -arm64 hermes config set a b", "flock /tmp/l hermes plugins disable clearance",
+    "script -q /dev/null hermes config set a b", "ionice -c3 hermes gateway stop", "chrt 1 hermes update",
+    "python3 -mhermes_cli.main config set plugins.enabled []", "python3 -m hermes_cli.main plugins disable clearance",
+    "python3 -c \"import runpy; runpy.run_module('hermes_cli.main')\"", "caffeinate @FB@/hermes config set a b",
+    "caffeinate ./h2 config set a b", "${H}ermes config set a b", "h=herm; ${h}es plugins disable clearance",
+    "$(echo hermes) config set a b", "$X plugins disable clearance", "herm?s config set a b",
+    "{hermes,x} config set a b", "caffeinate hermes-agent run", "watchexec -- hermes config set a b",
+])
+def test_t3_hermes_cli_behind_any_launcher_is_capped(world, cmd):
+    assert wsh(world, cmd) == ("self:hermes", CAP), cmd
+
+
+@pytest.mark.parametrize("code", [
+    'import subprocess; subprocess.run("hermes -p default config set a b".split())',
+    'import subprocess; h = "hermes"; subprocess.run([h, "plugins", "disable", "clearance"])',
+    'import os; os.system("caffeinate hermes --profile x plugins disable clearance")',
+])
+def test_t3_hermes_cli_run_from_code_is_capped(world, code):
+    assert wcode(world, code) == ("self:hermes", CAP), code
+
+
+@pytest.mark.parametrize("cmd", ["caffeinate hermes status", "caffeinate hermes --version",
+                                 "nice hermes config get model", "caffeinate hermes clearance status",
+                                 "hermes clearance explain", "hermes config path"])
+def test_t3_the_reads_of_hermes_stay_allowed(world, cmd):
+    assert wsh(world, cmd)[1] != CAP, cmd
+
+
+@pytest.mark.parametrize("cmd", ["cp -r hermes hermes.bak", "pytest tests/hermes", "pip install -U hermes-agent",
+                                 "docker pull nousresearch/hermes-agent", "git commit -m 'hermes plugins cleanup'",
+                                 "mkdir hermes", "git checkout hermes", "grep -r hermes_cli .", "cat hermes config",
+                                 "$PY script.py", "npm test", "python3 manage.py migrate"])
+def test_t3_words_that_only_look_like_hermes_stay_ordinary(world, cmd):
+    assert wsh(world, cmd)[1] != CAP, cmd
+
+
+@pytest.mark.parametrize("path", ["@FB@/hermes", "h2", "@ENV@/venv/bin/hermes", "/opt/homebrew/bin/hermes",
+                                  "@SP@/hermes_cli/main.py", "@SP@/agent/loop.py", "@SP@/tools/approval.py",
+                                  "@SP@/gateway/run.py", "@SP@/run_agent.py", "@SP@/tools/new_tool.py",
+                                  "@SP@/hermes_agent-0.23.0.dist-info/RECORD"])
+def test_t4_the_hermes_program_and_its_whole_package_are_protected_files(world, path):
+    assert kind("write_file", {"path": _fill(world, path), "content": "x"}, cwd=world.proj, home=world.h) == (
+        "self:hermes", CAP), path
+    assert kind("patch", {"patch": "*** Update File: " + _fill(world, path) + "\n@@\n-x\n+y"}, cwd=world.proj,
+                home=world.h)[1] == CAP, path
+    assert wsh(world, "sd a b " + path)[1] == CAP, path
+
+
+def test_t4_other_packages_and_hard_links(world):
+    assert kind("write_file", {"path": world.sp + "/requests/__init__.py", "content": "x"}, cwd=world.proj,
+                home=world.h)[1] != CAP
+    assert kind("write_file", {"path": "hl", "content": "x"}, cwd=world.proj, home=world.h)[1] == CAP
+    assert kind("patch", {"patch": "*** Add File: hl\n+x"}, cwd=world.proj, home=world.h)[1] == CAP
+    assert kind("patch", {"patch": '*** Update File: "lnkcfg"\n@@\n-x\n+y'}, cwd=world.proj, home=world.h)[1] == CAP
+
+
+@pytest.mark.parametrize("tool,args", [
+    ("text_to_speech", {"text": "x", "output_path": "@HH@/config.yaml"}),
+    ("text_to_speech", {"text": "x", "output_path": "~/.hermes/plugins/clearance/__init__.py"}),
+    ("image_generate", {"prompt": "x", "output_path": "@ENV@/data/./hh/config.yaml"}),
+    ("xai_video_edit", {"video": "x", "output_path": "lnkcfg"}),
+    ("kanban_create", {"title": "x", "workspace": "dir:@HH@"}),
+    ("kanban_complete", {"summary": "x", "artifacts": ["@HH@/config.yaml"]}),
+    ("cronjob_manage", {"action": "create", "script": "@HH@/plugins/x.py"}),
+    ("delegate_task", {"goal": "run hermes plugins disable clearance", "toolsets": ["terminal"]}),
+    ("computer_use", {"action": "type", "text": "hermes plugins disable clearance\n"}),
+    ("browser_download", {"url": "http://x", "path": "lnkcfg"}),
+    ("some_plugin_tool", {"file": "lnkcfg"}),
+    ("some_plugin_tool", {"cmd": "hermes plugins disable clearance"}),
+    ("mcp_fs_write_file", {"path": "../../../data/hh/config.yaml", "content": "x"}),
+    ("mcp_fs_write_file", {"path": "lnkcfg", "content": "x"}),
+    ("mcp_fs_edit_file", {"dir": "lnk", "name": "config.yaml"}),
+    ("mcp_fs_write_file", {"path": "@FB@/hermes"}),
+    ("mcp_fs_move_file", {"source": "../../../data", "destination": "../../../d2"}),
+])
+def test_t5_tools_told_where_to_write_are_capped(world, tool, args):
+    filled = {k: (_fill(world, v) if isinstance(v, str) else [_fill(world, x) for x in v]) for k, v in args.items()}
+    assert kind(tool, filled, cwd=world.proj, home=world.h)[1] == CAP, (tool, args)
+
+
+def test_t5_ordinary_native_tool_calls_are_unchanged(world):
+    k = lambda tool, args: kind(tool, args, cwd=world.proj, home=world.h)
+    assert k("text_to_speech", {"text": "hello", "output_path": "out/a.mp3"}) == ("media:generate", LOW)
+    assert k("image_generate", {"prompt": "a hermes scarf, config.yaml style"}) == ("media:generate", LOW)
+    assert k("memory", {"action": "add", "target": "memory", "content": "the config lives in ~/.hermes/config.yaml"}) == (
+        "memory:write", LOW)
+    assert k("kanban_create", {"title": "fix /api route", "workspace": "dir:" + world.proj}) == ("kanban:create", LOW)
+    assert k("delegate_task", {"goal": "summarise the README"}) == ("delegate:task", MEDIUM)
+    assert k("send_message", {"text": "see ~/.hermes/config.yaml"}) == ("message:send", HIGH)
+
+
+def test_what_must_stay_free(world):
+    """Pure reads of Hermes' files, a `.hermes` folder inside a project, workspaces below a home, the user's home."""
+    for cmd in ("cat ~/.hermes/config.yaml", "less @HH@/config.yaml", "grep -r x @HH@/plugins", "ls @ENV@/data",
+                "cat lnkcfg", "ls ~", "cat ../../../data/hh/config.yaml", "head -3 ~/.hermes/./config.yaml"):
+        assert wsh(world, cmd)[1] == FREE, cmd
+    for cmd in ("touch @HH@/workspace/notes.md", "python3 build.py @HH@/workspace/out", "mkdir -p .hermes",
+                "python3 tool.py .hermes", "touch ~/notes.txt", "python3 e.py ~/proj/src/a.py", "npm test",
+                "python3 e.py src/a.py", "sqlite3 src/a.db 'select 1'", "vim src/a.py", "pip install -t vendor x",
+                "git -C src status", "tar xf a.tar -C src", "rm -rf src/*", "black .", "ruff check --fix src"):
+        assert wsh(world, cmd)[1] != CAP, cmd
+    assert wsh(world, "touch notes.md", cwd="@HH@/workspace")[1] != CAP
+    assert wcode(world, "open('src/a.txt','w').write('/'.join(['a','b']))")[1] == MEDIUM
+    assert wcode(world, "import os; print(os.listdir('/'))")[1] == MEDIUM
+    assert kind("write_file", {"path": "src/a.py", "content": "x"}, cwd=world.proj, home=world.h) == ("file:write", LOW)
+
+
+def test_docker_home_stays_free(tmp_path, monkeypatch):
+    """Docker: HOME is the Hermes home. The home itself is not a level; its entries are."""
+    d = tmp_path / "opt" / "data"
+    (d / "proj").mkdir(parents=True)
+    (d / "config.yaml").write_text("x")
+    monkeypatch.setenv("HOME", str(d))
+    monkeypatch.setenv("HERMES_HOME", str(d))
+    monkeypatch.delitem(sys.modules, "hermes_constants", raising=False)
+    run = lambda cmd, cwd: sh(cmd, cwd=str(cwd), home=str(d))[1]
+    assert run("python3 e.py ~", d / "proj") != CAP and run("touch ~/notes.txt", d / "proj") != CAP
+    assert run("python3 e.py ..", d / "proj") != CAP and run("npm test", d) != CAP
+    assert run("vim ../config.yaml", d / "proj") == CAP and run("sqlite3 ~/./state.db x", d / "proj") == CAP
+
+
+@pytest.mark.parametrize("cmd", [
+    "python3 e.py @ENV@/data/h$X/config.yaml", "python3 e.py @ENV@/data/h$(echo h)/config.yaml",
+    "npx prettier --write '@ENV@/**/*.yaml'", "perl -e 'unlink \"$ENV{HERMES_HOME}/config.yaml\"'",
+    "ruby -e 'File.delete(ENV[\"HERMES_HOME\"] + \"/config.yaml\")'",
+    "awk 'BEGIN{f=ENVIRON[\"HERMES_HOME\"] \"/config.yaml\"; printf \"\" > f}'",
+    "osascript -e 'tell application \"Finder\" to delete POSIX file \"@ENV@/data\"'",
+    "sqlite3 src/a.db '.backup lnkcfg'", "cd @ENV@/data && tar xf ~/proj/a.tar",
+    "perl -e 'rename \"../../../data\", \"../../../d2\"'",
+])
+def test_t1_computed_ends_recursive_globs_and_paths_inside_strings(world, cmd):
+    assert wsh(world, cmd)[1] == CAP, cmd
+
+
+def test_ordinary_commands_are_not_caught_by_the_resolved_check(world):
+    """A lone `/` given as a separator, a read from the root, a branch or a folder named like the program, a prose
+    mention: none of them is a path to Hermes."""
+    for cmd in ("cut -d / -f 2 a.txt > out.txt", "tr / _ < a.txt > b.txt", "awk -F/ '{print $2}' a.txt > out.txt",
+                "paste -d / a b > c", "git commit -m 'fix / handling in router'", "git merge hermes --no-ff",
+                "git commit -m 'fix hermes_cli import'", "sqlite3 app.db 'select * from t where p like \"/home/%\"'",
+                "docker run -v /var/run/docker.sock:/var/run/docker.sock img", "rsync -a src/ /tmp/backup/",
+                "curl -s https://example.com/ -o out.html", "sed -i 's/a/b/' src/a.txt", "ln -s ../shared/c.json c.json",
+                "python3 x.py ~", "python3 x.py ..", "git clone https://github.com/NousResearch/hermes-agent",
+                "python3 -c \"import os; os.makedirs('build/x', exist_ok=True)\"", "make install PREFIX=/tmp/x"):
+        assert wsh(world, cmd)[1] != CAP, cmd
+    assert wsh(world, "find / -name hermes 2>/dev/null")[1] == FREE
+    assert wsh(world, "git -C @ENV@/data status")[1] == FREE          # a read above a home is a read
+    assert wsh(world, "find @ENV@/data -name x -delete")[1] == CAP
+    assert wsh(world, "git bisect run hermes config set a b") == ("self:hermes", CAP)
