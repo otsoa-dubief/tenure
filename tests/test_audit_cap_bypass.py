@@ -38,7 +38,7 @@ def home(tmp_path, monkeypatch):
 
 # ------------------------------------------------------------------- A: read-only commands that run chosen code
 @pytest.mark.parametrize("cmd", [
-    "PATH=bin ls", "PATH=./bin:$PATH cat a.txt", "env PATH=bin ls", "export PATH=$PWD/bin:$PATH",
+    "PATH=bin ls", "PATH=./bin:$PATH cat a.txt", "env PATH=bin ls", "export PATH=$(pwd)/bin:$PATH",
     "PATH+=:bin; ls", "LD_PRELOAD=./x.so cat a", "DYLD_INSERT_LIBRARIES=./x.dylib ls", "BASH_ENV=./x bash s.sh",
     "GIT_CONFIG_GLOBAL=./x git status", "GIT_EXTERNAL_DIFF=./x git diff", "PAGER=./x git log", "LESSOPEN='|./x %s' less a",
     "declare -x PATH=bin", "PYTHONSTARTUP=x python3 a.py", "NODE_OPTIONS='--require ./x' node a.js",
@@ -335,3 +335,74 @@ def test_g_reads_are_free_and_port_forward_asks():
         assert sh(cmd)[1] == FREE, cmd
     assert sh("kubectl port-forward svc/web 8080:80")[1] == MEDIUM
     assert sh("git config core.fsmonitor ./x")[1] == CAP
+
+
+# ------------------------------------------------------------------- control pass 2: repository paths only
+def test_f_path_exemption_is_for_repository_services_only(home):
+    cfg = f"{home}/config.yaml"
+    assert kind("mcp__slack__upload_file", {"path": cfg})[1] == CAP
+    assert kind("mcp__notion__get_page", {"path": cfg})[1] == CAP
+    assert kind("mcp__github__get_file_contents", {"path": cfg})[1] == CAP          # no owner/repo
+    assert kind("mcp__github__get_file_contents", {"owner": "o", "repo": "r", "path": cfg})[1] == CAP   # absolute
+    assert kind("mcp__github__get_file_contents", {"owner": "o", "repo": "r", "path": "~/.hermes/config.yaml"})[1] \
+        == CAP
+    assert kind("mcp__github__get_file_contents", {"owner": "o", "repo": "r", "path": "src/a.py"})[1] == FREE
+
+
+@pytest.mark.parametrize("cmd", [
+    "git -c core.editor='vim -u x.vim' commit", "git -c core.editor='nvim -S s.vim' commit",
+    "git -c core.editor='emacs -l x.el' commit", "git -c core.editor='emacs --eval x' commit",
+    "git -c core.pager='less --lesskey-src=k' log", "GIT_EDITOR='code --extensions-dir e' git commit",
+    "GIT_SSH_COMMAND='ssh -F cfg' git fetch", "GIT_SSH_COMMAND='ssh -o ProxyCommand=x' git fetch",
+    "GIT_SSH_COMMAND='ssh -oLocalCommand=x' git fetch",
+])
+def test_f_known_tool_options_that_load_code_are_capped(cmd):
+    assert sh(cmd)[1] == CAP
+
+
+def test_f_known_tool_naming_the_hermes_home_is_capped(home):
+    assert sh(f"git -c core.editor='vim {home}/config.yaml' commit")[1] == CAP
+
+
+@pytest.mark.parametrize("cmd", [
+    "GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no' git fetch",
+    "GIT_SSH_COMMAND='ssh -o IdentitiesOnly=yes -i ~/.ssh/k' git fetch",
+    "git -c core.editor='vim -n' commit",
+])
+def test_f_harmless_tool_options_stay_ordinary(cmd):
+    assert sh(cmd)[1] != CAP
+
+
+@pytest.mark.parametrize("cmd", ["git -c core.pager='less -S' log", "git -c core.pager='less -RS' log",
+                                 "git -c core.editor='nano -l' commit"])
+def test_f_short_options_are_read_per_tool(cmd):
+    assert sh(cmd)[1] != CAP
+
+
+def test_f_less_lesskey_short_option_is_capped():
+    assert sh("git -c core.pager='less -k keys' log")[1] == CAP
+
+
+@pytest.mark.parametrize("cmd", [
+    "git -c pager.log=false log", "git -c pager.branch=true branch", "git -c core.pager= log",
+    "git config --global pager.diff false", "git config sequence.editor interactive-rebase-tool",
+    "git config lfs.locksverify false", "git config lfs.concurrenttransfers 8",
+])
+def test_f_harmless_settings_are_not_capped(cmd):
+    assert sh(cmd)[1] != CAP
+
+
+@pytest.mark.parametrize("cmd", ["git config lfs.customtransfer.x.path ./x",
+                                 "git config lfs.extension.x.clean ./x", "git -c core.editor=false commit"])
+def test_f_lfs_programs_stay_capped(cmd):
+    assert sh(cmd)[1] == CAP
+
+
+@pytest.mark.parametrize("cmd", ['export PATH="$PWD/node_modules/.bin:$PATH"', "PATH=${PWD}/bin:$PATH make"])
+def test_f_working_folder_before_path_asks(cmd):
+    assert sh(cmd)[1] == HIGH
+
+
+@pytest.mark.parametrize("cmd", ['export PATH="$(npm bin):$PATH"', 'PATH="$PWD/../x:$PATH" ls'])
+def test_f_computed_folders_before_path_stay_capped(cmd):
+    assert sh(cmd)[1] == CAP

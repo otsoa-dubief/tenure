@@ -198,15 +198,16 @@ type override lowers them (`self:*`, `secrets:*`, `file:sensitive`):
   capped when their literal part names Hermes. Setting `CDPATH` is capped.
 - Code an ordinary command would run without asking: assigning `PATH` with a relative or computed folder before
   the system (adding after `$PATH`, or putting only system folders and `~/.local/bin` first, is ordinary; another
-  folder of your own first, such as `~/.cargo/bin`, asks at high stakes), the dynamic loader's variables (`LD_*`,
+  folder of your own first, such as `~/.cargo/bin` or `$PWD/node_modules/.bin`, asks at high stakes), the dynamic loader's variables (`LD_*`,
   `DYLD_*`), shell start-up variables, an editor, pager, ssh or browser setting that names anything but a known
   editor, pager or helper (`EDITOR=vim`, `PAGER='less -R'`, `ssh -i key` are ordinary; a shell, an interpreter,
-  ssh's `-o`/`-F` are not), `LESS` with `+` or `!`, `NODE_OPTIONS` with `--require` or `--import`, git's own (`GIT_*`, except
+  options that load a file, such as `vim -u`, `emacs -l` or `less -k`, ssh's `-F` and
+  its `-o` options that run a command, are not), `LESS` with `+` or `!`, `NODE_OPTIONS` with `--require` or `--import`, git's own (`GIT_*`, except
   author, committer and tracing), `HOME`, `XDG_CONFIG_*` or `HERMES_*`: as a prefix, behind `env` (`-S` too),
   `sudo` or `timeout`, with `export`, or through a builtin that assigns (`printf -v`, `read`, `for`); git
   configuration that can run a program (`git -c`, `clone --config`, `--template`, `--upload-pack`,
   `--receive-pack`, or `git config` on a key outside a list of keys that cannot; an editor, pager, diff or
-  merge tool, or credential helper key naming a known tool is allowed), and the files git reads it from (`.git/config`, `.git/hooks/`, those
+  merge tool, or credential helper key naming a known tool is allowed, and so is turning a pager on or off), and the files git reads it from (`.git/config`, `.git/hooks/`, those
   of submodules and work trees, `~/.gitconfig`, `~/.config/git/config`), whoever writes them (`sed -i`,
   `execute_code`); shell start-up files (`~/.zshrc`, `~/.bashrc`, `~/.profile`...), login agents and user
   services, Python's `sitecustomize.py`, and `~/.local/bin/`. A program given by a path outside the system's
@@ -216,8 +217,8 @@ type override lowers them (`self:*`, `secrets:*`, `file:sensitive`):
 - A recursive copy (`cp -r`, `ditto`, `rsync`) or a git work tree into your home or into a folder above a Hermes
   home asks at high stakes, and is capped when it names a `.hermes` folder. Code piped into a shell or an
   interpreter (`| sh`, `| python3`, `bash -s`) asks at high stakes. An MCP or plugin tool whose arguments name one
-  of these files on this machine is capped, whatever its name says (the `path` of a known remote service, such as
-  a file in a GitHub repository, is not a file here; its local file arguments are checked); a tool whose name saves to disk (`download`, `export`), or that is told where
+  of these files on this machine is capped, whatever its name says (the relative `path` of a GitHub, GitLab or Bitbucket tool
+  given an owner and a repository is a file in that repository, not here; every other argument is checked); a tool whose name saves to disk (`download`, `export`), or that is told where
   to save (`output_path`, `save_to`), is never a free read.
 - Paths are compared the way a case-insensitive file system compares them: `.HERMES` and `.hermeſ` (with a long
   s) are `.hermes`.
@@ -283,6 +284,8 @@ enabled: true
   clearance's own approvals skip the smart guardian and always reach you. With `--yolo`, `off` or cron, Hermes
   settles the ask itself and nothing is learned; a verdict given by the smart guardian on Hermes' own prompts
   counts for nothing.
+- **Git hooks.** `git config core.hooksPath .husky` (the husky set-up) is capped: it always asks.
+  Turning a pager on or off (`pager.log false`) is ordinary.
 - Approvals count only when a person answers. Records are per model and per Hermes profile.
 - The guarantee covers errors you would refuse when asked. An error nobody would notice cannot be counted.
 

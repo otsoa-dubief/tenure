@@ -2400,7 +2400,7 @@ GIT_SAFE_KEYS = re.compile(r"user\.(?:name|email|signingkey)|color\..+|core\.(?:
                            r"|remote\.[^.]+\.(?:url|pushurl|fetch)|commit\.template|status\.\w+|gc\.auto"
                            r"|credential\.username|http\.version|rebase\.autostash|commit\.verbose|diff\.colormoved"
                            r"|core\.whitespace|user\.useconfigonly|http\.postbuffer|url\..+\.insteadof|delta\..+"
-                           r"|gpg\.format")
+                           r"|gpg\.format|lfs\.[^.]+")
 # Options that make `git config` a read on their own; display options (-z, --show-origin...) do not.
 GIT_CONFIG_READS = {"--get", "--get-all", "--get-regexp", "--get-urlmatch", "-l", "--list", "--get-color",
                     "--get-colorbool"}
@@ -2418,11 +2418,15 @@ KNOWN_TOOLS = {"vim", "nvim", "vi", "nano", "emacs", "emacsclient", "code", "cod
                "zed", "hx", "micro", "kak", "less", "more", "most", "cat", "bat", "delta", "diff-so-fancy", "ssh",
                "true", ":", "vimdiff", "nvimdiff", "meld", "kdiff3", "opendiff", "p4merge", "osxkeychain", "store",
                "cache", "manager", "manager-core", "libsecret", "gpg", "gpg2", "open", "xdg-open", "firefox",
-               "chromium", "google-chrome"}
+               "chromium", "google-chrome", "interactive-rebase-tool"}
 # Options of these tools that start another program (an editor command, a pager command), and for ssh, those that
 # read another configuration or run a local command.
-TOOL_RISKY_OPTS = re.compile(r"(?:^|\s)(?:--?exec\S*|-c\b|--cmd\b|\+)")
-SSH_RISKY_OPTS = re.compile(r"(?:^|\s)-[A-Za-z]*[oF]|proxycommand|localcommand|proxyjump", re.I)
+TOOL_RISKY_OPTS = re.compile(r"(?:^|\s)(?:--?exec\S*|-c\b|--cmd\b|\+|--load\b|--eval\b|--init-directory"
+                             r"|--extensions-dir|--lesskey)")
+# Short options that load a file of the agent's choice, per tool (vim -u/-S, emacs -l, less -k).
+TOOL_LOAD_OPTS = {"vim": "uS", "nvim": "uS", "vi": "uS", "vimdiff": "uS", "nvimdiff": "uS", "emacs": "l", "less": "k"}
+SSH_RISKY_OPTS = re.compile(r"(?:^|\s)-[A-Za-z]*F|proxycommand|localcommand|knownhostscommand|proxyjump"
+                            r"|(?:^|[\s=o])(?:include|match)\b", re.I)
 
 
 def _bare_program(value: str) -> bool:
@@ -2439,6 +2443,8 @@ def _bare_program(value: str) -> bool:
     name = os.path.basename(first)
     if name == "ssh" and SSH_RISKY_OPTS.search(" " + rest):
         return False
+    if name in TOOL_LOAD_OPTS and re.search(r"(?:^|\s)-[A-Za-z]*[%s]" % TOOL_LOAD_OPTS[name], rest):
+        return False
     return name in KNOWN_TOOLS and not TOOL_RISKY_OPTS.search(" " + rest)
 
 
@@ -2447,6 +2453,9 @@ def _git_key_safe(key: str, value) -> bool:
     if key.startswith("alias."):
         return value is not None and not value.lstrip("'\"").startswith("!")
     if GIT_PROGRAM_KEYS.fullmatch(key):
+        if (key.startswith("pager.") or key == "core.pager") and value is not None \
+                and value.strip().strip("'\"").casefold() in ("", "true", "false"):
+            return True                                      # a pager switched on or off
         return value is not None and _bare_program(value)
     return bool(GIT_SAFE_KEYS.fullmatch(key))
 
@@ -2784,6 +2793,10 @@ def _value_hijacks(name: str, value: str) -> str | None:
         mark = next((n for n, x in enumerate(parts) if x in ("$PATH", "${PATH}")), len(parts))
         verdict = None
         for x in parts[:mark]:
+            work = re.fullmatch(r"\$(?:PWD|\{PWD\})((?:/[\w.+-]+)+)", x)
+            if work and not any(part in (".", "..") for part in work.group(1).split("/")):
+                verdict = HIGH                               # a folder of the working tree, before the system
+                continue
             full = _expand(x, home).rstrip("/")
             if full in SYSTEM_BIN_DIRS or full == home + "/.local/bin":
                 continue
@@ -3371,17 +3384,20 @@ def _saves_to_disk(args: dict) -> bool:
     return False
 
 
-# Services whose paths live on the service, not on this machine (a file in a GitHub repository, a Notion page).
-REMOTE_SERVERS = {"github", "gitlab", "bitbucket", "notion", "linear", "jira", "confluence", "asana", "trello", "slack",
-                  "discord", "telegram", "whatsapp", "gmail", "outlook", "mail"}
-
-
 REMOTE_PATH_KEYS = {"path", "paths", "file_path_in_repo", "repo_path"}   # a path inside the service's repository
 
 
-def _remote(server: str | None) -> bool:
-    """The server is one of the known services by its exact name: its `path` arguments live on the service."""
-    return (server or "").casefold() in REMOTE_SERVERS
+REPOSITORY_SERVERS = {"github", "gitlab", "bitbucket"}
+
+
+def _repository_path(server: str | None, args: dict, value) -> bool:
+    """A `path` argument names a file inside a hosted repository: a repository service by its exact name, given an
+    owner and a repository, and a relative value (never absolute, `~`, `$` or file:)."""
+    if (server or "").casefold() not in REPOSITORY_SERVERS or not {"owner", "repo"} <= set(args):
+        return False
+    values = value if isinstance(value, list) else [value]
+    return all(isinstance(v, str) and not v.strip().startswith(("/", "~", "$", "\\")) and ":" not in v
+               for v in values)
 
 
 def _args_hit(args: dict, cwd, home: str, reading: bool = False) -> tuple[str, str] | None:
@@ -3448,8 +3464,9 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         split = _mcp_split(tool_name)
         name_words = _words(split[1]) if split else set()
         checked = args
-        if split and _remote(split[0]) and not (name_words & DISK_VERBS):
-            checked = {k: v for k, v in args.items() if not (isinstance(k, str) and k.casefold() in REMOTE_PATH_KEYS)}
+        if split and not (name_words & DISK_VERBS):
+            checked = {k: v for k, v in args.items() if not (isinstance(k, str) and k.casefold() in REMOTE_PATH_KEYS
+                                                             and _repository_path(split[0], args, v))}
         hit = _args_hit(checked, cwd, home,
                         reading=not (name_words & (HIGH_VERBS | MEDIUM_VERBS | DISK_VERBS | {"delete", "remove", "move",
                                                                                            "rename", "copy"})))
