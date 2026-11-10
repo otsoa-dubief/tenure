@@ -127,7 +127,87 @@ def store_() -> store.Store:
     with ST.opening:
         if ST.store is None or ST.store_path != path:
             ST.store, ST.store_path = store.Store(path), path
+            try:
+                _check_copied(ST.store)
+            except Exception as e:                 # never block the agent on this check; it runs again next start
+                log.warning("tenure: could not check whether this record was copied: %s", e)
         return ST.store
+
+
+HOME_META, STORE_ID_META, COPIED_META = "profile:home", "store:id", "profile:copied_at"
+
+
+def _home_mark(home: str) -> str:
+    """What the database keeps of its Hermes home: a hash, never the path (the ledger and meta hold no paths)."""
+    return hashlib.sha256(home.encode("utf-8")).hexdigest()[:32]
+
+
+def _sibling_homes(home: str) -> list[str]:
+    """The other profiles of this Hermes install: the root and every ``<root>/profiles/<name>``, where a clone or a
+    duplicated Bot lands."""
+    parent = os.path.dirname(home)
+    root = os.path.dirname(parent) if os.path.basename(parent) == "profiles" else home
+    out = [root]
+    try:
+        out += [e.path for e in os.scandir(os.path.join(root, "profiles")) if e.is_dir()]
+    except OSError:
+        pass
+    return [os.path.realpath(h) for h in out if os.path.realpath(h) != home]
+
+
+def _store_id_at(home: str) -> str | None:
+    """The store id of the tenure database of another Hermes home, read only; None when there is none."""
+    path = os.path.join(home, "plugin-data", PREFIX, "tenure.db")
+    if not os.path.exists(path):
+        return None
+    import sqlite3
+    try:
+        db = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=2)
+        try:
+            row = db.execute("SELECT value FROM meta WHERE key = ?", (STORE_ID_META,)).fetchone()
+        finally:
+            db.close()
+    except sqlite3.Error:
+        return None
+    return row[0] if row else None
+
+
+def _check_copied(st: store.Store) -> None:
+    """A record copied into another profile (``hermes profile create --clone-all``, the desktop's Duplicate Bot)
+    must not carry earned autonomy over silently: the copy is another agent setup (its own SOUL, skills, tools). The
+    database remembers a hash of the Hermes home it belongs to and a random store id. Opened from another home
+    while another profile of the same install still holds the same id, it is a copy: a ``copy`` event is logged (replayed by passports), every type
+    restarts as after a model change (half the series, provisional; strict mode: empty), the original's undo
+    snapshots and keys are dropped, and the copy gets ids and keys of its own. The original no longer existing means
+    the profile moved (a restored backup, a renamed folder): nothing changes."""
+    home = os.path.realpath(_hermes_home())
+    mark = _home_mark(home)
+    recorded, sid = st.get_meta(HOME_META), st.get_meta(STORE_ID_META)
+    if recorded == mark and sid:
+        return
+    copied = bool(recorded and sid and any(_store_id_at(h) == sid for h in _sibling_homes(home)))
+    with st.transaction():
+        if copied:
+            cfg = settings()
+            sync_settings(st, cfg)
+            strict = bool(cfg["strict"])
+            st.log({"event": "copy", "mode": "strict" if strict else "carry"})
+            for agent, s in st.states():
+                st.put_state(agent, rule.carry_over(s, n_new=params.required_n(cfg["risks"], s.stakes), veto=False,
+                                                    strict=strict))
+            st.db.execute("UPDATE undo SET undone = 1 WHERE undone = 0")
+            st.db.execute("DELETE FROM meta WHERE key = ?", (UNDO_KEY,))
+            st.set_meta(COPIED_META, str(time.time()))
+        if copied or not sid:
+            st.set_meta(STORE_ID_META, secrets.token_hex(16))
+        st.set_meta(HOME_META, mark)
+    if copied:
+        import shutil
+        shutil.rmtree(os.path.join(data_dir(), "undo"), ignore_errors=True)
+        try:
+            os.remove(os.path.join(data_dir(), passport.KEY_FILE))
+        except FileNotFoundError:
+            pass
 
 
 UNDO_KEY = "undo:hmac-key"

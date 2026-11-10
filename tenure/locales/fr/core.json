@@ -172,6 +172,7 @@
     "one": "Preuves : {n} entrée, chaîne intacte.",
     "other": "Preuves : {n} entrées, chaîne intacte."
   },
+  "cli.status.copied": "Ce dossier a été copié depuis un autre profil le {date} : l'autonomie acquise n'a pas suivi. Chaque type d'action remonte, avec ses propres clés.",
   "cli.status.disabled": "tenure est désactivé ({setting}: false).",
   "cli.status.empty": "Aucun type d'action n'a encore d'historique. Les lectures ne demandent jamais ; tout le reste demande jusqu'à ce que son type gagne son autonomie.",
   "cli.status.guarantee": "erreurs non vérifiées : moins de {rate} de ses actions",

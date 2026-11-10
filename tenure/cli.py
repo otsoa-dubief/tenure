@@ -205,6 +205,9 @@ def status_text(agent: str | None = None, *, profile: str | None = None, model: 
     header = ("cli.status.header.profile" if profile else "cli.status.header.here") + ("_strict" if cfg["strict"]
                                                                                         else "")
     lines = [tr(header, profile=profile, preset=cfg["preset"], spot=round(1 / cfg["spot"]))]
+    copied = None if profile else st.get_meta(core.COPIED_META)
+    if copied:
+        lines.append(tr("cli.status.copied", date=time.strftime("%Y-%m-%d", time.localtime(float(copied)))))
     why = None if profile else core.nobody_answers()
     if why:
         lines.append(tr("cli.status.paused", why=why))

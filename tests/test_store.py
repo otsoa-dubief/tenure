@@ -357,7 +357,7 @@ def test_open_readonly_rejects_wrong_schema(tmp_path):
 
 
 def test_log_validates_event_kind(st):
-    assert {"settings", "outcome", "agent", "revoke"} == set(store.INPUT_KINDS)
+    assert {"settings", "outcome", "agent", "revoke", "copy"} == set(store.INPUT_KINDS)
     with st.transaction():
         for k in sorted(store.INPUT_KINDS | store.DERIVED_KINDS):
             st.log({"event": k})

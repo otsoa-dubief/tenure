@@ -150,6 +150,7 @@
   "cli.status.chain_ok": {
     "other": "证据：{n} 条，哈希链完整。"
   },
+  "cli.status.copied": "此记录于 {date} 从另一个配置文件复制而来：已获得的自主权不会随之转移。每个操作类型都要重新晋升，并使用自己的密钥。",
   "cli.status.disabled": "tenure 已禁用（{setting}: false）。",
   "cli.status.empty": "还没有操作类型有记录。读取从不询问；其他操作都会询问，直到其类型赢得自主权。",
   "cli.status.guarantee": "未经检查的错误低于其操作的 {rate}",

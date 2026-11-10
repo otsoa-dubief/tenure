@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS stats (agent TEXT NOT NULL, day TEXT NOT NULL, action
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS ledger (seq INTEGER PRIMARY KEY AUTOINCREMENT, at REAL, event TEXT, prev TEXT, hash TEXT);
 """
-INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke"})
+INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke", "copy"})
 DERIVED_KINDS = frozenset({"tier", "trial", "confirmed", "revoked", "neutral_expired"})   # display only
 STAT_FIELDS = ("actions", "checked", "alone", "faults")
 PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible", "decision", "phase", "rule_key",

@@ -172,6 +172,7 @@
     "one": "Evidencia: {n} entrada, cadena intacta.",
     "other": "Evidencia: {n} entradas, cadena intacta."
   },
+  "cli.status.copied": "Este historial se copió de otro perfil el {date}: la autonomía ganada no se trasladó. Cada tipo de acción vuelve a subir, con claves propias.",
   "cli.status.disabled": "tenure está desactivado ({setting}: false).",
   "cli.status.empty": "Ningún tipo de acción tiene historial todavía. Las lecturas nunca preguntan; todo lo demás pregunta hasta que su tipo gane autonomía.",
   "cli.status.guarantee": "errores sin comprobar por debajo del {rate} de sus acciones",

@@ -149,6 +149,14 @@ exact list, and what is not detected, is in [docs/self-protection.md](docs/self-
 successes), except at high stakes or when it scores more than 5 points lower on the matching public benchmark. Strict mode (`hermes tenure strict on`) starts every type
 over instead. A returning model keeps its own record.
 
+**Bots and copied profiles.** Every Hermes profile, so every Bot of Bot Mode, keeps its own record: a Bot earns
+autonomy for itself. A profile copied from another one (`hermes profile create --clone-all`, the desktop's
+**Duplicate**) has another SOUL, other skills and other tools, so it does not inherit earned autonomy silently:
+at its first start every type restarts as after a model change (half the series, provisional; strict mode: from
+zero), the original's undo snapshots are dropped, and the copy signs its passports with a key of its own. The
+ledger records it (`copy` event), so a passport replay recomputes the same tiers. A profile that only moved (a
+restored backup, a renamed folder) keeps everything.
+
 ## The guarantee
 
 You pick the risk you accept per stakes level. tenure picks the smallest number of approvals in a row that keeps

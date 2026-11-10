@@ -22,7 +22,7 @@
     "one": "{type} failed its trial: every action asks, and a new trial opens after {n} more action of this type.",
     "other": "{type} failed its trial: every action asks, and a new trial opens after {n} more actions of this type."
   },
-  "ask.why.unsaved": "{type} would act and then notify you, but an undo cannot be prepared for this action (a file too large, binary or unreadable): asking instead.",
+  "ask.why.unsaved": "{type} would act and then tell you, but an undo cannot be prepared for this action (a file too large, binary or unreadable): asking instead.",
   "benchmarks.note.no_model": "No public measure for {model} on {benchmark}.",
   "benchmarks.note.no_previous": "No previous model to compare with.",
   "benchmarks.note.no_type": "No public measure for this action type.",
@@ -172,6 +172,7 @@
     "one": "Evidence: {n} entry, chain intact.",
     "other": "Evidence: {n} entries, chain intact."
   },
+  "cli.status.copied": "This record was copied from another profile on {date}: earned autonomy did not carry over. Every action type climbs again, with keys of its own.",
   "cli.status.disabled": "tenure is disabled ({setting}: false).",
   "cli.status.empty": "No action type has a record yet. Reads never ask; everything else asks until its type earns autonomy.",
   "cli.status.guarantee": "unchecked errors under {rate} of its actions",
@@ -247,7 +248,7 @@
   "notice.tier.series": "tenure: {type} now acts on its own, after {successes} over {sessions}. 1 action in {spot} is still spot-checked, and a fault sends it back down.",
   "notice.tier.settings": "tenure: {type} is back at {tier}, under your new settings.",
   "notice.tier.stakes": "tenure: {type} now has {stakes} stakes: its record starts over at these stakes (a trial and the faults on record stay).",
-  "notice.tier.wald": "tenure: {type} now acts, then notifies you with an undo, after a run of verified successes.",
+  "notice.tier.wald": "tenure: {type} now acts, then tells you, with an undo, after a run of verified successes.",
   "notice.trial.failed": {
     "one": "tenure: {type} failed its trial: every action asks, and a new trial opens after {n} more action of this type.",
     "other": "tenure: {type} failed its trial: every action asks, and a new trial opens after {n} more actions of this type."
@@ -269,10 +270,10 @@
   "stakes.medium": "medium",
   "tier.long.alone": "T3, acting on its own",
   "tier.long.ask": "T1, asking first",
-  "tier.long.notify": "T2, acting then notifying you with an undo",
+  "tier.long.notify": "T2, acting then telling you, with an undo",
   "tier.short.alone": "T3 acts on its own",
   "tier.short.ask": "T1 asks first",
-  "tier.short.notify": "T2 acts, then notifies",
+  "tier.short.notify": "T2 acts, then tells you",
   "undo.already": "Action {id} is already undone.",
   "undo.done": "Undo {id}: files restored. Counted as a fault of {type} for {agent}; it is now at {tier}.",
   "undo.done_already_fault": "Undo {id}: files restored. The automatic check had already counted this action as a fault of {type}; no second fault is recorded.",

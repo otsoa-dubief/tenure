@@ -167,6 +167,12 @@ def _replay(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState], di
                 if a == e["old"] and k not in have:
                     states[(e["new"], k)] = rule.carry_over(s, n_new=params.required_n(cfg["risks"], s.stakes),
                                                             veto=k in vetoed, strict=e["mode"] == "strict")
+        elif kind == "copy":                                     # the record was copied into another profile
+            if e.get("mode") not in ("carry", "strict"):
+                raise ValueError(f"row {i}: copy event with mode {e.get('mode')!r}, expected carry or strict")
+            for k, s in sorted(states.items()):
+                states[k] = rule.carry_over(s, n_new=params.required_n(cfg["risks"], s.stakes), veto=False,
+                                            strict=e["mode"] == "strict")
         elif kind == "revoke":
             s = states.get((e["agent"], e["type"]))
             if s is None:
