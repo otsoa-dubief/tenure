@@ -55,7 +55,7 @@ MAX_SESSIONS = 4096              # sessions whose agent, or suspension, this pro
 LOCK_TIMEOUT = 10.0              # seconds a hook waits for another thread's transaction before giving up
 HOOK_BUDGET = 25.0               # seconds pre_tool_call may take in all (Hermes stops waiting at 30)
 SESSIONLESS_TAINT = 3600         # seconds a read outside any session suspends sessionless calls of this process
-_TIER_NAMES = {rule.T1: "T1 ask", rule.T2: "T2 notify", rule.T3: "T3 alone"}
+_TIER_NAMES = {rule.T1: "T1 asks first", rule.T2: "T2 acts, then notifies", rule.T3: "T3 acts on its own"}
 _TIER = {rule.T1: "T1, asking first", rule.T2: "T2, acting then notifying you with an undo",
          rule.T3: "T3, acting alone"}
 
@@ -666,8 +666,8 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
 def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool,
                  earned_at: str | None) -> str:
     if decision == rule.SPOT:
-        return (f"tenure spot check — {act.summary}\n{act.type} acts alone; 1 action in {round(1 / spot)} is "
-                f"still checked at random. Deny if the action is wrong: the type goes back down.")
+        return (f"tenure spot check — {act.summary}\n{act.type} acts on its own; 1 action in {round(1 / spot)} is "
+                f"still checked at random.\nRun it if it is right. Reject it if it is wrong: the type goes back down.")
     if n is None:
         why = (f"{act.type} ({act.stakes} stakes) is capped by your settings: always asked ({s.successes} verified "
                f"successes on record).")
@@ -686,11 +686,12 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
                f"too large, binary or unreadable): asking instead.")
     else:
         k = len(s.sessions)
-        why = (f"{act.type} ({act.stakes} stakes) asks first: {s.series}/{rule.required(s, n)} verified successes in "
-               f"a row, from {k} session{'' if k == 1 else 's'} (2 needed), before the agent acts alone.")
+        why = (f"{act.type} ({act.stakes} stakes) asks first: {s.series}/{rule.required(s, n)} clean runs in a row, "
+               f"{k} of 2 sessions, before it acts on its own.")
         if s.provisional:
             why += f" {s.provisional} of them carried over from the previous agent, provisional."
-    return f"tenure — {act.summary}\n{why} Approve if the action is right; deny if it is wrong."
+    return (f"tenure — {act.summary}\n{why}\nRun it if it is right. Reject it if it is wrong: that counts as a fault. "
+            f"Allow this session and Always allow count as one Run: tenure decides when this type stops asking.")
 
 
 # Seconds: Hermes runs a longer terminal call in the background (its TERMINAL_MAX_FOREGROUND_TIMEOUT default).

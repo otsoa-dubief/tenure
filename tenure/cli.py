@@ -61,7 +61,7 @@ def presets_text(spot: float) -> str:
     return "\n".join(lines)
 
 
-TIERS = {rule.T1: "T1 ask", rule.T2: "T2 notify", rule.T3: "T3 alone"}
+TIERS = {rule.T1: "T1 asks first", rule.T2: "T2 acts, then notifies", rule.T3: "T3 acts on its own"}
 _RANK = {rule.T1: 1, rule.T2: 2, rule.T3: 3}
 
 
@@ -207,7 +207,7 @@ def explain_text() -> str:
     d = params.describe(cfg["risks"], cfg["spot"])
     lines = ["How tenure decides (Dodge's continuous sampling plan CSP-1, one per action type):",
              "  1. Every action of a type asks you, until i of them in a row are approved: i is the clearance number (Dodge's CSP-1).",
-             f"  2. Then the agent acts alone on that type; 1 action in {round(1 / cfg['spot'])} is still "
+             f"  2. Then the agent acts on its own on that type; 1 action in {round(1 / cfg['spot'])} is still "
              f"spot-checked at random.",
              "  3. A refused spot check, or an error you flag, revokes the tenure: back to step 1. At medium or high "
              "stakes, the next climb is 25 % longer.",

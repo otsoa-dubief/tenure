@@ -34,8 +34,8 @@ def test_status_shows_the_effective_tier_series_sessions_and_guarantee(plugin):
     climb(ctx, 3)
     to_t3(ctx, tool="memory")
     text = mod.cli.slash("status")
-    assert re.search(r"file:write\s+low\s+T1 ask\s+3/4\s+1/2\s+0 faults / 3 checks", text)
-    assert re.search(r"memory:write\s+low\s+T3 alone\s+4/4\s+2/2\s+0 faults / 4 checks\s+unchecked errors under "
+    assert re.search(r"file:write\s+low\s+T1 asks first\s+3/4\s+1/2\s+0 faults / 3 checks", text)
+    assert re.search(r"memory:write\s+low\s+T3 acts on its own\s+4/4\s+2/2\s+0 faults / 4 checks\s+unchecked errors under "
                      r"\d+\.\d\d% of its actions", text)
     assert "Evidence:" in text and "chain intact" in text
 
@@ -43,11 +43,11 @@ def test_status_shows_the_effective_tier_series_sessions_and_guarantee(plugin):
 def test_status_says_held_when_settings_hold_a_tier_back(plugin):
     mod, ctx = plugin(FAST)
     to_t3(ctx)
-    assert re.search(r"file:write\s+low\s+T3 alone\s", mod.cli.slash("status"))
+    assert re.search(r"file:write\s+low\s+T3 acts on its own\s", mod.cli.slash("status"))
     ctx.settings["risks"] = {"low": 0.01, "medium": 0.01}               # stricter: nothing synced yet, stored tier T3
     assert state(mod, "file:write").tier == mod.rule.T3
     line = next(ln for ln in mod.cli.slash("status").splitlines() if ln.strip().startswith("file:write"))
-    assert "(held: settings)" in line and "T3 alone" not in line
+    assert "(held: settings)" in line and "T3 acts on its own" not in line
     ctx.settings["risks"] = {"low": None, "medium": 0.2}                 # capped: always asked
     assert "capped: always asked" in mod.cli.slash("status")
 
