@@ -27,11 +27,21 @@
   "common.loading": "Lecture des preuves…",
   "common.no_match": "Aucun résultat",
   "common.retry": "Réessayer",
+  "emblem.none": "Pas encore d'autonomie acquise",
+  "emblem.review": {
+    "one": "{n} en examen",
+    "other": "{n} en examen"
+  },
+  "emblem.tenured": {
+    "one": "{n} titulaire",
+    "other": "{n} titulaires"
+  },
   "empty.desc": "Travaillez comme d'habitude. L'agent demande avant chaque modification, et chaque type d'action gagne son niveau selon vos réponses.",
   "empty.title": "Aucun agent n'a encore agi",
   "flag.confirm": "Signaler",
   "flag.desc": "Cela compte comme une faute : {type} descendra d'au moins un niveau et devra remonter. À utiliser pour une erreur que personne n'a repérée.",
   "flag.title": "Signaler cette modification comme une erreur ?",
+  "hero.agent": "Agent",
   "intro.body": "Chaque type d'action de chaque modèle commence en T1 : il demande d'abord. Une série d'actions approuvées sans faute le fait passer en T2 : il agit, puis vous prévient, avec un bouton Annuler. Une série plus longue, sur deux sessions, le fait passer en T3 : il agit seul, et 1 action sur {k} vous est encore demandée, par contrôle aléatoire. Une seule faute le fait redescendre.",
   "intro.got_it": "Compris",
   "intro.title": "Comment un type d'action gagne son niveau",
@@ -44,7 +54,14 @@
   "meta.profile": "Profil",
   "meta.provider": "Fournisseur",
   "model_menu.badge": "{tier} acquis",
+  "moment.dismiss": "Fermer",
+  "moment.eyebrow_down": "#Faute · {type}",
+  "moment.eyebrow_up": "#Promotion · {type}",
+  "moment.granted": "Titularisé",
+  "moment.probation": "Retour en probation",
+  "moment.review": "En examen",
   "nav.label": "Tenure",
+  "page.animations": "Animations",
   "page.title": "Tenure",
   "page.view_agents": "Agents",
   "page.view_benchmark": "Votre benchmark",
@@ -63,6 +80,7 @@
   "passport.problems": "Ne se vérifie pas : {problems}",
   "passport.protocol": "Protocole",
   "passport.rule": "Règle",
+  "passport.signature": "un plugin pour Hermes Agent",
   "passport.title": "Passeport signé",
   "passport.unavailable": "Indisponible : {error}",
   "passport.verified": "Vérifié : signature valide, chaîne de hachage intacte, et le registre rejoué redonne les mêmes niveaux.",
@@ -114,6 +132,10 @@
   "state.trial": "à l'essai",
   "state.trial_tip": "Une faute à enjeu moyen ou élevé a ouvert un essai : 3 succès vérifiés d'affilée.",
   "tier.cap": "Plafonné · demande toujours",
+  "tier.name.cap": "Toujours demandé",
+  "tier.name.t1": "Probation",
+  "tier.name.t2": "En examen",
+  "tier.name.t3": "Titulaire",
   "tier.t1": "T1 · demande d'abord",
   "tier.t2": "T2 · agit, puis vous prévient, avec un bouton Annuler",
   "tier.t3": "T3 · agit seul, avec contrôles aléatoires",
@@ -126,6 +148,11 @@
   "type.guarantee": "Au plus {aoql} % des actions de ce type s'exécutent avec une erreur que personne n'a approuvée ; {worst} % si le modèle se dégrade.",
   "type.guarantee_provisional": "Au plus {aoql} % des actions de ce type s'exécutent avec une erreur que personne n'a approuvée ; {worst} % si le modèle se dégrade. Provisoire : preuves héritées.",
   "type.in_a_row": "{series} sur {required} d'affilée",
+  "type.next": {
+    "one": "Encore {n} succès vérifié d'affilée pour être titularisé.",
+    "other": "Encore {n} succès vérifiés d'affilée pour être titularisé."
+  },
+  "type.next_session": "La série est complète : une session de plus et c'est fait.",
   "type.sessions": {
     "one": "{n} session",
     "other": "{n} sessions"
@@ -134,5 +161,6 @@
   "type.stakes_low": "enjeu faible",
   "type.stakes_medium": "enjeu moyen",
   "type.stakes_other": "enjeu {stakes}",
+  "type.tenured_line": "Agit seul. 1 action sur {k} reste contrôlée au hasard.",
   "types.title": "Types d'action"
 }

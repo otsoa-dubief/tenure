@@ -27,11 +27,21 @@
   "common.loading": "Reading the evidence…",
   "common.no_match": "No match",
   "common.retry": "Try again",
+  "emblem.none": "No autonomy earned yet",
+  "emblem.review": {
+    "one": "{n} under review",
+    "other": "{n} under review"
+  },
+  "emblem.tenured": {
+    "one": "{n} tenured",
+    "other": "{n} tenured"
+  },
   "empty.desc": "Work as usual. Every change asks first, and each action type earns its tier from the answers you give.",
   "empty.title": "No agent has acted yet",
   "flag.confirm": "Flag",
   "flag.desc": "This counts as a fault: {type} will drop at least one tier and climb again. Use it for an error nobody caught.",
   "flag.title": "Flag this change as an error?",
+  "hero.agent": "Agent",
   "intro.body": "Every action type of every model starts at T1: it asks first. A run of clean, approved actions moves it to T2: it acts, then tells you, with an Undo. A longer run, over two sessions, moves it to T3: it acts on its own, and 1 action in {k} still asks, as a spot check. One fault sends the type back down.",
   "intro.got_it": "Got it",
   "intro.title": "How an action type earns its tier",
@@ -44,7 +54,14 @@
   "meta.profile": "Profile",
   "meta.provider": "Provider",
   "model_menu.badge": "{tier} earned",
+  "moment.dismiss": "Dismiss",
+  "moment.eyebrow_down": "#Fault · {type}",
+  "moment.eyebrow_up": "#Promotion · {type}",
+  "moment.granted": "Tenure granted",
+  "moment.probation": "Back on probation",
+  "moment.review": "Under review",
   "nav.label": "Tenure",
+  "page.animations": "Animations",
   "page.title": "Tenure",
   "page.view_agents": "Agents",
   "page.view_benchmark": "Your benchmark",
@@ -63,6 +80,7 @@
   "passport.problems": "Does not verify: {problems}",
   "passport.protocol": "Protocol",
   "passport.rule": "Rule",
+  "passport.signature": "a plugin for Hermes Agent",
   "passport.title": "Signed passport",
   "passport.unavailable": "Not available: {error}",
   "passport.verified": "Verified: signature valid, hash chain intact, and replaying the ledger gives the same tiers.",
@@ -114,6 +132,10 @@
   "state.trial": "trial",
   "state.trial_tip": "A medium or high fault opened a trial: 3 verified successes in a row.",
   "tier.cap": "Capped · always asks",
+  "tier.name.cap": "Always asks",
+  "tier.name.t1": "Probation",
+  "tier.name.t2": "Under review",
+  "tier.name.t3": "Tenured",
   "tier.t1": "T1 · asks first",
   "tier.t2": "T2 · acts, then tells you, with an Undo",
   "tier.t3": "T3 · acts on its own, spot-checked",
@@ -126,6 +148,11 @@
   "type.guarantee": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad.",
   "type.guarantee_provisional": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad. Provisional: carried-over evidence.",
   "type.in_a_row": "{series} of {required} in a row",
+  "type.next": {
+    "one": "{n} more verified success in a row to be tenured.",
+    "other": "{n} more verified successes in a row to be tenured."
+  },
+  "type.next_session": "The series is complete: one more session finishes it.",
   "type.sessions": {
     "one": "{n} session",
     "other": "{n} sessions"
@@ -134,5 +161,6 @@
   "type.stakes_low": "low stakes",
   "type.stakes_medium": "medium stakes",
   "type.stakes_other": "{stakes} stakes",
+  "type.tenured_line": "Acts on its own. 1 action in {k} is still spot-checked.",
   "types.title": "Action types"
 }

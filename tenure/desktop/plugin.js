@@ -6,10 +6,14 @@
  * - A status-bar chip for the model in use, a tier badge on each model in the model menu, ⌘K commands, and an
  *   Undo toast when an action type acts, then notifies.
  *
- * Built only from the app's own components (the Panel family of the Scheduled jobs page, ConfirmDialog,
- * SegmentedControl, CopyButton, Tip, Codicon) and its data layer (useQuery, refreshed live by the agent half's
+ * Built from the app's own components (the Panel family of the Scheduled jobs page, ConfirmDialog,
+ * SegmentedControl, Switch, CopyButton, Tip, Codicon) and its data layer (useQuery, refreshed live by the agent half's
  * `plugin.tenure.*` events). Every number comes from the agent half's backend (`dashboard/plugin_api.py`, through
  * `ctx.rest`). Plain ESM, loaded uncompiled: UI is jsx() calls; only @hermes/plugin-sdk, react and react/jsx-runtime.
+ *
+ * Look: "encre et trame" (ink and dither). One colour, the user's accent; host neutrals for the rest; Collapse for big
+ * names and tier names, JetBrains Mono for numbered eyebrows; 1-bit Bayer dither for progress and the agent's emblem.
+ * Animations play on real transitions only, and stop for prefers-reduced-motion or the `animations` switch.
  */
 
 import {
@@ -37,6 +41,7 @@ import {
   SegmentedControl,
   SIDEBAR_NAV_AREA,
   STATUSBAR_AREAS,
+  Switch,
   Tip,
   usePluginI18n,
   useQuery,
@@ -44,7 +49,7 @@ import {
   useValue,
   WorkspacePageHeaderControl
 } from '@hermes/plugin-sdk'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { jsx, jsxs } from 'react/jsx-runtime'
 
 const ID = 'tenure'
@@ -85,11 +90,21 @@ const TENURE_LOCALES = {
     "common.loading": "Reading the evidence…",
     "common.no_match": "No match",
     "common.retry": "Try again",
+    "emblem.none": "No autonomy earned yet",
+    "emblem.review": {
+      "one": "{n} under review",
+      "other": "{n} under review"
+    },
+    "emblem.tenured": {
+      "one": "{n} tenured",
+      "other": "{n} tenured"
+    },
     "empty.desc": "Work as usual. Every change asks first, and each action type earns its tier from the answers you give.",
     "empty.title": "No agent has acted yet",
     "flag.confirm": "Flag",
     "flag.desc": "This counts as a fault: {type} will drop at least one tier and climb again. Use it for an error nobody caught.",
     "flag.title": "Flag this change as an error?",
+    "hero.agent": "Agent",
     "intro.body": "Every action type of every model starts at T1: it asks first. A run of clean, approved actions moves it to T2: it acts, then tells you, with an Undo. A longer run, over two sessions, moves it to T3: it acts on its own, and 1 action in {k} still asks, as a spot check. One fault sends the type back down.",
     "intro.got_it": "Got it",
     "intro.title": "How an action type earns its tier",
@@ -102,7 +117,14 @@ const TENURE_LOCALES = {
     "meta.profile": "Profile",
     "meta.provider": "Provider",
     "model_menu.badge": "{tier} earned",
+    "moment.dismiss": "Dismiss",
+    "moment.eyebrow_down": "#Fault · {type}",
+    "moment.eyebrow_up": "#Promotion · {type}",
+    "moment.granted": "Tenure granted",
+    "moment.probation": "Back on probation",
+    "moment.review": "Under review",
     "nav.label": "Tenure",
+    "page.animations": "Animations",
     "page.title": "Tenure",
     "page.view_agents": "Agents",
     "page.view_benchmark": "Your benchmark",
@@ -121,6 +143,7 @@ const TENURE_LOCALES = {
     "passport.problems": "Does not verify: {problems}",
     "passport.protocol": "Protocol",
     "passport.rule": "Rule",
+    "passport.signature": "a plugin for Hermes Agent",
     "passport.title": "Signed passport",
     "passport.unavailable": "Not available: {error}",
     "passport.verified": "Verified: signature valid, hash chain intact, and replaying the ledger gives the same tiers.",
@@ -172,6 +195,10 @@ const TENURE_LOCALES = {
     "state.trial": "trial",
     "state.trial_tip": "A medium or high fault opened a trial: 3 verified successes in a row.",
     "tier.cap": "Capped · always asks",
+    "tier.name.cap": "Always asks",
+    "tier.name.t1": "Probation",
+    "tier.name.t2": "Under review",
+    "tier.name.t3": "Tenured",
     "tier.t1": "T1 · asks first",
     "tier.t2": "T2 · acts, then tells you, with an Undo",
     "tier.t3": "T3 · acts on its own, spot-checked",
@@ -184,6 +211,11 @@ const TENURE_LOCALES = {
     "type.guarantee": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad.",
     "type.guarantee_provisional": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad. Provisional: carried-over evidence.",
     "type.in_a_row": "{series} of {required} in a row",
+    "type.next": {
+      "one": "{n} more verified success in a row to be tenured.",
+      "other": "{n} more verified successes in a row to be tenured."
+    },
+    "type.next_session": "The series is complete: one more session finishes it.",
     "type.sessions": {
       "one": "{n} session",
       "other": "{n} sessions"
@@ -192,6 +224,7 @@ const TENURE_LOCALES = {
     "type.stakes_low": "low stakes",
     "type.stakes_medium": "medium stakes",
     "type.stakes_other": "{stakes} stakes",
+    "type.tenured_line": "Acts on its own. 1 action in {k} is still spot-checked.",
     "types.title": "Action types"
   },
   "ar": {
@@ -231,11 +264,29 @@ const TENURE_LOCALES = {
     "common.loading": "جارٍ قراءة الأدلة…",
     "common.no_match": "لا نتائج",
     "common.retry": "حاول مرة أخرى",
+    "emblem.none": "لم تُكتسب أي استقلالية بعد",
+    "emblem.review": {
+      "zero": "قيد المراجعة: {n}",
+      "one": "قيد المراجعة: {n}",
+      "two": "قيد المراجعة: {n}",
+      "few": "قيد المراجعة: {n}",
+      "many": "قيد المراجعة: {n}",
+      "other": "قيد المراجعة: {n}"
+    },
+    "emblem.tenured": {
+      "zero": "مُثبَّت: {n}",
+      "one": "مُثبَّت: {n}",
+      "two": "مُثبَّت: {n}",
+      "few": "مُثبَّت: {n}",
+      "many": "مُثبَّت: {n}",
+      "other": "مُثبَّت: {n}"
+    },
     "empty.desc": "اعمل كالمعتاد. كل تغيير يسأل أولًا، وكل نوع إجراء يكتسب مستواه من إجاباتك.",
     "empty.title": "لم ينفّذ أي وكيل شيئًا بعد",
     "flag.confirm": "إبلاغ",
     "flag.desc": "يُحسب هذا إخفاقًا: سينزل {type} مستوى واحدًا على الأقل ثم يصعد من جديد. استخدمه لخطأ لم يلحظه أحد.",
     "flag.title": "الإبلاغ عن هذا التغيير كخطأ؟",
+    "hero.agent": "الوكيل",
     "intro.body": "يبدأ كل نوع إجراء لكل نموذج في T1: يسأل أولًا. سلسلة من الإجراءات السليمة الموافق عليها تنقله إلى T2: ينفّذ ثم يُبلغك، مع زر تراجع. وسلسلة أطول، على جلستين، تنقله إلى T3: يعمل وحده، ويظل إجراء واحد من كل {k} يسأل، كفحص عشوائي. إخفاق واحد يُنزل النوع من جديد.",
     "intro.got_it": "فهمت",
     "intro.title": "كيف يكتسب نوع الإجراء مستواه",
@@ -248,7 +299,14 @@ const TENURE_LOCALES = {
     "meta.profile": "الملف الشخصي",
     "meta.provider": "المزوّد",
     "model_menu.badge": "{tier} مكتسب",
+    "moment.dismiss": "إغلاق",
+    "moment.eyebrow_down": "#إخفاق · {type}",
+    "moment.eyebrow_up": "#ترقية · {type}",
+    "moment.granted": "مُنح التثبيت",
+    "moment.probation": "العودة إلى فترة الاختبار",
+    "moment.review": "قيد المراجعة",
     "nav.label": "Tenure",
+    "page.animations": "الرسوم المتحركة",
     "page.title": "Tenure",
     "page.view_agents": "الوكلاء",
     "page.view_benchmark": "مقياسك",
@@ -271,6 +329,7 @@ const TENURE_LOCALES = {
     "passport.problems": "لا يجتاز التحقق: {problems}",
     "passport.protocol": "البروتوكول",
     "passport.rule": "القاعدة",
+    "passport.signature": "إضافة لـ Hermes Agent",
     "passport.title": "جواز موقَّع",
     "passport.unavailable": "غير متاح: {error}",
     "passport.verified": "تم التحقق: التوقيع صالح، وسلسلة التجزئة سليمة، وإعادة تشغيل الدفتر تعطي المستويات نفسها.",
@@ -330,6 +389,10 @@ const TENURE_LOCALES = {
     "state.trial": "اختبار",
     "state.trial_tip": "فتح إخفاق متوسط أو عالي الخطورة اختبارًا: 3 نجاحات موثّقة على التوالي.",
     "tier.cap": "مقيَّد · يسأل دائمًا",
+    "tier.name.cap": "يسأل دائمًا",
+    "tier.name.t1": "فترة اختبار",
+    "tier.name.t2": "قيد المراجعة",
+    "tier.name.t3": "مُثبَّت",
     "tier.t1": "T1 · يسأل أولًا",
     "tier.t2": "T2 · ينفّذ ثم يُبلغك، مع زر تراجع",
     "tier.t3": "T3 · يعمل وحده، مع فحص عشوائي",
@@ -346,6 +409,15 @@ const TENURE_LOCALES = {
     "type.guarantee": "على الأكثر {aoql}% من إجراءات هذا النوع تُنفَّذ بخطأ لم يوافق عليه أحد؛ و{worst}% إذا ساء النموذج.",
     "type.guarantee_provisional": "على الأكثر {aoql}% من إجراءات هذا النوع تُنفَّذ بخطأ لم يوافق عليه أحد؛ و{worst}% إذا ساء النموذج. مؤقت: أدلة منقولة.",
     "type.in_a_row": "{series} من {required} على التوالي",
+    "type.next": {
+      "zero": "لم يبقَ أي نجاح موثَّق للتثبيت ({n}).",
+      "one": "نجاح موثَّق واحد آخر على التوالي للتثبيت.",
+      "two": "نجاحان موثَّقان آخران على التوالي للتثبيت.",
+      "few": "{n} نجاحات موثَّقة أخرى على التوالي للتثبيت.",
+      "many": "{n} نجاحًا موثَّقًا آخر على التوالي للتثبيت.",
+      "other": "{n} نجاح موثَّق آخر على التوالي للتثبيت."
+    },
+    "type.next_session": "اكتملت السلسلة: تبقى جلسة واحدة أخرى.",
     "type.sessions": {
       "zero": "{n} جلسات",
       "one": "{n} جلسة",
@@ -358,6 +430,7 @@ const TENURE_LOCALES = {
     "type.stakes_low": "خطورة منخفضة",
     "type.stakes_medium": "خطورة متوسطة",
     "type.stakes_other": "خطورة {stakes}",
+    "type.tenured_line": "يعمل وحده، ويظل إجراء واحد من كل {k} يخضع لفحص عشوائي.",
     "types.title": "أنواع الإجراءات"
   },
   "es": {
@@ -389,11 +462,21 @@ const TENURE_LOCALES = {
     "common.loading": "Leyendo la evidencia…",
     "common.no_match": "Sin resultados",
     "common.retry": "Reintentar",
+    "emblem.none": "Aún sin autonomía ganada",
+    "emblem.review": {
+      "one": "{n} en revisión",
+      "other": "{n} en revisión"
+    },
+    "emblem.tenured": {
+      "one": "{n} titular",
+      "other": "{n} titulares"
+    },
     "empty.desc": "Trabaja como siempre. Cada cambio pregunta antes, y cada tipo de acción se gana su nivel con tus respuestas.",
     "empty.title": "Ningún agente ha actuado todavía",
     "flag.confirm": "Marcar",
     "flag.desc": "Cuenta como un fallo: {type} bajará al menos un nivel y tendrá que volver a subir. Úsalo para un error que nadie detectó.",
     "flag.title": "¿Marcar este cambio como error?",
+    "hero.agent": "Agente",
     "intro.body": "Cada tipo de acción de cada modelo empieza en T1: pregunta antes. Una serie de acciones limpias y aprobadas lo sube a T2: actúa y luego te avisa, con opción de Deshacer. Una serie más larga, en dos sesiones, lo sube a T3: actúa por su cuenta, y 1 acción de cada {k} sigue preguntando, como control aleatorio. Un solo fallo lo hace bajar.",
     "intro.got_it": "Entendido",
     "intro.title": "Cómo se gana su nivel un tipo de acción",
@@ -406,7 +489,14 @@ const TENURE_LOCALES = {
     "meta.profile": "Perfil",
     "meta.provider": "Proveedor",
     "model_menu.badge": "{tier} ganado",
+    "moment.dismiss": "Cerrar",
+    "moment.eyebrow_down": "#Fallo · {type}",
+    "moment.eyebrow_up": "#Ascenso · {type}",
+    "moment.granted": "Titularidad concedida",
+    "moment.probation": "De vuelta a prueba",
+    "moment.review": "En revisión",
     "nav.label": "Tenure",
+    "page.animations": "Animaciones",
     "page.title": "Tenure",
     "page.view_agents": "Agentes",
     "page.view_benchmark": "Tu benchmark",
@@ -425,6 +515,7 @@ const TENURE_LOCALES = {
     "passport.problems": "No se verifica: {problems}",
     "passport.protocol": "Protocolo",
     "passport.rule": "Regla",
+    "passport.signature": "un plugin para Hermes Agent",
     "passport.title": "Pasaporte firmado",
     "passport.unavailable": "No disponible: {error}",
     "passport.verified": "Verificado: firma válida, cadena de hashes intacta, y al reproducir el registro se obtienen los mismos niveles.",
@@ -476,6 +567,10 @@ const TENURE_LOCALES = {
     "state.trial": "a prueba",
     "state.trial_tip": "Un fallo de impacto medio o alto abrió un periodo de prueba: 3 éxitos verificados seguidos.",
     "tier.cap": "Limitado · siempre pregunta",
+    "tier.name.cap": "Siempre pregunta",
+    "tier.name.t1": "Período de prueba",
+    "tier.name.t2": "En revisión",
+    "tier.name.t3": "Titular",
     "tier.t1": "T1 · pregunta antes",
     "tier.t2": "T2 · actúa y luego te avisa, con opción de Deshacer",
     "tier.t3": "T3 · actúa por su cuenta, con control aleatorio",
@@ -488,6 +583,11 @@ const TENURE_LOCALES = {
     "type.guarantee": "Como máximo el {aoql} % de las acciones de este tipo se ejecutan con un error que nadie aprobó; el {worst} % si el modelo empeora.",
     "type.guarantee_provisional": "Como máximo el {aoql} % de las acciones de este tipo se ejecutan con un error que nadie aprobó; el {worst} % si el modelo empeora. Provisional: evidencia heredada.",
     "type.in_a_row": "{series} de {required} seguidas",
+    "type.next": {
+      "one": "Falta {n} éxito verificado seguido para la titularidad.",
+      "other": "Faltan {n} éxitos verificados seguidos para la titularidad."
+    },
+    "type.next_session": "La serie está completa: falta una sesión más.",
     "type.sessions": {
       "one": "{n} sesión",
       "other": "{n} sesiones"
@@ -496,6 +596,7 @@ const TENURE_LOCALES = {
     "type.stakes_low": "impacto bajo",
     "type.stakes_medium": "impacto medio",
     "type.stakes_other": "impacto {stakes}",
+    "type.tenured_line": "Actúa por su cuenta. 1 acción de cada {k} sigue con control aleatorio.",
     "types.title": "Tipos de acción"
   },
   "fr": {
@@ -527,11 +628,21 @@ const TENURE_LOCALES = {
     "common.loading": "Lecture des preuves…",
     "common.no_match": "Aucun résultat",
     "common.retry": "Réessayer",
+    "emblem.none": "Pas encore d'autonomie acquise",
+    "emblem.review": {
+      "one": "{n} en examen",
+      "other": "{n} en examen"
+    },
+    "emblem.tenured": {
+      "one": "{n} titulaire",
+      "other": "{n} titulaires"
+    },
     "empty.desc": "Travaillez comme d'habitude. L'agent demande avant chaque modification, et chaque type d'action gagne son niveau selon vos réponses.",
     "empty.title": "Aucun agent n'a encore agi",
     "flag.confirm": "Signaler",
     "flag.desc": "Cela compte comme une faute : {type} descendra d'au moins un niveau et devra remonter. À utiliser pour une erreur que personne n'a repérée.",
     "flag.title": "Signaler cette modification comme une erreur ?",
+    "hero.agent": "Agent",
     "intro.body": "Chaque type d'action de chaque modèle commence en T1 : il demande d'abord. Une série d'actions approuvées sans faute le fait passer en T2 : il agit, puis vous prévient, avec un bouton Annuler. Une série plus longue, sur deux sessions, le fait passer en T3 : il agit seul, et 1 action sur {k} vous est encore demandée, par contrôle aléatoire. Une seule faute le fait redescendre.",
     "intro.got_it": "Compris",
     "intro.title": "Comment un type d'action gagne son niveau",
@@ -544,7 +655,14 @@ const TENURE_LOCALES = {
     "meta.profile": "Profil",
     "meta.provider": "Fournisseur",
     "model_menu.badge": "{tier} acquis",
+    "moment.dismiss": "Fermer",
+    "moment.eyebrow_down": "#Faute · {type}",
+    "moment.eyebrow_up": "#Promotion · {type}",
+    "moment.granted": "Titularisé",
+    "moment.probation": "Retour en probation",
+    "moment.review": "En examen",
     "nav.label": "Tenure",
+    "page.animations": "Animations",
     "page.title": "Tenure",
     "page.view_agents": "Agents",
     "page.view_benchmark": "Votre benchmark",
@@ -563,6 +681,7 @@ const TENURE_LOCALES = {
     "passport.problems": "Ne se vérifie pas : {problems}",
     "passport.protocol": "Protocole",
     "passport.rule": "Règle",
+    "passport.signature": "un plugin pour Hermes Agent",
     "passport.title": "Passeport signé",
     "passport.unavailable": "Indisponible : {error}",
     "passport.verified": "Vérifié : signature valide, chaîne de hachage intacte, et le registre rejoué redonne les mêmes niveaux.",
@@ -614,6 +733,10 @@ const TENURE_LOCALES = {
     "state.trial": "à l'essai",
     "state.trial_tip": "Une faute à enjeu moyen ou élevé a ouvert un essai : 3 succès vérifiés d'affilée.",
     "tier.cap": "Plafonné · demande toujours",
+    "tier.name.cap": "Toujours demandé",
+    "tier.name.t1": "Probation",
+    "tier.name.t2": "En examen",
+    "tier.name.t3": "Titulaire",
     "tier.t1": "T1 · demande d'abord",
     "tier.t2": "T2 · agit, puis vous prévient, avec un bouton Annuler",
     "tier.t3": "T3 · agit seul, avec contrôles aléatoires",
@@ -626,6 +749,11 @@ const TENURE_LOCALES = {
     "type.guarantee": "Au plus {aoql} % des actions de ce type s'exécutent avec une erreur que personne n'a approuvée ; {worst} % si le modèle se dégrade.",
     "type.guarantee_provisional": "Au plus {aoql} % des actions de ce type s'exécutent avec une erreur que personne n'a approuvée ; {worst} % si le modèle se dégrade. Provisoire : preuves héritées.",
     "type.in_a_row": "{series} sur {required} d'affilée",
+    "type.next": {
+      "one": "Encore {n} succès vérifié d'affilée pour être titularisé.",
+      "other": "Encore {n} succès vérifiés d'affilée pour être titularisé."
+    },
+    "type.next_session": "La série est complète : une session de plus et c'est fait.",
     "type.sessions": {
       "one": "{n} session",
       "other": "{n} sessions"
@@ -634,6 +762,7 @@ const TENURE_LOCALES = {
     "type.stakes_low": "enjeu faible",
     "type.stakes_medium": "enjeu moyen",
     "type.stakes_other": "enjeu {stakes}",
+    "type.tenured_line": "Agit seul. 1 action sur {k} reste contrôlée au hasard.",
     "types.title": "Types d'action"
   },
   "zh": {
@@ -663,11 +792,19 @@ const TENURE_LOCALES = {
     "common.loading": "正在读取证据…",
     "common.no_match": "无匹配项",
     "common.retry": "重试",
+    "emblem.none": "尚未赢得自主权",
+    "emblem.review": {
+      "other": "{n} 个考察中"
+    },
+    "emblem.tenured": {
+      "other": "{n} 个已转正"
+    },
     "empty.desc": "照常工作即可。每次更改都会先询问你，每个操作类型会根据你的回答赢得相应级别。",
     "empty.title": "还没有智能体执行过操作",
     "flag.confirm": "标记",
     "flag.desc": "这会记为一次失误：{type} 至少下降一个级别，之后需重新晋升。用于没人发现的错误。",
     "flag.title": "将此更改标记为错误？",
+    "hero.agent": "智能体",
     "intro.body": "每个模型的每个操作类型都从 T1 开始：先询问。连续多次获批且无误后，它升到 T2：先执行后告知，并可撤销。跨两个会话的更长连续记录会让它升到 T3：自主执行，但每 {k} 个操作仍会抽查 1 个，先询问你。一次失误就会让该类型降级。",
     "intro.got_it": "知道了",
     "intro.title": "操作类型如何赢得级别",
@@ -680,7 +817,14 @@ const TENURE_LOCALES = {
     "meta.profile": "配置文件",
     "meta.provider": "提供方",
     "model_menu.badge": "已赢得 {tier}",
+    "moment.dismiss": "关闭",
+    "moment.eyebrow_down": "#失误 · {type}",
+    "moment.eyebrow_up": "#晋升 · {type}",
+    "moment.granted": "已获转正",
+    "moment.probation": "重回试用期",
+    "moment.review": "进入考察",
     "nav.label": "Tenure",
+    "page.animations": "动画",
     "page.title": "Tenure",
     "page.view_agents": "智能体",
     "page.view_benchmark": "你的基准",
@@ -698,6 +842,7 @@ const TENURE_LOCALES = {
     "passport.problems": "验证未通过：{problems}",
     "passport.protocol": "协议",
     "passport.rule": "规则",
+    "passport.signature": "Hermes Agent 插件",
     "passport.title": "已签名护照",
     "passport.unavailable": "不可用：{error}",
     "passport.verified": "已验证：签名有效，哈希链完整，重放账本得到相同的级别。",
@@ -747,6 +892,10 @@ const TENURE_LOCALES = {
     "state.trial": "考察期",
     "state.trial_tip": "一次中、高风险的失误开启了考察期：需连续 3 次已验证的成功。",
     "tier.cap": "受限 · 始终询问",
+    "tier.name.cap": "始终询问",
+    "tier.name.t1": "试用期",
+    "tier.name.t2": "考察中",
+    "tier.name.t3": "已转正",
     "tier.t1": "T1 · 先询问",
     "tier.t2": "T2 · 先执行后告知，可撤销",
     "tier.t3": "T3 · 自主执行，接受抽查",
@@ -758,6 +907,10 @@ const TENURE_LOCALES = {
     "type.guarantee": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。",
     "type.guarantee_provisional": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。暂定：基于继承的证据。",
     "type.in_a_row": "连续 {series}/{required}",
+    "type.next": {
+      "other": "再连续 {n} 次已验证的成功即可转正。"
+    },
+    "type.next_session": "连续记录已达标：再完成一个会话即可。",
     "type.sessions": {
       "other": "{n} 个会话"
     },
@@ -765,6 +918,7 @@ const TENURE_LOCALES = {
     "type.stakes_low": "低风险",
     "type.stakes_medium": "中风险",
     "type.stakes_other": "{stakes}风险",
+    "type.tenured_line": "自主执行。每 {k} 个操作仍抽查 1 个。",
     "types.title": "操作类型"
   }
 };
@@ -902,7 +1056,6 @@ function agentForModel(data, model) {
 
 const tierKey = t => (t.capped ? 'cap' : t.effective_tier || t.tier || 'ask')
 const TIER_SHORT = { ask: 'T1', notify: 'T2', alone: 'T3', cap: 'CAP' }
-const TIER_TONE = { ask: 'muted', notify: 'good', alone: 'good', cap: 'muted' }
 const TIER_RANK = { cap: 0, ask: 1, notify: 2, alone: 3 }
 const TIER_DOT = { ask: 'bg-muted-foreground/40', notify: 'bg-primary', alone: 'bg-primary', cap: 'bg-muted-foreground/40' }
 
@@ -935,22 +1088,538 @@ async function revokeAgent(a, t) {
   host.notify({ kind: 'success', message: t('revoke.done', { name: displayName(a.model) }) })
 }
 
+// ------------------------------------------------------------------------------------------------ ink & dither
+// "Encre et trame": one colour (the host's accent), host neutrals for everything else, and a 1-bit Bayer 4x4 dither
+// that means something: a type's bar densifies toward its next tier, the agent's emblem fills with the share of
+// autonomy it earned. Canvases read their ink from CSS (`color`), so light, dark and every accent follow by themselves.
+const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
+const bayer = (i, j) => BAYER[j & 3][i & 3] / 16
+const clamp01 = x => (x < 0 ? 0 : x > 1 ? 1 : x)
+const pad2 = n => String(n).padStart(2, '0')
+
+// Motion: on unless the system asks to reduce it or the user turned it off (ctx.storage `animations`: on / off).
+const reducedQuery = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null
+let animPref = 'on'
+const motionOn = () => animPref !== 'off' && !(reducedQuery && reducedQuery.matches)
+
+function setAnimPref(value) {
+  animPref = value
+  if (storage) storage.set('animations', value)
+  bus.dispatchEvent(new Event('motion'))
+}
+
+function useMotion() {
+  const [on, setOn] = useState(motionOn)
+  useEffect(() => {
+    const update = () => setOn(motionOn())
+    bus.addEventListener('motion', update)
+    if (reducedQuery && reducedQuery.addEventListener) reducedQuery.addEventListener('change', update)
+    return () => {
+      bus.removeEventListener('motion', update)
+      if (reducedQuery && reducedQuery.removeEventListener) reducedQuery.removeEventListener('change', update)
+    }
+  }, [])
+  return on
+}
+
+// Static canvases repaint when the theme or the accent changes (the host rewrites attributes on <html> / <body>).
+const repaints = new Set()
+let themeObserver = null
+function watchTheme() {
+  if (themeObserver || typeof MutationObserver !== 'function' || typeof document === 'undefined') return
+  let queued = false
+  themeObserver = new MutationObserver(() => {
+    if (queued) return
+    queued = true
+    requestAnimationFrame(() => {
+      queued = false
+      for (const fn of repaints) fn()
+    })
+  })
+  const opts = { attributes: true, attributeFilter: ['class', 'style', 'data-theme', 'data-accent'] }
+  themeObserver.observe(document.documentElement, opts)
+  if (document.body) themeObserver.observe(document.body, opts)
+}
+
+function useRepaint(fn) {
+  const ref = useRef(fn)
+  ref.current = fn
+  useEffect(() => {
+    const call = () => ref.current()
+    repaints.add(call)
+    return () => repaints.delete(call)
+  }, [])
+}
+
+/** Size a canvas to its CSS box at the device pixel ratio (capped at 2); returns the ratio. */
+function fitCanvas(cv, w, h) {
+  const dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1)
+  const W = Math.max(1, Math.round(w * dpr))
+  const H = Math.max(1, Math.round(h * dpr))
+  if (cv.width !== W) cv.width = W
+  if (cv.height !== H) cv.height = H
+  return dpr
+}
+
+const inkOf = el => {
+  try { return getComputedStyle(el).color } catch (e) { return '#0053fd' }
+}
+
+/** One short tween on requestAnimationFrame; returns its cancel. k goes 0 → 1 over `ms`, after `delay`. */
+function tween(ms, step, done, delay = 0) {
+  let raf = 0
+  let t0 = 0
+  const tick = now => {
+    if (!t0) t0 = now + delay
+    const k = now < t0 ? 0 : Math.min(1, (now - t0) / ms)
+    step(k)
+    if (k < 1) raf = requestAnimationFrame(tick)
+    else if (done) done()
+  }
+  raf = requestAnimationFrame(tick)
+  return () => cancelAnimationFrame(raf)
+}
+
+const easeOut = k => 1 - Math.pow(1 - k, 3)
+
+// ---- bars: a faint dotted track, a dithered fill whose density grows with progress, solid at T3.
+const BAR_CELL = 2
+const BAR_ROWS = 6
+
+/**
+ * fill: 0..1 · solid: draw the fill at full density · print: 0..1 Bayer threshold sweep (entrance) ·
+ * crumble: { from, k } cells of the old fill beyond `fill` drop and fade · (the benchmark range has its own draw-in).
+ */
+function paintBar(cv, { fill, solid, print = 1, crumble = null, rows = BAR_ROWS, headroom = 4 }) {
+  const w = cv.clientWidth || (cv.parentElement && cv.parentElement.clientWidth) || 0
+  if (!w) return
+  const h = rows * BAR_CELL + headroom
+  const dpr = fitCanvas(cv, w, h)
+  const x = cv.getContext('2d')
+  x.setTransform(dpr, 0, 0, dpr, 0, 0)
+  x.clearRect(0, 0, w, h)
+  x.fillStyle = inkOf(cv)
+  const cols = Math.floor(w / BAR_CELL)
+  const dot = BAR_CELL - 0.5
+  const density = solid ? 1 : 0.38 + 0.62 * clamp01(fill)
+  const fade = Math.min(12, Math.max(3, cols * 0.06))
+  const edgeOf = f => f * cols
+  const value = (i, f) => {
+    if (solid && f >= 1) return 1
+    const edge = edgeOf(f)
+    const v = i < edge - fade ? density : i < edge ? density * ((edge - i) / fade) : 0
+    return Math.max(v, 0.07)
+  }
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const th = bayer(i, j)
+      if (th >= print) continue
+      if (value(i, fill) > th) {
+        x.globalAlpha = 1
+        x.fillRect(i * BAR_CELL, j * BAR_CELL, dot, dot)
+      } else if (crumble && value(i, crumble.from) > th) {
+        // A cell the fault took away: it drops a few pixels and fades, each with its own small delay.
+        const r = ((i * 73 + j * 151) % 97) / 97
+        const k = clamp01((crumble.k - r * 0.35) / 0.65)
+        if (k >= 1) continue
+        x.globalAlpha = 1 - k
+        x.fillRect(i * BAR_CELL, j * BAR_CELL + k * k * headroom * (0.6 + r), dot, dot)
+      }
+    }
+  }
+  x.globalAlpha = 1
+}
+
+function useWidth(ref, onResize) {
+  useEffect(() => {
+    const el = ref.current
+    if (!el || typeof ResizeObserver !== 'function') return
+    let last = el.clientWidth
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth !== last) {
+        last = el.clientWidth
+        onResize()
+      }
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+}
+
+/**
+ * A type's progress bar. change = { dir: 'up' | 'down', token } replays a promotion (fills toward the new value)
+ * or a fault (the lost cells crumble, then the bar prints again at its lower value). First mount prints in.
+ */
+function DitherBar({ value, solid, track, change, motion, delay = 0, rows = BAR_ROWS, className }) {
+  const ref = useRef(null)
+  const st = useRef({ fill: null, solid: false, cancel: null, token: null })
+  const target = track ? 0 : solid ? 1 : clamp01(value || 0)
+  const draw = (fill, extra) => ref.current && paintBar(ref.current, { fill, solid: !!solid, rows, headroom: rows > 3 ? 4 : 2, ...extra })
+  useRepaint(() => draw(st.current.fill == null ? target : st.current.fill))
+  useWidth(ref, () => draw(st.current.fill == null ? target : st.current.fill))
+  const token = change ? change.token : null
+  useEffect(() => {
+    const s = st.current
+    if (s.cancel) s.cancel()
+    s.cancel = null
+    const from = s.fill
+    const fresh = token && token !== s.token
+    s.token = token
+    s.fill = target
+    if (!motion) return draw(target)
+    if (from == null) {
+      // A. Entrance: the bar prints, threshold by threshold.
+      draw(target, { print: 0 })
+      s.cancel = tween(600, k => draw(target, { print: k }), null, delay)
+    } else if (fresh && change.dir === 'down') {
+      // D. Fault: the dots crumble, then the bar prints again at its new value.
+      s.cancel = tween(520, k => draw(target, { crumble: { from, k } }), () => {
+        s.cancel = tween(380, k => draw(target, { print: k }))
+      })
+    } else if (from !== target) {
+      // C. Promotion (or plain progress): the fill grows to its new value.
+      s.cancel = tween(fresh ? 700 : 450, k => draw(from + (target - from) * easeOut(k)))
+    } else draw(target)
+    return () => {
+      if (s.cancel) s.cancel()
+    }
+  }, [target, solid, track, token, motion])
+  return jsx('canvas', { 'aria-hidden': true, className: cn('tn-bar tn-mirror', className), ref })
+}
+
+// ---- the emblem: an original dithered sunburst; its density is the share of autonomy the agent earned.
+function emblemValue(dx, dy, rot, share) {
+  const r = Math.hypot(dx, dy)
+  if (r > 1) return -1
+  const a = Math.atan2(dy, dx) + rot
+  const ray = Math.pow((Math.cos(a * 36) + 1) / 2, 2)
+  const core = Math.max(0, 1 - r / 0.42) * (0.45 + 0.55 * share)
+  let v = Math.max(core * 1.15, ray * (1.08 - r) * 1.25 * (0.18 + 0.82 * share), 0.16 * (1 - r))
+  if (Math.abs(r - 0.47) < 0.025 || Math.abs(r - 0.97) < 0.02) v = 1
+  return v
+}
+
+function paintEmblem(cv, { size, n, share, develop = 1, rot = 0 }) {
+  const dpr = fitCanvas(cv, size, size)
+  const x = cv.getContext('2d')
+  x.setTransform(dpr, 0, 0, dpr, 0, 0)
+  x.clearRect(0, 0, size, size)
+  x.fillStyle = inkOf(cv)
+  const cell = size / n
+  const dot = Math.max(0.6, cell - 0.6)
+  const c = n / 2
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const th = bayer(i, j)
+      if (th >= develop) continue
+      const v = emblemValue((i - c + 0.5) / c, (j - c + 0.5) / c, rot, share)
+      if (v > th) x.fillRect(i * cell, j * cell, dot, dot)
+    }
+  }
+}
+
+/**
+ * The emblem. develops point by point on mount (B), can turn slowly (the passport), and pulses once when `pulse`
+ * changes (C: density up, then back). The turning loop stops while the emblem is off screen or the window hidden.
+ */
+function Emblem({ share, size = 120, n = 60, rotate = false, pulse = 0, motion, className, label }) {
+  const ref = useRef(null)
+  const st = useRef({ raf: 0, dev0: 0, pulse0: 0, rot: 0, rot0: 0, visible: true, share })
+  st.current.share = share
+  const paint = (develop, boost, rot) =>
+    ref.current && paintEmblem(ref.current, { size, n, share: clamp01(st.current.share + boost), develop, rot })
+  useRepaint(() => paint(1, 0, st.current.rot))
+  const wake = () => {
+    const s = st.current
+    if (s.raf || !ref.current) return
+    const tick = now => {
+      s.raf = 0
+      if (!s.dev0) s.dev0 = now
+      const develop = Math.min(1, (now - s.dev0) / 1400)
+      const pk = s.pulse0 ? (now - s.pulse0) / 900 : 1
+      const boost = pk < 1 ? Math.sin(Math.PI * pk) * 0.35 : 0
+      if (pk >= 1) s.pulse0 = 0
+      const turning = rotate && develop >= 1 && s.visible && !(typeof document !== 'undefined' && document.hidden)
+      if (turning) {
+        if (!s.rot0) s.rot0 = now - s.rot / 0.00006
+        s.rot = (now - s.rot0) * 0.00006 // ~0.06 rad/s
+      } else s.rot0 = 0
+      paint(develop, boost, s.rot)
+      if (develop < 1 || s.pulse0 || turning) s.raf = requestAnimationFrame(tick)
+    }
+    s.raf = requestAnimationFrame(tick)
+  }
+  useEffect(() => {
+    const s = st.current
+    if (!motion) {
+      paint(1, 0, s.rot)
+      return
+    }
+    s.dev0 = 0
+    wake()
+    let io = null
+    if (rotate && typeof IntersectionObserver === 'function' && ref.current) {
+      io = new IntersectionObserver(entries => {
+        s.visible = entries.some(e => e.isIntersecting)
+        if (s.visible) wake()
+      })
+      io.observe(ref.current)
+    }
+    const onVis = () => {
+      if (!document.hidden) wake()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      cancelAnimationFrame(s.raf)
+      s.raf = 0
+      if (io) io.disconnect()
+      document.removeEventListener('visibilitychange', onVis)
+    }
+  }, [motion, rotate])
+  useEffect(() => {
+    if (!motion) return paint(1, 0, st.current.rot)
+    if (!st.current.dev0) return
+    wake()
+  }, [share])
+  useEffect(() => {
+    if (!pulse || !motion) return
+    st.current.pulse0 = performance.now()
+    wake()
+  }, [pulse])
+  return jsx('canvas', {
+    'aria-hidden': label ? undefined : true,
+    'aria-label': label,
+    className: cn('tn-emblem', className),
+    ref,
+    role: label ? 'img' : undefined,
+    style: { width: size, height: size }
+  })
+}
+
+const shareOf = agent => {
+  const types = agent.types || []
+  if (!types.length) return 0
+  let s = 0
+  for (const ty of types) s += tierKey(ty) === 'alone' ? 1 : tierKey(ty) === 'notify' ? 0.5 : 0
+  return s / types.length
+}
+
+// ---- a seal that prints at the end of a passport that verifies.
+function paintSeal(cv, { size, print = 1 }) {
+  const dpr = fitCanvas(cv, size, size)
+  const x = cv.getContext('2d')
+  x.setTransform(dpr, 0, 0, dpr, 0, 0)
+  x.clearRect(0, 0, size, size)
+  x.fillStyle = inkOf(cv)
+  const n = 24
+  const cell = size / n
+  const c = n / 2
+  const seg = (px, py, ax, ay, bx, by) => {
+    const vx = bx - ax, vy = by - ay
+    const k = clamp01(((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy))
+    return Math.hypot(px - ax - k * vx, py - ay - k * vy)
+  }
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const th = bayer(i, j)
+      if (th >= print) continue
+      const dx = (i - c + 0.5) / c, dy = (j - c + 0.5) / c
+      const r = Math.hypot(dx, dy)
+      if (r > 1) continue
+      const check = Math.min(seg(dx, dy, -0.42, 0.02, -0.12, 0.34), seg(dx, dy, -0.12, 0.34, 0.45, -0.3)) < 0.11
+      const v = r > 0.84 ? 1 : r > 0.72 ? 0 : check ? 1 : 0.22
+      if (v > th) x.fillRect(i * cell, j * cell, cell - 0.5, cell - 0.5)
+    }
+  }
+}
+
+// ---- benchmark range: dotted 0–70 % axis, the 95 % range dithered, the rate solid; draws in from the start (F).
+function paintRange(cv, { rate, low, high, enough, reveal = 1 }) {
+  const w = cv.clientWidth || 96
+  const rows = 4
+  const h = rows * BAR_CELL
+  const dpr = fitCanvas(cv, w, h)
+  const x = cv.getContext('2d')
+  x.setTransform(dpr, 0, 0, dpr, 0, 0)
+  x.clearRect(0, 0, w, h)
+  x.fillStyle = inkOf(cv)
+  const cols = Math.floor(w / BAR_CELL)
+  const at = v => Math.min(cols, (cols * v) / 0.7)
+  const lo = at(low), hi = Math.max(at(high), at(low) + 1), rt = at(rate)
+  const edge = reveal * (cols + 6)
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const th = bayer(i, j)
+      let v = j === 1 || j === 2 ? 0.07 : 0
+      if (i >= lo && i < hi) v = enough ? 0.5 : 0.25
+      if (enough && Math.abs(i - rt) < 1.01) v = 1
+      const fade = i < edge - 6 ? 1 : i < edge ? (edge - i) / 6 : 0
+      if (v * fade > th) x.fillRect(i * BAR_CELL, j * BAR_CELL, BAR_CELL - 0.5, BAR_CELL - 0.5)
+    }
+  }
+}
+
+function RangeBar({ rate, low, high, enough, motion, delay = 0 }) {
+  const ref = useRef(null)
+  const draw = reveal => ref.current && paintRange(ref.current, { rate, low, high, enough, reveal })
+  useRepaint(() => draw(1))
+  useEffect(() => {
+    if (!motion) return draw(1)
+    draw(0)
+    return tween(560, k => draw(easeOut(k)), null, delay)
+  }, [rate, low, high, enough, motion])
+  return jsx('canvas', { 'aria-hidden': true, className: 'tn-range tn-mirror', ref })
+}
+
+// ---- styles, injected once (Tailwind arbitrary classes are not compiled for plugins loaded from disk).
+function bayerMask(level) {
+  let cells = ''
+  for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) if (BAYER[j][i] < level) cells += `<rect x='${i * 2}' y='${j * 2}' width='2' height='2'/>`
+  return `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'>${cells}</svg>`)}")`
+}
+
+const MASKS = [16, 12, 8, 4, 0].map(bayerMask)
+const maskFrame = (pct, m) => `${pct}%{-webkit-mask-image:${m};mask-image:${m}}`
+
+const CSS = `
+.tn-root{--tn-acc:var(--ui-accent,var(--color-primary,#0053fd));--tn-on:var(--dt-midground-foreground,var(--dt-primary-foreground,#fcfcfc));
+  --tn-fg:var(--ui-text-primary,currentColor);--tn-fg2:var(--ui-text-secondary,currentColor);--tn-mut:var(--ui-text-tertiary,currentColor);
+  --tn-acc-text:color-mix(in srgb,var(--tn-acc) 80%,var(--tn-fg));--tn-line:color-mix(in srgb,var(--tn-fg) 13%,transparent);
+  --tn-mono:'JetBrains Mono',var(--font-mono,ui-monospace),monospace;--tn-display:'Collapse',var(--font-sans,system-ui),sans-serif}
+.tn-root canvas{display:block}
+.tn-eyebrow{font:500 0.625rem/1.4 var(--tn-mono);letter-spacing:0.12em;text-transform:uppercase;color:var(--tn-acc-text)}
+.tn-eyebrow .tn-dim{color:var(--tn-mut)}
+.tn-section{display:flex;flex-direction:column;gap:0.5rem}
+.tn-section-head{display:flex;align-items:center;justify-content:space-between;gap:0.5rem;min-height:1.5rem}
+.tn-hero{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem 1.5rem;padding-block:0.25rem 0.75rem;border-block-end:1px solid var(--tn-line)}
+.tn-hero-main{min-width:0;flex:1 1 18rem;display:flex;flex-direction:column;gap:0.35rem}
+.tn-name{font-family:var(--tn-display);font-weight:700;font-size:clamp(2rem,4.4vw,3.4rem);line-height:0.92;letter-spacing:-0.01em;color:var(--tn-fg);margin:0.15rem 0 0.2rem;overflow-wrap:anywhere}
+.tn-pills{display:flex;flex-wrap:wrap;align-items:center;gap:0.375rem}
+.tn-stats{display:flex;flex-wrap:wrap;gap:0.35rem 1.25rem;margin-block-start:0.35rem}
+.tn-stat{display:flex;align-items:baseline;gap:0.35rem;font-size:0.72rem;color:var(--tn-mut)}
+.tn-stat b{font:400 0.95rem var(--tn-mono);color:var(--tn-fg);font-variant-numeric:tabular-nums}
+.tn-preset{font-size:0.7rem;color:var(--tn-mut)}
+.tn-preset span:first-child{font-family:var(--tn-mono);text-transform:uppercase;letter-spacing:0.1em;font-size:0.6rem;margin-inline-end:0.4rem}
+.tn-hero-side{display:flex;flex-direction:column;align-items:center;gap:0.25rem;flex:none}
+.tn-hero-side .tn-emblem{color:var(--tn-acc)}
+.tn-emblem-cap{font:0.6rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--tn-mut);text-align:center;max-width:11rem}
+.tn-chip{display:inline-flex;align-items:center;font-family:var(--tn-display);font-weight:700;font-size:0.72rem;letter-spacing:0.08em;line-height:1;padding:0.2rem 0.35rem 0.15rem;border:1px solid var(--tn-acc);color:var(--tn-acc-text);white-space:nowrap}
+.tn-chip[data-tier=alone]{background:var(--tn-acc);color:var(--tn-on)}
+.tn-chip[data-tier=cap]{border-style:dashed;border-color:var(--tn-mut);color:var(--tn-mut)}
+.tn-chip-wrap{position:relative;display:inline-flex;outline:none}
+.tn-chip-wrap:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--tn-acc) 45%,transparent)}
+.tn-chip-ghost{position:absolute;inset-block-start:0;inset-inline-start:0;pointer-events:none}
+.tn-chip.tn-out{animation:tn-dissolve 520ms steps(1,end) forwards}
+.tn-chip.tn-in{animation:tn-print 520ms steps(1,end) both}
+@keyframes tn-dissolve{${maskFrame(0, MASKS[0])}${maskFrame(25, MASKS[1])}${maskFrame(50, MASKS[2])}${maskFrame(75, MASKS[3])}${maskFrame(100, MASKS[4])}}
+@keyframes tn-print{${maskFrame(0, MASKS[4])}${maskFrame(25, MASKS[3])}${maskFrame(50, MASKS[2])}${maskFrame(75, MASKS[1])}${maskFrame(100, MASKS[0])}}
+.tn-rows{display:flex;flex-direction:column}
+.tn-trow{position:relative;display:grid;grid-template-columns:2.6rem minmax(0,1fr);gap:0.6rem;padding-block:0.85rem;border-block-end:1px solid var(--tn-line)}
+.tn-trow:first-child{border-block-start:1px solid var(--tn-line)}
+.tn-tnum{font:0.68rem var(--tn-mono);color:var(--tn-acc-text);padding-block-start:0.2rem;font-variant-numeric:tabular-nums}
+.tn-tl{display:flex;flex-wrap:wrap;align-items:baseline;gap:0.3rem 0.6rem;margin-block-end:0.45rem}
+.tn-tk{font:0.85rem var(--tn-mono);color:var(--tn-fg);overflow-wrap:anywhere}
+.tn-tname{font-family:var(--tn-display);font-weight:700;font-size:1.05rem;line-height:1;color:var(--tn-fg)}
+.tn-tstakes{font-size:0.68rem;color:var(--tn-mut);margin-inline-start:auto}
+.tn-bar{width:100%;height:16px;color:var(--tn-acc)}
+.tn-tbar{position:relative}
+.tn-tnext{margin:0.3rem 0 0;font-size:0.74rem;line-height:1.5;color:var(--tn-fg2)}
+.tn-tnext .tn-g{font:0.68rem var(--tn-mono);color:var(--tn-mut);font-variant-numeric:tabular-nums}
+.tn-tguar{margin:0.15rem 0 0;font-size:0.68rem;line-height:1.5;color:var(--tn-mut)}
+.tn-mirror:dir(rtl){transform:scaleX(-1)}
+.tn-enter{animation:tn-enter 380ms cubic-bezier(.2,.7,.2,1) both}
+@keyframes tn-enter{from{opacity:0;transform:translateY(4px)}}
+.tn-scan{position:absolute;inset-block:0;inset-inline-start:0;width:1px;background:var(--tn-acc);pointer-events:none;opacity:0;animation:tn-scan 900ms cubic-bezier(.4,0,.2,1) 1}
+@keyframes tn-scan{0%{inset-inline-start:0;opacity:0}10%{opacity:1}90%{opacity:1}100%{inset-inline-start:100%;opacity:0}}
+.tn-band{position:relative;overflow:hidden;background:var(--tn-acc);color:var(--tn-on)}
+.tn-band-in{padding:1.1rem 1.25rem 0.25rem;position:relative;z-index:1}
+.tn-band .tn-eyebrow{color:var(--tn-on);opacity:0.85}
+.tn-band-title{font-family:var(--tn-display);font-weight:700;font-size:clamp(2.2rem,5vw,3.6rem);line-height:0.9;margin:0.35rem 0 0.45rem;clip-path:inset(0 0 0 0)}
+.tn-band-sub{font:0.7rem/1.5 var(--tn-mono);opacity:0.9;max-width:34rem}
+.tn-band canvas{width:100%;height:44px;color:var(--tn-on)}
+.tn-band[data-motion=on] .tn-band-title{animation:tn-wipe 900ms cubic-bezier(.2,.7,.2,1) both 120ms}
+.tn-band[data-motion=on] .tn-band-title:dir(rtl){animation-name:tn-wipe-rtl}
+@keyframes tn-wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes tn-wipe-rtl{from{clip-path:inset(0 0 0 100%)}to{clip-path:inset(0 0 0 0)}}
+.tn-band-close{position:absolute;inset-block-start:0.5rem;inset-inline-end:0.5rem;z-index:2;display:grid;place-items:center;width:1.5rem;height:1.5rem;border:0;background:transparent;color:inherit;cursor:pointer;opacity:0.8}
+.tn-band-close:hover{opacity:1}
+.tn-band-close:focus-visible{outline:1px solid currentColor;outline-offset:1px}
+.tn-fault{position:relative;border:1px solid var(--tn-line);padding:1rem 1.25rem}
+.tn-fault .tn-band-title{color:var(--tn-fg);font-size:clamp(1.8rem,4vw,2.8rem)}
+.tn-fault .tn-band-sub{color:var(--tn-fg2);font-family:inherit;font-size:0.78rem}
+.tn-fault .tn-band-close{color:var(--tn-mut)}
+.tn-leaving{animation:tn-leave 280ms ease forwards}
+@keyframes tn-leave{to{opacity:0;transform:translateY(-4px)}}
+.tn-intro{margin:0 1rem 0.75rem;display:flex;align-items:flex-start;gap:0.75rem;padding:0.7rem 0.85rem;border:1px solid var(--tn-line)}
+.tn-intro p{margin:0}
+.tn-intro-body{font-size:0.74rem;line-height:1.55;color:var(--tn-fg2);max-width:48rem}
+.tn-pass-wrap{perspective:900px;max-width:23rem}
+.tn-pass{position:relative;overflow:hidden;background:var(--tn-acc);color:var(--tn-on);padding:1.1rem 1.25rem 1rem;transform-style:preserve-3d;transition:transform 400ms cubic-bezier(.2,.7,.2,1);will-change:transform}
+.tn-pass.tn-tilting{transition:transform 80ms linear}
+.tn-ptop{display:flex;justify-content:space-between;gap:0.5rem;font:0.62rem var(--tn-mono);letter-spacing:0.14em;text-transform:uppercase}
+.tn-ok{opacity:0;transition:opacity 400ms}
+.tn-ok.tn-on{opacity:1}
+.tn-pemb{display:grid;place-items:center;margin:0.8rem 0 0.2rem}
+.tn-pemb .tn-emblem{color:var(--tn-on)}
+.tn-pname{font-family:var(--tn-display);font-weight:700;font-size:clamp(1.8rem,3.6vw,2.6rem);line-height:0.95;text-align:center;margin:0.2rem 0 0.8rem;min-height:1em;overflow-wrap:anywhere}
+.tn-prows{border-block-start:1px solid color-mix(in srgb,var(--tn-on) 35%,transparent);padding-block-start:0.55rem;display:flex;flex-direction:column;gap:0.35rem}
+.tn-prow{display:grid;grid-template-columns:minmax(0,1fr) 5.5rem;gap:0.15rem 0.75rem;align-items:center;font:0.66rem var(--tn-mono)}
+.tn-prow[data-motion=on]{opacity:0;transform:translateY(4px);transition:opacity 400ms,transform 400ms}
+.tn-prow.tn-on{opacity:1;transform:none}
+.tn-prow .tn-pk{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tn-prow b{font-family:var(--tn-display);font-weight:700;letter-spacing:0.06em;margin-inline-start:0.4rem;text-transform:uppercase}
+.tn-prow .tn-bar{height:8px;color:var(--tn-on)}
+.tn-pfoot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.25rem 0.75rem;margin-block-start:0.8rem;padding-block-start:0.55rem;border-block-start:1px solid color-mix(in srgb,var(--tn-on) 35%,transparent);font:0.58rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase}
+.tn-hash{font-family:var(--tn-mono);text-transform:none;letter-spacing:0.06em}
+.tn-psig{display:flex;align-items:center;gap:0.45rem;margin-block-start:0.6rem;font:0.56rem var(--tn-mono);letter-spacing:0.12em;opacity:0.85}
+.tn-psig b{font-family:var(--tn-display);font-weight:700;letter-spacing:0.12em}
+.tn-psig .tn-emblem{color:var(--tn-on)}
+.tn-seal{position:absolute;inset-block-end:0.7rem;inset-inline-end:0.85rem;width:44px;height:44px;color:var(--tn-on);transform:rotate(-10deg);opacity:0.92}
+.tn-sweep{position:absolute;inset-inline:0;height:46px;inset-block-start:-60px;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--tn-on) 16%,transparent),transparent);pointer-events:none}
+.tn-glare{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 300ms;
+  background:linear-gradient(105deg,transparent 38%,color-mix(in srgb,var(--tn-on) 34%,transparent) 50%,transparent 62%);background-size:260% 100%;
+  background-position:calc(50% - var(--tn-gx,0) * 120%) 0;-webkit-mask-image:${MASKS[2]};mask-image:${MASKS[2]};-webkit-mask-size:8px 8px;mask-size:8px 8px}
+.tn-pass[data-motion=on]:hover .tn-glare{opacity:1}
+.tn-chip.tn-out,.tn-chip.tn-in{-webkit-mask-size:8px 8px;mask-size:8px 8px}
+.tn-range{width:96px;height:8px;color:var(--tn-acc)}
+.tn-brow{position:relative;border-block-end:1px solid var(--tn-line)}
+.tn-anim-toggle{display:inline-flex;align-items:center;gap:0.4rem;font:0.6rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--tn-mut)}
+@media (prefers-reduced-motion:reduce){.tn-enter,.tn-scan,.tn-chip.tn-out,.tn-chip.tn-in,.tn-band-title,.tn-leaving{animation:none!important}.tn-prow,.tn-pass,.tn-ok{transition:none!important}.tn-prow{opacity:1;transform:none}}
+`
+
 // ------------------------------------------------------------------------------------------------ pieces
 function TierLabel(tier, t) {
   return { ask: t('tier.t1'), notify: t('tier.t2'), alone: t('tier.t3'), cap: t('tier.cap') }[tier]
 }
 
-function TierPill({ tier, t }) {
+/** The tier's display name in the tenure vocabulary (Probation, Under review, Tenured, Always asks). */
+function tierName(tier, t) {
+  return { ask: t('tier.name.t1'), notify: t('tier.name.t2'), alone: t('tier.name.t3'), cap: t('tier.name.cap') }[tier]
+}
+
+/** Flat rectangular chip: outlined T1/T2, filled accent T3, dashed CAP. A tier change dissolves the old chip. */
+function TierChip({ tier, t, motion }) {
+  const [ghost, setGhost] = useState(null)
+  const prev = useRef(tier)
+  useEffect(() => {
+    if (prev.current === tier) return
+    const old = prev.current
+    prev.current = tier
+    if (!motion) return
+    setGhost({ tier: old, key: Date.now() })
+    const id = setTimeout(() => setGhost(null), 560)
+    return () => clearTimeout(id)
+  }, [tier, motion])
   return jsx(Tip, {
     label: TierLabel(tier, t),
-    children: jsx('span', {
-      'aria-label': TierLabel(tier, t),
-      className: 'inline-flex items-center gap-1 rounded-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50',
+    children: jsxs('span', {
+      'aria-label': `${TIER_SHORT[tier]} · ${tierName(tier, t)}: ${TierLabel(tier, t)}`,
+      className: 'tn-chip-wrap',
       tabIndex: 0,
-      children: jsx(PanelPill, {
-        tone: TIER_TONE[tier],
-        children: tier === 'alone' ? jsxs('span', { className: 'inline-flex items-center gap-0.5', children: [jsx(Codicon, { name: 'verified', size: '0.6rem' }), 'T3'] }) : TIER_SHORT[tier]
-      })
+      children: [
+        jsx('span', { className: cn('tn-chip', ghost && 'tn-in'), 'data-tier': tier, children: TIER_SHORT[tier] }, 'chip-' + tier + (ghost ? ghost.key : '')),
+        ghost ? jsx('span', { 'aria-hidden': true, className: 'tn-chip tn-chip-ghost tn-out', 'data-tier': ghost.tier, children: TIER_SHORT[ghost.tier] }, 'ghost') : null
+      ]
     })
   })
 }
@@ -967,69 +1636,73 @@ function StatePill({ label, tip, tone, t }) {
   })
 }
 
-function Progress({ value, max, label }) {
-  const width = max > 0 ? Math.min(100, Math.round((100 * value) / max)) : 0
-  return jsx('span', {
-    'aria-label': label,
-    'aria-valuemax': max,
-    'aria-valuemin': 0,
-    'aria-valuenow': value,
-    className: 'relative inline-block h-1 shrink-0 overflow-hidden rounded-full bg-foreground/10',
-    role: 'progressbar',
-    style: { width: 64 },
-    children: jsx('span', { className: 'absolute inset-y-0 rounded-full bg-primary', style: { insetInlineStart: 0, width: `${width}%` } })
-  })
+/** Small numbered mono eyebrow: "#02 · Acted without asking". */
+function Eyebrow({ n, children, as = 'h4' }) {
+  return jsxs(as, { className: 'tn-eyebrow', style: { margin: 0 }, children: [n != null ? jsx('span', { className: 'tn-dim', children: `#${pad2(n)} · ` }) : null, children] })
 }
 
-function Range({ rate, low, high, enough }) {
-  const axis = 0.7
-  const at = x => `${Math.min(100, (100 * x) / axis)}%`
-  return jsxs('span', {
-    'aria-hidden': true,
-    className: 'relative inline-block h-2 shrink-0',
-    style: { width: 96 },
-    children: [
-      jsx('span', { className: 'absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-foreground/15' }),
-      jsx('span', {
-        className: cn('absolute top-1/2 h-1 -translate-y-1/2 rounded-full', enough ? 'bg-primary' : 'bg-foreground/20'),
-        style: { insetInlineStart: at(low), width: `calc(${at(high)} - ${at(low)})`, minWidth: 2, opacity: enough ? 0.4 : 1 }
-      }),
-      enough ? jsx('span', { className: 'absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-primary', style: { insetInlineStart: at(rate), marginInlineStart: '-0.1875rem' } }) : null
-    ]
-  })
+const SERIES_SESSIONS = 2 // rule.SESSIONS: T3 also needs the series spread over at least two sessions
+
+/** Fill fraction of a type's bar: series toward T3; T3 is solid; a capped type shows only its track. */
+const fillOf = ty => (ty.capped ? 0 : tierKey(ty) === 'alone' ? 1 : ty.required > 0 ? clamp01(ty.series / ty.required) : 0)
+
+function nextLine(ty, t, spot) {
+  const tier = tierKey(ty)
+  if (ty.capped) return t('type.always_asks')
+  if (tier === 'alone') return t('type.tenured_line', { k: Math.round(1 / (spot || 0.1)) })
+  const left = Math.max(0, (ty.required || 0) - (ty.series || 0))
+  if (left > 0) return t('type.next', { n: left })
+  if ((ty.sessions || 0) < SERIES_SESSIONS) return t('type.next_session')
+  return ''
 }
 
-function TypeRow({ type, t }) {
+function TypeRow({ type, t, index, motion, change, spot }) {
   const tier = tierKey(type)
   const g = type.guarantee
+  const stakes = ['low', 'medium', 'high'].includes(type.stakes) ? t('type.stakes_' + type.stakes) : t('type.stakes_other', { stakes: type.stakes })
+  const progress = t('type.in_a_row', { series: type.series, required: type.required })
+  const next = nextLine(type, t, spot)
   return jsxs('div', {
-    className: 'rounded-md px-2 py-1.5 hover:bg-(--ui-row-hover-background)',
+    className: cn('tn-trow', motion && 'tn-enter'),
+    style: motion ? { animationDelay: `${index * 40}ms` } : undefined,
     children: [
+      jsx('div', { 'aria-hidden': true, className: 'tn-tnum', children: '#' + pad2(index + 1) }),
       jsxs('div', {
-        className: 'flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.78rem]',
+        className: 'min-w-0',
         children: [
-          jsx(TierPill, { tier, t }),
-          jsx('span', { className: 'min-w-0 flex-1 truncate font-mono text-[0.75rem] text-foreground/85', children: type.type }),
-          jsx('span', { className: 'shrink-0 text-[0.7rem] text-muted-foreground/70', children: ['low', 'medium', 'high'].includes(type.stakes) ? t('type.stakes_' + type.stakes) : t('type.stakes_other', { stakes: type.stakes }) }),
-          type.capped
-            ? jsx('span', { className: 'shrink-0 text-[0.7rem] text-muted-foreground/70', children: t('type.always_asks') })
-            : jsxs('span', {
-                className: 'flex shrink-0 items-center gap-2 text-[0.7rem] tabular-nums text-muted-foreground/80',
-                children: [
-                  jsx(Progress, { value: type.series, max: type.required, label: t('type.in_a_row', { series: type.series, required: type.required }) }),
-                  jsx('span', { children: t('type.in_a_row', { series: type.series, required: type.required }) }),
-                  jsx('span', { className: 'text-muted-foreground/60', children: t('type.sessions', { n: type.sessions }) })
-                ]
-              })
+          jsxs('div', {
+            className: 'tn-tl',
+            children: [
+              jsx('span', { className: 'tn-tk', children: type.type }),
+              jsx(TierChip, { tier, t, motion }),
+              jsx('span', { className: 'tn-tname', children: tierName(tier, t) }),
+              jsx('span', { className: 'tn-tstakes', children: stakes })
+            ]
+          }),
+          jsx('div', {
+            'aria-label': type.capped ? t('type.always_asks') : progress,
+            'aria-valuemax': type.capped ? undefined : type.required,
+            'aria-valuemin': type.capped ? undefined : 0,
+            'aria-valuenow': type.capped ? undefined : type.series,
+            className: 'tn-tbar',
+            role: type.capped ? 'img' : 'progressbar',
+            children: jsx(DitherBar, { change: change && change.dir !== 'spot' ? change : null, delay: 120 + index * 40, motion, solid: tier === 'alone', track: type.capped, value: fillOf(type) })
+          }),
+          jsxs('p', {
+            className: 'tn-tnext',
+            children: [
+              next,
+              !type.capped
+                ? jsx('span', { className: 'tn-g', children: (next ? ' · ' : '') + progress + ' · ' + t('type.sessions', { n: type.sessions }) })
+                : null
+            ]
+          }),
+          !type.capped && g
+            ? jsx('p', { className: 'tn-tguar', children: t(g.conditional ? 'type.guarantee_provisional' : 'type.guarantee', { aoql: pct(g.aoql), worst: pct(g.worst_case) }) })
+            : null
         ]
       }),
-      !type.capped && g
-        ? jsx('p', {
-            className: 'mt-0.5 text-[0.7rem] leading-relaxed text-muted-foreground/75',
-            style: { paddingInlineStart: '2.5rem' },
-            children: t(g.conditional ? 'type.guarantee_provisional' : 'type.guarantee', { aoql: pct(g.aoql), worst: pct(g.worst_case) })
-          })
-        : null
+      change && change.dir === 'spot' && motion ? jsx('span', { 'aria-hidden': true, className: 'tn-scan' }, change.token) : null
     ]
   })
 }
@@ -1038,14 +1711,14 @@ function Intro({ t, spot }) {
   const [hidden, setHidden] = useState(() => (storage ? storage.get('introDismissed', false) : false))
   if (hidden) return null
   return jsxs('div', {
-    className: 'mx-4 mb-3 flex items-start gap-3 rounded-md bg-(--ui-bg-quinary) px-3 py-2.5',
+    className: 'tn-intro',
     children: [
-      jsx(Codicon, { className: 'mt-0.5 shrink-0 text-muted-foreground/70', name: 'shield', size: '0.95rem' }),
       jsxs('div', {
-        className: 'min-w-0 flex-1 space-y-0.5',
+        className: 'min-w-0 flex-1',
+        style: { display: 'flex', flexDirection: 'column', gap: '0.3rem' },
         children: [
-          jsx('p', { className: 'text-xs font-medium text-foreground', children: t('intro.title') }),
-          jsx('p', { className: 'max-w-3xl text-xs leading-relaxed text-muted-foreground/80', children: t('intro.body', { k: Math.round(1 / (spot || 0.1)) }) })
+          jsx(Eyebrow, { as: 'p', n: 0, children: t('intro.title') }),
+          jsx('p', { className: 'tn-intro-body', children: t('intro.body', { k: Math.round(1 / (spot || 0.1)) }) })
         ]
       }),
       jsx(Button, {
@@ -1061,7 +1734,7 @@ function Intro({ t, spot }) {
   })
 }
 
-function RecentSection({ agent, t }) {
+function RecentSection({ agent, t, n }) {
   const profile = useValue(host.state.profile)
   const qc = useQueryClient()
   const [busy, setBusy] = useState(null)
@@ -1084,18 +1757,18 @@ function RecentSection({ agent, t }) {
     }
   }
   return jsxs('section', {
-    className: 'space-y-1.5',
+    className: 'tn-section',
     children: [
-      jsx(PanelSectionLabel, { children: t('recent.title') }),
+      jsx(Eyebrow, { n, children: t('recent.title') }),
       rows.length === 0
-        ? jsx('p', { className: 'px-2 text-xs text-muted-foreground/70', children: t('recent.none') })
+        ? jsx('p', { className: 'text-xs text-muted-foreground/70', style: { margin: 0 }, children: t('recent.none') })
         : jsx('div', {
             className: 'flex flex-col',
             children: rows.map(r =>
               jsxs(
                 'div',
                 {
-                  className: 'group/row flex items-center gap-3 rounded-md px-2 py-1 text-[0.78rem] hover:bg-(--ui-row-hover-background)',
+                  className: 'tn-brow group/row flex items-center gap-3 px-1 py-1.5 text-[0.78rem] hover:bg-(--ui-row-hover-background)',
                   children: [
                     jsx(Codicon, { className: 'shrink-0 text-muted-foreground/55', name: 'history', size: '0.8rem' }),
                     jsxs('span', {
@@ -1135,7 +1808,7 @@ function RecentSection({ agent, t }) {
               )
             ).concat(
               every.length > 5
-                ? [jsx('div', { className: 'px-2 pt-1', children: jsx(Button, { onClick: () => setAll(!all), size: 'xs', variant: 'ghost', children: all ? t('recent.show_fewer') : t('recent.show_all', { n: every.length }) }) }, 'more')]
+                ? [jsx('div', { className: 'pt-1', children: jsx(Button, { onClick: () => setAll(!all), size: 'xs', variant: 'ghost', children: all ? t('recent.show_fewer') : t('recent.show_all', { n: every.length }) }) }, 'more')]
                 : []
             )
           }),
@@ -1159,7 +1832,176 @@ function RecentSection({ agent, t }) {
   })
 }
 
-function PassportSection({ agent, t }) {
+// ------------------------------------------------------------------------------------------------ passport card
+const HEX = '0123456789abcdef'
+const scramble = n => Array.from({ length: n }, () => HEX[Math.floor(Math.random() * 16)]).join('')
+
+/**
+ * B. The passport as a card: the emblem develops then turns, the name types in, the rows print, the ledger hash
+ * scrambles while the passport verifies and settles on the real head (✓ only if it verifies), then a seal prints.
+ * Hover tilts it (≤ 4°) with a dithered glare that follows the pointer (mouse only, motion on).
+ */
+function PassportCard({ agent, doc, settled, ok, t, motion }) {
+  const cardRef = useRef(null)
+  const nameRef = useRef(null)
+  const hashRef = useRef(null)
+  const okRef = useRef(null)
+  const sealRef = useRef(null)
+  const sweepRef = useRef(null)
+  const rowsRef = useRef(null)
+  const live = useRef({ settled, ok, head: null })
+  const p = doc && doc.passport
+  const head = p && p.ledger ? String(p.ledger.head).slice(0, 8) : null
+  live.current = { settled, ok, head }
+  const name = displayName(agent.model)
+  const types = agent.types || []
+  const shown = types.slice(0, 6)
+  const totals = types.reduce((acc, ty) => ({ f: acc.f + (ty.faults || 0), n: acc.n + (ty.successes || 0) + (ty.faults || 0) }), { f: 0, n: 0 })
+  const paintSealAt = k => sealRef.current && paintSeal(sealRef.current, { size: 44, print: k })
+  useRepaint(() => {
+    if (live.current.ok && live.current.settled) paintSealAt(1)
+  })
+  // Static end state (motion off) and live updates after the sequence.
+  const finish = () => {
+    if (nameRef.current) nameRef.current.textContent = name
+    if (hashRef.current) hashRef.current.textContent = live.current.head || '········'
+    if (okRef.current) okRef.current.classList.toggle('tn-on', !!(live.current.ok && live.current.settled))
+    if (rowsRef.current) for (const r of rowsRef.current.children) r.classList.add('tn-on')
+    if (sealRef.current) {
+      if (live.current.ok && live.current.settled) paintSealAt(1)
+      else paintSealAt(0)
+    }
+  }
+  const done = useRef(false)
+  useEffect(() => {
+    done.current = false
+    if (!motion) {
+      done.current = true
+      finish()
+      return
+    }
+    let raf = 0
+    let t0 = 0
+    let settledAt = 0
+    let lastScramble = 0
+    if (nameRef.current) nameRef.current.textContent = ''
+    if (okRef.current) okRef.current.classList.remove('tn-on')
+    if (rowsRef.current) for (const r of rowsRef.current.children) r.classList.remove('tn-on')
+    paintSealAt(0)
+    const frame = now => {
+      if (!t0) t0 = now
+      const s = (now - t0) / 1000
+      const L = live.current
+      if (nameRef.current) nameRef.current.textContent = name.slice(0, Math.max(0, Math.min(name.length, Math.floor((s - 0.9) * 22))))
+      if (rowsRef.current) [...rowsRef.current.children].forEach((r, i) => s > 1.6 + i * 0.2 && r.classList.add('tn-on'))
+      const verified = L.settled && s >= 3.0
+      if (!settledAt && verified) settledAt = now
+      if (hashRef.current) {
+        if (settledAt) hashRef.current.textContent = L.head || '········'
+        else if (s < 2.2) hashRef.current.textContent = '········'
+        else if (now - lastScramble > 50) {
+          lastScramble = now
+          hashRef.current.textContent = scramble(8)
+        }
+      }
+      if (sweepRef.current) {
+        const h = cardRef.current ? cardRef.current.offsetHeight : 520
+        const on = s > 2.2 && !settledAt
+        sweepRef.current.style.transform = on ? `translateY(${(((s - 2.2) % 1.2) / 1.2) * (h + 60)}px)` : 'translateY(0)'
+      }
+      if (settledAt && okRef.current && L.ok) okRef.current.classList.add('tn-on')
+      const sk = settledAt && L.ok ? clamp01((now - settledAt - 250) / 600) : 0
+      if (settledAt && L.ok) paintSealAt(sk)
+      const nameDone = s > 0.9 + name.length / 22
+      if (settledAt && (!L.ok || sk >= 1) && nameDone && s > 1.6 + shown.length * 0.2) {
+        done.current = true
+        finish()
+        return
+      }
+      raf = requestAnimationFrame(frame)
+    }
+    raf = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(raf)
+  }, [motion])
+  // After the sequence, follow the data (a new verification, another head).
+  useEffect(() => {
+    if (done.current) finish()
+  }, [settled, ok, head])
+  const onMove = e => {
+    const el = cardRef.current
+    if (!el || !motion || e.pointerType !== 'mouse') return
+    const r = el.getBoundingClientRect()
+    const px = clamp01((e.clientX - r.x) / r.width) - 0.5
+    const py = clamp01((e.clientY - r.y) / r.height) - 0.5
+    const rtl = getComputedStyle(el).direction === 'rtl' ? -1 : 1
+    el.classList.add('tn-tilting')
+    el.style.transform = `rotateX(${(-py * 8).toFixed(2)}deg) rotateY(${(px * 8).toFixed(2)}deg)`
+    el.style.setProperty('--tn-gx', String(px * rtl))
+  }
+  const onLeave = () => {
+    const el = cardRef.current
+    if (!el) return
+    el.classList.remove('tn-tilting')
+    el.style.transform = ''
+    el.style.setProperty('--tn-gx', '0')
+  }
+  return jsx('div', {
+    className: 'tn-pass-wrap',
+    children: jsxs('div', {
+      className: 'tn-pass',
+      'data-motion': motion ? 'on' : 'off',
+      onPointerLeave: onLeave,
+      onPointerMove: onMove,
+      ref: cardRef,
+      children: [
+        jsx('div', { 'aria-hidden': true, className: 'tn-sweep', ref: sweepRef }),
+        jsx('div', { 'aria-hidden': true, className: 'tn-glare' }),
+        jsxs('div', {
+          className: 'tn-ptop',
+          children: [
+            jsx('span', { children: t('page.title') }),
+            jsxs('span', { children: [t('passport.title'), ' ', jsx('span', { 'aria-hidden': true, className: 'tn-ok', ref: okRef, children: '✓' })] })
+          ]
+        }),
+        jsx('div', { className: 'tn-pemb', children: jsx(Emblem, { motion, n: 88, rotate: true, share: shareOf(agent), size: 176 }) }),
+        jsx('div', { 'aria-label': name, className: 'tn-pname', ref: nameRef, role: 'heading', 'aria-level': 4, children: motion ? '' : name }),
+        jsx('div', {
+          className: 'tn-prows',
+          ref: rowsRef,
+          children: shown.map((ty, i) => {
+            const tier = tierKey(ty)
+            return jsxs(
+              'div',
+              {
+                className: cn('tn-prow', !motion && 'tn-on'),
+                'data-motion': motion ? 'on' : 'off',
+                children: [
+                  jsxs('span', { className: 'tn-pk', children: [`#${pad2(i + 1)} ${ty.type}`, jsx('b', { children: `${TIER_SHORT[tier]} · ${tierName(tier, t)}` })] }),
+                  jsx(DitherBar, { delay: 1700 + i * 200, motion, rows: 3, solid: tier === 'alone', track: ty.capped, value: fillOf(ty) })
+                ]
+              },
+              ty.type
+            )
+          })
+        }),
+        jsxs('div', {
+          className: 'tn-pfoot',
+          children: [
+            jsx('span', { children: t('benchmark.faults', { n: totals.f, total: totals.n }) }),
+            jsxs('span', { children: [t('passport.ledger'), ' ', jsx('span', { className: 'tn-hash', ref: hashRef, children: motion ? '········' : head || '········' })] })
+          ]
+        }),
+        jsxs('div', {
+          className: 'tn-psig',
+          children: [jsx(Emblem, { motion: false, n: 16, share: 1, size: 16 }), jsx('b', { children: 'TENURE' }), jsx('span', { children: t('passport.signature') })]
+        }),
+        jsx('canvas', { 'aria-hidden': true, className: 'tn-seal', ref: sealRef })
+      ]
+    })
+  })
+}
+
+function PassportSection({ agent, t, n, motion }) {
   const head = agent.totals ? agent.totals.actions : 0
   const { data: doc, error, isLoading } = useQuery({
     queryKey: ['tenure', agent.profile, 'passport', agent.agent, head],
@@ -1170,20 +2012,22 @@ function PassportSection({ agent, t }) {
   const ok = doc && Array.isArray(doc.verify) && doc.verify.length === 0
   const p = doc && doc.passport
   return jsxs('section', {
-    className: 'space-y-2',
+    className: 'tn-section',
     children: [
       jsxs('div', {
-        className: 'flex items-center justify-between gap-2',
+        className: 'tn-section-head',
         children: [
-          jsx(PanelSectionLabel, { children: t('passport.title') }),
+          jsx(Eyebrow, { n, children: t('passport.title') }),
           p ? jsx(CopyButton, { buttonSize: 'xs', label: t('passport.copy'), showLabel: true, text: JSON.stringify(p, null, 2) }) : null
         ]
       }),
+      jsx(PassportCard, { agent, doc, motion, ok: !!ok, settled: !!error || (!!doc && !isLoading), t }, agent.key),
       isLoading && !doc
-        ? jsxs('p', { className: 'flex items-center gap-1.5 text-xs text-muted-foreground/70', children: [jsx(Codicon, { name: 'loading', size: '0.8rem', spinning: true }), t('passport.verifying')] })
+        ? jsxs('p', { className: 'flex items-center gap-1.5 text-xs text-muted-foreground/70', style: { margin: 0 }, children: [jsx(Codicon, { name: 'loading', size: '0.8rem', spinning: true }), t('passport.verifying')] })
         : jsxs('div', {
-            className: cn('flex items-start gap-1.5 rounded p-2 text-[0.72rem]', ok ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'),
+            className: cn('flex items-start gap-1.5 p-2 text-[0.72rem]', ok ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'),
             role: 'status',
+            style: { maxWidth: '23rem' },
             children: [
               jsx(Codicon, { className: 'mt-px shrink-0', name: ok ? 'verified-filled' : 'warning', size: '0.85rem' }),
               jsx('span', {
@@ -1210,7 +2054,7 @@ function PassportSection({ agent, t }) {
         ? jsxs('div', {
             className: 'space-y-1',
             children: [
-              jsx('p', { className: 'text-[0.7rem] text-muted-foreground/75', children: t('passport.verify_hint') }),
+              jsx('p', { className: 'text-[0.7rem] text-muted-foreground/75', style: { margin: 0 }, children: t('passport.verify_hint') }),
               jsxs('div', {
                 className: 'flex items-start gap-1',
                 children: [
@@ -1225,55 +2069,203 @@ function PassportSection({ agent, t }) {
   })
 }
 
+// ------------------------------------------------------------------------------------------------ live transitions
+// Animations play on real state transitions only: each render diffs the types against the previous answer for the
+// same agent. The first sight of an agent records its state and plays nothing (the entrance plays instead).
+const seen = new Map()                               // agent key -> Map(type -> { rank, faults, spots })
+
+function useTransitions(agent) {
+  const [changes, setChanges] = useState({})
+  const [moment, setMoment] = useState(null)
+  const [pulse, setPulse] = useState(0)
+  useEffect(() => {
+    const now = new Map((agent.types || []).map(ty => [ty.type, { rank: TIER_RANK[tierKey(ty)], faults: ty.faults || 0, spots: ty.spot_checks || 0 }]))
+    const prev = seen.get(agent.key)
+    seen.set(agent.key, now)
+    if (!prev) return
+    const out = {}
+    let best = null
+    const stamp = Date.now()
+    const rankOf = m => ({ granted: 3, probation: 2, review: 1 })[m.kind]
+    for (const ty of agent.types || []) {
+      const a = prev.get(ty.type)
+      const b = now.get(ty.type)
+      if (!a) continue
+      let m = null
+      if (b.rank < a.rank || b.faults > a.faults) {
+        out[ty.type] = { dir: 'down', token: stamp + ty.type }
+        if (b.rank === TIER_RANK.ask && a.rank > TIER_RANK.ask) m = { kind: 'probation', type: ty }
+      } else if (b.rank > a.rank) {
+        out[ty.type] = { dir: 'up', token: stamp + ty.type }
+        m = { kind: b.rank === TIER_RANK.alone ? 'granted' : 'review', type: ty }
+      } else if (b.spots > a.spots) out[ty.type] = { dir: 'spot', token: stamp + ty.type }
+      if (m && (!best || rankOf(m) > rankOf(best))) best = m
+    }
+    if (Object.keys(out).length) setChanges(c => ({ ...c, ...out }))
+    if (Object.values(out).some(c => c.dir === 'up')) setPulse(x => x + 1)
+    if (best) setMoment({ ...best, key: stamp })
+  }, [agent])
+  return { changes, moment, pulse, dismiss: () => setMoment(null) }
+}
+
+/** C / D. The big moment, once: a filled accent band for a promotion, a quiet card for a fault (the repair path). */
+function MomentBand({ moment, agent, t, motion, onClose }) {
+  const ref = useRef(null)
+  const [leaving, setLeaving] = useState(false)
+  const close = () => {
+    if (!motion) return onClose()
+    setLeaving(true)
+    setTimeout(onClose, 280)
+  }
+  useEffect(() => {
+    const id = setTimeout(close, 6000)
+    return () => clearTimeout(id)
+  }, [moment.key])
+  const down = moment.kind === 'probation'
+  const paintFade = k => {
+    const cv = ref.current
+    if (!cv) return
+    const w = cv.clientWidth
+    const h = 44
+    const dpr = fitCanvas(cv, w, h)
+    const x = cv.getContext('2d')
+    x.setTransform(dpr, 0, 0, dpr, 0, 0)
+    x.clearRect(0, 0, w, h)
+    x.fillStyle = inkOf(cv)
+    const c = 4
+    const rows = h / c
+    for (let j = 0; j < rows; j++) {
+      const v = (j / rows) * k
+      for (let i = 0; i < w / c; i++) if (v > bayer(i, j) + ((i * 7) % 3) * 0.02) x.fillRect(i * c, j * c, c - 0.8, c - 0.8)
+    }
+  }
+  useRepaint(() => paintFade(1))
+  useEffect(() => {
+    if (down) return
+    if (!motion) return paintFade(1)
+    return tween(1000, k => paintFade(k), null, 200)
+  }, [moment.key, motion])
+  const ty = moment.type
+  const title = down ? t('moment.probation') : moment.kind === 'granted' ? t('moment.granted') : t('moment.review')
+  const sub = down ? nextLine(ty, t, (agent.settings || {}).spot) : `${displayName(agent.model)} · ${TierLabel(tierKey(ty), t)}`
+  return jsxs('div', {
+    'aria-live': 'polite',
+    className: cn(down ? 'tn-fault' : 'tn-band', leaving && 'tn-leaving', motion && 'tn-enter'),
+    'data-motion': motion ? 'on' : 'off',
+    role: 'status',
+    children: [
+      jsx('button', { 'aria-label': t('moment.dismiss'), className: 'tn-band-close', onClick: close, type: 'button', children: jsx(Codicon, { name: 'close', size: '0.8rem' }) }),
+      jsxs('div', {
+        className: down ? undefined : 'tn-band-in',
+        children: [
+          jsx('div', { className: 'tn-eyebrow', children: t(down ? 'moment.eyebrow_down' : 'moment.eyebrow_up', { type: ty.type }) }),
+          jsx('div', { className: 'tn-band-title', children: title }),
+          jsx('div', { className: 'tn-band-sub', children: sub })
+        ]
+      }),
+      down
+        ? jsx('div', { style: { marginBlockStart: '0.75rem' }, children: jsx(DitherBar, { change: { dir: 'down', token: moment.key }, motion, value: fillOf(ty) }) })
+        : jsx('canvas', { 'aria-hidden': true, className: 'tn-mirror', ref })
+    ]
+  })
+}
+
 function AgentDetail({ agent, t, onRevoke }) {
+  const motion = useMotion()
   const tot = agent.totals || {}
   const s = agent.settings || {}
+  const types = agent.types || []
+  const { changes, moment, pulse, dismiss } = useTransitions(agent)
+  const t3 = types.filter(ty => tierKey(ty) === 'alone').length
+  const t2 = types.filter(ty => tierKey(ty) === 'notify').length
+  const caption = [t3 ? t('emblem.tenured', { n: t3 }) : null, t2 ? t('emblem.review', { n: t2 }) : null].filter(Boolean).join(' · ') || t('emblem.none')
+  const stat = (value, label, tip) =>
+    jsxs('span', {
+      className: 'tn-stat',
+      children: [
+        tip ? jsx(Tip, { label: tip, children: jsx('b', { tabIndex: 0, children: String(value || 0) }) }) : jsx('b', { children: String(value || 0) }),
+        jsx('span', { children: label })
+      ]
+    })
   return jsxs(PanelDetail, {
-    className: 'max-w-3xl',
+    className: 'tn-root max-w-3xl',
     children: [
       jsxs('header', {
-        className: 'space-y-3',
+        className: 'tn-hero',
         children: [
           jsxs('div', {
-            className: 'flex flex-wrap items-start justify-between gap-3',
+            className: 'tn-hero-main',
             children: [
               jsxs('div', {
-                className: 'flex min-w-0 flex-wrap items-center gap-2',
+                className: 'tn-eyebrow',
                 children: [
-                  jsx(Tip, { label: agent.agent, children: jsx('h3', { className: 'text-[0.95rem] font-semibold tracking-tight text-foreground', children: displayName(agent.model) }) }),
-                  jsx(TierPill, { tier: bestTier(agent), t }),
+                  '#' + t('hero.agent'),
+                  jsx('span', { className: 'tn-dim', children: ' · ' }),
+                  jsx(Tip, { label: t('meta.provider'), children: jsx('span', { tabIndex: 0, children: agent.provider }) }),
+                  jsx('span', { className: 'tn-dim', children: ' · ' }),
+                  `${t('meta.profile')} ${agent.profile}`
+                ]
+              }),
+              jsx(Tip, { label: agent.agent, children: jsx('h3', { className: 'tn-name', children: displayName(agent.model) }) }),
+              jsxs('div', {
+                className: 'tn-pills',
+                children: [
+                  jsx(TierChip, { motion, t, tier: bestTier(agent) }),
                   agent.provisional ? jsx(StatePill, { label: t('state.provisional'), tip: t('state.provisional_tip'), tone: 'warn', t }) : null,
                   agent.trial ? jsx(StatePill, { label: t('state.trial'), tip: t('state.trial_tip'), tone: 'warn', t }) : null,
                   agent.unresolved_fault ? jsx(StatePill, { label: t('state.fault'), tip: t('state.fault_tip'), tone: 'bad', t }) : null,
                   agent.suspended ? jsx(StatePill, { label: t('state.suspended'), tip: t('state.suspended_tip'), tone: 'bad', t }) : null
                 ]
               }),
-              jsx('div', { className: 'flex shrink-0 items-center gap-0.5', children: jsx(PanelAction, { icon: 'circle-slash', onClick: onRevoke, children: t('revoke.action') }) })
+              jsxs('div', {
+                className: 'tn-stats',
+                children: [
+                  stat(tot.actions, t('meta.actions'), t('meta.actions_tip')),
+                  stat(tot.checked, t('meta.checked')),
+                  stat(tot.alone, t('meta.alone')),
+                  stat(tot.faults, t('meta.faults'))
+                ]
+              }),
+              jsxs('p', {
+                className: 'tn-preset',
+                style: { margin: 0 },
+                children: [
+                  jsx('span', { children: t('meta.preset') }),
+                  jsx('span', {
+                    children:
+                      t(s.pending ? 'preset.value_pending' : 'preset.value', { preset: presetName(t, s.preset || 'balanced'), k: Math.round(1 / (s.spot || 0.1)) }) +
+                      (s.copy_pending ? ' · ' + t('preset.copy_pending') : '')
+                  })
+                ]
+              })
             ]
           }),
-          jsx(PanelMeta, {
-            rows: [
-              { label: t('meta.profile'), value: agent.profile },
-              { label: t('meta.provider'), value: agent.provider },
-              { label: t('meta.actions'), value: jsx(Tip, { label: t('meta.actions_tip'), children: jsx('span', { tabIndex: 0, children: String(tot.actions || 0) }) }) },
-              { label: t('meta.checked'), value: String(tot.checked || 0) },
-              { label: t('meta.alone'), value: String(tot.alone || 0) },
-              { label: t('meta.faults'), value: String(tot.faults || 0) },
-              { label: t('meta.preset'), value: t(s.pending ? 'preset.value_pending' : 'preset.value', { preset: presetName(t, s.preset || 'balanced'), k: Math.round(1 / (s.spot || 0.1)) }) + (s.copy_pending ? ' · ' + t('preset.copy_pending') : '') }
+          jsxs('div', {
+            className: 'tn-hero-side',
+            children: [
+              jsx('div', { style: { alignSelf: 'flex-end' }, children: jsx(PanelAction, { icon: 'circle-slash', onClick: onRevoke, children: t('revoke.action') }) }),
+              jsx(Emblem, { label: caption, motion, n: 60, pulse, share: shareOf(agent), size: 120 }, agent.key),
+              jsx('div', { 'aria-hidden': true, className: 'tn-emblem-cap', children: caption })
             ]
           })
         ]
       }),
+      moment ? jsx(MomentBand, { agent, moment, motion, onClose: dismiss, t }, moment.key) : null,
       jsxs('section', {
-        className: 'space-y-1.5',
-        children: [jsx(PanelSectionLabel, { children: t('types.title') }), jsx('div', { className: 'flex flex-col', children: (agent.types || []).map(ty => jsx(TypeRow, { type: ty, t }, ty.type)) })]
+        className: 'tn-section',
+        children: [
+          jsx(Eyebrow, { n: 1, children: t('types.title') }),
+          jsx('div', {
+            className: 'tn-rows',
+            children: types.map((ty, i) => jsx(TypeRow, { change: changes[ty.type], index: i, motion, spot: s.spot, t, type: ty }, agent.key + '|' + ty.type))
+          })
+        ]
       }),
-      jsx(RecentSection, { agent, t }),
-      jsx(PassportSection, { agent, t })
+      jsx(RecentSection, { agent, n: 2, t }),
+      jsx(PassportSection, { agent, motion, n: 3, t })
     ]
   })
 }
-
 function AgentsView({ data, t }) {
   const agents = allAgents(data)
   const qc = useQueryClient()
@@ -1328,7 +2320,7 @@ function AgentsView({ data, t }) {
           visible.length === 0 ? jsx('p', { className: 'px-2 py-4 text-center text-xs text-muted-foreground', children: t('common.no_match') }, 'nomatch') : null
         ]
       }),
-      agent ? jsx(AgentDetail, { agent, t, onRevoke: () => setPending(agent) }) : jsx(PanelEmpty, { description: q ? t('common.no_match') : t('agents.pick'), icon: q ? 'search' : 'shield' }),
+      agent ? jsx(AgentDetail, { agent, t, onRevoke: () => setPending(agent) }, agent.key) : jsx(PanelEmpty, { description: q ? t('common.no_match') : t('agents.pick'), icon: q ? 'search' : 'shield' }),
       jsx(ConfirmDialog, {
         busyLabel: t('revoke.busy'),
         confirmLabel: t('revoke.confirm'),
@@ -1348,8 +2340,10 @@ function AgentsView({ data, t }) {
   })
 }
 
+
 function BenchmarkView({ t }) {
   const profile = useValue(host.state.profile)
+  const motion = useMotion()
   const { data, error, isLoading, refetch } = useQuery({ queryKey: ['tenure', profile, 'models'], queryFn: () => rest('/models') })
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
@@ -1397,41 +2391,45 @@ function BenchmarkView({ t }) {
       !type
         ? jsx(PanelEmpty, { description: t('common.no_match'), icon: 'search' })
         : jsxs(PanelDetail, {
-            className: 'max-w-3xl',
+            className: 'tn-root max-w-3xl',
             children: [
               jsxs('header', {
-                className: 'space-y-2',
+                className: 'tn-hero',
+                style: { display: 'block' },
                 children: [
-                  jsx('h3', { className: 'font-mono text-[0.95rem] font-semibold tracking-tight text-foreground', children: type }),
-                  jsx('p', { className: 'text-xs leading-relaxed text-muted-foreground/80', children: t('benchmark.note') })
+                  jsx('div', { className: 'tn-eyebrow', children: '#' + t('page.view_benchmark') }),
+                  jsx('h3', { className: 'tn-name', style: { fontFamily: 'var(--tn-mono)', fontWeight: 500, fontSize: 'clamp(1.4rem,3vw,2rem)', letterSpacing: 0 }, children: type }),
+                  jsx('p', { className: 'tn-intro-body', style: { margin: 0 }, children: t('benchmark.note') })
                 ]
               }),
               jsxs('div', {
-                className: 'flex items-center gap-x-3 px-2',
+                className: 'flex items-center gap-x-3 px-1',
                 'aria-hidden': true,
                 children: [
-                  jsx('span', { className: 'w-4 shrink-0' }),
+                  jsx('span', { className: 'w-6 shrink-0' }),
                   jsx('span', { className: 'min-w-[10rem] flex-1' }),
                   jsxs('span', {
                     className: 'flex shrink-0 items-center gap-3',
                     children: [
-                      jsx('span', { className: 'w-24', style: { textAlign: 'end' }, children: jsx(PanelSectionLabel, { children: t('benchmark.col_faults') }) }),
-                      jsx(PanelSectionLabel, { className: 'w-24', children: t('benchmark.col_range') }),
-                      jsx(PanelSectionLabel, { className: 'w-28', children: t('benchmark.col_rate') }),
-                      jsx('span', { className: 'w-12', style: { textAlign: 'end' }, children: jsx(PanelSectionLabel, { children: t('benchmark.col_public') }) })
+                      jsx('span', { className: 'tn-eyebrow w-24', style: { textAlign: 'end' }, children: t('benchmark.col_faults') }),
+                      jsx('span', { className: 'tn-eyebrow w-24', children: t('benchmark.col_range') }),
+                      jsx('span', { className: 'tn-eyebrow w-28', children: t('benchmark.col_rate') }),
+                      jsx('span', { className: 'tn-eyebrow w-12', style: { textAlign: 'end' }, children: t('benchmark.col_public') })
                     ]
                   })
                 ]
               }),
               jsx('div', {
                 className: 'flex flex-col',
+                style: { borderBlockStart: '1px solid var(--tn-line)' },
                 children: ranked.map((r, i) =>
                   jsxs(
                     'div',
                     {
-                      className: 'flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-2 py-1.5 text-[0.78rem] hover:bg-(--ui-row-hover-background)',
+                      className: cn('tn-brow flex flex-wrap items-center gap-x-3 gap-y-1 px-1 py-2 text-[0.78rem] hover:bg-(--ui-row-hover-background)', motion && 'tn-enter'),
+                      style: motion ? { animationDelay: `${i * 40}ms` } : undefined,
                       children: [
-                        jsx('span', { className: 'w-4 shrink-0 tabular-nums text-muted-foreground/60', children: String(i + 1) }),
+                        jsx('span', { className: 'tn-tnum w-6 shrink-0', style: { paddingBlockStart: 0 }, children: '#' + pad2(i + 1) }),
                         jsxs('span', {
                           className: 'min-w-[10rem] flex-1',
                           children: [
@@ -1443,7 +2441,16 @@ function BenchmarkView({ t }) {
                           className: 'flex shrink-0 items-center gap-3',
                           children: [
                             jsx('span', { className: 'w-24 whitespace-nowrap font-mono text-[0.72rem] tabular-nums', style: { textAlign: 'end' }, children: t('benchmark.faults', { n: r.faults, total: r.successes + r.faults }) }),
-                            jsx(Tip, { label: t('benchmark.range_tip'), children: jsx('span', { className: 'inline-flex', tabIndex: 0, children: jsx(Range, { rate: r.rate, low: r.low, high: r.high, enough: r.enough }) }) }),
+                            jsx(Tip, {
+                              label: t('benchmark.range_tip'),
+                              children: jsx('span', {
+                                'aria-label': r.enough ? t('benchmark.rate', { rate: pct(r.rate), low: pct(r.low), high: pct(r.high) }) : t('benchmark.not_enough'),
+                                className: 'inline-flex w-24',
+                                role: 'img',
+                                tabIndex: 0,
+                                children: jsx(RangeBar, { delay: 80 + i * 40, enough: r.enough, high: r.high, low: r.low, motion, rate: r.rate })
+                              })
+                            }),
                             jsx('span', { className: 'w-28 text-[0.7rem] tabular-nums text-muted-foreground/80', children: r.enough ? t('benchmark.rate', { rate: pct(r.rate), low: pct(r.low), high: pct(r.high) }) : t('benchmark.not_enough') }),
                             jsx(Tip, {
                               label: pub ? t('benchmark.public_score', { benchmark: pub.benchmark, source: pub.source }) : '',
@@ -1457,11 +2464,11 @@ function BenchmarkView({ t }) {
                         })
                       ]
                     },
-                    r.agent + r.profile
+                    type + '|' + r.agent + r.profile
                   )
                 )
               }),
-              pub ? jsx('p', { className: 'text-[0.7rem] text-muted-foreground/70', children: t('benchmark.public_score_accessed', { benchmark: pub.benchmark, source: pub.source, accessed: pub.accessed }) }) : null
+              pub ? jsx('p', { className: 'text-[0.7rem] text-muted-foreground/70', style: { margin: 0 }, children: t('benchmark.public_score_accessed', { benchmark: pub.benchmark, source: pub.source, accessed: pub.accessed }) }) : null
             ]
           })
     ]
@@ -1470,6 +2477,25 @@ function BenchmarkView({ t }) {
 
 let focusKey = null
 let focusRevoke = false
+
+function AnimationsToggle({ t }) {
+  const [on, setOn] = useState(() => animPref !== 'off')
+  return jsxs('label', {
+    className: 'tn-anim-toggle',
+    children: [
+      jsx('span', { children: t('page.animations') }),
+      jsx(Switch, {
+        'aria-label': t('page.animations'),
+        checked: on,
+        onCheckedChange: value => {
+          setOn(!!value)
+          setAnimPref(value ? 'on' : 'off')
+        },
+        size: 'xs'
+      })
+    ]
+  })
+}
 
 function TenurePage() {
   const t = usePluginI18n(ID)
@@ -1493,7 +2519,7 @@ function TenurePage() {
   else if (view === 'benchmark') body = jsx(BenchmarkView, { t })
   else body = jsx(AgentsView, { data, t })
   return jsxs('div', {
-    className: 'relative flex h-full flex-col overflow-hidden bg-(--ui-surface-background)',
+    className: 'tn-root relative flex h-full flex-col overflow-hidden bg-(--ui-surface-background)',
     children: [
       jsxs('header', {
         className: 'flex shrink-0 flex-wrap items-center gap-2 px-4 py-2',
@@ -1505,17 +2531,21 @@ function TenurePage() {
           agents.length
             ? jsx(WorkspacePageHeaderControl, {
                 id: 'tenure:view',
-                children: jsx('div', {
-                  style: { marginInlineStart: 'auto' },
-                  children: jsx(SegmentedControl, {
-                    onChange: setView,
-                    options: [
-                      { id: 'agents', label: t('page.view_agents') },
-                      { id: 'benchmark', label: t('page.view_benchmark') }
-                    ],
-                    sizing: 'content',
-                    value: view
-                  })
+                children: jsxs('div', {
+                  className: 'tn-root',
+                  style: { marginInlineStart: 'auto', display: 'flex', alignItems: 'center', gap: '0.75rem' },
+                  children: [
+                    jsx(AnimationsToggle, { t }),
+                    jsx(SegmentedControl, {
+                      onChange: setView,
+                      options: [
+                        { id: 'agents', label: t('page.view_agents') },
+                        { id: 'benchmark', label: t('page.view_benchmark') }
+                      ],
+                      sizing: 'content',
+                      value: view
+                    })
+                  ]
                 })
               })
             : null
@@ -1564,9 +2594,20 @@ export default {
     ctx.i18n.register(hostBundles(TENURE_LOCALES))
     rest = ctx.rest
     storage = ctx.storage
+    animPref = storage && storage.get('animations', 'on') === 'off' ? 'off' : 'on'
+    const style = document.createElement('style')
+    style.dataset.plugin = ID
+    style.textContent = CSS
+    document.head.append(style)
+    watchTheme()
     ctx.onDispose(() => {
       rest = null
       storage = null
+      style.remove()
+      if (themeObserver) themeObserver.disconnect()
+      themeObserver = null
+      repaints.clear()
+      seen.clear()
     })
     const tr = (key, ...args) => ctx.i18n.t(key, ...args)
     const current = () => agentForModel(cache.agents, host.state.model.get())

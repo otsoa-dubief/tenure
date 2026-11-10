@@ -25,11 +25,19 @@
   "common.loading": "正在读取证据…",
   "common.no_match": "无匹配项",
   "common.retry": "重试",
+  "emblem.none": "尚未赢得自主权",
+  "emblem.review": {
+    "other": "{n} 个考察中"
+  },
+  "emblem.tenured": {
+    "other": "{n} 个已转正"
+  },
   "empty.desc": "照常工作即可。每次更改都会先询问你，每个操作类型会根据你的回答赢得相应级别。",
   "empty.title": "还没有智能体执行过操作",
   "flag.confirm": "标记",
   "flag.desc": "这会记为一次失误：{type} 至少下降一个级别，之后需重新晋升。用于没人发现的错误。",
   "flag.title": "将此更改标记为错误？",
+  "hero.agent": "智能体",
   "intro.body": "每个模型的每个操作类型都从 T1 开始：先询问。连续多次获批且无误后，它升到 T2：先执行后告知，并可撤销。跨两个会话的更长连续记录会让它升到 T3：自主执行，但每 {k} 个操作仍会抽查 1 个，先询问你。一次失误就会让该类型降级。",
   "intro.got_it": "知道了",
   "intro.title": "操作类型如何赢得级别",
@@ -42,7 +50,14 @@
   "meta.profile": "配置文件",
   "meta.provider": "提供方",
   "model_menu.badge": "已赢得 {tier}",
+  "moment.dismiss": "关闭",
+  "moment.eyebrow_down": "#失误 · {type}",
+  "moment.eyebrow_up": "#晋升 · {type}",
+  "moment.granted": "已获转正",
+  "moment.probation": "重回试用期",
+  "moment.review": "进入考察",
   "nav.label": "Tenure",
+  "page.animations": "动画",
   "page.title": "Tenure",
   "page.view_agents": "智能体",
   "page.view_benchmark": "你的基准",
@@ -60,6 +75,7 @@
   "passport.problems": "验证未通过：{problems}",
   "passport.protocol": "协议",
   "passport.rule": "规则",
+  "passport.signature": "Hermes Agent 插件",
   "passport.title": "已签名护照",
   "passport.unavailable": "不可用：{error}",
   "passport.verified": "已验证：签名有效，哈希链完整，重放账本得到相同的级别。",
@@ -109,6 +125,10 @@
   "state.trial": "考察期",
   "state.trial_tip": "一次中、高风险的失误开启了考察期：需连续 3 次已验证的成功。",
   "tier.cap": "受限 · 始终询问",
+  "tier.name.cap": "始终询问",
+  "tier.name.t1": "试用期",
+  "tier.name.t2": "考察中",
+  "tier.name.t3": "已转正",
   "tier.t1": "T1 · 先询问",
   "tier.t2": "T2 · 先执行后告知，可撤销",
   "tier.t3": "T3 · 自主执行，接受抽查",
@@ -120,6 +140,10 @@
   "type.guarantee": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。",
   "type.guarantee_provisional": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。暂定：基于继承的证据。",
   "type.in_a_row": "连续 {series}/{required}",
+  "type.next": {
+    "other": "再连续 {n} 次已验证的成功即可转正。"
+  },
+  "type.next_session": "连续记录已达标：再完成一个会话即可。",
   "type.sessions": {
     "other": "{n} 个会话"
   },
@@ -127,5 +151,6 @@
   "type.stakes_low": "低风险",
   "type.stakes_medium": "中风险",
   "type.stakes_other": "{stakes}风险",
+  "type.tenured_line": "自主执行。每 {k} 个操作仍抽查 1 个。",
   "types.title": "操作类型"
 }

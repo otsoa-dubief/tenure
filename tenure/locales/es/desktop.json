@@ -27,11 +27,21 @@
   "common.loading": "Leyendo la evidencia…",
   "common.no_match": "Sin resultados",
   "common.retry": "Reintentar",
+  "emblem.none": "Aún sin autonomía ganada",
+  "emblem.review": {
+    "one": "{n} en revisión",
+    "other": "{n} en revisión"
+  },
+  "emblem.tenured": {
+    "one": "{n} titular",
+    "other": "{n} titulares"
+  },
   "empty.desc": "Trabaja como siempre. Cada cambio pregunta antes, y cada tipo de acción se gana su nivel con tus respuestas.",
   "empty.title": "Ningún agente ha actuado todavía",
   "flag.confirm": "Marcar",
   "flag.desc": "Cuenta como un fallo: {type} bajará al menos un nivel y tendrá que volver a subir. Úsalo para un error que nadie detectó.",
   "flag.title": "¿Marcar este cambio como error?",
+  "hero.agent": "Agente",
   "intro.body": "Cada tipo de acción de cada modelo empieza en T1: pregunta antes. Una serie de acciones limpias y aprobadas lo sube a T2: actúa y luego te avisa, con opción de Deshacer. Una serie más larga, en dos sesiones, lo sube a T3: actúa por su cuenta, y 1 acción de cada {k} sigue preguntando, como control aleatorio. Un solo fallo lo hace bajar.",
   "intro.got_it": "Entendido",
   "intro.title": "Cómo se gana su nivel un tipo de acción",
@@ -44,7 +54,14 @@
   "meta.profile": "Perfil",
   "meta.provider": "Proveedor",
   "model_menu.badge": "{tier} ganado",
+  "moment.dismiss": "Cerrar",
+  "moment.eyebrow_down": "#Fallo · {type}",
+  "moment.eyebrow_up": "#Ascenso · {type}",
+  "moment.granted": "Titularidad concedida",
+  "moment.probation": "De vuelta a prueba",
+  "moment.review": "En revisión",
   "nav.label": "Tenure",
+  "page.animations": "Animaciones",
   "page.title": "Tenure",
   "page.view_agents": "Agentes",
   "page.view_benchmark": "Tu benchmark",
@@ -63,6 +80,7 @@
   "passport.problems": "No se verifica: {problems}",
   "passport.protocol": "Protocolo",
   "passport.rule": "Regla",
+  "passport.signature": "un plugin para Hermes Agent",
   "passport.title": "Pasaporte firmado",
   "passport.unavailable": "No disponible: {error}",
   "passport.verified": "Verificado: firma válida, cadena de hashes intacta, y al reproducir el registro se obtienen los mismos niveles.",
@@ -114,6 +132,10 @@
   "state.trial": "a prueba",
   "state.trial_tip": "Un fallo de impacto medio o alto abrió un periodo de prueba: 3 éxitos verificados seguidos.",
   "tier.cap": "Limitado · siempre pregunta",
+  "tier.name.cap": "Siempre pregunta",
+  "tier.name.t1": "Período de prueba",
+  "tier.name.t2": "En revisión",
+  "tier.name.t3": "Titular",
   "tier.t1": "T1 · pregunta antes",
   "tier.t2": "T2 · actúa y luego te avisa, con opción de Deshacer",
   "tier.t3": "T3 · actúa por su cuenta, con control aleatorio",
@@ -126,6 +148,11 @@
   "type.guarantee": "Como máximo el {aoql} % de las acciones de este tipo se ejecutan con un error que nadie aprobó; el {worst} % si el modelo empeora.",
   "type.guarantee_provisional": "Como máximo el {aoql} % de las acciones de este tipo se ejecutan con un error que nadie aprobó; el {worst} % si el modelo empeora. Provisional: evidencia heredada.",
   "type.in_a_row": "{series} de {required} seguidas",
+  "type.next": {
+    "one": "Falta {n} éxito verificado seguido para la titularidad.",
+    "other": "Faltan {n} éxitos verificados seguidos para la titularidad."
+  },
+  "type.next_session": "La serie está completa: falta una sesión más.",
   "type.sessions": {
     "one": "{n} sesión",
     "other": "{n} sesiones"
@@ -134,5 +161,6 @@
   "type.stakes_low": "impacto bajo",
   "type.stakes_medium": "impacto medio",
   "type.stakes_other": "impacto {stakes}",
+  "type.tenured_line": "Actúa por su cuenta. 1 acción de cada {k} sigue con control aleatorio.",
   "types.title": "Tipos de acción"
 }
