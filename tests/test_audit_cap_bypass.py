@@ -424,3 +424,51 @@ def test_g_upload_verbs_and_encoded_paths_get_no_repository_exemption(home):
     assert kind("mcp__github__upload_file", {"owner": "o", "repo": "r", "path": "../../../x/.hermes/.env"})[1] == CAP
     assert kind("mcp__gitlab__get_file", {"owner": "o", "repo": "r", "path": f"%2F{home}/config.yaml"[0:3]
                                           + str(home).replace("/", "%2F") + "%2Fconfig.yaml"})[1] == CAP
+
+
+# ------------------------------------------------------------------- control pass 4: arguments by allow list
+@pytest.mark.parametrize("cmd", [
+    "EDITOR='vim -s ./x' git commit", "EDITOR='nvim -s ./x' git commit", "EDITOR='emacsclient -e x' git commit",
+    "EDITOR='micro -config-dir ./x' git commit", "EDITOR='micro --config-dir=./x' git commit",
+    "EDITOR='kak -e x' git commit", "EDITOR='kak -E x' git commit",
+    "EDITOR='code --install-extension ./x.vsix --wait' git commit",
+    "PAGER='bat --pager=./x' git log", "PAGER='bat --pager ./x' git log", "PAGER='delta --pager=./x' git log",
+    "git config core.pager 'delta --pager=./x'", "git config core.pager 'bat --pager ./x'",
+    "git config gpg.program 'gpg --agent-program ./x'", "git config gpg.program 'gpg2 --dirmngr-program ./x'",
+    "git config gpg.program 'gpg --homedir ./x'", "BROWSER='open ./x' gh pr view --web",
+    "BROWSER='open -a ./x.app' gh pr view --web", "BROWSER='xdg-open ./x' gh pr view --web",
+    "BROWSER='google-chrome --renderer-cmd-prefix=./x' gh pr view --web",
+    "PAGER='less -O ~/.zshrc' git log", "PAGER='less -o out' git log",
+    "GIT_SSH_COMMAND='ssh -E ~/.zshrc' git fetch", "GIT_SSH_COMMAND='ssh -o UserKnownHostsFile=~/.zshrc' git fetch",
+    "git config credential.helper 'store --file ~/.zshrc'", "EDITOR='nano --speller=./x' git commit",
+    "EDITOR='nano -s ./x' git commit", "BROWSER='firefox --profile ./x' gh pr view --web",
+    "EDITOR='subl --command x' git commit", "EDITOR='code --user-data-dir ./x' git commit",
+    "EDITOR='hx --config ./x.toml' git commit", "EDITOR='vim -U ./x' git commit", "EDITOR='vim a.txt' git commit",
+])
+def test_h_arguments_outside_the_allow_list_are_capped(cmd):
+    assert sh(cmd)[1] == CAP
+
+
+@pytest.mark.parametrize("cmd", [
+    "git config --global core.editor 'code --wait'", "git config --global core.editor 'subl -n -w'",
+    "git config --global core.editor 'zed --wait'", "git config --global core.editor hx",
+    "git config --global core.editor 'emacsclient -t'", "git config --global core.editor nvim",
+    "git config --global core.pager delta", "git config --global core.pager 'bat --paging=always'",
+    "git config --global core.pager 'less -S'", "git config --global core.pager 'less -FRX'",
+    "git config --global gpg.program /opt/homebrew/bin/gpg", "git config --global credential.helper manager",
+    "git config --global credential.helper 'cache --timeout=3600'", "git config --global credential.helper ''",
+    "git config --global diff.tool code", "git config --global merge.tool meld",
+    "git config --global difftool.prompt false", "git config --global mergetool.keepBackup false",
+    "EDITOR='code -w' git commit", "EDITOR='emacs -nw' git commit", "EDITOR='vim +1' git commit",
+    "GIT_SSH_COMMAND='ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new' git fetch",
+    "GIT_SSH_COMMAND='ssh -p 2222' git fetch", "GIT_SSH_COMMAND='ssh -vvv' git fetch",
+    "GIT_SSH_COMMAND='ssh -F /dev/null' git fetch", "GIT_SSH_COMMAND='ssh -o UserKnownHostsFile=/dev/null' git fetch",
+    "BROWSER=open gh pr view --web", "BROWSER=wslview gh pr view --web",
+])
+def test_h_common_developer_settings_stay_ordinary(cmd):
+    assert sh(cmd)[1] != CAP
+
+
+@pytest.mark.parametrize("cmd", ["git config delta.pager ./x", "git config delta.side.pager ./x"])
+def test_h_delta_settings_that_name_a_program_are_capped(cmd):
+    assert sh(cmd)[1] == CAP

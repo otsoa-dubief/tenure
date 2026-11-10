@@ -200,9 +200,8 @@ type override lowers them (`self:*`, `secrets:*`, `file:sensitive`):
   the system (adding after `$PATH`, or putting only system folders and `~/.local/bin` first, is ordinary; another
   folder of your own first, such as `~/.cargo/bin` or `$PWD/node_modules/.bin`, asks at high stakes), the dynamic loader's variables (`LD_*`,
   `DYLD_*`), shell start-up variables, an editor, pager, ssh or browser setting that names anything but a known
-  editor, pager or helper (`EDITOR=vim`, `PAGER='less -R'`, `ssh -i key` are ordinary; a shell, an interpreter,
-  options that load a file, such as `vim -u`, `emacs -l` or `less -k`, ssh's `-F`, `-I` and
-  its `-o` options that run a command or load a library, and a value naming the Hermes home, are not), `LESS` with `+` or `!`, `NODE_OPTIONS` with `--require` or `--import`, git's own (`GIT_*`, except
+  editor, pager or helper with arguments from its own allow list (`EDITOR='code --wait'`, `PAGER='less -R'`,
+  `ssh -i key -p 2222` are ordinary; a shell, an interpreter, a file name or any other option is not), `LESS` with `+` or `!`, `NODE_OPTIONS` with `--require` or `--import`, git's own (`GIT_*`, except
   author, committer and tracing), `HOME`, `XDG_CONFIG_*` or `HERMES_*`: as a prefix, behind `env` (`-S` too),
   `sudo` or `timeout`, with `export`, or through a builtin that assigns (`printf -v`, `read`, `for`); git
   configuration that can run a program (`git -c`, `clone --config`, `--template`, `--upload-pack`,

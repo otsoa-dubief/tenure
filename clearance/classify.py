@@ -2399,8 +2399,8 @@ GIT_SAFE_KEYS = re.compile(r"user\.(?:name|email|signingkey)|color\..+|core\.(?:
                            r"|merge\.conflictstyle|rerere\.enabled|log\.(?:showsignature|date|decorate)"
                            r"|remote\.[^.]+\.(?:url|pushurl|fetch)|commit\.template|status\.\w+|gc\.auto"
                            r"|credential\.username|http\.version|rebase\.autostash|commit\.verbose|diff\.colormoved"
-                           r"|core\.whitespace|user\.useconfigonly|http\.postbuffer|url\..+\.insteadof|delta\..+"
-                           r"|gpg\.format|lfs\.[^.]+")
+                           r"|core\.whitespace|user\.useconfigonly|http\.postbuffer|url\..+\.insteadof"
+                           r"|gpg\.format|lfs\.[^.]+|difftool\.prompt|mergetool\.(?:prompt|keepbackup)")
 # Options that make `git config` a read on their own; display options (-z, --show-origin...) do not.
 GIT_CONFIG_READS = {"--get", "--get-all", "--get-regexp", "--get-urlmatch", "-l", "--list", "--get-color",
                     "--get-colorbool"}
@@ -2412,26 +2412,69 @@ GIT_PROGRAM_OPTS = {"fetch": {"--upload-pack"}, "pull": {"--upload-pack"}, "clon
 # Keys whose value is a program: ordinary when that value names a known editor, pager or helper.
 GIT_PROGRAM_KEYS = re.compile(r"core\.(?:editor|pager|sshcommand)|sequence\.editor|pager\.\w+|diff\.tool|merge\.tool"
                               r"|credential\.helper|interactive\.difffilter|gpg\.program")
-# Editors, pagers and helpers a setting may name, by name or by their path in a system folder. Shells, interpreters
-# and wrappers are not among them: a value that starts one runs whatever it is given.
-KNOWN_TOOLS = {"vim", "nvim", "vi", "nano", "emacs", "emacsclient", "code", "code-insiders", "cursor", "subl", "mate",
-               "zed", "hx", "micro", "kak", "less", "more", "most", "cat", "bat", "delta", "diff-so-fancy", "ssh",
-               "true", ":", "vimdiff", "nvimdiff", "meld", "kdiff3", "opendiff", "p4merge", "osxkeychain", "store",
-               "cache", "manager", "manager-core", "libsecret", "gpg", "gpg2", "open", "xdg-open", "firefox",
-               "chromium", "google-chrome", "interactive-rebase-tool"}
-# Options of these tools that start another program (an editor command, a pager command), and for ssh, those that
-# read another configuration or run a local command.
-TOOL_RISKY_OPTS = re.compile(r"(?:^|\s)(?:--?exec\S*|-c\b|--cmd\b|\+|--load\b|--eval\b|--init-directory"
-                             r"|--extensions-dir|--lesskey|--script|--batch)")
-# Short options that load a file of the agent's choice, per tool (vim -u/-S, nvim -l, emacs -l/-x, less -k).
-TOOL_LOAD_OPTS = {"vim": "uS", "nvim": "uSl", "vi": "uS", "vimdiff": "uS", "nvimdiff": "uS", "emacs": "lx", "less": "k"}
-SSH_RISKY_OPTS = re.compile(r"(?-i:(?:^|\s)-[A-Za-z]*[FI])|pkcs11provider|securitykeyprovider|proxycommand|localcommand|knownhostscommand|proxyjump"
-                            r"|(?:^|[\s=o])(?:include|match)\b", re.I)
+# Editors, pagers and helpers a setting may name, by name or by their path in a system folder, each with the only
+# arguments it may take (an allow list: any other argument, a file name among them, refuses the value). Shells,
+# interpreters and wrappers are not among them: a value that starts one runs whatever it is given.
+_EDITOR = r"-w|--wait|-n|--new-window|-r|--reuse-window"
+_VIM = r"-[fpOon]+|--nofork|\+\d*"
+TOOL_ARGS = {
+    "code": _EDITOR, "code-insiders": _EDITOR, "cursor": _EDITOR, "subl": r"-[wn]+|--wait|--new-window",
+    "mate": r"-w|--wait", "zed": r"-w|--wait|-n|--new", "vim": _VIM, "nvim": _VIM, "vi": _VIM, "vimdiff": _VIM,
+    "nvimdiff": _VIM, "emacs": r"-nw|-q|-Q|--no-window-system", "emacsclient": r"-t|-c|-nw|--tty|--create-frame",
+    "less": r"-[A-JL-NP-Za-jl-np-z0-9#~]+|--quit-if-one-screen|--RAW-CONTROL-CHARS|--chop-long-lines|--no-init",
+    "bat": r"-p+|--plain|--paging=\w+|--style=[\w,-]+|--color=\w+|--theme=[\w-]+|--decorations=\w+"
+           r"|--language=[\w+-]+",
+    "delta": r"--color-only|--side-by-side|-s|--dark|--light|--features=[\w,-]+|--navigate|-n|--line-numbers"
+             r"|--paging=\w+|--hyperlinks",
+    "cache": r"--timeout=\d+", "nano": r"-[lmi]+|--linenumbers",
+}
+for _name in ("hx", "micro", "kak", "more", "most", "cat", "diff-so-fancy", "true", ":", "meld", "kdiff3",
+              "opendiff", "p4merge", "osxkeychain", "store", "manager", "manager-core", "libsecret", "gpg", "gpg2",
+              "open", "xdg-open", "wslview", "firefox", "chromium", "google-chrome", "interactive-rebase-tool"):
+    TOOL_ARGS[_name] = ""                                    # no arguments at all
+KNOWN_TOOLS = set(TOOL_ARGS) | {"ssh"}
+# ssh -o options that neither run nor load anything, nor write a file of the agent's choice.
+SSH_SAFE_OPTIONS = {"identitiesonly", "stricthostkeychecking", "batchmode", "connecttimeout", "serveraliveinterval",
+                    "serveralivecountmax", "port", "user", "loglevel", "passwordauthentication", "pubkeyauthentication",
+                    "connectionattempts", "compression", "addressfamily", "hostkeyalias"}
+
+
+def _ssh_args_safe(args: list[str]) -> bool:
+    """ssh's arguments: -i a key (not one of Hermes' or clearance's own files), -p a port, -v, -q, -T, -4, -6,
+    -F /dev/null, and -o options from SSH_SAFE_OPTIONS (UserKnownHostsFile only to /dev/null)."""
+    n = 0
+    while n < len(args):
+        a = args[n]
+        if re.fullmatch(r"-[vqT46]+", a):
+            n += 1
+            continue
+        if a in ("-i", "-p", "-o", "-F"):
+            if n + 1 >= len(args):
+                return False
+            a, n = a + args[n + 1], n + 2
+        else:
+            n += 1
+        if a.startswith("-i") and len(a) > 2:
+            low = a[2:].casefold()
+            if _self_hit(low) or CLEARANCE_NAMES.search(low) or "$" in low:
+                return False
+        elif a.startswith("-p") and a[2:].isdigit():
+            pass
+        elif a == "-F/dev/null":
+            pass
+        elif a.startswith("-o") and "=" in a:
+            key, value = a[2:].split("=", 1)
+            key = key.casefold()
+            if not (key in SSH_SAFE_OPTIONS or (key == "userknownhostsfile" and value == "/dev/null")):
+                return False
+        else:
+            return False
+    return True
 
 
 def _bare_program(value: str) -> bool:
-    """``value`` starts a known editor, pager or helper (KNOWN_TOOLS, by name or from a system folder), with plain
-    arguments: no shell punctuation, no `!`, no option that starts another program."""
+    """``value`` starts a known editor, pager or helper (KNOWN_TOOLS, by name or from a system folder) with only the
+    arguments its allow list names: no file name, no shell punctuation, no `!`."""
     value = value.strip().strip("'\"")
     if value in (":", "true"):
         return True
@@ -2439,15 +2482,16 @@ def _bare_program(value: str) -> bool:
         return False
     if re.search(r"\$\{?HERMES", value) or _self_hit(value.casefold()):
         return False                                         # the value names Hermes' own home
-    first, _, rest = value.partition(" ")
+    first, *args = value.split()
     if "/" in first and os.path.dirname(first) not in SYSTEM_BIN_DIRS:
         return False
     name = os.path.basename(first)
-    if name == "ssh" and SSH_RISKY_OPTS.search(" " + rest):
+    if name == "ssh":
+        return _ssh_args_safe(args)
+    allowed = TOOL_ARGS.get(name)
+    if allowed is None:
         return False
-    if name in TOOL_LOAD_OPTS and re.search(r"(?:^|\s)-[A-Za-z]*[%s]" % TOOL_LOAD_OPTS[name], rest):
-        return False
-    return name in KNOWN_TOOLS and not TOOL_RISKY_OPTS.search(" " + rest)
+    return all(allowed and re.fullmatch(allowed, a) for a in args)
 
 
 def _git_key_safe(key: str, value) -> bool:
@@ -2455,6 +2499,8 @@ def _git_key_safe(key: str, value) -> bool:
     if key.startswith("alias."):
         return value is not None and not value.lstrip("'\"").startswith("!")
     if GIT_PROGRAM_KEYS.fullmatch(key):
+        if key == "credential.helper" and value is not None and value.strip().strip("'\"") == "":
+            return True                                      # empties the list of helpers
         if (key.startswith("pager.") or key == "core.pager") and value is not None \
                 and value.strip().strip("'\"").casefold() in ("", "true", "false"):
             return True                                      # a pager switched on or off
