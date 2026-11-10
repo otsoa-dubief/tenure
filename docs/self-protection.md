@@ -24,7 +24,7 @@ starts suspended, and a child agent that read external content suspends its pare
 ## Self-protection
 
 An agent that can switch off its own supervision is not supervised. Self-protection comes in two tiers, both capped
-at **Ask**, and no type override lowers them (`self:*`, `secrets:*`, `file:sensitive`).
+at **T1 (asks first)**, and no type override lowers them (`self:*`, `secrets:*`, `file:sensitive`).
 
 **Checked on the path: Hermes' own files, tenure's data and Hermes' CLI.** The check is on the path once it is
 normalised and resolved, whatever program is given it. It covers what a command, a tool call or a piece of code

@@ -41,11 +41,12 @@ def test_allowed_study_claim_verbatim_with_layers():
 
 
 def test_readme_references_real_files_and_commands():
+    import re
     for ref in ("docs/protocol.md", "docs/the-study.md", "tenure/NOTICE"):
         assert (ROOT / ref).exists()
         assert ref in README
-    for img in ("models", "map", "passport", "mobile"):
-        assert f"docs/images/dashboard-{img}.png" in README
+    for img in re.findall(r"docs/images/[\w.-]+", README):                # every image shown exists
+        assert (ROOT / img).exists(), img
     from tenure import cli
     import re
     subs = set(re.findall(r'subs\.add_parser\("(\w+)"', pathlib.Path(cli.__file__).read_text()))

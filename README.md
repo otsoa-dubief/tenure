@@ -24,7 +24,7 @@
   <a href="#commands">Commands</a>
 </p>
 
-<p align="center"><img alt="Ask, then act then notify, then act alone; one fault and the type drops back" src="docs/images/tiers.svg" width="820"></p>
+<p align="center"><img alt="Illustration: T1 asks first, T2 acts then tells you, T3 acts on its own; one fault and the type drops back" src="docs/images/tiers.svg" width="820"><br><sub>Illustration of the rule, not a screenshot.</sub></p>
 
 ## The problem
 
@@ -37,9 +37,9 @@ verified record and climbs three tiers, only on evidence:
 
 | Tier | What happens |
 |---|---|
-| **Ask** | Every action of the type asks you first. Everything starts here. |
-| **Act, then notify** | The agent acts, then tells you, with an undo: the files it touched were saved first (24 hours, 5 MB per action). Only for reversible types at low or medium stakes. |
-| **Act alone** | The agent acts alone. A random share of actions (one in ten by default) still asks, as a spot check. |
+| **T1 · Asks first** | Every action of the type asks you first. Everything starts here. |
+| **T2 · Acts, then tells you** | The agent acts, then tells you, with an undo: the files it touched were saved first (24 hours, 5 MB per action). Only for reversible types at low or medium stakes. |
+| **T3 · Acts on its own** | The agent acts on its own. A random share of actions (one in ten by default) still asks, as a spot check. |
 
 One fault and the type drops back. Ordinary reads never ask; secrets, sensitive files, the agent's own skills and
 plugins, and anything that could switch tenure off always do (see [Self-protection](#self-protection)).
@@ -59,27 +59,22 @@ table of how each model does on yours: verified successes and faults per action 
 denominator (`3 faults / 140 checks`). A bundled snapshot of public scores sits beside it, and a model that
 scores clearly lower on the same benchmark loses a carry-over. A model with no public measure is shown as such.
 
-![Personal benchmark](docs/images/dashboard-models.png)
-
 **2. The live map.** The dashboard tab shows every agent and every action type: its tier, its evidence, what it
 still needs, and what changes if you switch model or move the risk dial. Each change comes with its reason.
-
-![Live map](docs/images/dashboard-map.png)
 
 **3. The autonomy passport.** One file that states what an agent earned and on what evidence. It is signed and
 tamper-evident: anyone holding the passport and the exported ledger can replay the ledger and recompute the
 same tiers (`hermes tenure verify`). The format is in [docs/protocol.md](docs/protocol.md).
 
-![Autonomy passport](docs/images/dashboard-passport.png)
-
-**Native in Hermes Desktop too.** The package also ships a desktop half: a **Tenure** page in the sidebar (map,
-models, passport), a status-bar chip with the tiers of the model in use, and ⌘K commands to open the map, show the
+**Native in Hermes Desktop too.** The package also ships a desktop half: a **Tenure** page in the sidebar (agents,
+your benchmark, passport), a status-bar chip with the tiers of the model in use, and ⌘K commands to open the map, show the
 current model's passport or revoke it. Like every desktop half, it is opt-in: enable it once in
 **Capabilities → Plugins**.
 
-![Tenure in Hermes Desktop](docs/images/desktop-page.png)
-
-![Dashboard on a phone](docs/images/dashboard-mobile.png)
+**In your language.** Every surface (desktop page, dashboard tab, chat messages, `hermes tenure` output) speaks
+English, French, Spanish, Simplified Chinese and Arabic (right to left), and follows Hermes' own language setting
+(`display.language`). The words are Hermes' own in each language; commands, tier codes and model ids stay as typed.
+Catalogs and glossaries live in [`tenure/locales/`](tenure/locales).
 
 ## Install in 60 seconds
 

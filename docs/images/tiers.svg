@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 320" width="880" height="320" role="img" aria-labelledby="t d">
-  <title id="t">The three tiers of clearance</title>
-  <desc id="d">Each action type starts at Ask, climbs to Act then notify and then Act alone on verified approvals, and drops back on one fault.</desc>
+  <title id="t">The three tiers of tenure (illustration)</title>
+  <desc id="d">Each action type starts at T1 (asks first), climbs to T2 (acts, then tells you) and then T3 (acts on its own) on verified approvals, and drops back on one fault.</desc>
   <style>
     .bg { fill: #ffffff; }
     .box { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1.5; }
@@ -30,19 +30,19 @@
   <rect class="bg" x="0" y="0" width="880" height="320" rx="12"/>
 
   <rect class="box" x="30" y="60" width="220" height="110" rx="10"/>
-  <text class="title" x="140" y="100" text-anchor="middle">Ask</text>
-  <text class="sub" x="140" y="126" text-anchor="middle">every action asks first</text>
+  <text class="title" x="140" y="100" text-anchor="middle">T1</text>
+  <text class="sub" x="140" y="126" text-anchor="middle">asks first</text>
   <text class="sub" x="140" y="148" text-anchor="middle">everything starts here</text>
 
   <rect class="box" x="330" y="60" width="220" height="110" rx="10"/>
-  <text class="title" x="440" y="100" text-anchor="middle">Act, then notify</text>
-  <text class="sub" x="440" y="126" text-anchor="middle">acts, tells you, with undo</text>
-  <text class="sub" x="440" y="148" text-anchor="middle">reversible types only</text>
+  <text class="title" x="440" y="100" text-anchor="middle">T2</text>
+  <text class="sub" x="440" y="126" text-anchor="middle">acts, then tells you</text>
+  <text class="sub" x="440" y="148" text-anchor="middle">with an undo · reversible types</text>
 
   <rect class="box end" x="630" y="60" width="220" height="110" rx="10"/>
-  <text class="title" x="740" y="100" text-anchor="middle">Act alone</text>
-  <text class="sub" x="740" y="126" text-anchor="middle">1 in 10 still asks</text>
-  <text class="sub" x="740" y="148" text-anchor="middle">as a spot check</text>
+  <text class="title" x="740" y="100" text-anchor="middle">T3</text>
+  <text class="sub" x="740" y="126" text-anchor="middle">acts on its own</text>
+  <text class="sub" x="740" y="148" text-anchor="middle">1 in 10 still asks (spot check)</text>
 
   <path class="up" d="M252 100 L322 100"/>
   <polygon class="uphead" points="322,93 332,100 322,107"/>
