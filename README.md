@@ -169,9 +169,11 @@ settings.
 
 ## Self-protection
 
-An agent that can switch off its own supervision is not supervised. So the following are capped at **Ask** in every
-form clearance recognises, and no type override lowers them (`self:*`, `secrets:*`, `file:sensitive`). clearance
-reads commands; it does not run them (see Limits):
+An agent that can switch off its own supervision is not supervised. Self-protection comes in two tiers, both capped
+at **Ask**, and no type override lowers them (`self:*`, `secrets:*`, `file:sensitive`).
+
+**Guaranteed: the agent cannot switch clearance or Hermes off.** The check is on the path, whatever program writes
+it, and the latest independent review found no way around it:
 
 - Hermes' own CLI, when the program run is `hermes` (also through `sh -c`, `script -c`, `su -c`, `tmux`, `screen`,
   `expect`, `ssh`, `uvx`, `uv run`, `pipx run`, a git alias, `$(which hermes)`), or Python code that imports or runs
@@ -197,6 +199,10 @@ reads commands; it does not run them (see Limits):
   into your home folder asks (high stakes). A path argument the shell computes (a variable, a substitution, a brace
   list, `~user`, the `{}` of find or xargs), a `cd` to such a target, and `tar -P` ask too (high stakes), and are
   capped when their literal part names Hermes. Setting `CDPATH` is capped.
+
+**Watched, best effort: code that would run later without asking.** These are recognised command by command, so a
+spelling clearance does not know can slip through (see Limits). Every case found so far is capped and tested:
+
 - Code an ordinary command would run without asking: assigning `PATH` with a relative or computed folder before
   the system (adding after `$PATH`, or putting only system folders and `~/.local/bin` first, is ordinary; another
   folder of your own first, such as `~/.cargo/bin` or `$PWD/node_modules/.bin`, asks at high stakes), the dynamic loader's variables (`LD_*`,
@@ -211,7 +217,8 @@ reads commands; it does not run them (see Limits):
   words and display options), and the files git reads it from (`.git/config`, `.git/hooks/`, those
   of submodules and work trees, `~/.gitconfig`, `~/.config/git/config`), whoever writes them (`sed -i`,
   `execute_code`); shell start-up files (`~/.zshrc`, `~/.bashrc`, `~/.profile`...), login agents and user
-  services, Python's `sitecustomize.py`, and `~/.local/bin/`, including through `git log --output`. Editor
+  services, Python's `sitecustomize.py`, and `~/.local/bin/` (also given as a folder to copy, move or unpack into), including
+  through `git log --output`, `curl -o` or `sed -i`. Editor
   commands given to vim (`+cmd`, `-c`, `-S`) ask at high stakes, and a `!command` inside them is classified too. A program given by a path outside the system's
   folders (`./bin/ls`) is never a free read. Any other assignment in front of a read-only command asks.
 - The dashboard's own API (`/api/plugins/clearance/...`, where settings, revoke and undo live) is capped when a

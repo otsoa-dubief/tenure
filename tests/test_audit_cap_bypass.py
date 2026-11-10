@@ -552,7 +552,7 @@ def test_j_programs_named_in_options_are_not_free(cmd):
 
 @pytest.mark.parametrize("cmd", [
     "git config --global alias.st 'status -sb'", "git config --global alias.br 'branch -a'",
-    "git config --global alias.undo 'reset --soft HEAD~1'", "git config alias.pf 'push --force-with-lease'",
+    "git config --global alias.undo 'reset --soft HEAD~1'",
     "PAGER= git log", "curl -o out.json https://x", "wget https://x/a.tgz", "git log --oneline",
     "git -C sub status", "git --no-pager log",
 ])
@@ -573,3 +573,48 @@ def test_j_aliased_commands_keep_their_checks(cmd):
 
 def test_j_rebase_exec_is_not_capped():
     assert sh("git rebase --exec 'npm test' main")[1] != CAP
+
+
+# ------------------------------------------------------------------- control pass 7 (Fable): protected folders as targets
+@pytest.mark.parametrize("cmd", [
+    "cp d/tool ~/.local/bin", "cp d/tool ~/.local/bin/", "install -m 755 d/tool ~/.local/bin", "mv t ~/.local/bin",
+    "rsync -a d/ ~/.local/bin/", "tar -xf a.tar -C ~/.local/bin", "ln -s $PWD/bin ~/.local/bin",
+    "cp x.plist ~/Library/LaunchAgents/", "mv x.zsh ~/.oh-my-zsh/custom", "cp t .git",
+    "git --work-tree=.git checkout HEAD -- config", "git --work-tree=$HOME/.local/bin checkout HEAD -- .",
+    "git checkout-index --prefix=.git/ -a", "git clone https://x/y ~/.local/bin",
+    "sed -i '' 's/a/b/' ~/.zshenv", "sed -i 's/a/b/' ~/.zshenv", "sed -i.bak 's/a/b/' ~/.zshenv",
+    "git config -f~/.zshenv user.name x", "git config set -f~/.zshenv user.name x",
+    "tee ~/.config/lesskey", "tee ~/.less", "tee ~/.zshenv.zwc", "tee ~/.config/bat/config",
+    "curl -D ~/.zshenv https://x/y", "curl -c ~/.zshenv https://x/y", "curl --hsts ~/.zshenv https://x/y",
+    "curl -Afo -o ~/.zshenv https://x/y", "wget -a ~/.zshenv https://x/y", "wget -P~ https://x/.zshenv",
+    "wget -qP ~/.local/bin https://x/t", "git -C . bundle create ~/.zshenv HEAD",
+    "git -c user.name=x bundle create ~/.zshenv HEAD", "git merge-file ~/.zshenv /dev/null evil.txt",
+    "git fast-export --export-marks=$HOME/.zshenv HEAD", "git index-pack -o ~/.zshenv p.pack",
+    "patch ~/.zshenv p.diff", "ed ~/.zshenv", "openssl enc -out ~/.zshenv", "gpg -o ~/.zshenv x.gpg",
+    "split f ~/.zshenv", "shuf -o ~/.zshenv f", "iconv -o ~/.zshenv f", "git config alias.p 'push origin main'",
+    "git config alias.b 'bundle create ~/.zshenv HEAD'",
+])
+def test_k_protected_folders_and_more_writers_are_capped(cmd):
+    assert sh(cmd, home="/home/u")[1] == CAP
+
+
+@pytest.mark.parametrize("cmd", ["git ls-remote --exe=./evil.sh .", "curl -K ./cfg https://x",
+                                 "wget -e use_askpass=./x https://x/y", "wget --use-askpass=./x https://x/y",
+                                 "wget -P ~ -r https://x/"])
+def test_k_config_files_and_programs_ask(cmd):
+    assert at_least(sh(cmd, home="/home/u")[1], HIGH)
+
+
+@pytest.mark.parametrize("cmd", [
+    "ls ~/.local/bin", "cat ~/.zshrc", "git config --global --unset credential.helper",
+    "git config --global --unset core.pager", "git config --global push.followTags true",
+    "git config --global fetch.pruneTags true", "git config --global rebase.updateRefs true",
+    "git config core.fsmonitor true", "git config --global merge.tool vscode", "git config --global diff.tool vscode",
+    "cp a.txt b.txt", "curl -o out.json https://x", "sed -i '' 's/a/b/' src/a.py",
+])
+def test_k_common_commands_stay_ordinary(cmd):
+    assert sh(cmd, home="/home/u")[1] != CAP
+
+
+def test_k_stash_push_is_not_a_push():
+    assert sh("git stash push -m wip")[1] != HIGH

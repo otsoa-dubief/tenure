@@ -830,15 +830,21 @@ GIT_CONFIG_FILES = re.compile(r"(?:^|/)\.git/(?:(?:modules|worktrees)/(?:[^/]+/)
 # Files a shell, the session manager or Python runs by themselves: start-up files, login agents and services,
 # Python's site hooks, and the user's own program folder that comes before the system on PATH (counter-audit P1).
 START_UP_FILES = re.compile(r"(?:^|/)\.(?:zshenv|zshrc|zprofile|zlogin|zlogout|bashrc|bash_profile|bash_login|bash_logout"
-                            r"|profile|kshrc|cshrc|tcshrc|login|inputrc|bash_aliases|zshrc\.zwc|curlrc|wgetrc|lesskey|vimrc|exrc"
-                            r"|gvimrc|nanorc)$|/\.oh-my-zsh/custom/|/\.cargo/env$|/\.config/(?:gh|nvim)/|/library/launchagents/|/library/launchdaemons/"
+                            r"|profile|kshrc|cshrc|tcshrc|login|inputrc|bash_aliases|(?:zshenv|zshrc|zprofile|zlogin)\.zwc|curlrc"
+                            r"|wgetrc|lesskey|less|vimrc|exrc|gvimrc|nanorc)$|/\.config/(?:lesskey|bat/config)$|/\.oh-my-zsh/custom/|/\.cargo/env$|/\.config/(?:gh|nvim)/|/library/launchagents/|/library/launchdaemons/"
                             r"|/\.config/(?:systemd/user|autostart|fish)/|(?:^|/)(?:site|user)customize\.py$"
                             r"|/site-packages/[^/]*\.pth$|/\.local/bin/")
+
+
+# Folders whose contents run by themselves, as a destination: what is copied, moved or unpacked into them runs.
+AUTORUN_DIRS = re.compile(r"(?:^|/)\.local/bin$|/library/launch(?:agents|daemons)$"
+                          r"|/\.config/(?:systemd/user|autostart|fish|gh|nvim)$|/\.oh-my-zsh(?:/custom)?$|(?:^|/)\.git$")
 
 
 def _sensitive(probe: str) -> bool:
     low = probe.casefold()
     return bool(any(f in low for f in SENSITIVE_FRAGMENTS) or GIT_CONFIG_FILES.search(low.rstrip("/"))
+                or AUTORUN_DIRS.search(low.rstrip("/"))
                 or START_UP_FILES.search(low.rstrip("/"))
                 or any(d.casefold() in low + "/" for d in SENSITIVE_DIRS)
                 or low.startswith(tuple(x.casefold() for x in SENSITIVE_PREFIXES))
@@ -1162,7 +1168,7 @@ def _canon_long(args: list[str], names: tuple[str, ...]) -> list[str]:
         if a.startswith("--") and len(a) > 3:
             name, eq, value = a.partition("=")
             if name not in names and len(name) >= 4:
-                full = next((f for f in names if f.startswith(name)), None)
+                full = min((f for f in names if f.startswith(name)), key=len, default=None)
                 if full:
                     a = full + eq + value
         out.append(a)
@@ -1834,6 +1840,23 @@ def _write_args(prog: str, args: list[str]) -> list[str]:
         return _opt_values(args, "o", ("--log-file",)) + _opt_values(args, "O", ("--LOG-FILE",))
     if prog == "dd":
         return [a[3:] for a in args if a.startswith("of=")]
+    if prog in SEDS and _sed_call(args)[0]:
+        return [a for a in args if not a.startswith("-")]        # in place: every word may be the file
+    if prog in ("tar", "gtar", "bsdtar"):
+        return [v for k, v in zip(args, args[1:]) if k in ("-C", "--directory")] + [
+            a.split("=", 1)[1] for a in args if a.startswith("--directory=")]
+    if prog == "unzip":
+        return [v for k, v in zip(args, args[1:]) if k == "-d"]
+    if prog == "patch":
+        return _positionals(args)[:1] + _opt_values(args, "o", ("--output",))
+    if prog in ("ed", "ex", "red", "script"):
+        return _positionals(args)[:1]
+    if prog in ("iconv", "base64", "shuf", "gpg", "gpg2"):
+        return _opt_values(args, "o", ("--output",))
+    if prog == "openssl":
+        return [v for k, v in zip(args, args[1:]) if k == "-out"]
+    if prog in ("split", "csplit"):
+        return _positionals(args)[1:]
     if prog in WRITERS:
         return [a for a in args if not a.startswith("-")]
     return []
@@ -2141,10 +2164,10 @@ UNRESOLVED = "$`?*[{"
 
 
 OUTPUT_OPTS = {
-    "curl": ("o", ("--output", "--output-dir", "--dump-header", "--cookie-jar", "--trace", "--trace-ascii",
-                   "--stderr", "--libcurl", "--etag-save")),
-    "wget": ("Oo", ("--output-document", "--output-file", "--append-output", "--directory-prefix",
-                    "--save-cookies")),
+    "curl": ("oDc", ("--output", "--output-dir", "--dump-header", "--cookie-jar", "--trace", "--trace-ascii",
+                     "--stderr", "--libcurl", "--etag-save", "--hsts", "--alt-svc")),
+    "wget": ("OoaP", ("--output-document", "--output-file", "--append-output", "--directory-prefix",
+                      "--save-cookies", "--warc-file", "--rejected-log", "--hsts-file")),
     "sort": ("o", ("--output",)),
     "less": ("oO", ("--log-file", "--LOG-FILE")),
 }
@@ -2168,23 +2191,43 @@ def _tool_outputs(tokens: list[str]) -> list[str]:
                 out.append(value)
             elif n + 1 < len(args):
                 out.append(args[n + 1])
-                n += 1
         elif a.startswith("-") and not a.startswith("--") and len(a) > 1:
             for k, ch in enumerate(a[1:], 1):
                 if ch in shorts:
-                    if a[k + 1:]:
-                        out.append(a[k + 1:])
-                    elif n + 1 < len(args):
-                        out.append(args[n + 1])
-                        n += 1
-                    break
+                    out.append(a[k + 1:] or (args[n + 1] if n + 1 < len(args) else ""))
+        if "%output{" in a:
+            out += re.findall(r"%output\{([^}]*)\}", a)
         n += 1
     if prog == "wget":
         dirs = [v for k, v in zip(args, args[1:]) if k in ("-P", "--directory-prefix")]
         dirs += [a.split("=", 1)[1] for a in args if a.startswith("--directory-prefix=")]
-        urls = [a for a in args if "://" in a]
+        dirs += [a.split("P", 1)[1] for a in args if re.match(r"-[A-Za-z]*P.", a) and not a.startswith("--")]
+        urls = [a for a in args if not a.startswith("-") and "." in a]
         out += [d.rstrip("/") + "/" + u.rstrip("/").rsplit("/", 1)[-1] for d in dirs for u in urls]
     return out
+
+
+def _fetcher_risky(tokens: list[str], home: str) -> tuple[str, str] | None:
+    """curl reading a config file (-K), wget running its own commands (-e) or an askpass program, or either one
+    saving into the home folder itself: where the files land, or what runs, is not on the command line."""
+    toks = _unwrap(tokens)
+    if not toks or os.path.basename(toks[0]) not in ("curl", "wget"):
+        return None
+    prog, args = os.path.basename(toks[0]), toks[1:]
+    if prog == "curl" and any(a in ("-K", "--config") or a.startswith(("--config=", "-K")) for a in args):
+        return "shell:curl:config", HIGH
+    if prog == "wget" and any(a in ("-e", "--execute") or a.startswith(("--execute", "--use-askpass", "-e"))
+                              for a in args):
+        return "shell:wget:execute", HIGH
+    h = (home or os.path.expanduser("~")).rstrip("/")
+    for d in _tool_outputs(tokens):
+        if _expand(d, home).rstrip("/") in (h, "~"):
+            return f"shell:{prog}", HIGH                     # saved into the home folder, under a name it picks
+    if prog == "wget" and any(re.match(r"-[A-Za-z]*P", a) or a.startswith("--directory-prefix") for a in args) \
+            and any(a in ("-r", "--recursive", "-m", "--mirror", "-i") or re.match(r"-[A-Za-z]*[rmi]", a)
+                    for a in args):
+        return "shell:wget", HIGH                            # many files, names the server picks
+    return None
 
 
 def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
@@ -2197,6 +2240,9 @@ def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, s
         f = _file(_expand(target, home), None if cwd == UNKNOWN else cwd, home)
         if f[1] == CAP:
             return f[0], CAP                                 # a protected file written through an option
+    risky = _fetcher_risky(tokens, home)
+    if risky and RANK[r[1]] < RANK[HIGH]:
+        r = risky
     h = _hijacks(tokens)
     if h == CAP:
         return SELF_ENV
@@ -2417,7 +2463,7 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
             r = _file(_expand(target, home), None if cwd == UNKNOWN else cwd, home)
             if r[1] == CAP:
                 return r[0], CAP                             # a file git writes is a protected one
-        if "push" in plain:
+        if sub == "push":
             return "shell:git:push", HIGH
     if prog == "gh":
         plain = _strip(args, GH_VALUE_OPTS)
@@ -2499,7 +2545,9 @@ GIT_SAFE_KEYS = re.compile(r"user\.(?:name|email|signingkey)|color\..+|core\.(?:
                            r"|remote\.[^.]+\.(?:url|pushurl|fetch)|commit\.template|status\.\w+|gc\.auto"
                            r"|credential\.username|http\.version|rebase\.autostash|commit\.verbose|diff\.colormoved"
                            r"|core\.whitespace|user\.useconfigonly|http\.postbuffer|url\..+\.insteadof"
-                           r"|gpg\.format|lfs\.[^.]+|branch\.sort|tag\.sort|difftool\.prompt|mergetool\.(?:prompt|keepbackup)")
+                           r"|gpg\.format|lfs\.[^.]+|branch\.sort|tag\.sort|push\.followtags|fetch\.prunetags"
+                           r"|rerere\.autoupdate|rebase\.updaterefs|column\.ui|core\.untrackedcache|submodule\.recurse"
+                           r"|help\.autocorrect|http\.proxy|difftool\.prompt|mergetool\.(?:prompt|keepbackup)")
 # Options of `git config` that take the next word as their value.
 GIT_CONFIG_VALUE_OPTS = {"-f", "--file", "--blob", "--type", "--default", "--comment", "--value", "--url"}
 # Options that make `git config` a read on their own; display options (-z, --show-origin...) do not.
@@ -2511,7 +2559,7 @@ GIT_PROGRAM_OPTS = {"fetch": {"--upload-pack"}, "pull": {"--upload-pack"}, "clon
                     "ls-remote": {"--upload-pack", "-u"}, "archive": {"--exec"},
                     "push": {"--receive-pack", "--exec"}, "send-pack": {"--receive-pack", "--exec"}}
 # Keys whose value is a program: ordinary when that value names a known editor, pager or helper.
-GIT_PROGRAM_KEYS = re.compile(r"core\.(?:editor|pager|sshcommand)|sequence\.editor|pager\.\w+|diff\.tool|merge\.tool"
+GIT_PROGRAM_KEYS = re.compile(r"core\.(?:editor|pager|sshcommand|fsmonitor)|sequence\.editor|pager\.\w+|diff\.tool|merge\.tool"
                               r"|credential\.helper|interactive\.difffilter|gpg\.program")
 # Editors, pagers and helpers a setting may name, by name or by their path in a system folder, each with the only
 # arguments it may take (an allow list: any other argument, a file name among them, refuses the value). Shells,
@@ -2532,7 +2580,7 @@ TOOL_ARGS = {
 }
 for _name in ("hx", "micro", "kak", "more", "most", "cat", "diff-so-fancy", "true", ":", "meld", "kdiff3",
               "opendiff", "p4merge", "osxkeychain", "store", "manager", "manager-core", "libsecret", "gpg", "gpg2",
-              "open", "xdg-open", "wslview", "firefox", "chromium", "google-chrome", "interactive-rebase-tool"):
+              "open", "xdg-open", "wslview", "vscode", "bc", "bc3", "smerge", "gvimdiff", "firefox", "chromium", "google-chrome", "interactive-rebase-tool"):
     TOOL_ARGS[_name] = ""                                    # no arguments at all
 KNOWN_TOOLS = set(TOOL_ARGS) | {"ssh"}
 # ssh -o options that neither run nor load anything, nor write a file of the agent's choice.
@@ -2596,7 +2644,8 @@ def _bare_program(value: str) -> bool:
     return all(allowed and re.fullmatch(allowed, a) for a in args)
 
 
-ALIAS_RISKY_COMMANDS = {"clone", "ls-remote", "submodule", "bisect", "filter-branch", "difftool", "mergetool", "instaweb", "daemon",
+ALIAS_RISKY_COMMANDS = {"push", "bundle", "merge-file", "mailinfo", "worktree", "send-pack", "fast-export",
+                        "index-pack", "credential-store", "apply", "checkout-index", "clone", "ls-remote", "submodule", "bisect", "filter-branch", "difftool", "mergetool", "instaweb", "daemon",
                         "send-email", "web--browse", "config", "credential", "hook", "for-each-repo", "p4", "svn",
                         "archimport", "cvsimport", "cvsexportcommit", "quiltimport"}
 ALIAS_OPTIONS = re.compile(r"--(?:oneline|graph|decorate|all|stat|short|cached|staged|amend|no-edit|abbrev-commit"
@@ -2650,9 +2699,22 @@ def _git_outputs(args: list[str], sub: str) -> list[str]:
             out.append(args[n + 1])
         elif a.startswith(("--output-directory=", "--git-dir=", "--work-tree=")) or (a.startswith("--file=") and sub == "config"):
             out.append(a.split("=", 1)[1])
-    plain = [a for a in args if not a.startswith("-")]
+    plain = _strip(args, GIT_VALUE_OPTS)
     if sub == "bundle" and len(plain) > 2 and plain[1] == "create":
         out.append(plain[2])
+    if sub == "clone" and len(plain) > 2:
+        out.append(plain[-1])
+    if sub == "merge-file" and len(plain) > 1:
+        out.append(plain[1])
+    if sub == "mailinfo":
+        out += plain[1:3]
+    for a in args:
+        if a.startswith(("--export-marks=", "--import-marks=")):
+            out.append(a.split("=", 1)[1])
+        elif sub == "config" and a.startswith("-f") and len(a) > 2:
+            out.append(a[2:])
+    if sub in ("index-pack", "credential-store"):
+        out += [v for k, v in zip(args, args[1:]) if k in ("-o", "--file")]
     prefix = next((a.split("=", 1)[1] for a in args if a.startswith("--prefix=")), None)
     if prefix and sub != "archive":
         out += [prefix] + [prefix + w for w in plain[1:]]
@@ -2664,6 +2726,8 @@ def _git_key_safe(key: str, value) -> bool:
     if key.startswith("alias."):
         return value is not None and _alias_safe(value)
     if GIT_PROGRAM_KEYS.fullmatch(key):
+        if key == "core.fsmonitor" and value is not None and value.strip().strip("'\"").casefold() in ("true", "false"):
+            return True                                      # git's own monitor, or none
         if key == "credential.helper" and value is not None and value.strip().strip("'\"") == "":
             return True                                      # empties the list of helpers
         if (key.startswith("pager.") or key == "core.pager") and value is not None \
@@ -2724,8 +2788,9 @@ def _git_config_runs_code(args: list[str], plain: list[str]) -> bool:
         return False
     if words and words[0] in ("set", "unset"):
         words = words[1:]
-    writes = len(words) >= 2 or bool(opts & {"--add", "--replace-all", "--unset", "--unset-all", "--rename-section",
-                                                "--remove-section"})
+    if opts & {"--unset", "--unset-all"} or (rest and rest[0] == "unset"):
+        return False                                         # a setting taken away: git's default comes back
+    writes = len(words) >= 2 or bool(opts & {"--add", "--replace-all", "--rename-section", "--remove-section"})
     return writes and bool(words) and not _git_key_safe(words[0], words[1] if len(words) > 1 else None)
 
 
