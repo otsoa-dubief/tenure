@@ -472,3 +472,48 @@ def test_h_common_developer_settings_stay_ordinary(cmd):
 @pytest.mark.parametrize("cmd", ["git config delta.pager ./x", "git config delta.side.pager ./x"])
 def test_h_delta_settings_that_name_a_program_are_capped(cmd):
     assert sh(cmd)[1] == CAP
+
+
+# ------------------------------------------------------------------- control pass 5: values, aliases, LESS
+@pytest.mark.parametrize("cmd", [
+    "git config core.hooksPath -x", "git config --local core.hooksPath -x", "git config set core.hooksPath -x",
+    "git config --global include.path -inc", "git config core.fsmonitor -m", "git config diff.external -d",
+    "git config --global alias.co 'submodule foreach id'", "git config alias.r 'rebase -x id'",
+    "git config alias.g 'grep -Oid'", "git config alias.d 'difftool -x id'", "git config alias.b 'bisect run id'",
+    "git config alias.l 'log --output=/tmp/x'", "git config alias.f 'filter-branch --tree-filter id'",
+    "LESS='-O/home/u/.zshenv' git log", "LESS='-oout' git log", "LESS='--log-file=x' git log",
+    "LESS='--lesskey-src=k' git log", "LESS='-kk' git log",
+])
+def test_i_values_aliases_and_less_are_capped(cmd):
+    assert sh(cmd)[1] == CAP
+
+
+@pytest.mark.parametrize("cmd", ["less --lesskey-src=k a", "less -kk a", "less --lesskey-file=k a"])
+def test_i_less_with_a_key_file_is_not_a_free_read(cmd):
+    assert sh(cmd)[1] != FREE
+
+
+@pytest.mark.parametrize("cmd", [
+    "git config alias.co checkout", "git config --global alias.st status", "git config alias.lg 'log --oneline --graph'",
+    "git config alias.last 'log -1 HEAD'", "LESS=-R git log", "LESS=-FRX git log", "export LESS='-R --mouse'",
+    "git config --global branch.sort -committerdate",
+])
+def test_i_common_aliases_and_less_stay_ordinary(cmd):
+    assert sh(cmd)[1] != CAP
+
+
+@pytest.mark.parametrize("cmd", ["git log --output=~/.zshrc", "git log --output ~/.zshrc",
+                                 "git diff --output=/home/u/.bashrc", "git archive -o ~/.zshrc HEAD",
+                                 "vim '+!echo x > ~/.zshrc'", "vim -c '!echo x > ~/.zshrc' a"])
+def test_i_git_output_and_editor_commands_reach_protected_files(cmd):
+    assert sh(cmd, home="/home/u")[1] == CAP
+
+
+@pytest.mark.parametrize("cmd", ["vim -c 'set tw=72' a", "nvim '+normal G' a", "vim -S s.vim a", "vim '+!rm -rf x'"])
+def test_i_editor_commands_ask(cmd):
+    assert sh(cmd)[1] == HIGH
+
+
+@pytest.mark.parametrize("cmd", ["vim +10 a.txt", "vim a.txt", "git log --output=out.txt", "nvim -p a b"])
+def test_i_plain_editor_and_output_stay_as_they_were(cmd):
+    assert at_least(HIGH, sh(cmd)[1]) and sh(cmd)[1] != HIGH

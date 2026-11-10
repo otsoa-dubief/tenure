@@ -201,15 +201,17 @@ type override lowers them (`self:*`, `secrets:*`, `file:sensitive`):
   folder of your own first, such as `~/.cargo/bin` or `$PWD/node_modules/.bin`, asks at high stakes), the dynamic loader's variables (`LD_*`,
   `DYLD_*`), shell start-up variables, an editor, pager, ssh or browser setting that names anything but a known
   editor, pager or helper with arguments from its own allow list (`EDITOR='code --wait'`, `PAGER='less -R'`,
-  `ssh -i key -p 2222` are ordinary; a shell, an interpreter, a file name or any other option is not), `LESS` with `+` or `!`, `NODE_OPTIONS` with `--require` or `--import`, git's own (`GIT_*`, except
+  `ssh -i key -p 2222` are ordinary; a shell, an interpreter, a file name or any other option is not), `LESS` with anything but `less`'s own allowed flags, `NODE_OPTIONS` with `--require` or `--import`, git's own (`GIT_*`, except
   author, committer and tracing), `HOME`, `XDG_CONFIG_*` or `HERMES_*`: as a prefix, behind `env` (`-S` too),
   `sudo` or `timeout`, with `export`, or through a builtin that assigns (`printf -v`, `read`, `for`); git
   configuration that can run a program (`git -c`, `clone --config`, `--template`, `--upload-pack`,
   `--receive-pack`, or `git config` on a key outside a list of keys that cannot; an editor, pager, diff or
-  merge tool, or credential helper key naming a known tool is allowed, and so is turning a pager on or off), and the files git reads it from (`.git/config`, `.git/hooks/`, those
+  merge tool, or credential helper key naming a known tool is allowed, and so is turning a pager on or off; an alias is allowed when it names a git command with plain
+  words and display options), and the files git reads it from (`.git/config`, `.git/hooks/`, those
   of submodules and work trees, `~/.gitconfig`, `~/.config/git/config`), whoever writes them (`sed -i`,
   `execute_code`); shell start-up files (`~/.zshrc`, `~/.bashrc`, `~/.profile`...), login agents and user
-  services, Python's `sitecustomize.py`, and `~/.local/bin/`. A program given by a path outside the system's
+  services, Python's `sitecustomize.py`, and `~/.local/bin/`, including through `git log --output`. Editor
+  commands given to vim (`+cmd`, `-c`, `-S`) ask at high stakes, and a `!command` inside them is classified too. A program given by a path outside the system's
   folders (`./bin/ls`) is never a free read. Any other assignment in front of a read-only command asks.
 - The dashboard's own API (`/api/plugins/clearance/...`, where settings, revoke and undo live) is capped when a
   command or code names it.

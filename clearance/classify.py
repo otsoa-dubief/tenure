@@ -1553,7 +1553,9 @@ def _ro_writes(prog: str, args: list[str]) -> bool:
     if prog == "tree":
         return bool(_opt_values(args, "o", ()))
     if prog == "less":
-        return bool(_opt_values(args, "o", ("--log-file",)) or _opt_values(args, "O", ("--LOG-FILE",)))
+        return bool(_opt_values(args, "o", ("--log-file",)) or _opt_values(args, "O", ("--LOG-FILE",))
+                    or _opt_values(args, "k", ("--lesskey-file", "--lesskey-src", "--lesskey-content"))
+                    or any(a.startswith("--lesskey") for a in args))
     if prog == "date":
         return any(a in ("-s", "--set") or a.startswith(("--set=", "-s")) for a in args)
     if prog == "hostname":
@@ -2314,11 +2316,20 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
         if (prog == "crontab" and args == ["-l"]) or (prog == "launchctl" and sub in ("list", "print", "blame")):
             return OUTSIDE[prog], FREE                       # a listing
         return OUTSIDE[prog], HIGH
+    if prog in VIM_EDITORS:
+        code = _vim_commands(args)
+        if code is not None:
+            inners = [_lit(_shell(c[1:], cwd, home, depth + 1)[:2]) for c in code if c.startswith("!")]
+            return _top([(f"shell:{prog}:command", HIGH)] + inners)
     if prog == "git":
         plain = _strip(args, GIT_VALUE_OPTS)
         sub = plain[0] if plain else ""
         if _git_config_runs_code(args, plain):
             return "file:sensitive", CAP                     # git configuration that runs a program (audit 10/11)
+        for target in _git_outputs(args, sub):
+            r = _file(_expand(target, home), None if cwd == UNKNOWN else cwd, home)
+            if r[1] == CAP:
+                return r[0], CAP                             # a file git writes is a protected one
         if "push" in plain:
             return "shell:git:push", HIGH
     if prog == "gh":
@@ -2400,7 +2411,9 @@ GIT_SAFE_KEYS = re.compile(r"user\.(?:name|email|signingkey)|color\..+|core\.(?:
                            r"|remote\.[^.]+\.(?:url|pushurl|fetch)|commit\.template|status\.\w+|gc\.auto"
                            r"|credential\.username|http\.version|rebase\.autostash|commit\.verbose|diff\.colormoved"
                            r"|core\.whitespace|user\.useconfigonly|http\.postbuffer|url\..+\.insteadof"
-                           r"|gpg\.format|lfs\.[^.]+|difftool\.prompt|mergetool\.(?:prompt|keepbackup)")
+                           r"|gpg\.format|lfs\.[^.]+|branch\.sort|tag\.sort|difftool\.prompt|mergetool\.(?:prompt|keepbackup)")
+# Options of `git config` that take the next word as their value.
+GIT_CONFIG_VALUE_OPTS = {"-f", "--file", "--blob", "--type", "--default", "--comment", "--value", "--url"}
 # Options that make `git config` a read on their own; display options (-z, --show-origin...) do not.
 GIT_CONFIG_READS = {"--get", "--get-all", "--get-regexp", "--get-urlmatch", "-l", "--list", "--get-color",
                     "--get-colorbool"}
@@ -2421,7 +2434,8 @@ TOOL_ARGS = {
     "code": _EDITOR, "code-insiders": _EDITOR, "cursor": _EDITOR, "subl": r"-[wn]+|--wait|--new-window",
     "mate": r"-w|--wait", "zed": r"-w|--wait|-n|--new", "vim": _VIM, "nvim": _VIM, "vi": _VIM, "vimdiff": _VIM,
     "nvimdiff": _VIM, "emacs": r"-nw|-q|-Q|--no-window-system", "emacsclient": r"-t|-c|-nw|--tty|--create-frame",
-    "less": r"-[A-JL-NP-Za-jl-np-z0-9#~]+|--quit-if-one-screen|--RAW-CONTROL-CHARS|--chop-long-lines|--no-init",
+    "less": r"-[A-JL-NP-Za-jl-np-z0-9#~]+|--quit-if-one-screen|--RAW-CONTROL-CHARS|--chop-long-lines|--no-init|--mouse"
+            r"|--tabs=\d+|--ignore-case",
     "bat": r"-p+|--plain|--paging=\w+|--style=[\w,-]+|--color=\w+|--theme=[\w-]+|--decorations=\w+"
            r"|--language=[\w+-]+",
     "delta": r"--color-only|--side-by-side|-s|--dark|--light|--features=[\w,-]+|--navigate|-n|--line-numbers"
@@ -2494,10 +2508,62 @@ def _bare_program(value: str) -> bool:
     return all(allowed and re.fullmatch(allowed, a) for a in args)
 
 
+ALIAS_RISKY_COMMANDS = {"submodule", "bisect", "filter-branch", "difftool", "mergetool", "instaweb", "daemon",
+                        "send-email", "web--browse", "config", "credential", "hook", "for-each-repo", "p4", "svn",
+                        "archimport", "cvsimport", "cvsexportcommit", "quiltimport"}
+ALIAS_OPTIONS = re.compile(r"--(?:oneline|graph|decorate|all|stat|short|cached|staged|amend|no-edit|abbrev-commit"
+                           r"|no-merges|verbose|branch)|-[sbvpu]|-\d+")
+
+
+def _alias_safe(value: str) -> bool:
+    """An alias that names a git command with plain words and display options only: no `!`, no option that runs
+    a program or writes a file, no command that runs one by design (submodule foreach, bisect run...)."""
+    words = value.strip().strip("'\"").split()
+    if not words or words[0].startswith("!") or words[0] in ALIAS_RISKY_COMMANDS:
+        return False
+    return all(re.fullmatch(r"[\w./:@^~{}-]+", w) and (not w.startswith("-") or ALIAS_OPTIONS.fullmatch(w))
+               for w in words)
+
+
+VIM_EDITORS = {"vim", "nvim", "vi", "ex", "view", "gvim", "vimdiff", "nvimdiff"}
+
+
+def _vim_commands(args: list[str]) -> list[str] | None:
+    """The editor commands a vim call runs (`+cmd`, `-c cmd`, `--cmd cmd`), or None without any; a script it
+    sources or replays (`-S`, `-s`, `-u`) counts as a command."""
+    out, found, n = [], False, 0
+    while n < len(args):
+        a = args[n]
+        if a.startswith("+") and not re.fullmatch(r"\+\d*", a):
+            out.append(a[1:])
+            found = True
+        elif a in ("-c", "--cmd", "-S", "-s", "-u", "-U") and n + 1 < len(args):
+            out.append(args[n + 1] if a in ("-c", "--cmd") else "")
+            found, n = True, n + 1
+        elif a.startswith("-c") and len(a) > 2 and not a.startswith("--"):
+            out.append(a[2:])
+            found = True
+        n += 1
+    return out if found else None
+
+
+def _git_outputs(args: list[str], sub: str) -> list[str]:
+    """Files a git command writes through an option: --output, and -o for archive, format-patch and bundle."""
+    out = []
+    for n, a in enumerate(args):
+        if a.startswith("--output="):
+            out.append(a.split("=", 1)[1])
+        elif (a == "--output" or (a == "-o" and sub in ("archive", "format-patch"))) and n + 1 < len(args):
+            out.append(args[n + 1])
+        elif a.startswith("-o") and len(a) > 2 and not a.startswith("--") and sub in ("archive", "format-patch"):
+            out.append(a[2:])
+    return out
+
+
 def _git_key_safe(key: str, value) -> bool:
     key = key.casefold()
     if key.startswith("alias."):
-        return value is not None and not value.lstrip("'\"").startswith("!")
+        return value is not None and _alias_safe(value)
     if GIT_PROGRAM_KEYS.fullmatch(key):
         if key == "credential.helper" and value is not None and value.strip().strip("'\"") == "":
             return True                                      # empties the list of helpers
@@ -2542,10 +2608,18 @@ def _git_config_runs_code(args: list[str], plain: list[str]) -> bool:
     if sub != "config":
         return False
     rest = plain[1:]
-    opts = {a.split("=", 1)[0] for a in args if a.startswith("-")}
+    tail = args[at + 1:] if at < len(args) else []
+    if tail and tail[0] in ("get", "list", "set", "unset", "edit", "rename-section", "remove-section"):
+        tail = tail[1:]
+    n = 0
+    while n < len(tail) and tail[n].startswith("-") and tail[n] != "--":
+        n += 2 if tail[n] in GIT_CONFIG_VALUE_OPTS else 1
+    words = tail[n + (1 if n < len(tail) and tail[n] == "--" else 0):]
+    opts = {a.split("=", 1)[0] for a in tail[:n]} | {a.split("=", 1)[0] for a in args[:at] if a.startswith("-")}
     if opts & {"-e", "--edit"} or (rest and rest[0] == "edit"):
         return True
-    words = [w for w in rest if not w.startswith("-")]
+    if rest and rest[0] in ("set", "unset") and words[:1] != [rest[0]]:
+        words = [rest[0]] + words
     if rest and rest[0] in ("get", "list") and len(words) <= 2:
         return False
     if opts & GIT_CONFIG_READS and len(words) <= 1:
@@ -2856,7 +2930,7 @@ def _value_hijacks(name: str, value: str) -> str | None:
     if PROGRAM_VARS.fullmatch(name):
         return None if _bare_program(value) else CAP
     if name == "LESS":
-        return CAP if ("+" in value or "!" in value) else None
+        return None if all(re.fullmatch(TOOL_ARGS["less"], a) for a in value.split()) else CAP
     if name in ("NODE_OPTIONS", "JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS"):
         return CAP if LOADING_OPTIONS.search(value) else None
     return CAP
