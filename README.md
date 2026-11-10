@@ -196,15 +196,17 @@ type override lowers them (`self:*`, `secrets:*`, `file:sensitive`):
   into your home folder asks (high stakes). A path argument the shell computes (a variable, a substitution, a brace
   list, `~user`, the `{}` of find or xargs), a `cd` to such a target, and `tar -P` ask too (high stakes), and are
   capped when their literal part names Hermes. Setting `CDPATH` is capped.
-- Code an ordinary command would run without asking: assigning `PATH` (adding after `$PATH`, or putting only
-  system folders and `~/.local/bin` before it, is ordinary), the dynamic loader's variables (`LD_*`, `DYLD_*`),
-  shell start-up variables, an editor, pager, ssh or browser variable that names anything but a program found on
-  PATH (`EDITOR=vim` is ordinary), `NODE_OPTIONS` with `--require` or `--import`, git's own (`GIT_*`, except
+- Code an ordinary command would run without asking: assigning `PATH` with a relative or computed folder before
+  the system (adding after `$PATH`, or putting only system folders and `~/.local/bin` first, is ordinary; another
+  folder of your own first, such as `~/.cargo/bin`, asks at high stakes), the dynamic loader's variables (`LD_*`,
+  `DYLD_*`), shell start-up variables, an editor, pager, ssh or browser setting that names anything but a known
+  editor, pager or helper (`EDITOR=vim`, `PAGER='less -R'`, `ssh -i key` are ordinary; a shell, an interpreter,
+  ssh's `-o`/`-F` are not), `LESS` with `+` or `!`, `NODE_OPTIONS` with `--require` or `--import`, git's own (`GIT_*`, except
   author, committer and tracing), `HOME`, `XDG_CONFIG_*` or `HERMES_*`: as a prefix, behind `env` (`-S` too),
   `sudo` or `timeout`, with `export`, or through a builtin that assigns (`printf -v`, `read`, `for`); git
   configuration that can run a program (`git -c`, `clone --config`, `--template`, `--upload-pack`,
-  `--receive-pack`, or `git config` on a key outside a list of keys that cannot, an editor or pager key naming a
-  program on PATH being allowed), and the files git reads it from (`.git/config`, `.git/hooks/`, those
+  `--receive-pack`, or `git config` on a key outside a list of keys that cannot; an editor, pager, diff or
+  merge tool, or credential helper key naming a known tool is allowed), and the files git reads it from (`.git/config`, `.git/hooks/`, those
   of submodules and work trees, `~/.gitconfig`, `~/.config/git/config`), whoever writes them (`sed -i`,
   `execute_code`); shell start-up files (`~/.zshrc`, `~/.bashrc`, `~/.profile`...), login agents and user
   services, Python's `sitecustomize.py`, and `~/.local/bin/`. A program given by a path outside the system's
@@ -214,8 +216,8 @@ type override lowers them (`self:*`, `secrets:*`, `file:sensitive`):
 - A recursive copy (`cp -r`, `ditto`, `rsync`) or a git work tree into your home or into a folder above a Hermes
   home asks at high stakes, and is capped when it names a `.hermes` folder. Code piped into a shell or an
   interpreter (`| sh`, `| python3`, `bash -s`) asks at high stakes. An MCP or plugin tool whose arguments name one
-  of these files on this machine is capped, whatever its name says (paths of a remote service such as a GitHub
-  repository are not files here); a tool whose name saves to disk (`download`, `export`), or that is told where
+  of these files on this machine is capped, whatever its name says (the `path` of a known remote service, such as
+  a file in a GitHub repository, is not a file here; its local file arguments are checked); a tool whose name saves to disk (`download`, `export`), or that is told where
   to save (`output_path`, `save_to`), is never a free read.
 - Paths are compared the way a case-insensitive file system compares them: `.HERMES` and `.hermeſ` (with a long
   s) are `.hermes`.

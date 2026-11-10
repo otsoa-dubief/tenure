@@ -254,7 +254,7 @@ def test_p2_the_dashboard_api_is_capped(cmd):
 @pytest.mark.parametrize("cmd", ["git config -z core.fsmonitor ./x", "git config --null core.fsmonitor ./x",
                                  "git config --show-origin core.fsmonitor ./x", "git config --name-only core.pager ./x",
                                  "env -S 'PATH=./bin ls'", "env -S'PATH=./bin ls'",
-                                 "git fetch --upload-pack=./x origin", "git fetch -u ./x origin",
+                                 "git fetch --upload-pack=./x origin",
                                  "git ls-remote --upload-pack=./x origin", "git clone -u ./x r d",
                                  "git push --receive-pack=./x origin", "git push --exec=./x origin"])
 def test_f_more_ways_git_or_env_run_a_chosen_program(cmd):
@@ -278,7 +278,7 @@ def test_f_common_settings_are_not_capped(cmd):
 
 @pytest.mark.parametrize("cmd", ["NODE_OPTIONS='--require ./x' node a.js", "export NODE_OPTIONS=-r./x",
                                  "EDITOR='./x' git commit", "EDITOR='vim; ./x' git commit", "PAGER='less +!./x' git log",
-                                 "git config core.editor ./x", "export PATH=$HOME/bin:$PATH", "export PATH=./bin:$PATH"])
+                                 "git config core.editor ./x", "export PATH=./bin:$PATH"])
 def test_f_the_same_settings_pointing_at_a_chosen_program_stay_capped(cmd):
     assert sh(cmd)[1] == CAP, cmd
 
@@ -293,3 +293,45 @@ def test_f_mcp_false_positives(home, tmp_path):
     assert kind("mcp__github__list_commits", {"owner": "o", "repo": "r", "path": "src"})[1] == FREE
     assert kind("mcp__notion__get_page", {"id": "1", "output_format": "md"})[1] == FREE
     assert kind("mcp__filesystem__write_file", {"path": f"{home}/config.yaml", "content": "x"})[1] == CAP
+
+
+def test_g_update_head_ok_and_user_folders_on_path():
+    assert sh("git pull -u origin main")[1] != CAP and sh("git fetch -u origin")[1] != CAP
+    assert sh("export PATH=$HOME/bin:$PATH")[1] == HIGH and sh('export PATH="$HOME/.cargo/bin:$PATH"')[1] == HIGH
+    assert sh("export PATH=/usr/local/bin:/usr/bin:/bin")[1] != CAP
+
+
+def test_g_remote_services_only_by_exact_name_and_only_their_repository_paths(home):
+    cfg = f"{home}/config.yaml"
+    assert kind("mcp__myfs__delete_file", {"owner": "x", "repo": "y", "path": cfg})[1] == CAP
+    assert kind("mcp__github_local__edit_file", {"path": cfg})[1] == CAP
+    assert kind("mcp__slack__upload_file", {"file_path": f"{home}/.env"})[1] == CAP
+    assert kind("mcp__github__get_file_contents", {"owner": "o", "repo": "r", "path": "a", "save_to": cfg})[1] == CAP
+    assert kind("mcp__slack__get_file", {"id": "1", "dest": "~/.zshrc"})[1] == CAP
+    assert kind("mcp__github__get_file_contents", {"owner": "o", "repo": "r", "path": "docs/.hermes/config.yaml"})[1] \
+        != CAP
+    assert kind("mcp__gdrive__get_file", {"id": "1", "target": "proj/a.pdf"})[1] != FREE
+    assert kind("mcp__filesystem__directory_tree", {"path": "~"})[1] != CAP
+
+
+@pytest.mark.parametrize("cmd", ["git config core.pager 'sh ./x'", "git config pager.log 'python3 x.py'",
+                                 "EDITOR='sh -c ./x' git commit", "PAGER='python3 x.py' git log",
+                                 "export GIT_PAGER='sh ./x'", "env -u FOO -S 'PATH=./bin ls'"])
+def test_g_a_shell_or_interpreter_as_a_setting_is_capped(cmd):
+    assert sh(cmd)[1] == CAP, cmd
+
+
+@pytest.mark.parametrize("cmd", ["GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash", "EDITOR=/usr/bin/vim git commit",
+                                 "export LESS=-R", 'GIT_SSH_COMMAND="ssh -i ~/.ssh/id_x" git fetch',
+                                 "git config --global diff.tool vimdiff", "git config --global credential.helper osxkeychain",
+                                 "git config --global rebase.autostash true", "git config core.pager 'less -FRX'"])
+def test_g_common_settings_stay_ordinary(cmd):
+    assert sh(cmd)[1] != CAP, cmd
+
+
+def test_g_reads_are_free_and_port_forward_asks():
+    for cmd in ("git config --get user.name", "git config --list", "git config get user.name", "git stash list",
+                "docker ps", "docker logs web", "docker images"):
+        assert sh(cmd)[1] == FREE, cmd
+    assert sh("kubectl port-forward svc/web 8080:80")[1] == MEDIUM
+    assert sh("git config core.fsmonitor ./x")[1] == CAP

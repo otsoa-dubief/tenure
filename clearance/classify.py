@@ -2107,7 +2107,12 @@ def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, s
     """One command (``_segment_main``); a segment that sets a code-hijacking variable is capped as self:env unless
     it is already capped under a more precise type (Hermes' own CLI, a protected file)."""
     r = _segment_main(tokens, cwd, home, depth)
-    return SELF_ENV if r[1] != CAP and _hijacks(tokens) else r
+    if r[1] == CAP:
+        return r
+    h = _hijacks(tokens)
+    if h == CAP:
+        return SELF_ENV
+    return ("shell:env", HIGH) if h == HIGH and RANK[r[1]] < RANK[HIGH] else r
 
 
 def _segment_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
@@ -2350,6 +2355,11 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
                                           " ".join(args)):
             return "shell:gh:api", FREE
         return f"shell:gh:{sub or 'unknown'}", HIGH
+    if prog == "kubectl" and sub in ("port-forward", "proxy"):
+        return f"shell:kubectl:{sub}", MEDIUM                # opens a local port
+    if prog in ("docker", "podman") and sub in ("ps", "images", "logs", "inspect", "version", "info", "stats", "top",
+                                                "history", "port", "diff") and not writes:
+        return f"shell:{prog}:{sub}", FREE
     if prog == "kubectl":
         if any(a == "--kubeconfig" or a.startswith("--kubeconfig=") for a in args):
             plain = _strip(args, SUB_VALUE_OPTS | {"--kubeconfig"})
@@ -2363,6 +2373,12 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     if prog == "git":
         if sub == "grep" and any(a.startswith(("-O", "--open-files-in-pager")) for a in args):
             return "shell:git:grep", MEDIUM                  # opens the matches with a program it names
+        rest = plain[1:] if plain else []
+        if not writes and ((sub == "config" and ((rest and rest[0] in ("get", "list") and len(rest) <= 2)
+                                                 or (set(args) & GIT_CONFIG_READS
+                                                     and len([w for w in rest if not w.startswith("-")]) <= 1)))
+                           or (sub == "stash" and rest[:1] in (["list"], ["show"]))):
+            return f"shell:git:{sub}", FREE                  # a read of the configuration, the stash list
         if not writes and not _ro_writes("git", args) and (sub in GIT_READ or (sub in ("branch", "tag", "remote") and len(args) <= 2
                                                 and not any(a in ("-d", "-D", "--delete", "add", "remove", "rm",
                                                                   "set-url", "rename") for a in args))):
@@ -2382,21 +2398,48 @@ GIT_SAFE_KEYS = re.compile(r"user\.(?:name|email|signingkey)|color\..+|core\.(?:
                            r"|core\.(?:longpaths|abbrev|excludesfile|precomposeunicode)|diff\.(?:noprefix|renames|algorithm)"
                            r"|merge\.conflictstyle|rerere\.enabled|log\.(?:showsignature|date|decorate)"
                            r"|remote\.[^.]+\.(?:url|pushurl|fetch)|commit\.template|status\.\w+|gc\.auto"
-                           r"|credential\.username|http\.version")
+                           r"|credential\.username|http\.version|rebase\.autostash|commit\.verbose|diff\.colormoved"
+                           r"|core\.whitespace|user\.useconfigonly|http\.postbuffer|url\..+\.insteadof|delta\..+"
+                           r"|gpg\.format")
 # Options that make `git config` a read on their own; display options (-z, --show-origin...) do not.
 GIT_CONFIG_READS = {"--get", "--get-all", "--get-regexp", "--get-urlmatch", "-l", "--list", "--get-color",
                     "--get-colorbool"}
 # Subcommand options that name a program git starts (the transport helpers on either side of a fetch or a push).
-GIT_PROGRAM_OPTS = {"fetch": {"--upload-pack", "-u"}, "pull": {"--upload-pack", "-u"}, "clone": {"--upload-pack", "-u"},
+# For fetch and pull, -u is --update-head-ok.
+GIT_PROGRAM_OPTS = {"fetch": {"--upload-pack"}, "pull": {"--upload-pack"}, "clone": {"--upload-pack", "-u"},
                     "ls-remote": {"--upload-pack", "-u"}, "archive": {"--exec"},
                     "push": {"--receive-pack", "--exec"}, "send-pack": {"--receive-pack", "--exec"}}
-# Keys whose value is a program: ordinary when that value names a program found on PATH (an editor, a pager, ssh).
-GIT_PROGRAM_KEYS = re.compile(r"core\.(?:editor|pager|sshcommand)|sequence\.editor|pager\.\w+")
+# Keys whose value is a program: ordinary when that value names a known editor, pager or helper.
+GIT_PROGRAM_KEYS = re.compile(r"core\.(?:editor|pager|sshcommand)|sequence\.editor|pager\.\w+|diff\.tool|merge\.tool"
+                              r"|credential\.helper|interactive\.difffilter|gpg\.program")
+# Editors, pagers and helpers a setting may name, by name or by their path in a system folder. Shells, interpreters
+# and wrappers are not among them: a value that starts one runs whatever it is given.
+KNOWN_TOOLS = {"vim", "nvim", "vi", "nano", "emacs", "emacsclient", "code", "code-insiders", "cursor", "subl", "mate",
+               "zed", "hx", "micro", "kak", "less", "more", "most", "cat", "bat", "delta", "diff-so-fancy", "ssh",
+               "true", ":", "vimdiff", "nvimdiff", "meld", "kdiff3", "opendiff", "p4merge", "osxkeychain", "store",
+               "cache", "manager", "manager-core", "libsecret", "gpg", "gpg2", "open", "xdg-open", "firefox",
+               "chromium", "google-chrome"}
+# Options of these tools that start another program (an editor command, a pager command), and for ssh, those that
+# read another configuration or run a local command.
+TOOL_RISKY_OPTS = re.compile(r"(?:^|\s)(?:--?exec\S*|-c\b|--cmd\b|\+)")
+SSH_RISKY_OPTS = re.compile(r"(?:^|\s)-[A-Za-z]*[oF]|proxycommand|localcommand|proxyjump", re.I)
 
 
 def _bare_program(value: str) -> bool:
-    """``value`` names a program found on PATH, with plain arguments: no path, no shell punctuation, no `!`."""
-    return bool(BARE_PROGRAM.fullmatch(value.strip().strip("'\"")))
+    """``value`` starts a known editor, pager or helper (KNOWN_TOOLS, by name or from a system folder), with plain
+    arguments: no shell punctuation, no `!`, no option that starts another program."""
+    value = value.strip().strip("'\"")
+    if value in (":", "true"):
+        return True
+    if not BARE_PROGRAM.fullmatch(value.replace("/", "_")) or "!" in value:
+        return False
+    first, _, rest = value.partition(" ")
+    if "/" in first and os.path.dirname(first) not in SYSTEM_BIN_DIRS:
+        return False
+    name = os.path.basename(first)
+    if name == "ssh" and SSH_RISKY_OPTS.search(" " + rest):
+        return False
+    return name in KNOWN_TOOLS and not TOOL_RISKY_OPTS.search(" " + rest)
 
 
 def _git_key_safe(key: str, value) -> bool:
@@ -2728,24 +2771,34 @@ SYSTEM_BIN_DIRS = {"/usr/local/bin", "/usr/local/sbin", "/opt/homebrew/bin", "/o
                    "/usr/sbin", "/sbin", "/opt/local/bin"}
 
 
-def _value_hijacks(name: str, value: str) -> bool:
-    """Whether this value of a listed variable hands the choice of a program to the agent. Ordinary values: PATH
-    that puts only system folders or ~/.local/bin (whose writes are capped) before $PATH; an editor, pager, ssh or
-    browser named on PATH; NODE_OPTIONS or JAVA_TOOL_OPTIONS without an option that loads code."""
+def _value_hijacks(name: str, value: str) -> str | None:
+    """What this value of a listed variable does: None (ordinary), HIGH (asks: a folder of the user's own before
+    the system on PATH), or CAP (the agent chooses the program). Ordinary values: PATH that puts only system
+    folders or ~/.local/bin (whose writes are capped) before $PATH, or only system folders; an editor, pager, ssh
+    or browser setting naming a known tool; LESS without `+` or `!`; NODE_OPTIONS or JAVA_TOOL_OPTIONS without an
+    option that loads code."""
     value = value.strip().strip("'\"")
     if name == "PATH":
-        parts = value.split(":")
-        mark = next((n for n, x in enumerate(parts) if x in ("$PATH", "${PATH}")), None)
-        if mark is None:
-            return True
         home = (getattr(_CACHE, "home", None) or os.path.expanduser("~")).rstrip("/")
-        return any(_expand(x, home).rstrip("/") not in SYSTEM_BIN_DIRS | {home + "/.local/bin"}
-                   for x in parts[:mark])
+        parts = value.split(":")
+        mark = next((n for n, x in enumerate(parts) if x in ("$PATH", "${PATH}")), len(parts))
+        verdict = None
+        for x in parts[:mark]:
+            full = _expand(x, home).rstrip("/")
+            if full in SYSTEM_BIN_DIRS or full == home + "/.local/bin":
+                continue
+            if (not os.path.isabs(full) or any(ch in full for ch in "$`*?[")
+                    or any(part in (".", "..") for part in full.split("/"))):
+                return CAP                                   # a relative or computed folder
+            verdict = HIGH                                   # a folder of the user's own, before the system
+        return verdict
     if PROGRAM_VARS.fullmatch(name):
-        return not _bare_program(value)
+        return None if _bare_program(value) else CAP
+    if name == "LESS":
+        return CAP if ("+" in value or "!" in value) else None
     if name in ("NODE_OPTIONS", "JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS"):
-        return bool(LOADING_OPTIONS.search(value))
-    return True
+        return CAP if LOADING_OPTIONS.search(value) else None
+    return CAP
 
 
 def _env_split(tokens: list[str]) -> list[str] | None:
@@ -2753,8 +2806,15 @@ def _env_split(tokens: list[str]) -> list[str] | None:
     for n, t in enumerate(tokens):
         if os.path.basename(t) != "env":
             continue
+        skip = False
         for m in range(n + 1, len(tokens)):
             a, value = tokens[m], None
+            if skip:
+                skip = False
+                continue
+            if a in ENV_VALUE_OPTS:
+                skip = True
+                continue
             if a in ("-S", "--split-string") and m + 1 < len(tokens):
                 value = tokens[m + 1]
             elif a.startswith("--split-string="):
@@ -2771,26 +2831,33 @@ def _env_split(tokens: list[str]) -> list[str] | None:
     return None
 
 
-def _hijacks(tokens: list[str]) -> bool:
-    """The segment sets a variable that makes the next programs run code of the agent's choosing: by assignment
-    (prefix, behind env or another wrapper, after export), or by a builtin that assigns the variable it names
-    (printf -v, read, mapfile, getopts, for, declare -n). `PATH=$PATH:dir` keeps the system's programs first."""
+ENV_VALUE_OPTS = {"-u", "--unset", "-C", "--chdir", "-P"}
+
+
+def _hijacks(tokens: list[str]) -> str | None:
+    """CAP when the segment sets a variable that makes the next programs run code of the agent's choosing (by
+    assignment: prefix, behind env, `env -S`, a wrapper, after export; or by a builtin that assigns the variable it
+    names: printf -v, read, mapfile, getopts, for, declare -n); HIGH when it puts a folder of the user's own before
+    the system on PATH; else None. `PATH=$PATH:dir` keeps the system's programs first."""
     split = _env_split(tokens)
-    if split is not None and _hijacks(split):
-        return True
+    worst = _hijacks(split) if split is not None else None
+    if worst == CAP:
+        return CAP
     toks = [t for t in tokens if t not in ("(", ")", "{", "}")]
     names = set(_assigned(tokens))
     for t in toks:
         m = ASSIGN_WORD.match(t)
-        if (m and m.group(1) in names and HIJACK_VARS.fullmatch(m.group(1)) and not APPENDED_PATH.match(t)
-                and _value_hijacks(m.group(1), t.split("=", 1)[1])):
-            return True
+        if m and m.group(1) in names and HIJACK_VARS.fullmatch(m.group(1)) and not APPENDED_PATH.match(t):
+            v = _value_hijacks(m.group(1), t.split("=", 1)[1])
+            if v == CAP:
+                return CAP
+            worst = worst or v
     if toks and os.path.basename(toks[0]) in ASSIGNING_BUILTINS:
         for t in toks[1:]:
             for word in (t, t.split("=", 1)[-1]):
                 if not word.startswith("-") and HIJACK_VARS.fullmatch(word):
-                    return True
-    return False
+                    return CAP
+    return worst
 
 
 def _run(segs: list[Seg], start: str, home: str, depth: int) -> tuple[str, str]:
@@ -2900,6 +2967,18 @@ def _hermes_floor(command: str) -> bool:
                    for tokens in (_tokens_lines(command), _tokens_whole(command)) for seg in _build(tokens))
 
 
+def _validated_setting(word: str) -> bool:
+    """`NAME=value` for a setting whose value was checked on its own (PATH of known folders, an editor, pager or ssh
+    naming a known tool): its folders and key file are not write targets."""
+    m = ASSIGN_WORD.match(word)
+    if not m:
+        return False
+    name, value = m.group(1), word.split("=", 1)[1]
+    if name == "PATH":
+        return _value_hijacks("PATH", value) != CAP
+    return bool(PROGRAM_VARS.fullmatch(name)) and _bare_program(value)
+
+
 def _sensitive_floor(command: str) -> str | None:
     """A write target, or any argument of a command that is not purely read-only, names a sensitive file: the
     protected type (``_text_floor``), else None."""
@@ -2914,6 +2993,7 @@ def _sensitive_floor(command: str) -> str | None:
                 ws.remove(toks[0])
             words += ws
         if not pure:
+            words = [w for w in words if not _validated_setting(w)]
             found = {_text_floor(w) for w in words} - {None}
             if found:
                 return "self:clearance" if "self:clearance" in found else "file:sensitive"
@@ -3083,7 +3163,8 @@ FREE_VERBS = {"get", "list", "search", "read", "fetch", "find", "query", "lookup
 DISK_VERBS = {"download", "export", "save", "dump", "extract", "unpack", "unzip", "clone", "sync", "pull", "mirror",
               "backup", "restore", "import", "install", "store", "persist", "write", "cache", "record"}
 # Argument names that say where something is written: a tool given one is never a free read.
-DISK_ARGS = re.compile(r"(?:^|_)(?:dest|destination|output|out|save|saveto|download|local)(?:_|$)|save_?to", re.I)
+DISK_ARGS = re.compile(r"(?:^|_)(?:dest|destination|output|out|save|saveto|download|local|target)(?:_|$)|save_?to",
+                       re.I)
 
 
 BROWSE_VERBS = {"navigate", "scrape", "crawl", "browse", "snapshot", "screenshot"}   # reads, for reads_external only
@@ -3295,13 +3376,15 @@ REMOTE_SERVERS = {"github", "gitlab", "bitbucket", "notion", "linear", "jira", "
                   "discord", "telegram", "whatsapp", "gmail", "outlook", "mail"}
 
 
-def _remote(server: str | None, args: dict) -> bool:
-    keys = {k.casefold() for k in _keys(args) if isinstance(k, str)}
-    words = {w for w in re.split(r"[^a-z0-9]+", (server or "").casefold()) if w}
-    return bool(words & REMOTE_SERVERS) or {"owner", "repo"} <= keys
+REMOTE_PATH_KEYS = {"path", "paths", "file_path_in_repo", "repo_path"}   # a path inside the service's repository
 
 
-def _args_hit(args: dict, cwd, home: str, reading: bool = False, remote: bool = False) -> tuple[str, str] | None:
+def _remote(server: str | None) -> bool:
+    """The server is one of the known services by its exact name: its `path` arguments live on the service."""
+    return (server or "").casefold() in REMOTE_SERVERS
+
+
+def _args_hit(args: dict, cwd, home: str, reading: bool = False) -> tuple[str, str] | None:
     """An MCP or other plugin tool whose arguments name clearance's data, a sensitive file, one of Hermes' own
     entries or a Hermes home level (audit 10/11): the tool name alone cannot say where it writes, so a protected
     path in the arguments caps it, percent-encoded, as a file:// URL, split into a folder and a name, or given as a
@@ -3316,8 +3399,6 @@ def _args_hit(args: dict, cwd, home: str, reading: bool = False, remote: bool = 
             continue
         for variant in dict.fromkeys((s, unquote(s), unquote(unquote(s)))):
             low = _norm(variant).casefold()
-            if remote:
-                continue                                 # a path on the service, not on this machine
             if CLEARANCE_NAMES.search(low):
                 return "self:clearance", CAP
             if _self_hit(low):
@@ -3365,8 +3446,13 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         t, stakes, rev = f"tool:{tool_name}", HIGH, False
     if t.startswith(("mcp:", "tool:")):
         split = _mcp_split(tool_name)
-        hit = _args_hit(args, cwd, home, reading=stakes == FREE,
-                        remote=bool(split) and _remote(split[0], args) and not (_words(split[1]) & DISK_VERBS))
+        name_words = _words(split[1]) if split else set()
+        checked = args
+        if split and _remote(split[0]) and not (name_words & DISK_VERBS):
+            checked = {k: v for k, v in args.items() if not (isinstance(k, str) and k.casefold() in REMOTE_PATH_KEYS)}
+        hit = _args_hit(checked, cwd, home,
+                        reading=not (name_words & (HIGH_VERBS | MEDIUM_VERBS | DISK_VERBS | {"delete", "remove", "move",
+                                                                                           "rename", "copy"})))
         if hit and hit[1] == CAP:
             t, stakes, rev = hit[0], CAP, False
         elif hit and RANK[stakes] < RANK[HIGH]:
