@@ -1,6 +1,6 @@
 # The study
 
-**Preregistered on OSF on 10 November 2026 (embargoed until the results are published). Results pending.**
+**[Preregistered on OSF](https://osf.io/vycge/) on 10 November 2026 (embargoed until the results are published). Results pending.**
 
 The only claim clearance makes about the study: the same rule as a preregistered study, replayed on 6,000+ simulated agents. It does not claim that the study has confirmed the rule.
 

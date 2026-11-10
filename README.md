@@ -12,7 +12,7 @@
   <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB">
   <img alt="License Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-2563eb">
   <img alt="No network, no LLM call" src="https://img.shields.io/badge/network-none-16a34a">
-  <img alt="Preregistered study" src="https://img.shields.io/badge/study-preregistered%20on%20OSF-7c3aed">
+  <a href="https://osf.io/vycge/"><img alt="Preregistered study" src="https://img.shields.io/badge/study-preregistered%20on%20OSF-7c3aed"></a>
 </p>
 
 <p align="center">
@@ -94,7 +94,7 @@ clearance uses the same rule as a preregistered study, replayed on 6,000+ simula
 
 | | |
 |---|---|
-| **Preregistered** | Plan, rule, replay engine and decision criteria frozen at a git tag and registered on OSF on 10 November 2026, before any confirmatory data. Embargoed until the results are out. |
+| **Preregistered** | Plan, rule, replay engine and decision criteria frozen at a git tag and [registered on OSF](https://osf.io/vycge/) on 10 November 2026, before any confirmatory data. Embargoed until the results are out. |
 | **Falsifiable** | What would refute the rule is written down in advance. The result will be published whatever it is, negative included. |
 | **Validated first** | The rule was replayed on 6,000+ simulated agents (519 synthetic worlds × 12 model-environment configurations), where the truth is known, to check that the decision procedure reaches the right verdict. |
 | **Running now** | Three Claude models play four environments of two public agent benchmarks (τ-bench 2.0 airline, retail and banking; WorkBench): 14,266 planned episodes. Every write with a known tool is judged by exact comparison with the task's expected actions; automated alerts are reviewed on blind sheets, and a human re-reviews a random draw without seeing the first verdict. |
