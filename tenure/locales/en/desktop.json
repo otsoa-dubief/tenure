@@ -3,7 +3,7 @@
   "agents.search": "Search agents",
   "backend.desc": "Enable tenure for this profile in Capabilities → Plugins (Agent column). {error}",
   "backend.title": "The agent half is not answering",
-  "benchmark.col_faults": "Faults",
+  "benchmark.col_faults": "Faults / checks",
   "benchmark.col_public": "Public",
   "benchmark.col_range": "95% range",
   "benchmark.col_rate": "Rate",
@@ -12,12 +12,13 @@
     "other": "{n} faults / {total}"
   },
   "benchmark.no_public": "—",
-  "benchmark.not_enough": "not enough evidence",
+  "benchmark.not_ranked": "Not enough evidence yet",
+  "benchmark.not_ranked_note": "A model is ranked once it has {n} checks on this type.",
   "benchmark.note": "Each model's verified record on your work for this action type, with the 95% range of its fault rate, ranked by the top of that range. The public score is context: capability on their tasks, not reliability on yours.",
   "benchmark.public_score": "Public score: {benchmark}, {source}",
   "benchmark.public_score_accessed": "Public score: {benchmark}, {source}, {accessed}.",
   "benchmark.public_value": "{value}%",
-  "benchmark.range_tip": "Fault rate and its 95% range, on a 0–70% axis",
+  "benchmark.range_tip": "Fault rate and its 95% range, on a 0–{max}% axis",
   "benchmark.rate": "{rate}% ({low}–{high}%)",
   "benchmark.search": "Search action types",
   "chip.tip": {
@@ -29,12 +30,12 @@
   "common.retry": "Try again",
   "emblem.none": "No autonomy earned yet",
   "emblem.review": {
-    "one": "{n} under review",
-    "other": "{n} under review"
+    "one": "{n} type under review",
+    "other": "{n} types under review"
   },
   "emblem.tenured": {
-    "one": "{n} tenured",
-    "other": "{n} tenured"
+    "one": "{n} type tenured",
+    "other": "{n} types tenured"
   },
   "empty.desc": "Work as usual. Every change asks first, and each action type earns its tier from the answers you give.",
   "empty.title": "No agent has acted yet",
@@ -62,6 +63,7 @@
   "moment.review": "Under review",
   "nav.label": "Tenure",
   "page.animations": "Animations",
+  "page.animations_reduced": "Your system asks for reduced motion: animations stay off",
   "page.title": "Tenure",
   "page.view_agents": "Agents",
   "page.view_benchmark": "Your benchmark",
@@ -71,12 +73,17 @@
   "palette.revoke": "Tenure: Revoke current model…",
   "passport.copy": "Copy passport",
   "passport.copy_command": "Copy command",
+  "passport.faults_checks": {
+    "one": "{n} fault / {total} checks",
+    "other": "{n} faults / {total} checks"
+  },
   "passport.generated": "Generated",
   "passport.ledger": "Ledger",
   "passport.ledger_value": {
     "one": "{n} event · head {head}",
     "other": "{n} events · head {head}"
   },
+  "passport.pending_note": "Computed under the last logged settings; the new settings apply from the next action.",
   "passport.problems": "Does not verify: {problems}",
   "passport.protocol": "Protocol",
   "passport.rule": "Rule",
@@ -95,6 +102,8 @@
   "preset.value_pending": "{preset} · 1 in {k} spot-checked · applies from the next action",
   "recent.check_failed": "check failed",
   "recent.check_failed_tip": "The automatic check failed: already counted as a fault. Undo restores the files.",
+  "recent.collapse": "Hide the actions",
+  "recent.expand": "Show each action",
   "recent.flag": "Flag",
   "recent.flag_tip": "It made an error nobody caught: revoke this type.",
   "recent.flagged": "{type} flagged: counted as a fault, it drops at least one tier.",
@@ -108,7 +117,9 @@
     "other": "{n} min ago"
   },
   "recent.more_files": "+{n}",
+  "recent.no_snapshot": "no snapshot",
   "recent.none": "Nothing to undo in the last 24 hours.",
+  "recent.restore_icon": "Can be undone for 24 hours",
   "recent.show_all": "Show all {n}",
   "recent.show_fewer": "Show fewer",
   "recent.title": "Acted without asking",
@@ -146,8 +157,17 @@
   "toast.acted_detail": "Undo restores the files of the last change and counts as a fault.",
   "type.always_asks": "always asks",
   "type.guarantee": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad.",
+  "type.guarantee_plain": "At most about 1 in {k} of its actions runs with an error nobody approved.",
   "type.guarantee_provisional": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad. Provisional: carried-over evidence.",
   "type.in_a_row": "{series} of {required} in a row",
+  "type.more_to_t2": {
+    "one": "{n} more to reach Under review (T2)",
+    "other": "{n} more to reach Under review (T2)"
+  },
+  "type.more_to_t3": {
+    "one": "{n} more to Tenured",
+    "other": "{n} more to Tenured"
+  },
   "type.next": {
     "one": "{n} more verified success in a row to be tenured.",
     "other": "{n} more verified successes in a row to be tenured."

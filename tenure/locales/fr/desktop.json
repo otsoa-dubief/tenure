@@ -3,7 +3,7 @@
   "agents.search": "Rechercher des agents",
   "backend.desc": "Activez tenure pour ce profil dans Capacités → Plugins (colonne Agent). {error}",
   "backend.title": "La partie agent ne répond pas",
-  "benchmark.col_faults": "Fautes",
+  "benchmark.col_faults": "Fautes / vérif.",
   "benchmark.col_public": "Public",
   "benchmark.col_range": "Fourch. 95 %",
   "benchmark.col_rate": "Taux",
@@ -12,12 +12,13 @@
     "other": "{n} fautes / {total}"
   },
   "benchmark.no_public": "—",
-  "benchmark.not_enough": "pas assez de preuves",
+  "benchmark.not_ranked": "Pas encore assez de preuves",
+  "benchmark.not_ranked_note": "Un modèle est classé à partir de {n} vérifications sur ce type.",
   "benchmark.note": "L'historique vérifié de chaque modèle sur votre travail pour ce type d'action, avec la fourchette à 95 % de son taux de fautes, classé par le haut de cette fourchette. Le score public sert de contexte : il mesure la capacité sur les tâches du benchmark, pas la fiabilité sur les vôtres.",
   "benchmark.public_score": "Score public : {benchmark}, {source}",
   "benchmark.public_score_accessed": "Score public : {benchmark}, {source}, {accessed}.",
   "benchmark.public_value": "{value} %",
-  "benchmark.range_tip": "Taux de fautes et sa fourchette à 95 %, sur un axe de 0 à 70 %",
+  "benchmark.range_tip": "Taux de fautes et sa fourchette à 95 %, sur un axe de 0 à {max} %",
   "benchmark.rate": "{rate} % ({low}–{high} %)",
   "benchmark.search": "Rechercher des types d'action",
   "chip.tip": {
@@ -29,12 +30,12 @@
   "common.retry": "Réessayer",
   "emblem.none": "Pas encore d'autonomie acquise",
   "emblem.review": {
-    "one": "{n} en examen",
-    "other": "{n} en examen"
+    "one": "{n} type en examen",
+    "other": "{n} types en examen"
   },
   "emblem.tenured": {
-    "one": "{n} titulaire",
-    "other": "{n} titulaires"
+    "one": "{n} type titulaire",
+    "other": "{n} types titulaires"
   },
   "empty.desc": "Travaillez comme d'habitude. L'agent demande avant chaque modification, et chaque type d'action gagne son niveau selon vos réponses.",
   "empty.title": "Aucun agent n'a encore agi",
@@ -62,6 +63,7 @@
   "moment.review": "En examen",
   "nav.label": "Tenure",
   "page.animations": "Animations",
+  "page.animations_reduced": "Votre système demande de réduire les animations : elles restent coupées",
   "page.title": "Tenure",
   "page.view_agents": "Agents",
   "page.view_benchmark": "Votre benchmark",
@@ -71,12 +73,17 @@
   "palette.revoke": "Tenure : Révoquer le modèle actuel…",
   "passport.copy": "Copier le passeport",
   "passport.copy_command": "Copier la commande",
+  "passport.faults_checks": {
+    "one": "{n} faute / {total} vérifications",
+    "other": "{n} fautes / {total} vérifications"
+  },
   "passport.generated": "Généré",
   "passport.ledger": "Registre",
   "passport.ledger_value": {
     "one": "{n} événement · tête {head}",
     "other": "{n} événements · tête {head}"
   },
+  "passport.pending_note": "Calculé avec les derniers réglages enregistrés ; les nouveaux réglages s'appliquent dès la prochaine action.",
   "passport.problems": "Ne se vérifie pas : {problems}",
   "passport.protocol": "Protocole",
   "passport.rule": "Règle",
@@ -95,6 +102,8 @@
   "preset.value_pending": "{preset} · 1 action sur {k} contrôlée · s'applique dès la prochaine action",
   "recent.check_failed": "vérification échouée",
   "recent.check_failed_tip": "La vérification automatique a échoué : déjà comptée comme une faute. Annuler restaure les fichiers.",
+  "recent.collapse": "Masquer les actions",
+  "recent.expand": "Afficher chaque action",
   "recent.flag": "Signaler",
   "recent.flag_tip": "Une erreur est passée inaperçue : révoquer ce type.",
   "recent.flagged": "{type} signalé : compté comme une faute, il perd au moins un niveau.",
@@ -108,7 +117,9 @@
     "other": "il y a {n} min"
   },
   "recent.more_files": "+{n}",
+  "recent.no_snapshot": "pas d'instantané",
   "recent.none": "Rien à annuler depuis 24 heures.",
+  "recent.restore_icon": "Annulable pendant 24 heures",
   "recent.show_all": "Tout afficher ({n})",
   "recent.show_fewer": "Afficher moins",
   "recent.title": "A agi sans demander",
@@ -146,8 +157,17 @@
   "toast.acted_detail": "Annuler restaure les fichiers de la dernière modification et compte comme une faute.",
   "type.always_asks": "demande toujours",
   "type.guarantee": "Au plus {aoql} % des actions de ce type s'exécutent avec une erreur que personne n'a approuvée ; {worst} % si le modèle se dégrade.",
+  "type.guarantee_plain": "Au plus environ 1 action sur {k} s'exécute avec une erreur que personne n'a approuvée.",
   "type.guarantee_provisional": "Au plus {aoql} % des actions de ce type s'exécutent avec une erreur que personne n'a approuvée ; {worst} % si le modèle se dégrade. Provisoire : preuves héritées.",
   "type.in_a_row": "{series} sur {required} d'affilée",
+  "type.more_to_t2": {
+    "one": "Encore {n} pour passer En examen (T2)",
+    "other": "Encore {n} pour passer En examen (T2)"
+  },
+  "type.more_to_t3": {
+    "one": "encore {n} pour être Titulaire",
+    "other": "encore {n} pour être Titulaire"
+  },
   "type.next": {
     "one": "Encore {n} succès vérifié d'affilée pour être titularisé.",
     "other": "Encore {n} succès vérifiés d'affilée pour être titularisé."

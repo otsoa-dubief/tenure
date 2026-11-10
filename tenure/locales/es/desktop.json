@@ -3,7 +3,7 @@
   "agents.search": "Buscar agentes",
   "backend.desc": "Activa tenure para este perfil en Capacidades → Plugins (columna Agente). {error}",
   "backend.title": "La mitad del agente no responde",
-  "benchmark.col_faults": "Fallos",
+  "benchmark.col_faults": "Fallos / comprob.",
   "benchmark.col_public": "Pública",
   "benchmark.col_range": "Rango 95 %",
   "benchmark.col_rate": "Tasa",
@@ -12,12 +12,13 @@
     "other": "{n} fallos / {total}"
   },
   "benchmark.no_public": "—",
-  "benchmark.not_enough": "evidencia insuficiente",
+  "benchmark.not_ranked": "Aún no hay evidencia suficiente",
+  "benchmark.not_ranked_note": "Un modelo entra en la clasificación cuando tiene {n} comprobaciones en este tipo.",
   "benchmark.note": "El historial verificado de cada modelo en tu trabajo para este tipo de acción, con el rango del 95 % de su tasa de fallos, ordenado por el extremo superior de ese rango. La puntuación pública es contexto: capacidad en sus tareas, no fiabilidad en las tuyas.",
   "benchmark.public_score": "Puntuación pública: {benchmark}, {source}",
   "benchmark.public_score_accessed": "Puntuación pública: {benchmark}, {source}, {accessed}.",
   "benchmark.public_value": "{value} %",
-  "benchmark.range_tip": "Tasa de fallos y su rango del 95 %, en un eje de 0 a 70 %",
+  "benchmark.range_tip": "Tasa de fallos y su rango del 95 %, en un eje de 0 a {max} %",
   "benchmark.rate": "{rate} % ({low}–{high} %)",
   "benchmark.search": "Buscar tipos de acción",
   "chip.tip": {
@@ -29,12 +30,12 @@
   "common.retry": "Reintentar",
   "emblem.none": "Aún sin autonomía ganada",
   "emblem.review": {
-    "one": "{n} en revisión",
-    "other": "{n} en revisión"
+    "one": "{n} tipo en revisión",
+    "other": "{n} tipos en revisión"
   },
   "emblem.tenured": {
-    "one": "{n} titular",
-    "other": "{n} titulares"
+    "one": "{n} tipo titular",
+    "other": "{n} tipos titulares"
   },
   "empty.desc": "Trabaja como siempre. Cada cambio pregunta antes, y cada tipo de acción se gana su nivel con tus respuestas.",
   "empty.title": "Ningún agente ha actuado todavía",
@@ -62,6 +63,7 @@
   "moment.review": "En revisión",
   "nav.label": "Tenure",
   "page.animations": "Animaciones",
+  "page.animations_reduced": "Tu sistema pide reducir el movimiento: las animaciones siguen desactivadas",
   "page.title": "Tenure",
   "page.view_agents": "Agentes",
   "page.view_benchmark": "Tu benchmark",
@@ -71,12 +73,17 @@
   "palette.revoke": "Tenure: Revocar el modelo actual…",
   "passport.copy": "Copiar pasaporte",
   "passport.copy_command": "Copiar comando",
+  "passport.faults_checks": {
+    "one": "{n} fallo / {total} comprobaciones",
+    "other": "{n} fallos / {total} comprobaciones"
+  },
   "passport.generated": "Generado",
   "passport.ledger": "Registro",
   "passport.ledger_value": {
     "one": "{n} evento · último hash {head}",
     "other": "{n} eventos · último hash {head}"
   },
+  "passport.pending_note": "Calculado con los últimos ajustes registrados; los nuevos ajustes se aplican desde la próxima acción.",
   "passport.problems": "No se verifica: {problems}",
   "passport.protocol": "Protocolo",
   "passport.rule": "Regla",
@@ -95,6 +102,8 @@
   "preset.value_pending": "{preset} · 1 de cada {k} con control aleatorio · se aplica desde la próxima acción",
   "recent.check_failed": "falló la comprobación",
   "recent.check_failed_tip": "La comprobación automática falló: ya se contó como fallo. Deshacer restaura los archivos.",
+  "recent.collapse": "Ocultar las acciones",
+  "recent.expand": "Mostrar cada acción",
   "recent.flag": "Marcar",
   "recent.flag_tip": "Cometió un error que nadie detectó: revoca este tipo.",
   "recent.flagged": "{type} marcado: cuenta como fallo, baja al menos un nivel.",
@@ -108,7 +117,9 @@
     "other": "hace {n} min"
   },
   "recent.more_files": "+{n}",
+  "recent.no_snapshot": "sin instantánea",
   "recent.none": "Nada que deshacer en las últimas 24 horas.",
+  "recent.restore_icon": "Se puede deshacer durante 24 horas",
   "recent.show_all": "Mostrar los {n}",
   "recent.show_fewer": "Mostrar menos",
   "recent.title": "Actuó sin preguntar",
@@ -146,8 +157,17 @@
   "toast.acted_detail": "Deshacer restaura los archivos del último cambio y cuenta como fallo.",
   "type.always_asks": "siempre pregunta",
   "type.guarantee": "Como máximo el {aoql} % de las acciones de este tipo se ejecutan con un error que nadie aprobó; el {worst} % si el modelo empeora.",
+  "type.guarantee_plain": "Como máximo, aproximadamente 1 de cada {k} de sus acciones se ejecuta con un error que nadie aprobó.",
   "type.guarantee_provisional": "Como máximo el {aoql} % de las acciones de este tipo se ejecutan con un error que nadie aprobó; el {worst} % si el modelo empeora. Provisional: evidencia heredada.",
   "type.in_a_row": "{series} de {required} seguidas",
+  "type.more_to_t2": {
+    "one": "Falta {n} para pasar a En revisión (T2)",
+    "other": "Faltan {n} para pasar a En revisión (T2)"
+  },
+  "type.more_to_t3": {
+    "one": "falta {n} para Titular",
+    "other": "faltan {n} para Titular"
+  },
   "type.next": {
     "one": "Falta {n} éxito verificado seguido para la titularidad.",
     "other": "Faltan {n} éxitos verificados seguidos para la titularidad."

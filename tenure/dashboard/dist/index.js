@@ -189,6 +189,7 @@ const TENURE_LOCALES = {
     "flag.provisional": "provisional",
     "flag.trial": "trial",
     "guarantee.capped": "Capped: every action asks.",
+    "guarantee.plain": "At most about 1 in {k} of its actions runs with an error nobody approved.",
     "guarantee.text": "Unchecked errors stay under {aoql} of its actions of this type; for an agent that turns bad after tenure, at most {worst} until the first caught error.",
     "guarantee.text_conditional": "Unchecked errors stay under {aoql} of its actions of this type; for an agent that turns bad after tenure, at most {worst} until the first caught error. Conditional on the previous model's evidence still holding.",
     "help.agent": "Agent drawer of the focused row",
@@ -222,12 +223,12 @@ const TENURE_LOCALES = {
     "missing.always_asks": "always asks",
     "missing.earned": "earned · spot-checked",
     "missing.more_to_t2": {
-      "one": "{n} more to T2",
-      "other": "{n} more to T2"
+      "one": "{n} more to reach Under review (T2)",
+      "other": "{n} more to reach Under review (T2)"
     },
     "missing.more_to_t3": {
-      "one": "{n} more to T3",
-      "other": "{n} more to T3"
+      "one": "{n} more to Tenured",
+      "other": "{n} more to Tenured"
     },
     "missing.rechecking": "re-checking",
     "missing.second_session": "needs a 2nd session",
@@ -243,9 +244,10 @@ const TENURE_LOCALES = {
     "models.empty.title": "No record yet",
     "models.lede": "Your own benchmark: each model's verified record on your work, per action type, with the 95% range of its fault rate. Ranked by the top of its range, never by one score. Beside it, the public measure, as information: ",
     "models.lede_bold": "public capability on their tasks, not reliability on yours.",
-    "models.no_checks": "no checks yet",
     "models.no_public": "No public measure for this action type.",
     "models.not_enough": "not enough evidence",
+    "models.not_ranked": "Not enough evidence yet",
+    "models.not_ranked_note": "A model is ranked once it has {n} checks on this type.",
     "models.personal_title": "On your work",
     "models.public_note": "Public capability on their tasks, not reliability on yours.",
     "models.public_title": "Public measure",
@@ -280,6 +282,10 @@ const TENURE_LOCALES = {
     "passport.download": "Download JSON",
     "passport.empty.body": "A passport covers an agent's record; it appears with the first verified action.",
     "passport.empty.title": "No passport yet",
+    "passport.faults_checks": {
+      "one": "{n} fault / {total} checks",
+      "other": "{n} faults / {total} checks"
+    },
     "passport.field.agent": "Agent",
     "passport.field.generated": "Generated",
     "passport.field.ledger": "Ledger",
@@ -290,8 +296,8 @@ const TENURE_LOCALES = {
     "passport.field.settings": "Settings",
     "passport.field.signature": "Signature",
     "passport.field.type_names": "Type names",
-    "passport.guarantee": "unchecked errors under {aoql} · {worst} if it turns bad",
     "passport.note": "Signed and tamper-evident: a change after it is signed or anchored shows on verification. An older passport still verifies against a longer ledger; the verifier says what changed since.",
+    "passport.pending_note": "Computed under the last logged settings; the new settings apply from the next action.",
     "passport.types_title": "Attested types",
     "passport.value.hashed": "{profile} (hashed)",
     "passport.value.ledger": {
@@ -307,6 +313,7 @@ const TENURE_LOCALES = {
     "preset.custom": "custom",
     "preset.fast": "fast",
     "profile.copy_pending": "copied from another profile, checked when it starts",
+    "profile.name": "Profile {profile}",
     "profile.pending": "applies from the next action",
     "profile.preset": "{preset} preset",
     "profile.read_only": " · read-only here",
@@ -333,6 +340,7 @@ const TENURE_LOCALES = {
     "settings.empty.title": "No settings logged yet",
     "settings.in_force": "in force: {value}",
     "settings.in_force_profile": "In force in profile {profile}.",
+    "settings.no_change": "No change",
     "settings.preset_aria": "Preset",
     "settings.read_only.body": "This dashboard process cannot write tenure's settings (Hermes gives plugins no other public writer). Run:",
     "settings.read_only.bold": "Read-only here.",
@@ -404,6 +412,7 @@ const TENURE_LOCALES = {
     "th.after_switch": "after the switch",
     "th.agent": "agent",
     "th.faults_checks": "faults / checks",
+    "th.file": "file",
     "th.guarantee": "guarantee",
     "th.now": "now",
     "th.outcome": "outcome",
@@ -470,13 +479,17 @@ const TENURE_LOCALES = {
     "transitions.why.after_fault": "after a fault",
     "transitions.why.on_evidence": "on evidence",
     "transitions.why.trial_open": "trial open",
+    "transitions.why_changed": "without a fault: revoked, or the settings or stakes changed",
     "undo.button": "Undo",
+    "undo.collapse": "Hide",
     "undo.confirm": "Undo #{id}?",
     "undo.effect.already": "restores the files · the automatic check already counted a fault",
     "undo.effect.fault": "restores the files · counts as a fault",
     "undo.empty.body": "Actions at T2 (acts, then tells you) keep a snapshot of the files they wrote for 24 hours. They appear here, newest first, each with its own undo.",
     "undo.empty.title": "Nothing to undo",
+    "undo.expand": "Show each",
     "undo.lede": "Recent act-then-notify actions. Undo restores the files from their snapshot and counts as a fault of the type.",
+    "undo.no_snapshot": "no snapshot",
     "undo.own_profile_only": "Undo acts on this dashboard's profile only",
     "undo.title": "Restore the files",
     "undo.window_ends": "window ends in {duration}",
@@ -720,6 +733,7 @@ const TENURE_LOCALES = {
     "flag.provisional": "مؤقت",
     "flag.trial": "اختبار",
     "guarantee.capped": "مقيَّد: كل إجراء يسأل.",
+    "guarantee.plain": "على الأكثر نحو إجراء واحد من كل {k} من إجراءاته يُنفَّذ بخطأ لم يوافق عليه أحد.",
     "guarantee.text": "تبقى الأخطاء غير المفحوصة دون {aoql} من إجراءاته من هذا النوع؛ ولوكيل يسوء بعد اكتساب الاستقلالية، {worst} على الأكثر حتى أول خطأ يُكتشف.",
     "guarantee.text_conditional": "تبقى الأخطاء غير المفحوصة دون {aoql} من إجراءاته من هذا النوع؛ ولوكيل يسوء بعد اكتساب الاستقلالية، {worst} على الأكثر حتى أول خطأ يُكتشف. بشرط أن تظل أدلة النموذج السابق صالحة.",
     "help.agent": "لوحة وكيل الصف المحدد",
@@ -757,20 +771,20 @@ const TENURE_LOCALES = {
     "missing.always_asks": "يسأل دائمًا",
     "missing.earned": "مكتسب · فحص عشوائي",
     "missing.more_to_t2": {
-      "zero": "بقي {n} حتى T2",
-      "one": "بقي {n} حتى T2",
-      "two": "بقي {n} حتى T2",
-      "few": "بقي {n} حتى T2",
-      "many": "بقي {n} حتى T2",
-      "other": "بقي {n} حتى T2"
+      "zero": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "one": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "two": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "few": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "many": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "other": "بقي {n} حتى «قيد المراجعة» (T2)"
     },
     "missing.more_to_t3": {
-      "zero": "بقي {n} حتى T3",
-      "one": "بقي {n} حتى T3",
-      "two": "بقي {n} حتى T3",
-      "few": "بقي {n} حتى T3",
-      "many": "بقي {n} حتى T3",
-      "other": "بقي {n} حتى T3"
+      "zero": "بقي {n} حتى التثبيت",
+      "one": "بقي {n} حتى التثبيت",
+      "two": "بقي {n} حتى التثبيت",
+      "few": "بقي {n} حتى التثبيت",
+      "many": "بقي {n} حتى التثبيت",
+      "other": "بقي {n} حتى التثبيت"
     },
     "missing.rechecking": "إعادة الفحص",
     "missing.second_session": "يحتاج جلسة ثانية",
@@ -794,9 +808,10 @@ const TENURE_LOCALES = {
     "models.empty.title": "لا سجل بعد",
     "models.lede": "مقياسك الخاص: السجل الموثّق لكل نموذج على عملك، لكل نوع إجراء، مع نطاق 95% لمعدل إخفاقه. الترتيب حسب الحد الأعلى للنطاق، لا حسب نتيجة واحدة. وبجانبه المقياس العام، للعلم فقط: ",
     "models.lede_bold": "قدرة عامة على مهامهم، لا موثوقية على مهامك.",
-    "models.no_checks": "لا فحوص بعد",
     "models.no_public": "لا مقياس عام لنوع الإجراء هذا.",
     "models.not_enough": "أدلة غير كافية",
+    "models.not_ranked": "لا أدلة كافية بعد",
+    "models.not_ranked_note": "يدخل النموذج الترتيب عندما يبلغ {n} فحصًا على هذا النوع.",
     "models.personal_title": "على عملك",
     "models.public_note": "قدرة عامة على مهامهم، لا موثوقية على مهامك.",
     "models.public_title": "المقياس العام",
@@ -831,6 +846,14 @@ const TENURE_LOCALES = {
     "passport.download": "تنزيل JSON",
     "passport.empty.body": "يغطي الجواز سجل الوكيل؛ ويظهر مع أول إجراء موثّق.",
     "passport.empty.title": "لا جواز بعد",
+    "passport.faults_checks": {
+      "zero": "{n} إخفاق / {total} فحوص",
+      "one": "{n} إخفاق / {total} فحوص",
+      "two": "{n} إخفاق / {total} فحوص",
+      "few": "{n} إخفاق / {total} فحوص",
+      "many": "{n} إخفاق / {total} فحوص",
+      "other": "{n} إخفاق / {total} فحوص"
+    },
     "passport.field.agent": "الوكيل",
     "passport.field.generated": "أُنشئ في",
     "passport.field.ledger": "الدفتر",
@@ -841,8 +864,8 @@ const TENURE_LOCALES = {
     "passport.field.settings": "الإعدادات",
     "passport.field.signature": "التوقيع",
     "passport.field.type_names": "أسماء الأنواع",
-    "passport.guarantee": "أخطاء غير مفحوصة دون {aoql} · {worst} إذا ساء",
     "passport.note": "موقَّع ويكشف التلاعب: أي تغيير بعد توقيعه أو تثبيته يظهر عند التحقق. يظل الجواز الأقدم صالحًا مقابل دفتر أطول؛ ويذكر المتحقِّق ما تغيّر منذ ذلك.",
+    "passport.pending_note": "محسوب وفق آخر إعدادات مسجّلة؛ تسري الإعدادات الجديدة من الإجراء التالي.",
     "passport.types_title": "الأنواع المشهود لها",
     "passport.value.hashed": "{profile} (مجزَّأ)",
     "passport.value.ledger": {
@@ -862,6 +885,7 @@ const TENURE_LOCALES = {
     "preset.custom": "مخصص",
     "preset.fast": "سريع",
     "profile.copy_pending": "منسوخ من ملف شخصي آخر، يُفحص عند تشغيله",
+    "profile.name": "الملف الشخصي {profile}",
     "profile.pending": "يسري من الإجراء التالي",
     "profile.preset": "الإعداد المسبق {preset}",
     "profile.read_only": " · للقراءة فقط هنا",
@@ -900,6 +924,7 @@ const TENURE_LOCALES = {
     "settings.empty.title": "لم تُسجَّل إعدادات بعد",
     "settings.in_force": "الساري: {value}",
     "settings.in_force_profile": "ساري في الملف الشخصي {profile}.",
+    "settings.no_change": "لا تغيير",
     "settings.preset_aria": "الإعداد المسبق",
     "settings.read_only.body": "لا تستطيع عملية هذه اللوحة كتابة إعدادات tenure (لا يوفر Hermes للإضافات وسيلة كتابة عامة أخرى). شغّل:",
     "settings.read_only.bold": "للقراءة فقط هنا.",
@@ -991,6 +1016,7 @@ const TENURE_LOCALES = {
     "th.after_switch": "بعد التبديل",
     "th.agent": "الوكيل",
     "th.faults_checks": "إخفاقات / فحوص",
+    "th.file": "الملف",
     "th.guarantee": "الضمان",
     "th.now": "الآن",
     "th.outcome": "النتيجة",
@@ -1085,13 +1111,17 @@ const TENURE_LOCALES = {
     "transitions.why.after_fault": "بعد إخفاق",
     "transitions.why.on_evidence": "بالأدلة",
     "transitions.why.trial_open": "اختبار مفتوح",
+    "transitions.why_changed": "دون إخفاق: سحب، أو تغيّرت الإعدادات أو مستوى الخطورة",
     "undo.button": "تراجع",
+    "undo.collapse": "طيّ",
     "undo.confirm": "التراجع عن #{id}؟",
     "undo.effect.already": "يستعيد الملفات · سبق أن حسب الفحص التلقائي إخفاقًا",
     "undo.effect.fault": "يستعيد الملفات · يُحسب إخفاقًا",
     "undo.empty.body": "الإجراءات في T2 (ينفّذ ثم يُبلغ) تحتفظ بلقطة من الملفات التي كتبتها لمدة 24 ساعة. تظهر هنا، الأحدث أولًا، ولكل منها زر تراجع.",
     "undo.empty.title": "لا شيء للتراجع عنه",
+    "undo.expand": "عرض التفاصيل",
     "undo.lede": "إجراءات «ينفّذ ثم يُبلغ» الأخيرة. التراجع يستعيد الملفات من لقطتها ويُحسب إخفاقًا للنوع.",
+    "undo.no_snapshot": "بلا لقطة",
     "undo.own_profile_only": "التراجع يخص الملف الشخصي لهذه اللوحة فقط",
     "undo.title": "استعادة الملفات",
     "undo.window_ends": "تنتهي المهلة خلال {duration}",
@@ -1275,6 +1305,7 @@ const TENURE_LOCALES = {
     "flag.provisional": "provisional",
     "flag.trial": "a prueba",
     "guarantee.capped": "Limitado: cada acción pregunta.",
+    "guarantee.plain": "Como máximo, aproximadamente 1 de cada {k} de sus acciones se ejecuta con un error que nadie aprobó.",
     "guarantee.text": "Los errores sin comprobar se mantienen por debajo del {aoql} de sus acciones de este tipo; para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado.",
     "guarantee.text_conditional": "Los errores sin comprobar se mantienen por debajo del {aoql} de sus acciones de este tipo; para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado. Siempre que la evidencia del modelo anterior siga siendo válida.",
     "help.agent": "Panel del agente de la fila seleccionada",
@@ -1308,12 +1339,12 @@ const TENURE_LOCALES = {
     "missing.always_asks": "siempre pregunta",
     "missing.earned": "ganado · control aleatorio",
     "missing.more_to_t2": {
-      "one": "{n} más para T2",
-      "other": "{n} más para T2"
+      "one": "falta {n} para En revisión (T2)",
+      "other": "faltan {n} para En revisión (T2)"
     },
     "missing.more_to_t3": {
-      "one": "{n} más para T3",
-      "other": "{n} más para T3"
+      "one": "falta {n} para Titular",
+      "other": "faltan {n} para Titular"
     },
     "missing.rechecking": "recomprobando",
     "missing.second_session": "falta una 2.ª sesión",
@@ -1329,9 +1360,10 @@ const TENURE_LOCALES = {
     "models.empty.title": "Sin historial todavía",
     "models.lede": "Tu propio benchmark: el historial verificado de cada modelo en tu trabajo, por tipo de acción, con el rango del 95 % de su tasa de fallos. Ordenado por el extremo superior de su rango, nunca por una sola puntuación. Al lado, la medida pública, como información: ",
     "models.lede_bold": "capacidad pública en sus tareas, no fiabilidad en las tuyas.",
-    "models.no_checks": "sin comprobaciones todavía",
     "models.no_public": "No hay medida pública para este tipo de acción.",
     "models.not_enough": "evidencia insuficiente",
+    "models.not_ranked": "Aún no hay evidencia suficiente",
+    "models.not_ranked_note": "Un modelo entra en la clasificación cuando tiene {n} comprobaciones en este tipo.",
     "models.personal_title": "En tu trabajo",
     "models.public_note": "Capacidad pública en sus tareas, no fiabilidad en las tuyas.",
     "models.public_title": "Medida pública",
@@ -1366,6 +1398,10 @@ const TENURE_LOCALES = {
     "passport.download": "Descargar JSON",
     "passport.empty.body": "Un pasaporte resume el historial de un agente; aparece con la primera acción verificada.",
     "passport.empty.title": "Aún no hay pasaporte",
+    "passport.faults_checks": {
+      "one": "{n} fallo / {total} comprobaciones",
+      "other": "{n} fallos / {total} comprobaciones"
+    },
     "passport.field.agent": "Agente",
     "passport.field.generated": "Generado",
     "passport.field.ledger": "Registro",
@@ -1376,8 +1412,8 @@ const TENURE_LOCALES = {
     "passport.field.settings": "Configuración",
     "passport.field.signature": "Firma",
     "passport.field.type_names": "Nombres de tipo",
-    "passport.guarantee": "errores sin comprobar por debajo del {aoql} · {worst} si empeora",
     "passport.note": "Firmado y a prueba de manipulaciones: cualquier cambio tras firmarlo o anclarlo se ve al verificarlo. Un pasaporte antiguo sigue verificándose frente a un registro más largo; el verificador indica qué ha cambiado desde entonces.",
+    "passport.pending_note": "Calculado con los últimos ajustes registrados; los nuevos ajustes se aplican desde la próxima acción.",
     "passport.types_title": "Tipos certificados",
     "passport.value.hashed": "{profile} (hash)",
     "passport.value.ledger": {
@@ -1393,6 +1429,7 @@ const TENURE_LOCALES = {
     "preset.custom": "personalizado",
     "preset.fast": "rápido",
     "profile.copy_pending": "copiado de otro perfil, se verifica al iniciarse",
+    "profile.name": "Perfil {profile}",
     "profile.pending": "se aplica desde la próxima acción",
     "profile.preset": "preajuste {preset}",
     "profile.read_only": " · solo lectura aquí",
@@ -1419,6 +1456,7 @@ const TENURE_LOCALES = {
     "settings.empty.title": "Aún no hay configuración registrada",
     "settings.in_force": "en vigor: {value}",
     "settings.in_force_profile": "En vigor en el perfil {profile}.",
+    "settings.no_change": "Sin cambios",
     "settings.preset_aria": "Preajuste",
     "settings.read_only.body": "El proceso de este panel no puede escribir la configuración de tenure (Hermes no ofrece a los plugins otra vía pública de escritura). Ejecuta:",
     "settings.read_only.bold": "Solo lectura aquí.",
@@ -1490,6 +1528,7 @@ const TENURE_LOCALES = {
     "th.after_switch": "tras el cambio",
     "th.agent": "agente",
     "th.faults_checks": "fallos / comprob.",
+    "th.file": "archivo",
     "th.guarantee": "garantía",
     "th.now": "ahora",
     "th.outcome": "resultado",
@@ -1556,13 +1595,17 @@ const TENURE_LOCALES = {
     "transitions.why.after_fault": "tras un fallo",
     "transitions.why.on_evidence": "por la evidencia",
     "transitions.why.trial_open": "a prueba",
+    "transitions.why_changed": "sin fallo: revocado, o cambiaron los ajustes o el impacto",
     "undo.button": "Deshacer",
+    "undo.collapse": "Plegar",
     "undo.confirm": "¿Deshacer n.º {id}?",
     "undo.effect.already": "restaura los archivos · la comprobación automática ya contó un fallo",
     "undo.effect.fault": "restaura los archivos · cuenta como fallo",
     "undo.empty.body": "Las acciones en T2 (actúa y luego avisa) guardan una instantánea de los archivos que escribieron durante 24 horas. Aparecen aquí, las más recientes primero, cada una con su botón Deshacer.",
     "undo.empty.title": "Nada que deshacer",
+    "undo.expand": "Desplegar",
     "undo.lede": "Acciones recientes que actuaron y luego avisaron. Deshacer restaura los archivos desde su instantánea y cuenta como fallo del tipo.",
+    "undo.no_snapshot": "sin instantánea",
     "undo.own_profile_only": "Deshacer solo actúa sobre el perfil de este panel",
     "undo.title": "Restaurar los archivos",
     "undo.window_ends": "el plazo termina en {duration}",
@@ -1742,6 +1785,7 @@ const TENURE_LOCALES = {
     "flag.provisional": "provisoire",
     "flag.trial": "à l'essai",
     "guarantee.capped": "Plafonné : chaque action demande.",
+    "guarantee.plain": "Au plus environ 1 action sur {k} s'exécute avec une erreur que personne n'a approuvée.",
     "guarantee.text": "Les erreurs que personne n'a vérifiées restent sous {aoql} de ses actions de ce type ; si l'agent se dégrade une fois son autonomie acquise, {worst} au plus, jusqu'à la première erreur repérée.",
     "guarantee.text_conditional": "Les erreurs que personne n'a vérifiées restent sous {aoql} de ses actions de ce type ; si l'agent se dégrade une fois son autonomie acquise, {worst} au plus, jusqu'à la première erreur repérée. À condition que les preuves du modèle précédent restent valables.",
     "help.agent": "Volet de l'agent sélectionné",
@@ -1775,12 +1819,12 @@ const TENURE_LOCALES = {
     "missing.always_asks": "demande toujours",
     "missing.earned": "acquis · contrôlé au hasard",
     "missing.more_to_t2": {
-      "one": "encore {n} avant T2",
-      "other": "encore {n} avant T2"
+      "one": "encore {n} pour passer En examen (T2)",
+      "other": "encore {n} pour passer En examen (T2)"
     },
     "missing.more_to_t3": {
-      "one": "encore {n} avant T3",
-      "other": "encore {n} avant T3"
+      "one": "encore {n} pour être Titulaire",
+      "other": "encore {n} pour être Titulaire"
     },
     "missing.rechecking": "revérification",
     "missing.second_session": "2e session requise",
@@ -1796,9 +1840,10 @@ const TENURE_LOCALES = {
     "models.empty.title": "Aucun historique pour l'instant",
     "models.lede": "Votre propre benchmark : l'historique vérifié de chaque modèle sur votre travail, par type d'action, avec la fourchette à 95 % de son taux de fautes. Classé par le haut de sa fourchette, jamais par un score unique. À côté, la mesure publique, pour information : ",
     "models.lede_bold": "la capacité sur les tâches du benchmark, pas la fiabilité sur les vôtres.",
-    "models.no_checks": "aucune vérification pour l'instant",
     "models.no_public": "Aucune mesure publique pour ce type d'action.",
     "models.not_enough": "pas assez de preuves",
+    "models.not_ranked": "Pas encore assez de preuves",
+    "models.not_ranked_note": "Un modèle est classé à partir de {n} vérifications sur ce type.",
     "models.personal_title": "Sur votre travail",
     "models.public_note": "Capacité sur les tâches du benchmark, pas fiabilité sur les vôtres.",
     "models.public_title": "Mesure publique",
@@ -1833,6 +1878,10 @@ const TENURE_LOCALES = {
     "passport.download": "Télécharger le JSON",
     "passport.empty.body": "Un passeport couvre l'historique d'un agent ; il apparaît dès la première action vérifiée.",
     "passport.empty.title": "Pas encore de passeport",
+    "passport.faults_checks": {
+      "one": "{n} faute / {total} vérifications",
+      "other": "{n} fautes / {total} vérifications"
+    },
     "passport.field.agent": "Agent",
     "passport.field.generated": "Généré",
     "passport.field.ledger": "Registre",
@@ -1843,8 +1892,8 @@ const TENURE_LOCALES = {
     "passport.field.settings": "Paramètres",
     "passport.field.signature": "Signature",
     "passport.field.type_names": "Noms de types",
-    "passport.guarantee": "erreurs non vérifiées sous {aoql} · {worst} s'il se dégrade",
     "passport.note": "Signé et scellé : toute modification faite après la signature ou l'ancrage apparaît à la vérification. Un ancien passeport se vérifie encore avec un registre plus long ; le vérificateur indique ce qui a changé depuis.",
+    "passport.pending_note": "Calculé avec les derniers réglages enregistrés ; les nouveaux réglages s'appliquent dès la prochaine action.",
     "passport.types_title": "Types attestés",
     "passport.value.hashed": "{profile} (haché)",
     "passport.value.ledger": {
@@ -1860,6 +1909,7 @@ const TENURE_LOCALES = {
     "preset.custom": "personnalisé",
     "preset.fast": "rapide",
     "profile.copy_pending": "copié depuis un autre profil, vérifié à son démarrage",
+    "profile.name": "Profil {profile}",
     "profile.pending": "s'applique dès la prochaine action",
     "profile.preset": "préréglage {preset}",
     "profile.read_only": " · lecture seule ici",
@@ -1886,6 +1936,7 @@ const TENURE_LOCALES = {
     "settings.empty.title": "Aucun paramètre enregistré pour l'instant",
     "settings.in_force": "en vigueur : {value}",
     "settings.in_force_profile": "En vigueur dans le profil {profile}.",
+    "settings.no_change": "Aucun changement",
     "settings.preset_aria": "Préréglage",
     "settings.read_only.body": "Ce tableau de bord ne peut pas écrire les paramètres de tenure (Hermes n'offre aux plugins aucune autre façon publique de le faire). Lancez :",
     "settings.read_only.bold": "Lecture seule ici.",
@@ -1957,6 +2008,7 @@ const TENURE_LOCALES = {
     "th.after_switch": "après le changement",
     "th.agent": "agent",
     "th.faults_checks": "fautes / vérif.",
+    "th.file": "fichier",
     "th.guarantee": "garantie",
     "th.now": "actuel",
     "th.outcome": "résultat",
@@ -2023,13 +2075,17 @@ const TENURE_LOCALES = {
     "transitions.why.after_fault": "après une faute",
     "transitions.why.on_evidence": "sur preuves",
     "transitions.why.trial_open": "essai ouvert",
+    "transitions.why_changed": "sans faute : révocation, ou réglages ou enjeu modifiés",
     "undo.button": "Annuler",
+    "undo.collapse": "Replier",
     "undo.confirm": "Annuler le n° {id} ?",
     "undo.effect.already": "restaure les fichiers · la vérification automatique a déjà compté une faute",
     "undo.effect.fault": "restaure les fichiers · compte comme une faute",
     "undo.empty.body": "Les actions en T2 (agir, puis prévenir) gardent 24 heures un instantané des fichiers qu'elles ont écrits. Elles apparaissent ici, de la plus récente à la plus ancienne, chacune avec son bouton Annuler.",
     "undo.empty.title": "Rien à annuler",
+    "undo.expand": "Détailler",
     "undo.lede": "Dernières actions faites en T2 (agir, puis prévenir). Annuler restaure les fichiers depuis leur instantané et compte comme une faute du type.",
+    "undo.no_snapshot": "pas d'instantané",
     "undo.own_profile_only": "L'annulation n'agit que sur le profil de ce tableau de bord",
     "undo.title": "Restaurer les fichiers",
     "undo.window_ends": "annulable encore {duration}",
@@ -2193,6 +2249,7 @@ const TENURE_LOCALES = {
     "flag.provisional": "暂定",
     "flag.trial": "考察期",
     "guarantee.capped": "受限：每次操作都会询问。",
+    "guarantee.plain": "其操作中最多约每 {k} 个就有 1 个带着无人批准的错误运行。",
     "guarantee.text": "未经检查的错误不超过此类型操作的 {aoql}；若智能体在获得自主权后变差，在第一次发现错误之前最多 {worst}。",
     "guarantee.text_conditional": "未经检查的错误不超过此类型操作的 {aoql}；若智能体在获得自主权后变差，在第一次发现错误之前最多 {worst}。前提是上一个模型的证据依然成立。",
     "help.agent": "当前行的智能体详情",
@@ -2225,10 +2282,10 @@ const TENURE_LOCALES = {
     "missing.always_asks": "始终询问",
     "missing.earned": "已赢得 · 接受抽查",
     "missing.more_to_t2": {
-      "other": "还差 {n} 次升 T2"
+      "other": "还差 {n} 次进入考察中（T2）"
     },
     "missing.more_to_t3": {
-      "other": "还差 {n} 次升 T3"
+      "other": "还差 {n} 次转正"
     },
     "missing.rechecking": "正在复核",
     "missing.second_session": "需要第 2 个会话",
@@ -2242,9 +2299,10 @@ const TENURE_LOCALES = {
     "models.empty.title": "还没有记录",
     "models.lede": "你自己的基准：每个模型在你的工作中、按操作类型的已验证记录，附失误率的 95% 区间。按区间上限排名，从不只看单一分数。旁边是公开测评，仅供参考：",
     "models.lede_bold": "它衡量的是在别人任务上的能力，而不是在你的工作上的可靠性。",
-    "models.no_checks": "还没有检查",
     "models.no_public": "此操作类型没有公开测评。",
     "models.not_enough": "证据不足",
+    "models.not_ranked": "证据尚不足",
+    "models.not_ranked_note": "模型在此类型上有 {n} 次检查后才参与排名。",
     "models.personal_title": "在你的工作上",
     "models.public_note": "衡量的是在别人任务上的能力，而不是在你的工作上的可靠性。",
     "models.public_title": "公开测评",
@@ -2279,6 +2337,9 @@ const TENURE_LOCALES = {
     "passport.download": "下载 JSON",
     "passport.empty.body": "护照汇总智能体的记录；第一个已验证的操作出现后才会生成。",
     "passport.empty.title": "还没有护照",
+    "passport.faults_checks": {
+      "other": "{n} 次失误 / {total} 次检查"
+    },
     "passport.field.agent": "智能体",
     "passport.field.generated": "生成时间",
     "passport.field.ledger": "账本",
@@ -2289,8 +2350,8 @@ const TENURE_LOCALES = {
     "passport.field.settings": "设置",
     "passport.field.signature": "签名",
     "passport.field.type_names": "类型名",
-    "passport.guarantee": "未经检查的错误低于 {aoql} · 变差时最多 {worst}",
     "passport.note": "已签名且可发现篡改：签名或锚定后的任何改动都会在验证时显示出来。较早的护照对照更长的账本依然能通过验证；验证器会说明此后的变化。",
+    "passport.pending_note": "按最近记录的设置计算；新设置从下一个操作起生效。",
     "passport.types_title": "已证实的类型",
     "passport.value.hashed": "{profile}（已哈希）",
     "passport.value.ledger": {
@@ -2305,6 +2366,7 @@ const TENURE_LOCALES = {
     "preset.custom": "自定义",
     "preset.fast": "快速",
     "profile.copy_pending": "从另一个配置文件复制而来，启动时检查",
+    "profile.name": "配置文件 {profile}",
     "profile.pending": "从下一个操作起生效",
     "profile.preset": "{preset}预设",
     "profile.read_only": " · 此处只读",
@@ -2328,6 +2390,7 @@ const TENURE_LOCALES = {
     "settings.empty.title": "还没有记录设置",
     "settings.in_force": "当前生效：{value}",
     "settings.in_force_profile": "在配置文件 {profile} 中生效。",
+    "settings.no_change": "无更改",
     "settings.preset_aria": "预设",
     "settings.read_only.body": "此仪表盘进程无法写入 tenure 的设置（Hermes 没有为插件提供其他公开的写入方式）。请运行：",
     "settings.read_only.bold": "此处只读。",
@@ -2394,6 +2457,7 @@ const TENURE_LOCALES = {
     "th.after_switch": "切换后",
     "th.agent": "智能体",
     "th.faults_checks": "失误 / 检查",
+    "th.file": "文件",
     "th.guarantee": "保证",
     "th.now": "当前",
     "th.outcome": "结果",
@@ -2453,13 +2517,17 @@ const TENURE_LOCALES = {
     "transitions.why.after_fault": "因失误",
     "transitions.why.on_evidence": "基于证据",
     "transitions.why.trial_open": "考察期中",
+    "transitions.why_changed": "无失误：被收回，或设置、风险等级已变更",
     "undo.button": "撤销",
+    "undo.collapse": "收起",
     "undo.confirm": "撤销 #{id}？",
     "undo.effect.already": "恢复文件 · 自动检查已记过一次失误",
     "undo.effect.fault": "恢复文件 · 记为一次失误",
     "undo.empty.body": "T2 级别的操作（先执行后告知）会将写入的文件快照保留 24 小时。它们按最新在前显示在这里，每条都可单独撤销。",
     "undo.empty.title": "没有可撤销的操作",
+    "undo.expand": "展开",
     "undo.lede": "最近先执行后告知的操作。撤销会从快照恢复文件，并记为该类型的一次失误。",
+    "undo.no_snapshot": "无快照",
     "undo.own_profile_only": "撤销只作用于此仪表盘的配置文件",
     "undo.title": "恢复文件",
     "undo.window_ends": "{duration}后无法撤销",
@@ -2680,6 +2748,19 @@ const TENURE_LOCALES = {
     var c = [0, 2, 4].map(function (i) { return parseInt(x.substr(i, 2), 16) / 255; });
     return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
   }
+  /** WCAG relative luminance of a computed colour (rgb()/rgba() in 0..255, color(srgb ...) in 0..1). */
+  function relLum(css) {
+    var nums = String(css || "").match(/-?[\d.]+/g);
+    if (!nums || nums.length < 3) return 0;
+    var scale = /^color\(/.test(String(css).trim()) ? 1 : 255;
+    function lin(v) { var c = Math.max(0, Math.min(1, Number(v) / scale)); return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+    return 0.2126 * lin(nums[0]) + 0.7152 * lin(nums[1]) + 0.0722 * lin(nums[2]);
+  }
+  /** Ink on accent paper: whichever of near-black and near-white contrasts more with the accent. */
+  function inkOn(accent) {
+    var L = relLum(accent);
+    return (L + 0.05) / 0.0545 > 1.05 / (L + 0.05) ? "#0b0b0c" : "#fcfcfc";
+  }
   function typing(e) {
     var el = e.target;
     if (!el) return false;
@@ -2687,10 +2768,12 @@ const TENURE_LOCALES = {
     return tag === "input" || tag === "textarea" || tag === "select" || el.isContentEditable;
   }
 
-  /** Poll ``fn`` every POLL_MS while the page is visible; ``deps`` restart it. */
+  /** Poll ``fn`` every POLL_MS while the page is visible; ``deps`` restart it. An answer is tagged with the deps it
+   * was fetched for: when the deps change, the previous answer is never returned (no other agent's passport shows). */
   function usePoll(fn, deps, enabled, every) {
     var period = every || POLL_MS;
-    var state = useState({ data: null, error: null, at: 0 });
+    var key = JSON.stringify(deps);
+    var state = useState({ data: null, error: null, at: 0, key: key });
     var set = state[1];
     var alive = useRef(true);
     var tickRef = useRef(0);
@@ -2702,9 +2785,11 @@ const TENURE_LOCALES = {
       function run() {
         if (document.hidden) { timer = setTimeout(run, period); return; }
         Promise.resolve().then(fn).then(function (data) {
-          if (alive.current && my === tickRef.current) set({ data: data, error: null, at: Date.now() });
+          if (alive.current && my === tickRef.current) set({ data: data, error: null, at: Date.now(), key: key });
         }, function (err) {
-          if (alive.current && my === tickRef.current) set(function (s) { return { data: s.data, error: err, at: s.at }; });
+          if (alive.current && my === tickRef.current) {
+            set(function (s) { return s.key === key ? { data: s.data, error: err, at: s.at, key: key } : { data: null, error: err, at: 0, key: key }; });
+          }
         }).then(function () {
           if (alive.current && my === tickRef.current) timer = setTimeout(run, period);
         });
@@ -2713,7 +2798,7 @@ const TENURE_LOCALES = {
       return function () { alive.current = false; if (timer) clearTimeout(timer); };
       // eslint-disable-next-line
     }, deps);
-    return state[0];
+    return state[0].key === key ? state[0] : { data: null, error: null, at: 0, key: key };
   }
 
   /** Height of a host bar fixed or sticky at the top of the window (the dashboard's mobile header), so an overlay
@@ -2797,18 +2882,25 @@ const TENURE_LOCALES = {
   /** How far a type is toward its next tier, 0..1: toward T2 for a T1 type that can reach it (Wald steps), toward
    *  T3 otherwise (series / required); T3 is full; capped is null (a faint track only). */
   function progress(ty) {
-    if (!ty || ty.capped) return null;
+    if (!ty || ty.capped || (ty.guarantee && ty.guarantee.capped)) return null;
     var eff = ty.effective_tier || ty.tier;
     if (eff === "alone") return 1;
-    if (eff === "ask" && ty.wald != null) {
-      var w = WALD[ty.stakes];
-      if (w && ty.reversible) {
-        var step = -Math.log((1 - w[1]) / (1 - w[0]));
-        var total = Math.ceil(-LN_B / step), left = toT2(ty);
-        if (left != null && total > 0) return clamp01(1 - left / total);
-      }
-    }
     return ty.required ? clamp01((ty.series || 0) / ty.required) : 0;
+  }
+  /** One number, one meaning: the bar runs from 0 to the series T3 requires (one segment per success), filled to
+   *  series / required, as the "9/52" beside it says. A T1 type that can reach T2 carries a notch where it does:
+   *  series + the successes still missing for T2 (Wald steps). ``wald`` is the row with the Wald score (a passport
+   *  type has none: the map's row for the same type, when the stakes agree). */
+  function notchOf(ty, wald) {
+    var src = wald || ty;
+    if (!ty || ty.capped || !ty.required || (ty.effective_tier || ty.tier) !== "ask" || src.stakes !== ty.stakes) return null;
+    var k = src.wald != null ? toT2(src) : null;
+    if (k == null) return null;
+    var at = (ty.series || 0) + k;
+    return at < ty.required ? at / ty.required : null;
+  }
+  function barProps(ty, wald) {
+    return { value: progress(ty), segments: ty && !ty.capped ? ty.required || 0 : 0, notch: notchOf(ty, wald), faults: ty ? ty.faults : null };
   }
   /** Share of earned autonomy: (T2 x 0.5 + T3) / types. */
   function autonomyShare(types) {
@@ -2824,16 +2916,21 @@ const TENURE_LOCALES = {
 
   /** Paint a progress bar: ``p`` 0..1 (or -1 for capped), ``dev`` the print sweep (cells whose Bayer threshold is
    *  below it), ``crumble`` 0..1 (dots drop and fade). Cells of 2 CSS px. */
-  function paintBar(cv, p, dev, crumble) {
+  function paintBar(cv, p, dev, crumble, geo) {
     var w = cv.clientWidth, hgt = cv.clientHeight;
     if (!w || !hgt) return false;
     var x = prep(cv, w, hgt);
     if (!x) return false;
     var c = 2, cols = Math.ceil(w / c), rows = Math.max(1, Math.floor(hgt / c));
-    var edge = p < 0 ? 0 : p * w, fade = Math.min(22, w * 0.18), track = p < 0 ? 0.07 : 0.1;
+    var edge = p < 0 ? 0 : p * w, fade = Math.min(6, w * 0.03), track = p < 0 ? 0.07 : 0.1;
     var d = dev == null ? 1 : dev, k = crumble || 0;
+    var segs = geo && p >= 0 && p < 1 ? geo.segments || 0 : 0, per = segs ? cols / segs : 0;
+    var segW = per ? per * Math.max(1, Math.ceil(3 / per)) : 0;        // a gap every k successes, k cells >= 3
+    var nx = geo && geo.notch != null && p >= 0 && p < 1 ? Math.min(cols - 1, Math.round(geo.notch * cols)) : -9;
     if (k) x.globalAlpha = 1 - k;
     for (var j = 0; j < rows; j++) for (var i = 0; i < cols; i++) {
+      if (i === nx) { x.fillRect(i * c, j * c, c - 0.6, c - 0.6); continue; }
+      if (Math.abs(i - nx) === 1 || (segW && i < cols - 1 && Math.floor((i + 1) / segW) !== Math.floor(i / segW))) continue;
       var X = i * c, v = X < edge - fade ? 1 : X < edge ? (edge - X) / fade : 0;
       if (p >= 1) v = 1;
       v = Math.max(v, track);
@@ -2846,30 +2943,37 @@ const TENURE_LOCALES = {
     return true;
   }
 
-  /** A type's dither bar. Prints in on first paint (A), fills when the value climbs (C), crumbles and re-prints
-   *  lower when it drops (D). Redraws when the theme colour or the width changes. */
+  /** A type's dither bar. Prints in on first paint (A), fills when the value climbs (C). It crumbles and re-prints
+   *  lower only when ``faults`` went up (D): a drop without a fault, or a bar whose meaning changed, just prints
+   *  again. Redraws when the theme colour, the width or the pixel ratio changes. */
   function DitherBar(props) {
     var ref = useRef(null);
-    var st = useRef({ v: null, color: "", w: 0, raf: 0 });
+    var st = useRef({ v: null, color: "", w: 0, dpr: 0, raf: 0, faults: null, geo: "" });
     var target = props.value == null ? -1 : clamp01(props.value);
+    var geo = { segments: props.segments || 0, notch: props.notch == null ? null : props.notch };
+    var gk = geo.segments + "|" + geo.notch;
     useEffect(function () {
       var cv = ref.current, s = st.current;
       if (!cv) return;
-      var w = cv.clientWidth, col = getComputedStyle(cv).color;
+      var w = cv.clientWidth, col = getComputedStyle(cv).color, dpr = window.devicePixelRatio || 1;
       if (!w) return;                                // hidden (the other layout): painted when it shows
-      if (s.v === target && s.color === col && s.w === w) return;
+      var faulted = props.faults != null && s.faults != null && props.faults > s.faults;
+      if (props.faults != null) s.faults = props.faults;
+      if (s.v === target && s.color === col && s.w === w && s.dpr === dpr && s.geo === gk) return;
       var from = s.v, first = from === null;
-      s.color = col; s.w = w; s.v = target;
-      if (!motion() || (!first && from === target)) { cancelAnimationFrame(s.raf); paintBar(cv, target, 1, 0); return; }
+      s.color = col; s.w = w; s.dpr = dpr; s.v = target; s.geo = gk;
+      if (!motion() || (!first && from === target)) { cancelAnimationFrame(s.raf); paintBar(cv, target, 1, 0, geo); return; }
       if (first) {
-        tween(s, 600, props.delay || 0, function (k) { paintBar(cv, target, easeOut(k), 0); });
-      } else if (target > from) {
-        tween(s, target >= 1 ? 700 : 450, 0, function (k) { paintBar(cv, from + (target - from) * easeOut(k), 1, 0); });
-      } else {
+        tween(s, 600, props.delay || 0, function (k) { paintBar(cv, target, easeOut(k), 0, geo); });
+      } else if (faulted && target < from) {
         var start = from < 0 ? 0 : from;
-        tween(s, 500, 0, function (k) { paintBar(cv, start, 1, k); }, function () {
-          tween(s, 450, 0, function (k) { paintBar(cv, target, easeOut(k), 0); });
+        tween(s, 500, 0, function (k) { paintBar(cv, start, 1, k, geo); }, function () {
+          tween(s, 450, 0, function (k) { paintBar(cv, target, easeOut(k), 0, geo); });
         });
+      } else if (target > from) {
+        tween(s, target >= 1 ? 700 : 450, 0, function (k) { paintBar(cv, from + (target - from) * easeOut(k), 1, 0, geo); });
+      } else {
+        tween(s, 420, 0, function (k) { paintBar(cv, target, easeOut(k), 0, geo); });
       }
     });
     useEffect(function () { return function () { cancelAnimationFrame(st.current.raf); }; }, []);
@@ -2982,12 +3086,22 @@ const TENURE_LOCALES = {
     return h("canvas", { ref: ref, className: "tnr-fade", "aria-hidden": true });
   }
 
-  /** Re-render key that changes when ``value`` climbs: restarts a one-shot CSS sweep (the spot-check scan line). */
+  /** A token for ~900 ms after ``value`` climbs, else 0: the spot-check scan line renders only for a new check and
+   *  is gone after its one sweep (a lingering element would replay on every relayout). */
   function useClimb(value) {
-    var r = useRef({ v: value, n: 0 });
-    if (value != null && r.current.v != null && value > r.current.v && motion()) r.current.n += 1;
-    r.current.v = value;
-    return r.current.n;
+    var prev = useRef(value), count = useRef(0);
+    var s = useState(0), shown = s[0], setShown = s[1];
+    useEffect(function () {
+      var was = prev.current;
+      prev.current = value;
+      if (value == null || was == null || !(value > was) || !motion()) return undefined;
+      var k = ++count.current;
+      setShown(k);
+      function hide() { setShown(function (x) { return x === k ? 0 : x; }); }
+      var tm = setTimeout(hide, 950);
+      return function () { clearTimeout(tm); hide(); };
+    }, [value]);
+    return shown;
   }
 
   /** True for the first moments after ``ready``: rows carry the entrance class (A) only then, because Chrome replays
@@ -3079,14 +3193,17 @@ const TENURE_LOCALES = {
   function Btn(props) {
     var k = props.kind;
     if (UI.Button) {
+      // One colour: a destructive action is an accent outline with an explicit label; Hermes' own red stays inside its
+      // confirmation dialog.
+      var danger = k === "danger" || k === "danger-ghost";
       return h(UI.Button, {
-        type: "button", size: "sm", className: props.className, onClick: props.onClick, disabled: props.disabled,
-        title: props.title, "aria-live": props.live ? "polite" : undefined,
-        ghost: k === "ghost" || k === "danger-ghost", destructive: k === "danger" || k === "danger-ghost", outlined: !k
+        type: "button", size: "sm", className: cx("tnr-focus", danger && "tnr-btn-danger", props.className), onClick: props.onClick,
+        disabled: props.disabled, title: props.title, "aria-live": props.live ? "polite" : undefined,
+        ghost: k === "ghost", outlined: !k || danger
       }, props.children);
     }
     return h("button", {
-      type: "button", className: cx("tnr-btn", k && "tnr-btn--" + k, props.className),
+      type: "button", className: cx("tnr-btn", "tnr-focus", k && "tnr-btn--" + k, props.className),
       onClick: props.onClick, disabled: props.disabled, title: props.title, "aria-live": props.live ? "polite" : undefined
     }, props.children);
   }
@@ -3161,6 +3278,14 @@ const TENURE_LOCALES = {
     if (!g || g.capped) return t("guarantee.capped");
     return t(g.conditional ? "guarantee.text_conditional" : "guarantee.text", { aoql: pct(g.aoql), worst: pct(g.worst_case) });
   }
+  /** The guarantee in plain words ("At most about 1 in 48 ..."), the statistical detail as its tooltip. */
+  function Guarantee(props) {
+    var g = props.g;
+    var detail = guaranteeText(g);
+    if (!g || g.capped || !(g.aoql > 0)) return h("span", { className: props.className }, detail);
+    var plain = t("guarantee.plain", { k: String(Math.max(1, Math.round(1 / g.aoql))) }) + (g.conditional ? " · " + t("flag.provisional") : "");
+    return h("span", { className: cx("tnr-plain", props.className), title: detail, tabIndex: 0, "aria-label": plain + " " + detail }, plain);
+  }
 
   var PRESET_IDS = ["careful", "balanced", "fast", "custom"];
   function presetName(p) { return PRESET_IDS.indexOf(p) >= 0 ? t("preset." + p) : p; }
@@ -3220,7 +3345,26 @@ const TENURE_LOCALES = {
 
   function Tabs(props) {
     var List = UI.TabsList || "div", Trigger = UI.TabsTrigger || "button";
-    return h("nav", { className: "tnr-tabs", "aria-label": t("tabs.aria") },
+    var navRef = useRef(null);
+    var es = useState(""), edges = es[0], setEdges = es[1];
+    // A narrow screen scrolls the strip: an edge fades where more tabs hide, and the active tab is scrolled into view.
+    function measure() {
+      var el = navRef.current;
+      if (!el) return;
+      var max = el.scrollWidth - el.clientWidth, x = Math.abs(el.scrollLeft);
+      var e = max <= 1 ? "" : x <= 1 ? "end" : x >= max - 1 ? "start" : "both";
+      if (e !== edges) setEdges(e);
+    }
+    useEffect(function () {
+      var el = navRef.current;
+      if (!el) return;
+      var tab = el.querySelector(".tnr-tab.is-active");
+      if (tab && tab.scrollIntoView && el.scrollWidth > el.clientWidth + 1) {
+        try { tab.scrollIntoView({ block: "nearest", inline: "nearest", behavior: motion() ? "smooth" : "auto" }); } catch (e) { /* old engines */ }
+      }
+      measure();
+    }, [props.view, props.width]);
+    return h("nav", { ref: navRef, className: "tnr-tabs", "data-edges": edges, "aria-label": t("tabs.aria"), onScroll: measure },
       h(List, { role: "tablist", className: "tnr-tablist" },
         VIEWS.map(function (v) {
           var badge = v.id === "undo" && props.undoCount ? h("span", { className: "tnr-tab-count" }, num(props.undoCount)) : null;
@@ -3240,7 +3384,9 @@ const TENURE_LOCALES = {
               setTimeout(function () { var el = document.getElementById("tnr-tab-" + w.id); if (el) el.focus(); }, 0);
             }
           }, h("span", { className: "tnr-tab-n", "aria-hidden": true }, "0" + (VIEWS.indexOf(v) + 1)), t("view." + v.id), badge);
-        })));
+        })),
+      h("button", { type: "button", className: "tnr-chip-btn tnr-tabs-help", onClick: props.onHelp, title: t("help.aria"), "aria-label": t("help.aria") },
+        h(Kbd, null, "?")));
   }
 
   // ------------------------------------------------------------------------------------------------------- map
@@ -3268,7 +3414,7 @@ const TENURE_LOCALES = {
   function Cell(props) {
     var ty = props.t;
     // A spot check that passed: one more spot check, no more faults (E).
-    var scan = useClimb(ty ? (ty.spot_checks || 0) - (ty.faults || 0) : null);
+    var scan = useClimb(ty ? ty.spot_checks || 0 : null);
     if (!ty) return h("td", { className: "tnr-cell tnr-cell--none" }, h("span", { className: "tnr-none" }, "—"));
     var miss = missing(ty);
     var held = ty.tier !== ty.effective_tier;
@@ -3287,7 +3433,7 @@ const TENURE_LOCALES = {
         h(TierChip, { tier: ty.effective_tier, capped: ty.capped }),
         ty.capped ? h("span", { className: "tnr-cell-ev" }, num(ty.successes + ty.faults), h("span", { className: "tnr-dim" }, t("cell.asked_suffix")))
           : h("span", { className: "tnr-cell-ev" }, num(ty.series), h("span", { className: "tnr-dim" }, "/" + num(ty.required)))),
-      h(DitherBar, { value: progress(ty), delay: 120 + (props.row || 0) * 40 }),
+      h(DitherBar, Object.assign(barProps(ty), { delay: 120 + (props.row || 0) * 40 })),
       h("div", { className: "tnr-cell-mid" },
         ty.capped ? h("span", null, t("count.faults", { n: ty.faults })) : h("span", null, t("count.sessions", { n: ty.sessions })),
         held ? h("span", { className: "tnr-held" }, t("cell.held", { tier: TIER[ty.tier] })) : null),
@@ -3343,7 +3489,8 @@ const TENURE_LOCALES = {
           return h("tbody", { key: grp.profile },
             h("tr", { className: "tnr-map-profile" },
               h("th", { colSpan: ncols + 1, scope: "rowgroup" },
-                h("span", { className: "tnr-profile-name" }, grp.profile),
+                h("span", { className: "tnr-profile-name" }, t("profile.name", { profile: "\u0001" }).split("\u0001")[0], h("bdi", null, grp.profile),
+                  t("profile.name", { profile: "\u0001" }).split("\u0001")[1] || ""),
                 h("span", { className: "tnr-dim" }, grp.info.current ? t("profile.this_dashboard") : t("profile.read_only")),
                 grp.info.suspended ? h(Flag, { kind: "warn" }, t("profile.sessions_suspended", { n: grp.info.suspended })) : null,
                 grp.info.settings ? h("span", { className: "tnr-dim tnr-profile-preset" }, profileSettings(grp.info.settings)) : null)),
@@ -3360,7 +3507,7 @@ const TENURE_LOCALES = {
                 h("th", { scope: "row", className: "tnr-td-agent" },
                   h("div", { className: "tnr-agent-head" },
                     h(Emblem, { share: autonomyShare(a.types), size: 30, cells: 30, delay: x.i * 40, developMs: 900 }),
-                    h("div", { className: "tnr-agent-model" }, a.model, h("span", { className: "tnr-dim" }, "@" + a.provider))),
+                    h("div", { className: "tnr-agent-model" }, a.model, h("bdi", { className: "tnr-dim" }, "@" + a.provider))),
                   h("div", { className: "tnr-agent-tot" }, totalsLines(tot)),
                   h("div", { className: "tnr-agent-flags" },
                     a.provisional ? h(Flag, { kind: "prov" }, t("flag.provisional")) : null,
@@ -3377,7 +3524,8 @@ const TENURE_LOCALES = {
       byProfile.map(function (grp) {
         return h("section", { key: grp.profile, className: "tnr-card-group" },
           h("div", { className: "tnr-map-profile tnr-map-profile--card" },
-            h("span", { className: "tnr-profile-name" }, grp.profile),
+            h("span", { className: "tnr-profile-name" }, t("profile.name", { profile: "\u0001" }).split("\u0001")[0], h("bdi", null, grp.profile),
+              t("profile.name", { profile: "\u0001" }).split("\u0001")[1] || ""),
             h("span", { className: "tnr-dim" }, grp.info.current ? t("profile.this_dashboard") : t("profile.read_only")),
             grp.info.suspended ? h(Flag, { kind: "warn" }, t("profile.suspended", { n: grp.info.suspended })) : null),
           grp.rows.map(function (x) {
@@ -3388,7 +3536,7 @@ const TENURE_LOCALES = {
             },
               h("div", { className: "tnr-agent-head" },
                 h(Emblem, { share: autonomyShare(a.types), size: 36, cells: 36, delay: x.i * 40, developMs: 900 }),
-                h("div", { className: "tnr-agent-model" }, a.model, h("span", { className: "tnr-dim" }, "@" + a.provider))),
+                h("div", { className: "tnr-agent-model" }, a.model, h("bdi", { className: "tnr-dim" }, "@" + a.provider))),
               h("div", { className: "tnr-agent-tot" }, totals(tot)),
               h("div", { className: "tnr-card-types" },
                 a.types.slice().sort(function (p, q) {
@@ -3399,7 +3547,7 @@ const TENURE_LOCALES = {
                     h(TierChip, { tier: ty.effective_tier, capped: ty.capped }),
                     h("code", { className: "tnr-card-type-name" }, ty.type),
                     h("span", { className: "tnr-card-type-ev" }, ty.capped ? t("common.capped") : num(ty.series) + "/" + num(ty.required)),
-                    h(DitherBar, { value: progress(ty), className: "tnr-card-type-bar", delay: 120 + x.i * 40 }),
+                    h(DitherBar, Object.assign(barProps(ty), { className: "tnr-card-type-bar", delay: 120 + x.i * 40 })),
                     h("span", { className: "tnr-card-type-miss tnr-tone--" + miss.tone },
                       ty.tier !== ty.effective_tier ? t("cell.held", { tier: TIER[ty.tier] }) :
                         ty.provisional ? t("flag.carried_over_n", { n: ty.provisional }) + " · " + miss.text :
@@ -3438,7 +3586,7 @@ const TENURE_LOCALES = {
             h("span", null, x.agent),
             h("code", null, x.type),
             h("span", { className: "tnr-trans-move" }, h(TierChip, { tier: x.from, capped: false, still: true }), " " + t("common.arrow") + " ", h(TierChip, { tier: x.to, capped: false, still: true, label: true })),
-            h("span", { className: "tnr-dim" }, t("transitions.why." + x.why)));
+            h("span", { className: "tnr-dim" }, x.why === "changed" ? t("transitions.why_changed") : t("transitions.why." + x.why)));
         })) : h("div", { className: "tnr-dim tnr-trans-empty" }, t("transitions.empty")));
   }
 
@@ -3562,7 +3710,7 @@ const TENURE_LOCALES = {
           h(Emblem, { share: autonomyShare(a.types), size: 84, cells: 42, className: "tnr-drawer-emblem" }),
           h("div", { className: "tnr-drawer-id" },
             h("div", { className: "tnr-drawer-eyebrow" }, "#", t(mine ? "drawer.eyebrow" : "drawer.eyebrow_read_only", { profile: row.profile })),
-            h("div", { className: "tnr-drawer-title" }, a.model, h("span", { className: "tnr-dim" }, "@" + a.provider)),
+            h("div", { className: "tnr-drawer-title" }, a.model, h("bdi", { className: "tnr-dim" }, "@" + a.provider)),
             h("div", { className: "tnr-agent-tot" }, totals(tot),
               row.info.suspended ? h(Flag, { kind: "warn" }, t("profile.suspended", { n: row.info.suspended })) : null)),
           h("span", { ref: closeRef }, h(Btn, { kind: "ghost", onClick: props.onClose, title: t("drawer.close_title") }, t("drawer.close")))),
@@ -3579,7 +3727,7 @@ const TENURE_LOCALES = {
                   h("td", null, h("div", { className: "tnr-type-line" }, h("span", { className: "tnr-eyebrow-n" }, nth(ti + 1)), h("code", null, ty.type)),
                     h("div", { className: "tnr-dim tnr-small" },
                       ty.reversible ? t("drawer.stakes_reversible", { stakes: t("stakes." + ty.stakes) }) : t("stakes." + ty.stakes)),
-                    h(DitherBar, { value: progress(ty), className: "tnr-drawer-bar", delay: 200 + ti * 40 })),
+                    h(DitherBar, Object.assign(barProps(ty), { className: "tnr-drawer-bar", delay: 200 + ti * 40 }))),
                   h("td", null, h(TierChip, { tier: ty.effective_tier, capped: ty.capped, label: true }),
                     ty.tier !== ty.effective_tier ? h("div", { className: "tnr-held" }, t("cell.held", { tier: TIER[ty.tier] })) : null),
                   h("td", { className: "tnr-num" }, ty.capped ? "—" : num(ty.series) + "/" + num(ty.required)),
@@ -3612,7 +3760,7 @@ const TENURE_LOCALES = {
                     h("span", { className: "tnr-tone--" + miss.tone }, miss.text),
                     ty.provisional ? h("span", null, " · " + t("flag.carried_over_provisional", { n: ty.provisional })) : null,
                     ty.unresolved_fault ? h("span", { className: "tnr-tone--fault" }, " · " + t("flag.fault_on_record")) : null,
-                    ty.effective_tier === "alone" ? h("div", { className: "tnr-guarantee" }, guaranteeText(ty.guarantee)) : null)));
+                    ty.effective_tier === "alone" ? h("div", { className: "tnr-guarantee" }, h(Guarantee, { g: ty.guarantee })) : null)));
             }))),
           h("div", { className: "tnr-drawer-revoke" },
             h(ConfirmBtn, {
@@ -3648,7 +3796,7 @@ const TENURE_LOCALES = {
       var X = i * c + c / 2, v = 0;
       if (j === mid) v = 0.22;
       if (X >= L - 3 && X <= H + 3 && j >= mid - 1 && j <= mid + 1) v = X < L ? 0.5 : X > H ? 0.5 : 1;
-      if (P != null && Math.abs(X - P) <= c) v = 1;
+      if (P != null && Math.abs(X - P) <= c && Math.abs(j - mid) <= 2) v = 1;
       if (X > F) v = 0; else if (X > F - soft) v *= (F - X) / soft;
       if (v * 16 > BAYER[j & 3][i & 3]) x.fillRect(i * c, j * c, c - 0.5, c - 0.5);
     }
@@ -3675,6 +3823,8 @@ const TENURE_LOCALES = {
       t("stale.message", { error: errText(props.res.error), time: hms(props.res.at) })) : null;
   }
 
+  var RANK_MIN = 20;        // checks on a type before a model is ranked on it
+
   function ModelsView(props) {
     var res = usePoll(function () { return apiGet("/models", { raw: props.raw }); }, [props.raw, props.version]);
     var fresh = useFresh(!!res.data);
@@ -3692,47 +3842,59 @@ const TENURE_LOCALES = {
       h("p", { className: "tnr-lede" },
         t("models.lede"), h("b", null, t("models.lede_bold"))),
       byType.map(function (g, gi) {
-        var max = Math.max.apply(null, g.rows.filter(function (r) { return r.successes + r.faults; }).map(function (r) { return r.high; }).concat([0.05]));
+        // Ranked from RANK_MIN checks: below that the 95% range spans most of the axis and orders nothing.
+        var ranked = g.rows.filter(function (r) { return r.successes + r.faults >= RANK_MIN; });
+        var waiting = g.rows.filter(function (r) { return r.successes + r.faults < RANK_MIN; });
+        var max = Math.max.apply(null, ranked.map(function (r) { return r.high; }).concat([0.05]));
         max = Math.min(1, Math.ceil(max * 20) / 20);
         var bench = g.rows[0].benchmark;
         var card = g.rows[0].public || {};
+        var withPublic = g.rows.filter(function (r) { return r.public && r.public.new != null; }).length;
+        var showPublic = !!bench && withPublic * 2 >= g.rows.length;    // the public column only when mostly filled
         return h("section", { key: g.type, className: "tnr-model-block" },
           h("div", { className: "tnr-model-head" }, h("span", { className: "tnr-eyebrow-n" }, nth(gi + 1)), h("code", null, g.type),
             h("span", { className: "tnr-dim" }, t("count.agents", { n: g.rows.length }))),
-          h("div", { className: "tnr-model-split" },
+          h("div", { className: cx("tnr-model-split", !showPublic && "is-single") },
             h("div", { className: "tnr-model-personal" },
               h(Eyebrow, { n: 1 }, t("models.personal_title")),
-              h("table", { className: "tnr-dtable tnr-dtable--models" },
+              ranked.length ? h("table", { className: "tnr-dtable tnr-dtable--models" },
                 h("thead", null, h("tr", null,
                   h("th", { className: "tnr-num" }, "#"), h("th", null, t("th.agent")), h("th", { className: "tnr-num" }, t("th.faults_checks")),
                   h("th", { className: "tnr-num" }, t("th.rate")), h("th", null, t("th.range", { max: pct(max) })), h("th", { className: "tnr-num" }, t("th.sessions")))),
-                h("tbody", null, g.rows.map(function (r, i) {
+                h("tbody", null, ranked.map(function (r, i) {
                   var n = r.successes + r.faults;
                   return h("tr", { key: r.profile + r.agent, className: fresh ? "tnr-in" : undefined, style: { "--i": i } },
                     h("td", { className: "tnr-num tnr-dim tnr-mono" }, nth(i + 1)),
-                    h("td", null, h("div", null, r.model, h("span", { className: "tnr-dim" }, "@" + r.provider)),
+                    h("td", null, h("div", null, r.model, h("bdi", { className: "tnr-dim" }, "@" + r.provider)),
                       h("div", { className: "tnr-dim tnr-small" }, t("common.profile", { profile: r.profile }))),
                     h("td", { className: "tnr-num" }, num(r.faults) + " / " + num(n)),
-                    h("td", { className: "tnr-num" }, !n ? h("span", { className: "tnr-dim" }, t("models.no_checks")) : r.enough ? pct(r.rate) :
-                      h("span", { className: "tnr-dim" }, t("models.not_enough"))),
-                    h("td", null, n ? h("div", { className: "tnr-interval-cell" }, h(Interval, { low: r.low, high: r.high, rate: r.rate, max: max, delay: 150 + i * 60 }),
-                      h("span", { className: "tnr-mono tnr-small" }, pct(r.low) + "–" + pct(r.high))) : h("span", { className: "tnr-dim tnr-small" }, "—")),
+                    h("td", { className: "tnr-num" }, r.enough ? pct(r.rate) : h("span", { className: "tnr-dim" }, t("models.not_enough"))),
+                    h("td", null, h("div", { className: "tnr-interval-cell" }, h(Interval, { low: r.low, high: r.high, rate: r.rate, max: max, delay: 150 + i * 60 }),
+                      h("span", { className: "tnr-mono tnr-small" }, pct(r.low) + "–" + pct(r.high)))),
                     h("td", { className: "tnr-num" }, num(r.sessions_in_series)));
-                })))),
-            h("div", { className: "tnr-model-public" },
+                }))) : null,
+              waiting.length ? h("div", { className: "tnr-waiting" },
+                h("div", { className: "tnr-waiting-title" }, t("models.not_ranked")),
+                h("div", { className: "tnr-dim tnr-small" }, t("models.not_ranked_note", { n: RANK_MIN })),
+                h("ul", null, waiting.map(function (r) {
+                  return h("li", { key: r.profile + r.agent }, r.model, h("bdi", { className: "tnr-dim" }, "@" + r.provider),
+                    h("span", { className: "tnr-dim tnr-small" }, " · " + t("common.profile", { profile: r.profile })));
+                }))) : null),
+            showPublic ? h("div", { className: "tnr-model-public" },
               h(Eyebrow, { n: 2 }, t("models.public_title")),
-              bench ? h(Fragment, null,
-                h("div", { className: "tnr-public-bench" }, bench, h("span", { className: "tnr-dim" }, card.version ? " · " + card.version : "")),
-                h("table", { className: "tnr-dtable" }, h("tbody", null, g.rows.map(function (r) {
-                  return h("tr", { key: r.profile + r.agent },
-                    h("td", null, r.model),
-                    h("td", { className: "tnr-num" }, r.public && r.public.new != null ? t("common.percent", { v: dec1(r.public.new) }) :
-                      h("span", { className: "tnr-dim" }, t("common.no_public_measure"))));
-                }))),
-                h("div", { className: "tnr-public-src tnr-small tnr-dim" },
-                  t(card.accessed ? "models.source_accessed" : "models.source", { source: card.source || "", accessed: card.accessed || "" })))
-                : h("div", { className: "tnr-dim" }, t("models.no_public")),
-              h("div", { className: "tnr-public-note" }, t("models.public_note")))));
+              h("div", { className: "tnr-public-bench" }, bench, h("span", { className: "tnr-dim" }, card.version ? " · " + card.version : "")),
+              h("table", { className: "tnr-dtable" }, h("tbody", null, g.rows.map(function (r) {
+                return h("tr", { key: r.profile + r.agent },
+                  h("td", null, r.model),
+                  h("td", { className: "tnr-num" }, r.public && r.public.new != null ? t("common.percent", { v: dec1(r.public.new) }) :
+                    h("span", { className: "tnr-dim" }, t("common.no_public_measure"))));
+              }))),
+              h("div", { className: "tnr-public-src tnr-small tnr-dim" },
+                t(card.accessed ? "models.source_accessed" : "models.source", { source: card.source || "", accessed: card.accessed || "" })),
+              h("div", { className: "tnr-public-note" }, t("models.public_note")))
+              : h("div", { className: "tnr-model-public is-folded" },
+                h("span", { className: "tnr-dim tnr-small" }, bench ? t("common.no_public_measure") : t("models.no_public")),
+                h("span", { className: "tnr-dim tnr-small" }, " · " + t("models.public_note")))));
       }));
   }
 
@@ -3855,65 +4017,53 @@ const TENURE_LOCALES = {
     }
   }
 
-  /** The passport as a card (B): the emblem develops then turns, the name types in, the tier rows fill, the ledger
-   *  head scrambles while it is checked and settles with a check mark only when the passport verifies, then the
-   *  seal prints. Pointer tilt and a dithered glare on hover (mouse only). */
+  /** The passport as a card (B), the same layout as the desktop one. It is complete at its first paint (name, rows,
+   *  footer, the real ledger head) and the animation plays over it: the emblem develops (600 ms) then turns slowly,
+   *  a sweep passes once, and the check mark and seal print only when the passport verifies. Pointer tilt and a
+   *  dithered glare on hover (mouse only). Everything that can change after mount is read from a live ref. */
   function PassportCard(props) {
     var d = props.doc, ok = props.ok;
-    var cardRef = useRef(null), nameRef = useRef(null), hashRef = useRef(null), okRef = useRef(null), sealRef = useRef(null);
-    var sweepRef = useRef(null), st = useRef({ raf: 0, done: false });
+    var cardRef = useRef(null), okRef = useRef(null), sealRef = useRef(null), sweepRef = useRef(null);
+    var st = useRef({ raf: 0, done: false, color: "" });
     var name = d.agent.model, head = short(d.ledger.head, 8), types = d.types || [];
-    var fill = function (ty) { return ty.guarantee && ty.guarantee.capped ? -1 : ty.tier === "alone" ? 1 : ty.required ? clamp01(ty.series / ty.required) : 0; };
-    function final() {
-      var card = cardRef.current;
-      if (!card) return;
-      if (nameRef.current) nameRef.current.textContent = name;
-      if (hashRef.current) hashRef.current.textContent = head;
-      if (okRef.current) okRef.current.classList.toggle("is-on", !!ok);
-      var rows = card.querySelectorAll(".tnr-pass-row");
-      for (var i = 0; i < rows.length; i++) {
-        rows[i].classList.add("is-on");
-        var cv = rows[i].querySelector("canvas");
-        if (cv) paintBar(cv, fill(types[i]), 1, 0);
+    var live = useRef(null);
+    live.current = { ok: !!ok };
+    var byType = {};
+    (props.mapTypes || []).forEach(function (ty) { byType[ty.type] = ty; });
+    // Faults and checks are not in the passport: they come from the live record of the same types.
+    var totals = types.reduce(function (acc, ty) {
+      var m = byType[ty.type] || {};
+      return { f: acc.f + (m.faults || 0), n: acc.n + (m.successes || 0) + (m.faults || 0) };
+    }, { f: 0, n: 0 });
+    function settle() {
+      var L = live.current;
+      if (okRef.current) okRef.current.classList.toggle("is-on", L.ok);
+      if (sealRef.current) {
+        sealRef.current.classList.toggle("is-on", L.ok);
+        if (L.ok) paintSeal(sealRef.current, 64, 1);
       }
-      if (sealRef.current) { if (ok) paintSeal(sealRef.current, 64, 1); sealRef.current.classList.toggle("is-on", !!ok); }
       if (sweepRef.current) sweepRef.current.style.top = "";
     }
     useEffect(function () {
       var s = st.current, card = cardRef.current;
       if (!card) return undefined;
-      if (!motion()) { s.done = true; final(); return undefined; }
-      var rows = card.querySelectorAll(".tnr-pass-row"), n = rows.length, gap = Math.min(0.25, 1.4 / Math.max(1, n));
-      var tRows = 1.6 + n * gap, tScr = Math.max(2.2, tRows), tSet = tScr + 1.2, tSeal = tSet + 0.2, total = tSeal + 0.8;
+      if (!motion()) { s.done = true; settle(); return undefined; }
       var H = card.clientHeight;
-      if (nameRef.current) nameRef.current.textContent = "";
-      if (hashRef.current) hashRef.current.textContent = "········";
-      tween(s, total * 1000, 0, function (k) {
-        var tt = k * total;
-        var nc = Math.max(0, Math.min(name.length, Math.floor((tt - 0.9) * 22)));
-        if (nameRef.current) nameRef.current.textContent = name.slice(0, nc);
-        for (var i = 0; i < n; i++) {
-          if (tt > 1.6 + i * gap) rows[i].classList.add("is-on");
-          var cv = rows[i].querySelector("canvas");
-          if (cv) paintBar(cv, fill(types[i]), clamp01((tt - 1.7 - i * gap) / 0.8), 0);
-        }
-        if (hashRef.current) {
-          if (tt < tScr) hashRef.current.textContent = "········";
-          else if (tt < tSet) {
-            var x = "";
-            for (var j = 0; j < head.length; j++) x += "0123456789abcdef".charAt(Math.floor(Math.random() * 16));
-            hashRef.current.textContent = x;
-          } else { hashRef.current.textContent = head; if (okRef.current) okRef.current.classList.toggle("is-on", !!ok); }
-        }
-        if (sweepRef.current) sweepRef.current.style.top = tt > tScr && tt < tSet ? ((tt - tScr) / 1.2 * (H + 60) - 60) + "px" : "";
-        if (ok && sealRef.current && tt > tSeal) {
+      tween(s, 1500, 0, function (k) {
+        var tt = k * 1.5;
+        if (sweepRef.current) sweepRef.current.style.top = tt < 1 ? (tt * (H + 60) - 60) + "px" : "";
+        if (tt > 0.7 && okRef.current) okRef.current.classList.toggle("is-on", live.current.ok);
+        if (live.current.ok && sealRef.current && tt > 0.7) {
           sealRef.current.classList.add("is-on");
-          paintSeal(sealRef.current, 64, clamp01((tt - tSeal) / 0.8));
+          paintSeal(sealRef.current, 64, clamp01((tt - 0.7) / 0.8));
         }
-      }, function () { s.done = true; final(); });
+      }, function () { s.done = true; settle(); });
       return function () { cancelAnimationFrame(s.raf); };
     }, []);
-    useEffect(function () { if (st.current.done) final(); });     // new data, theme or verdict after the entrance
+    useEffect(function () {                            // a new verdict or theme after the entrance
+      var s = st.current, col = sealRef.current ? getComputedStyle(sealRef.current).color : "";
+      if (s.done) { s.color = col; settle(); }
+    });
     function tilt(e) {
       var card = cardRef.current;
       if (!card || e.pointerType !== "mouse" || !motion()) return;
@@ -3927,7 +4077,6 @@ const TENURE_LOCALES = {
       if (!card) return;
       card.style.transform = ""; card.classList.remove("is-tilt");
     }
-    var ledger = t("passport.value.ledger", { n: d.ledger.count, head: "\u0001" }).split("\u0001");
     return h("div", { className: "tnr-pass-wrap" },
       h("div", { ref: cardRef, className: "tnr-pass", role: "img", "aria-label": t("passport.card.aria", { agent: name, verdict: props.verdict }),
         onPointerMove: tilt, onPointerLeave: untilt },
@@ -3935,22 +4084,27 @@ const TENURE_LOCALES = {
         h("div", { className: "tnr-pass-top", "aria-hidden": true },
           h("span", null, "TENURE"),
           h("span", null, t("passport.card.title") + " · " + (d.signature ? "ED25519" : t("passport.value.unsigned")) + " ",
-            h("span", { ref: okRef, className: "tnr-pass-ok" }, "✓"))),
+            h("span", { ref: okRef, className: cx("tnr-pass-ok", !motion() && ok && "is-on") }, "✓"))),
         h("div", { className: "tnr-pass-emblem", "aria-hidden": true },
-          h(Emblem, { share: autonomyShare(types), size: 192, cells: 64, rotate: true, developMs: 1400 })),
-        h("div", { ref: nameRef, className: "tnr-pass-name", "aria-hidden": true }),
+          h(Emblem, { share: autonomyShare(types), size: 176, cells: 64, rotate: true, developMs: 600 })),
+        h("div", { className: "tnr-pass-name", "aria-hidden": true }, h("bdi", null, name)),
         h("div", { className: "tnr-pass-rows", "aria-hidden": true },
           types.map(function (ty, i) {
             var cap = !!(ty.guarantee && ty.guarantee.capped);
+            var eff = ty.effective_tier || ty.tier;
+            var bp = barProps(Object.assign({}, ty, { capped: cap }), byType[ty.type]);
             return h("div", { key: ty.type, className: "tnr-pass-row" },
-              h("span", { className: "tnr-pass-k" }, h("span", { className: "tnr-pass-n" }, nth(i + 1)), h("code", null, ty.type)),
-              h("span", { className: "tnr-pass-tier" }, h("b", null, cap ? t("tier.capped.chip") : TIER[ty.tier]), " " + tierLabel(ty.tier, cap)),
-              h("canvas", { className: "tnr-dbar tnr-pass-bar" }));
+              h("span", { className: "tnr-pass-k" }, h("bdi", null, h("span", { className: "tnr-pass-n" }, nth(i + 1)), " ", h("code", null, ty.type)),
+                h("span", { className: "tnr-pass-tier" }, h("b", null, cap ? t("tier.capped.chip") : TIER[eff]), " " + tierLabel(eff, cap))),
+              h(DitherBar, Object.assign(bp, { className: "tnr-pass-bar", delay: 120 + i * 80 })),
+              h("span", { className: "tnr-pass-count" }, cap || ty.required == null ? "" : num(ty.series) + "/" + num(ty.required)));
           })),
         h("div", { className: "tnr-pass-foot", "aria-hidden": true },
-          h("span", null, t("passport.card.signature")),
-          h("span", { className: "tnr-mono" }, ledger[0], h("span", { ref: hashRef, className: "tnr-pass-hash" }), ledger[1] || "")),
-        h("canvas", { ref: sealRef, className: "tnr-pass-seal", "aria-hidden": true })));
+          h("span", null, t("passport.faults_checks", { n: totals.f, total: totals.n })),
+          h("span", null, t("passport.field.ledger") + " ", h("span", { className: "tnr-pass-hash" }, head))),
+        h("div", { className: "tnr-pass-sig", "aria-hidden": true },
+          h(Emblem, { share: 1, size: 16, cells: 16 }), h("b", null, "TENURE"), h("span", null, t("passport.card.signature"))),
+        h("canvas", { ref: sealRef, className: cx("tnr-pass-seal", !motion() && ok && "is-on"), "aria-hidden": true })));
   }
 
   function PassportView(props) {
@@ -3962,9 +4116,13 @@ const TENURE_LOCALES = {
     }, [row && row.key, props.raw, props.version], !!row, PASSPORT_MS);
     var fresh = useFresh(!!(res.data && res.data.passport));
     if (!agents.length) return h(Empty, { title: t("passport.empty.title") }, t("passport.empty.body"));
-    var d = res.data && res.data.passport;
-    var v = res.data ? verdict(res.data.verify, d) : null;
+    // Only an answer for the selected agent is ever shown (usePoll drops the previous agent's on change).
+    var d = res.data && res.data.passport && res.data.profile === row.profile ? res.data.passport : null;
+    var v = d ? verdict(res.data.verify, d) : null;
+    var verified = !!(d && res.data.verify && !res.data.verify.length);
+    var pending = !!(row && row.info && row.info.settings && row.info.settings.pending);
     function download() {
+      if (!d) return;
       var blob = new Blob([JSON.stringify(d, null, 2) + "\n"], { type: "application/json" });
       var url = URL.createObjectURL(blob);
       var link = document.createElement("a");
@@ -3981,8 +4139,9 @@ const TENURE_LOCALES = {
         h(Btn, { kind: "primary", onClick: download, disabled: !d }, t("passport.download")),
         h("span", { className: "tnr-dim tnr-small" }, t("passport.note"))),
       res.error && !res.data ? h("div", { className: "tnr-error" }, errText(res.error)) : h(Stale, { res: res }),
+      pending && d ? h("div", { className: "tnr-note" }, t("passport.pending_note")) : null,
       !d ? h("div", { className: "tnr-dim tnr-pad" }, t("common.loading")) : h("div", { className: "tnr-passport-grid" },
-        h(PassportCard, { key: row.key, doc: d, ok: !!(res.data.verify && !res.data.verify.length), verdict: v.title }),
+        h(PassportCard, { key: row.key + "|" + d.ledger.head, doc: d, ok: verified, verdict: v.title, mapTypes: row.agent.types }),
         h("section", { className: cx("tnr-verdict", "tnr-verdict--" + v.tone) },
           h("div", { className: "tnr-verdict-title" }, v.title),
           h("ul", null, v.lines.map(function (l, i) { return h("li", { key: i }, l); })),
@@ -4007,48 +4166,84 @@ const TENURE_LOCALES = {
               h("th", { className: "tnr-num" }, t("th.sessions")), h("th", null, t("th.guarantee")))),
             h("tbody", null, d.types.map(function (ty, pi) {
               var g = ty.guarantee || {};
-              var gtext = g.capped ? t("legend.capped") : t("passport.guarantee", { aoql: pct(g.aoql), worst: pct(g.worst_case) });
               return h("tr", { key: ty.type, className: fresh ? "tnr-in" : undefined, style: { "--i": pi } },
                 h("td", null, h("code", null, ty.type), h("div", { className: "tnr-dim tnr-small" }, t("stakes." + ty.stakes))),
-                h("td", null, h(TierChip, { tier: ty.tier, capped: !!g.capped, label: true })),
+                h("td", null, h(TierChip, { tier: ty.effective_tier || ty.tier, capped: !!g.capped, label: true })),
                 h("td", { className: "tnr-num" }, ty.required == null ? "—" : num(ty.series) + "/" + num(ty.required)),
                 h("td", { className: "tnr-num" }, num(ty.sessions)),
-                h("td", { className: "tnr-small" }, !g.capped && g.conditional ? gtext + " · " + t("flag.provisional") : gtext));
+                h("td", { className: "tnr-small" }, g.capped ? t("legend.capped") : h(Guarantee, { g: g })));
             }))))));
   }
 
   // --------------------------------------------------------------------------------------------------------- undo
+  /** Consecutive actions of the same agent and type with no file to name collapse into one row ("12 × file:write"). */
+  function groupUndo(list) {
+    var out = [];
+    list.forEach(function (u) {
+      var last = out[out.length - 1];
+      if (!u.file && last && !last.file && last.type === u.type && last.agent === u.agent && last.profile === u.profile) last.items.push(u);
+      else out.push({ key: u.profile + "|" + u.id, file: u.file, type: u.type, agent: u.agent, profile: u.profile, items: [u] });
+    });
+    return out;
+  }
+
   function UndoView(props) {
     var list = props.undoable || [];
     var fresh = useFresh(list.length > 0);
+    var os = useState({}), open = os[0], setOpen = os[1];
     if (!list.length) {
       return h(Empty, { title: t("undo.empty.title") }, t("undo.empty.body"));
     }
+    function fileCell(u) {
+      return u.file ? h("span", null, h("code", null, u.file), u.files > 1 ? h("span", { className: "tnr-dim" }, " +" + num(u.files - 1)) : null)
+        : h("span", { className: "tnr-dim tnr-small" }, t("undo.no_snapshot"));
+    }
+    function row(u, i, sub) {
+      var mine = u.profile === props.current;
+      return h("tr", { key: u.profile + u.id, className: cx(fresh && "tnr-in", sub && "tnr-undo-sub"), style: { "--i": i } },
+        h("td", { className: "tnr-num tnr-dim" }, u.id),
+        h("td", { className: "tnr-mono" }, ago(u.age), h("div", { className: "tnr-dim tnr-small" }, t("undo.window_ends", { duration: duration(86400 - u.age) }))),
+        h("td", null, h("bdi", null, u.agent), h("div", { className: "tnr-dim tnr-small" }, t("common.profile", { profile: u.profile }))),
+        h("td", null, h("code", null, u.type)),
+        h("td", null, fileCell(u)),
+        h("td", { className: "tnr-small" }, u.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already")),
+        h("td", { className: "tnr-dtable-actions" }, h(ConfirmBtn, {
+          disabled: !mine, confirm: t("undo.confirm", { id: String(u.id) }),
+          dialogTitle: t("confirm.undo.title", { id: String(u.id) }),
+          dialogDesc: u.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already"),
+          title: mine ? t("undo.title") : t("undo.own_profile_only"),
+          onConfirm: function () {
+            return apiPost("/undo", { id: u.id }, { raw: props.raw }).then(function (r) {
+              props.onDone(r.message, r.ok ? "success" : "error");
+            }, function (e) { props.onDone(errText(e), "error"); });
+          }
+        }, t("undo.button"))));
+    }
+    var i = 0;
     return h("div", { className: "tnr-undo" },
       h("p", { className: "tnr-lede" }, t("undo.lede")),
       h("div", { className: "tnr-table-scroll" },
         h("table", { className: "tnr-dtable" },
           h("thead", null, h("tr", null, h("th", { className: "tnr-num" }, "#"), h("th", null, t("th.when")), h("th", null, t("th.agent")), h("th", null, t("th.type")),
-            h("th", null, t("th.undo_effect")), h("th", null, ""))),
-          h("tbody", null, list.map(function (u, ui) {
-            var mine = u.profile === props.current;
-            return h("tr", { key: u.profile + u.id, className: fresh ? "tnr-in" : undefined, style: { "--i": ui } },
-              h("td", { className: "tnr-num tnr-dim" }, u.id),
-              h("td", { className: "tnr-mono" }, ago(u.age), h("div", { className: "tnr-dim tnr-small" }, t("undo.window_ends", { duration: duration(86400 - u.age) }))),
-              h("td", null, u.agent, h("div", { className: "tnr-dim tnr-small" }, t("common.profile", { profile: u.profile }))),
-              h("td", null, h("code", null, u.type)),
-              h("td", { className: "tnr-small" }, u.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already")),
-              h("td", { className: "tnr-dtable-actions" }, h(ConfirmBtn, {
-                kind: "ghost", disabled: !mine, confirm: t("undo.confirm", { id: String(u.id) }),
-                dialogTitle: t("confirm.undo.title", { id: String(u.id) }),
-                dialogDesc: u.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already"),
-                title: mine ? t("undo.title") : t("undo.own_profile_only"),
-                onConfirm: function () {
-                  return apiPost("/undo", { id: u.id }, { raw: props.raw }).then(function (r) {
-                    props.onDone(r.message, r.ok ? "success" : "error");
-                  }, function (e) { props.onDone(errText(e), "error"); });
-                }
-              }, t("undo.button"))));
+            h("th", null, t("th.file")), h("th", null, t("th.undo_effect")), h("th", null, ""))),
+          h("tbody", null, groupUndo(list).map(function (g) {
+            if (g.items.length === 1) return row(g.items[0], i++, false);
+            var first = g.items[0], expanded = !!open[g.key];
+            var head = h("tr", { key: "g" + g.key, className: cx("tnr-undo-group", fresh && "tnr-in"), style: { "--i": i++ } },
+              h("td", { className: "tnr-num" },
+                h("button", { type: "button", className: "tnr-undo-toggle tnr-focus", "aria-expanded": expanded,
+                  "aria-label": (expanded ? t("undo.collapse") : t("undo.expand")) + ": " + g.items.length + " × " + g.type,
+                  onClick: function () { var o = Object.assign({}, open); o[g.key] = !expanded; setOpen(o); } },
+                  h("span", { "aria-hidden": true }, expanded ? "▾" : "▸"), " " + num(g.items.length) + " ×")),
+              h("td", { className: "tnr-mono" }, ago(first.age)),
+              h("td", null, h("bdi", null, g.agent), h("div", { className: "tnr-dim tnr-small" }, t("common.profile", { profile: g.profile }))),
+              h("td", null, h("code", null, g.type)),
+              h("td", null, h("span", { className: "tnr-dim tnr-small" }, t("undo.no_snapshot"))),
+              h("td", { className: "tnr-small" }, first.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already")),
+              h("td", { className: "tnr-dtable-actions" },
+                h(Btn, { onClick: function () { var o = Object.assign({}, open); o[g.key] = !expanded; setOpen(o); } },
+                  expanded ? t("undo.collapse") : t("undo.expand"))));
+            return [head].concat(expanded ? g.items.map(function (u) { return row(u, i++, true); }) : []);
           })))));
   }
 
@@ -4145,7 +4340,7 @@ const TENURE_LOCALES = {
           h("div", null, h("b", null, t("settings.read_only.bold")), " " + t("settings.read_only.body")),
           shownCmds.map(function (c) { return h(CopyCmd, { key: c, cmd: c }); }))
           : h("div", { className: "tnr-dial-foot" },
-            h(Btn, { kind: "primary", disabled: !dirty, onClick: apply }, t("settings.apply")),
+            h(Btn, { kind: dirty ? "primary" : undefined, disabled: !dirty, onClick: apply }, dirty ? t("settings.apply") : t("settings.no_change")),
             dirty ? h(Btn, { kind: "ghost", onClick: function () { setPreset(null); setRisks(null); setStrict(null); } }, t("settings.reset")) : null,
             h("span", { className: "tnr-dim tnr-small" }, dirty ? t("settings.same_as", { cmds: commands.join("  &&  ") }) :
               t("settings.in_force_profile", { profile: props.profile })))),
@@ -4182,7 +4377,7 @@ const TENURE_LOCALES = {
         h("div", { className: "tnr-moment-eyebrow" }, "#", down ? t("moment.eyebrow.down") : t("moment.eyebrow.up"), " · ", h("code", null, m.type)),
         h("div", { className: "tnr-moment-title" }, title),
         h("div", { className: "tnr-moment-sub" },
-          h("span", { className: "tnr-mono" }, m.agent), " · ",
+          h("bdi", { className: "tnr-mono" }, m.agent), " · ",
           h("b", null, TIER[m.to]), " " + tierLabel(m.to) + (m.repair ? " · " + m.repair : ""))),
       h("button", { type: "button", className: "tnr-moment-x", onClick: props.onClose, "aria-label": t("moment.dismiss"),
         title: t("moment.dismiss") }, "×"),
@@ -4205,7 +4400,17 @@ const TENURE_LOCALES = {
     var animS = useState(readAnimPref), animOn = animS[0], setAnimOn = animS[1];
     var momS = useState(null), moment = momS[0], setMoment = momS[1];
     var rmS = useState(reducedMotion()), reduced = rmS[0], setReduced = rmS[1];
+    var wS = useState(0), width = wS[0], setWidth = wS[1];
+    var onS = useState(""), onAcc = onS[0], setOnAcc = onS[1];
     ANIM = animOn;
+    // Canvases follow the window: a resize or a pixel-ratio change re-renders the tab, and each canvas repaints when
+    // its width or the ratio changed.
+    useEffect(function () {
+      var raf = 0;
+      function on() { cancelAnimationFrame(raf); raf = requestAnimationFrame(function () { setWidth(window.innerWidth * 10 + (window.devicePixelRatio || 1)); }); }
+      window.addEventListener("resize", on);
+      return function () { window.removeEventListener("resize", on); cancelAnimationFrame(raf); };
+    }, []);
     useEffect(function () {
       if (!REDUCED) return undefined;
       function on() { setReduced(REDUCED.matches); }
@@ -4251,22 +4456,25 @@ const TENURE_LOCALES = {
       prev.current = now;
       if (!before) return;
       var found = [];
+      var RANK = { ask: 0, notify: 1, alone: 2 };
       Object.keys(now).forEach(function (k) {
         var b = before[k], n = now[k];
         if (b && b.tier !== n.tier) {
-          found.push({ id: k + Date.now(), at: Date.now(), agent: n.r.agent.agent, type: n.t.type, from: b.tier, to: n.tier,
-            why: (n.t.trial_left ? "trial_open" : n.t.faults > (b.t.faults || 0) ? "after_fault" : "on_evidence") });
+          // A fault (or the trial it opened) explains a drop; a climb is earned on evidence; a drop with no fault is
+          // a revoke, a settings or stakes change: said as such, never "on evidence".
+          var faulted = n.t.faults > (b.t.faults || 0);
+          var why = faulted ? (n.t.trial_left ? "trial_open" : "after_fault") : RANK[n.tier] > RANK[b.tier] ? "on_evidence" : "changed";
+          found.push({ id: k + Date.now(), k: k, at: Date.now(), agent: n.r.agent.agent, type: n.t.type, from: b.tier, to: n.tier, why: why });
         }
       });
       if (found.length) {
         setTransitions(function (xs) { return found.concat(xs).slice(0, 30); });
-        var RANK = { ask: 0, notify: 1, alone: 2 };
-        var up3 = found.filter(function (x) { return x.to === "alone"; })[0];
-        var fell = found.filter(function (x) { return x.to === "ask" && RANK[x.from] > 0 && x.why === "after_fault"; })[0];
-        var up2 = found.filter(function (x) { return x.to === "notify" && x.from === "ask"; })[0];
+        var up3 = found.filter(function (x) { return x.to === "alone" && x.why === "on_evidence"; })[0];
+        var fell = found.filter(function (x) { return x.to === "ask" && RANK[x.from] > 0 && (x.why === "after_fault" || x.why === "trial_open"); })[0];
+        var up2 = found.filter(function (x) { return x.to === "notify" && x.from === "ask" && x.why === "on_evidence"; })[0];
         var pick = up3 ? ["granted", up3] : fell ? ["probation", fell] : up2 ? ["review", up2] : null;
         if (pick) {
-          var cur = now[Object.keys(now).filter(function (k) { return now[k].t.type === pick[1].type && now[k].r.agent.agent === pick[1].agent; })[0]];
+          var cur = now[pick[1].k];
           setMoment({ kind: pick[0], type: pick[1].type, agent: cur ? cur.r.agent.model : pick[1].agent, to: pick[1].to,
             repair: pick[0] === "probation" && cur ? missing(cur.t).text : "", at: Date.now() });
         }
@@ -4279,6 +4487,10 @@ const TENURE_LOCALES = {
     useEffect(function () {
       var tn = luminance(getComputedStyle(document.documentElement).getPropertyValue("--background-base")) > 0.5 ? "light" : "dark";
       if (tn !== tone) setTone(tn);
+      // Text on accent paper (T3 chip, bands, the passport): black or white, whichever the accent lets read.
+      var probe = rootRef.current && rootRef.current.querySelector(".tnr-probe");
+      var ink = probe ? inkOn(getComputedStyle(probe).color) : "";
+      if (ink && ink !== onAcc) setOnAcc(ink);
     });
 
     useEffect(function () {
@@ -4341,11 +4553,12 @@ const TENURE_LOCALES = {
 
     var moving = animOn && !reduced;
     return h("div", { className: "tnr", "data-tone": tone, "data-anim": moving ? "on" : "off", ref: rootRef, tabIndex: -1, onKeyDown: onKey,
-      style: { outline: "none" } },
+      style: onAcc ? { outline: "none", "--tnr-on": onAcc } : { outline: "none" } },
+      h("span", { className: "tnr-probe", "aria-hidden": true }),
       h("header", { className: "tnr-head" },
         h("div", { className: "tnr-title-row" },
           h("div", { className: "tnr-title-block" },
-            h("div", { className: "tnr-eyebrow" }, h("span", { className: "tnr-eyebrow-n" }, nth(0)), t("passport.card.signature")),
+            h("div", { className: "tnr-eyebrow" }, h("span", { className: "tnr-eyebrow-n" }, nth(0)), h("bdi", null, t("passport.card.signature"))),
             h("h1", { className: "tnr-title" }, t("page.title")),
             h("span", { className: "tnr-subtitle" }, t("page.subtitle"))),
           h("div", { className: "tnr-head-right" },
@@ -4358,9 +4571,10 @@ const TENURE_LOCALES = {
               onClick: function () { writeAnimPref(!animOn); setAnimOn(!animOn); },
               title: reduced ? t("page.anim_reduced") : t("page.anim_title") },
               h("span", { className: "tnr-anim-dot", "aria-hidden": true }), moving ? t("page.anim_on") : t("page.anim_off")),
-            h("button", { type: "button", className: "tnr-chip-btn", onClick: function () { setHelp(true); }, title: t("help.aria") }, h(Kbd, null, "?")))),
+            h("button", { type: "button", className: "tnr-chip-btn tnr-head-help", onClick: function () { setHelp(true); }, title: t("help.aria") }, h(Kbd, null, "?")))),
         h(Counters, { totals: activity && activity.totals })),
-      h(Tabs, { view: view, onView: function (v) { setView(v); setDrawer(null); }, undoCount: activity && activity.undoable ? activity.undoable.length : 0 }),
+      h(Tabs, { view: view, width: width, onHelp: function () { setHelp(true); }, onView: function (v) { setView(v); setDrawer(null); },
+        undoCount: activity && activity.undoable ? activity.undoable.length : 0 }),
       unreadable.length ? h("div", { className: "tnr-msg tnr-tone--warn" }, t("page.unreadable", {
         profiles: unreadable.map(function (p) { return p.profile; }).join(t("common.list_sep")) })) : null,
       data && err ? h("div", { className: "tnr-msg tnr-tone--warn" }, t("stale.message", { error: errText(err), time: updated })) : null,

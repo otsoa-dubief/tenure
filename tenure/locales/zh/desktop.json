@@ -3,7 +3,7 @@
   "agents.search": "搜索智能体",
   "backend.desc": "请在「能力 → 插件」（智能体列）中为此配置文件启用 tenure。{error}",
   "backend.title": "智能体端没有响应",
-  "benchmark.col_faults": "失误",
+  "benchmark.col_faults": "失误 / 检查",
   "benchmark.col_public": "公开",
   "benchmark.col_range": "95% 区间",
   "benchmark.col_rate": "失误率",
@@ -11,12 +11,13 @@
     "other": "{n} 次失误 / {total}"
   },
   "benchmark.no_public": "—",
-  "benchmark.not_enough": "证据不足",
+  "benchmark.not_ranked": "证据尚不足",
+  "benchmark.not_ranked_note": "模型在此类型上有 {n} 次检查后才参与排名。",
   "benchmark.note": "每个模型在你的工作中、针对此操作类型的已验证记录，附失误率的 95% 区间，按区间上限排名。公开分数仅供参考：它衡量的是模型在别人任务上的能力，而不是在你的工作上的可靠性。",
   "benchmark.public_score": "公开分数：{benchmark}，{source}",
   "benchmark.public_score_accessed": "公开分数：{benchmark}，{source}，{accessed}。",
   "benchmark.public_value": "{value}%",
-  "benchmark.range_tip": "失误率及其 95% 区间，坐标轴 0–70%",
+  "benchmark.range_tip": "失误率及其 95% 区间，坐标轴 0–{max}%",
   "benchmark.rate": "{rate}%（{low}–{high}%）",
   "benchmark.search": "搜索操作类型",
   "chip.tip": {
@@ -27,10 +28,10 @@
   "common.retry": "重试",
   "emblem.none": "尚未赢得自主权",
   "emblem.review": {
-    "other": "{n} 个考察中"
+    "other": "{n} 个类型考察中"
   },
   "emblem.tenured": {
-    "other": "{n} 个已转正"
+    "other": "{n} 个类型已转正"
   },
   "empty.desc": "照常工作即可。每次更改都会先询问你，每个操作类型会根据你的回答赢得相应级别。",
   "empty.title": "还没有智能体执行过操作",
@@ -58,6 +59,7 @@
   "moment.review": "进入考察",
   "nav.label": "Tenure",
   "page.animations": "动画",
+  "page.animations_reduced": "系统要求减少动态效果：动画保持关闭",
   "page.title": "Tenure",
   "page.view_agents": "智能体",
   "page.view_benchmark": "你的基准",
@@ -67,11 +69,15 @@
   "palette.revoke": "Tenure：收回当前模型的自主权…",
   "passport.copy": "复制护照",
   "passport.copy_command": "复制命令",
+  "passport.faults_checks": {
+    "other": "{n} 次失误 / {total} 次检查"
+  },
   "passport.generated": "生成时间",
   "passport.ledger": "账本",
   "passport.ledger_value": {
     "other": "{n} 个事件 · 头部 {head}"
   },
+  "passport.pending_note": "按最近记录的设置计算；新设置从下一个操作起生效。",
   "passport.problems": "验证未通过：{problems}",
   "passport.protocol": "协议",
   "passport.rule": "规则",
@@ -90,6 +96,8 @@
   "preset.value_pending": "{preset} · 每 {k} 个抽查 1 个 · 从下一个操作起生效",
   "recent.check_failed": "检查失败",
   "recent.check_failed_tip": "自动检查失败：已记为一次失误。撤销可恢复文件。",
+  "recent.collapse": "收起这些操作",
+  "recent.expand": "显示每个操作",
   "recent.flag": "标记",
   "recent.flag_tip": "它犯了一个没人发现的错误：收回此类型的自主权。",
   "recent.flagged": "已标记 {type}：记为一次失误，至少降一级。",
@@ -101,7 +109,9 @@
     "other": "{n} 分钟前"
   },
   "recent.more_files": "+{n}",
+  "recent.no_snapshot": "无快照",
   "recent.none": "过去 24 小时内没有可撤销的操作。",
+  "recent.restore_icon": "24 小时内可撤销",
   "recent.show_all": "显示全部 {n} 条",
   "recent.show_fewer": "收起",
   "recent.title": "未询问即执行",
@@ -138,8 +148,15 @@
   "toast.acted_detail": "撤销会恢复最近一次更改的文件，并记为一次失误。",
   "type.always_asks": "始终询问",
   "type.guarantee": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。",
+  "type.guarantee_plain": "其操作中最多约每 {k} 个就有 1 个带着无人批准的错误运行。",
   "type.guarantee_provisional": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。暂定：基于继承的证据。",
   "type.in_a_row": "连续 {series}/{required}",
+  "type.more_to_t2": {
+    "other": "还差 {n} 次进入考察中（T2）"
+  },
+  "type.more_to_t3": {
+    "other": "还差 {n} 次转正"
+  },
   "type.next": {
     "other": "再连续 {n} 次已验证的成功即可转正。"
   },

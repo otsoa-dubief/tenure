@@ -35,7 +35,6 @@ import {
   PanelList,
   PanelListRow,
   PanelMeta,
-  PanelPill,
   PanelSectionLabel,
   ROUTES_AREA,
   SegmentedControl,
@@ -46,8 +45,7 @@ import {
   usePluginI18n,
   useQuery,
   useQueryClient,
-  useValue,
-  WorkspacePageHeaderControl
+  useValue
 } from '@hermes/plugin-sdk'
 import { useEffect, useRef, useState } from 'react'
 import { jsx, jsxs } from 'react/jsx-runtime'
@@ -66,7 +64,7 @@ const TENURE_LOCALES = {
     "agents.search": "Search agents",
     "backend.desc": "Enable tenure for this profile in Capabilities → Plugins (Agent column). {error}",
     "backend.title": "The agent half is not answering",
-    "benchmark.col_faults": "Faults",
+    "benchmark.col_faults": "Faults / checks",
     "benchmark.col_public": "Public",
     "benchmark.col_range": "95% range",
     "benchmark.col_rate": "Rate",
@@ -75,12 +73,13 @@ const TENURE_LOCALES = {
       "other": "{n} faults / {total}"
     },
     "benchmark.no_public": "—",
-    "benchmark.not_enough": "not enough evidence",
+    "benchmark.not_ranked": "Not enough evidence yet",
+    "benchmark.not_ranked_note": "A model is ranked once it has {n} checks on this type.",
     "benchmark.note": "Each model's verified record on your work for this action type, with the 95% range of its fault rate, ranked by the top of that range. The public score is context: capability on their tasks, not reliability on yours.",
     "benchmark.public_score": "Public score: {benchmark}, {source}",
     "benchmark.public_score_accessed": "Public score: {benchmark}, {source}, {accessed}.",
     "benchmark.public_value": "{value}%",
-    "benchmark.range_tip": "Fault rate and its 95% range, on a 0–70% axis",
+    "benchmark.range_tip": "Fault rate and its 95% range, on a 0–{max}% axis",
     "benchmark.rate": "{rate}% ({low}–{high}%)",
     "benchmark.search": "Search action types",
     "chip.tip": {
@@ -92,12 +91,12 @@ const TENURE_LOCALES = {
     "common.retry": "Try again",
     "emblem.none": "No autonomy earned yet",
     "emblem.review": {
-      "one": "{n} under review",
-      "other": "{n} under review"
+      "one": "{n} type under review",
+      "other": "{n} types under review"
     },
     "emblem.tenured": {
-      "one": "{n} tenured",
-      "other": "{n} tenured"
+      "one": "{n} type tenured",
+      "other": "{n} types tenured"
     },
     "empty.desc": "Work as usual. Every change asks first, and each action type earns its tier from the answers you give.",
     "empty.title": "No agent has acted yet",
@@ -125,6 +124,7 @@ const TENURE_LOCALES = {
     "moment.review": "Under review",
     "nav.label": "Tenure",
     "page.animations": "Animations",
+    "page.animations_reduced": "Your system asks for reduced motion: animations stay off",
     "page.title": "Tenure",
     "page.view_agents": "Agents",
     "page.view_benchmark": "Your benchmark",
@@ -134,12 +134,17 @@ const TENURE_LOCALES = {
     "palette.revoke": "Tenure: Revoke current model…",
     "passport.copy": "Copy passport",
     "passport.copy_command": "Copy command",
+    "passport.faults_checks": {
+      "one": "{n} fault / {total} checks",
+      "other": "{n} faults / {total} checks"
+    },
     "passport.generated": "Generated",
     "passport.ledger": "Ledger",
     "passport.ledger_value": {
       "one": "{n} event · head {head}",
       "other": "{n} events · head {head}"
     },
+    "passport.pending_note": "Computed under the last logged settings; the new settings apply from the next action.",
     "passport.problems": "Does not verify: {problems}",
     "passport.protocol": "Protocol",
     "passport.rule": "Rule",
@@ -158,6 +163,8 @@ const TENURE_LOCALES = {
     "preset.value_pending": "{preset} · 1 in {k} spot-checked · applies from the next action",
     "recent.check_failed": "check failed",
     "recent.check_failed_tip": "The automatic check failed: already counted as a fault. Undo restores the files.",
+    "recent.collapse": "Hide the actions",
+    "recent.expand": "Show each action",
     "recent.flag": "Flag",
     "recent.flag_tip": "It made an error nobody caught: revoke this type.",
     "recent.flagged": "{type} flagged: counted as a fault, it drops at least one tier.",
@@ -171,7 +178,9 @@ const TENURE_LOCALES = {
       "other": "{n} min ago"
     },
     "recent.more_files": "+{n}",
+    "recent.no_snapshot": "no snapshot",
     "recent.none": "Nothing to undo in the last 24 hours.",
+    "recent.restore_icon": "Can be undone for 24 hours",
     "recent.show_all": "Show all {n}",
     "recent.show_fewer": "Show fewer",
     "recent.title": "Acted without asking",
@@ -209,8 +218,17 @@ const TENURE_LOCALES = {
     "toast.acted_detail": "Undo restores the files of the last change and counts as a fault.",
     "type.always_asks": "always asks",
     "type.guarantee": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad.",
+    "type.guarantee_plain": "At most about 1 in {k} of its actions runs with an error nobody approved.",
     "type.guarantee_provisional": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad. Provisional: carried-over evidence.",
     "type.in_a_row": "{series} of {required} in a row",
+    "type.more_to_t2": {
+      "one": "{n} more to reach Under review (T2)",
+      "other": "{n} more to reach Under review (T2)"
+    },
+    "type.more_to_t3": {
+      "one": "{n} more to Tenured",
+      "other": "{n} more to Tenured"
+    },
     "type.next": {
       "one": "{n} more verified success in a row to be tenured.",
       "other": "{n} more verified successes in a row to be tenured."
@@ -232,7 +250,7 @@ const TENURE_LOCALES = {
     "agents.search": "البحث في الوكلاء",
     "backend.desc": "فعّل tenure لهذا الملف الشخصي من المهارات ← الإضافات (عمود «الوكيل»). {error}",
     "backend.title": "جزء الوكيل لا يستجيب",
-    "benchmark.col_faults": "الإخفاقات",
+    "benchmark.col_faults": "إخفاقات / فحوص",
     "benchmark.col_public": "عام",
     "benchmark.col_range": "نطاق 95%",
     "benchmark.col_rate": "المعدل",
@@ -245,12 +263,13 @@ const TENURE_LOCALES = {
       "other": "{n} إخفاق / {total}"
     },
     "benchmark.no_public": "—",
-    "benchmark.not_enough": "أدلة غير كافية",
+    "benchmark.not_ranked": "لا أدلة كافية بعد",
+    "benchmark.not_ranked_note": "يدخل النموذج الترتيب عندما يبلغ {n} فحصًا على هذا النوع.",
     "benchmark.note": "السجل الموثَّق لكل نموذج على عملك لنوع الإجراء هذا، مع نطاق 95% لمعدل إخفاقه، مرتبًا حسب الحد الأعلى لهذا النطاق. النتيجة العامة للسياق فقط: قدرة على مهامهم، لا موثوقية على مهامك.",
     "benchmark.public_score": "النتيجة العامة: {benchmark}، {source}",
     "benchmark.public_score_accessed": "النتيجة العامة: {benchmark}، {source}، {accessed}.",
     "benchmark.public_value": "{value}%",
-    "benchmark.range_tip": "معدل الإخفاق ونطاق 95% له، على محور من 0 إلى 70%",
+    "benchmark.range_tip": "معدل الإخفاق ونطاق 95% له، على محور من 0 إلى {max}%",
     "benchmark.rate": "{rate}% ({low}–{high}%)",
     "benchmark.search": "البحث في أنواع الإجراءات",
     "chip.tip": {
@@ -266,20 +285,20 @@ const TENURE_LOCALES = {
     "common.retry": "حاول مرة أخرى",
     "emblem.none": "لم تُكتسب أي استقلالية بعد",
     "emblem.review": {
-      "zero": "قيد المراجعة: {n}",
-      "one": "قيد المراجعة: {n}",
-      "two": "قيد المراجعة: {n}",
-      "few": "قيد المراجعة: {n}",
-      "many": "قيد المراجعة: {n}",
-      "other": "قيد المراجعة: {n}"
+      "zero": "أنواع قيد المراجعة: {n}",
+      "one": "أنواع قيد المراجعة: {n}",
+      "two": "أنواع قيد المراجعة: {n}",
+      "few": "أنواع قيد المراجعة: {n}",
+      "many": "أنواع قيد المراجعة: {n}",
+      "other": "أنواع قيد المراجعة: {n}"
     },
     "emblem.tenured": {
-      "zero": "مُثبَّت: {n}",
-      "one": "مُثبَّت: {n}",
-      "two": "مُثبَّت: {n}",
-      "few": "مُثبَّت: {n}",
-      "many": "مُثبَّت: {n}",
-      "other": "مُثبَّت: {n}"
+      "zero": "أنواع مُثبَّتة: {n}",
+      "one": "أنواع مُثبَّتة: {n}",
+      "two": "أنواع مُثبَّتة: {n}",
+      "few": "أنواع مُثبَّتة: {n}",
+      "many": "أنواع مُثبَّتة: {n}",
+      "other": "أنواع مُثبَّتة: {n}"
     },
     "empty.desc": "اعمل كالمعتاد. كل تغيير يسأل أولًا، وكل نوع إجراء يكتسب مستواه من إجاباتك.",
     "empty.title": "لم ينفّذ أي وكيل شيئًا بعد",
@@ -307,6 +326,7 @@ const TENURE_LOCALES = {
     "moment.review": "قيد المراجعة",
     "nav.label": "Tenure",
     "page.animations": "الرسوم المتحركة",
+    "page.animations_reduced": "يطلب نظامك تقليل الحركة: تبقى الرسوم المتحركة متوقفة",
     "page.title": "Tenure",
     "page.view_agents": "الوكلاء",
     "page.view_benchmark": "مقياسك",
@@ -316,6 +336,14 @@ const TENURE_LOCALES = {
     "palette.revoke": "Tenure: سحب استقلالية النموذج الحالي…",
     "passport.copy": "نسخ الجواز",
     "passport.copy_command": "نسخ الأمر",
+    "passport.faults_checks": {
+      "zero": "{n} إخفاق / {total} فحوص",
+      "one": "{n} إخفاق / {total} فحوص",
+      "two": "{n} إخفاق / {total} فحوص",
+      "few": "{n} إخفاق / {total} فحوص",
+      "many": "{n} إخفاق / {total} فحوص",
+      "other": "{n} إخفاق / {total} فحوص"
+    },
     "passport.generated": "أُنشئ في",
     "passport.ledger": "الدفتر",
     "passport.ledger_value": {
@@ -326,6 +354,7 @@ const TENURE_LOCALES = {
       "many": "{n} حدثًا · الرأس {head}",
       "other": "{n} حدث · الرأس {head}"
     },
+    "passport.pending_note": "محسوب وفق آخر إعدادات مسجّلة؛ تسري الإعدادات الجديدة من الإجراء التالي.",
     "passport.problems": "لا يجتاز التحقق: {problems}",
     "passport.protocol": "البروتوكول",
     "passport.rule": "القاعدة",
@@ -344,6 +373,8 @@ const TENURE_LOCALES = {
     "preset.value_pending": "{preset} · فحص عشوائي لإجراء من كل {k} · يسري من الإجراء التالي",
     "recent.check_failed": "فشل الفحص",
     "recent.check_failed_tip": "فشل الفحص التلقائي: حُسب إخفاقًا بالفعل. التراجع يستعيد الملفات.",
+    "recent.collapse": "إخفاء الإجراءات",
+    "recent.expand": "عرض كل إجراء",
     "recent.flag": "إبلاغ",
     "recent.flag_tip": "ارتكب خطأ لم يلحظه أحد: اسحب استقلالية هذا النوع.",
     "recent.flagged": "تم الإبلاغ عن {type}: يُحتسب إخفاقًا، وينزل مستوى واحدًا على الأقل.",
@@ -365,7 +396,9 @@ const TENURE_LOCALES = {
       "other": "قبل {n} د"
     },
     "recent.more_files": "+{n}",
+    "recent.no_snapshot": "بلا لقطة",
     "recent.none": "لا شيء للتراجع عنه في آخر 24 ساعة.",
+    "recent.restore_icon": "يمكن التراجع عنه خلال 24 ساعة",
     "recent.show_all": "عرض الكل ({n})",
     "recent.show_fewer": "عرض أقل",
     "recent.title": "نُفّذ دون سؤال",
@@ -407,8 +440,25 @@ const TENURE_LOCALES = {
     "toast.acted_detail": "التراجع يستعيد ملفات آخر تغيير ويُحسب إخفاقًا.",
     "type.always_asks": "يسأل دائمًا",
     "type.guarantee": "على الأكثر {aoql}% من إجراءات هذا النوع تُنفَّذ بخطأ لم يوافق عليه أحد؛ و{worst}% إذا ساء النموذج.",
+    "type.guarantee_plain": "على الأكثر نحو إجراء واحد من كل {k} من إجراءاته يُنفَّذ بخطأ لم يوافق عليه أحد.",
     "type.guarantee_provisional": "على الأكثر {aoql}% من إجراءات هذا النوع تُنفَّذ بخطأ لم يوافق عليه أحد؛ و{worst}% إذا ساء النموذج. مؤقت: أدلة منقولة.",
     "type.in_a_row": "{series} من {required} على التوالي",
+    "type.more_to_t2": {
+      "zero": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "one": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "two": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "few": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "many": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "other": "بقي {n} حتى «قيد المراجعة» (T2)"
+    },
+    "type.more_to_t3": {
+      "zero": "بقي {n} حتى التثبيت",
+      "one": "بقي {n} حتى التثبيت",
+      "two": "بقي {n} حتى التثبيت",
+      "few": "بقي {n} حتى التثبيت",
+      "many": "بقي {n} حتى التثبيت",
+      "other": "بقي {n} حتى التثبيت"
+    },
     "type.next": {
       "zero": "لم يبقَ أي نجاح موثَّق للتثبيت ({n}).",
       "one": "نجاح موثَّق واحد آخر على التوالي للتثبيت.",
@@ -438,7 +488,7 @@ const TENURE_LOCALES = {
     "agents.search": "Buscar agentes",
     "backend.desc": "Activa tenure para este perfil en Capacidades → Plugins (columna Agente). {error}",
     "backend.title": "La mitad del agente no responde",
-    "benchmark.col_faults": "Fallos",
+    "benchmark.col_faults": "Fallos / comprob.",
     "benchmark.col_public": "Pública",
     "benchmark.col_range": "Rango 95 %",
     "benchmark.col_rate": "Tasa",
@@ -447,12 +497,13 @@ const TENURE_LOCALES = {
       "other": "{n} fallos / {total}"
     },
     "benchmark.no_public": "—",
-    "benchmark.not_enough": "evidencia insuficiente",
+    "benchmark.not_ranked": "Aún no hay evidencia suficiente",
+    "benchmark.not_ranked_note": "Un modelo entra en la clasificación cuando tiene {n} comprobaciones en este tipo.",
     "benchmark.note": "El historial verificado de cada modelo en tu trabajo para este tipo de acción, con el rango del 95 % de su tasa de fallos, ordenado por el extremo superior de ese rango. La puntuación pública es contexto: capacidad en sus tareas, no fiabilidad en las tuyas.",
     "benchmark.public_score": "Puntuación pública: {benchmark}, {source}",
     "benchmark.public_score_accessed": "Puntuación pública: {benchmark}, {source}, {accessed}.",
     "benchmark.public_value": "{value} %",
-    "benchmark.range_tip": "Tasa de fallos y su rango del 95 %, en un eje de 0 a 70 %",
+    "benchmark.range_tip": "Tasa de fallos y su rango del 95 %, en un eje de 0 a {max} %",
     "benchmark.rate": "{rate} % ({low}–{high} %)",
     "benchmark.search": "Buscar tipos de acción",
     "chip.tip": {
@@ -464,12 +515,12 @@ const TENURE_LOCALES = {
     "common.retry": "Reintentar",
     "emblem.none": "Aún sin autonomía ganada",
     "emblem.review": {
-      "one": "{n} en revisión",
-      "other": "{n} en revisión"
+      "one": "{n} tipo en revisión",
+      "other": "{n} tipos en revisión"
     },
     "emblem.tenured": {
-      "one": "{n} titular",
-      "other": "{n} titulares"
+      "one": "{n} tipo titular",
+      "other": "{n} tipos titulares"
     },
     "empty.desc": "Trabaja como siempre. Cada cambio pregunta antes, y cada tipo de acción se gana su nivel con tus respuestas.",
     "empty.title": "Ningún agente ha actuado todavía",
@@ -497,6 +548,7 @@ const TENURE_LOCALES = {
     "moment.review": "En revisión",
     "nav.label": "Tenure",
     "page.animations": "Animaciones",
+    "page.animations_reduced": "Tu sistema pide reducir el movimiento: las animaciones siguen desactivadas",
     "page.title": "Tenure",
     "page.view_agents": "Agentes",
     "page.view_benchmark": "Tu benchmark",
@@ -506,12 +558,17 @@ const TENURE_LOCALES = {
     "palette.revoke": "Tenure: Revocar el modelo actual…",
     "passport.copy": "Copiar pasaporte",
     "passport.copy_command": "Copiar comando",
+    "passport.faults_checks": {
+      "one": "{n} fallo / {total} comprobaciones",
+      "other": "{n} fallos / {total} comprobaciones"
+    },
     "passport.generated": "Generado",
     "passport.ledger": "Registro",
     "passport.ledger_value": {
       "one": "{n} evento · último hash {head}",
       "other": "{n} eventos · último hash {head}"
     },
+    "passport.pending_note": "Calculado con los últimos ajustes registrados; los nuevos ajustes se aplican desde la próxima acción.",
     "passport.problems": "No se verifica: {problems}",
     "passport.protocol": "Protocolo",
     "passport.rule": "Regla",
@@ -530,6 +587,8 @@ const TENURE_LOCALES = {
     "preset.value_pending": "{preset} · 1 de cada {k} con control aleatorio · se aplica desde la próxima acción",
     "recent.check_failed": "falló la comprobación",
     "recent.check_failed_tip": "La comprobación automática falló: ya se contó como fallo. Deshacer restaura los archivos.",
+    "recent.collapse": "Ocultar las acciones",
+    "recent.expand": "Mostrar cada acción",
     "recent.flag": "Marcar",
     "recent.flag_tip": "Cometió un error que nadie detectó: revoca este tipo.",
     "recent.flagged": "{type} marcado: cuenta como fallo, baja al menos un nivel.",
@@ -543,7 +602,9 @@ const TENURE_LOCALES = {
       "other": "hace {n} min"
     },
     "recent.more_files": "+{n}",
+    "recent.no_snapshot": "sin instantánea",
     "recent.none": "Nada que deshacer en las últimas 24 horas.",
+    "recent.restore_icon": "Se puede deshacer durante 24 horas",
     "recent.show_all": "Mostrar los {n}",
     "recent.show_fewer": "Mostrar menos",
     "recent.title": "Actuó sin preguntar",
@@ -581,8 +642,17 @@ const TENURE_LOCALES = {
     "toast.acted_detail": "Deshacer restaura los archivos del último cambio y cuenta como fallo.",
     "type.always_asks": "siempre pregunta",
     "type.guarantee": "Como máximo el {aoql} % de las acciones de este tipo se ejecutan con un error que nadie aprobó; el {worst} % si el modelo empeora.",
+    "type.guarantee_plain": "Como máximo, aproximadamente 1 de cada {k} de sus acciones se ejecuta con un error que nadie aprobó.",
     "type.guarantee_provisional": "Como máximo el {aoql} % de las acciones de este tipo se ejecutan con un error que nadie aprobó; el {worst} % si el modelo empeora. Provisional: evidencia heredada.",
     "type.in_a_row": "{series} de {required} seguidas",
+    "type.more_to_t2": {
+      "one": "Falta {n} para pasar a En revisión (T2)",
+      "other": "Faltan {n} para pasar a En revisión (T2)"
+    },
+    "type.more_to_t3": {
+      "one": "falta {n} para Titular",
+      "other": "faltan {n} para Titular"
+    },
     "type.next": {
       "one": "Falta {n} éxito verificado seguido para la titularidad.",
       "other": "Faltan {n} éxitos verificados seguidos para la titularidad."
@@ -604,7 +674,7 @@ const TENURE_LOCALES = {
     "agents.search": "Rechercher des agents",
     "backend.desc": "Activez tenure pour ce profil dans Capacités → Plugins (colonne Agent). {error}",
     "backend.title": "La partie agent ne répond pas",
-    "benchmark.col_faults": "Fautes",
+    "benchmark.col_faults": "Fautes / vérif.",
     "benchmark.col_public": "Public",
     "benchmark.col_range": "Fourch. 95 %",
     "benchmark.col_rate": "Taux",
@@ -613,12 +683,13 @@ const TENURE_LOCALES = {
       "other": "{n} fautes / {total}"
     },
     "benchmark.no_public": "—",
-    "benchmark.not_enough": "pas assez de preuves",
+    "benchmark.not_ranked": "Pas encore assez de preuves",
+    "benchmark.not_ranked_note": "Un modèle est classé à partir de {n} vérifications sur ce type.",
     "benchmark.note": "L'historique vérifié de chaque modèle sur votre travail pour ce type d'action, avec la fourchette à 95 % de son taux de fautes, classé par le haut de cette fourchette. Le score public sert de contexte : il mesure la capacité sur les tâches du benchmark, pas la fiabilité sur les vôtres.",
     "benchmark.public_score": "Score public : {benchmark}, {source}",
     "benchmark.public_score_accessed": "Score public : {benchmark}, {source}, {accessed}.",
     "benchmark.public_value": "{value} %",
-    "benchmark.range_tip": "Taux de fautes et sa fourchette à 95 %, sur un axe de 0 à 70 %",
+    "benchmark.range_tip": "Taux de fautes et sa fourchette à 95 %, sur un axe de 0 à {max} %",
     "benchmark.rate": "{rate} % ({low}–{high} %)",
     "benchmark.search": "Rechercher des types d'action",
     "chip.tip": {
@@ -630,12 +701,12 @@ const TENURE_LOCALES = {
     "common.retry": "Réessayer",
     "emblem.none": "Pas encore d'autonomie acquise",
     "emblem.review": {
-      "one": "{n} en examen",
-      "other": "{n} en examen"
+      "one": "{n} type en examen",
+      "other": "{n} types en examen"
     },
     "emblem.tenured": {
-      "one": "{n} titulaire",
-      "other": "{n} titulaires"
+      "one": "{n} type titulaire",
+      "other": "{n} types titulaires"
     },
     "empty.desc": "Travaillez comme d'habitude. L'agent demande avant chaque modification, et chaque type d'action gagne son niveau selon vos réponses.",
     "empty.title": "Aucun agent n'a encore agi",
@@ -663,6 +734,7 @@ const TENURE_LOCALES = {
     "moment.review": "En examen",
     "nav.label": "Tenure",
     "page.animations": "Animations",
+    "page.animations_reduced": "Votre système demande de réduire les animations : elles restent coupées",
     "page.title": "Tenure",
     "page.view_agents": "Agents",
     "page.view_benchmark": "Votre benchmark",
@@ -672,12 +744,17 @@ const TENURE_LOCALES = {
     "palette.revoke": "Tenure : Révoquer le modèle actuel…",
     "passport.copy": "Copier le passeport",
     "passport.copy_command": "Copier la commande",
+    "passport.faults_checks": {
+      "one": "{n} faute / {total} vérifications",
+      "other": "{n} fautes / {total} vérifications"
+    },
     "passport.generated": "Généré",
     "passport.ledger": "Registre",
     "passport.ledger_value": {
       "one": "{n} événement · tête {head}",
       "other": "{n} événements · tête {head}"
     },
+    "passport.pending_note": "Calculé avec les derniers réglages enregistrés ; les nouveaux réglages s'appliquent dès la prochaine action.",
     "passport.problems": "Ne se vérifie pas : {problems}",
     "passport.protocol": "Protocole",
     "passport.rule": "Règle",
@@ -696,6 +773,8 @@ const TENURE_LOCALES = {
     "preset.value_pending": "{preset} · 1 action sur {k} contrôlée · s'applique dès la prochaine action",
     "recent.check_failed": "vérification échouée",
     "recent.check_failed_tip": "La vérification automatique a échoué : déjà comptée comme une faute. Annuler restaure les fichiers.",
+    "recent.collapse": "Masquer les actions",
+    "recent.expand": "Afficher chaque action",
     "recent.flag": "Signaler",
     "recent.flag_tip": "Une erreur est passée inaperçue : révoquer ce type.",
     "recent.flagged": "{type} signalé : compté comme une faute, il perd au moins un niveau.",
@@ -709,7 +788,9 @@ const TENURE_LOCALES = {
       "other": "il y a {n} min"
     },
     "recent.more_files": "+{n}",
+    "recent.no_snapshot": "pas d'instantané",
     "recent.none": "Rien à annuler depuis 24 heures.",
+    "recent.restore_icon": "Annulable pendant 24 heures",
     "recent.show_all": "Tout afficher ({n})",
     "recent.show_fewer": "Afficher moins",
     "recent.title": "A agi sans demander",
@@ -747,8 +828,17 @@ const TENURE_LOCALES = {
     "toast.acted_detail": "Annuler restaure les fichiers de la dernière modification et compte comme une faute.",
     "type.always_asks": "demande toujours",
     "type.guarantee": "Au plus {aoql} % des actions de ce type s'exécutent avec une erreur que personne n'a approuvée ; {worst} % si le modèle se dégrade.",
+    "type.guarantee_plain": "Au plus environ 1 action sur {k} s'exécute avec une erreur que personne n'a approuvée.",
     "type.guarantee_provisional": "Au plus {aoql} % des actions de ce type s'exécutent avec une erreur que personne n'a approuvée ; {worst} % si le modèle se dégrade. Provisoire : preuves héritées.",
     "type.in_a_row": "{series} sur {required} d'affilée",
+    "type.more_to_t2": {
+      "one": "Encore {n} pour passer En examen (T2)",
+      "other": "Encore {n} pour passer En examen (T2)"
+    },
+    "type.more_to_t3": {
+      "one": "encore {n} pour être Titulaire",
+      "other": "encore {n} pour être Titulaire"
+    },
     "type.next": {
       "one": "Encore {n} succès vérifié d'affilée pour être titularisé.",
       "other": "Encore {n} succès vérifiés d'affilée pour être titularisé."
@@ -770,7 +860,7 @@ const TENURE_LOCALES = {
     "agents.search": "搜索智能体",
     "backend.desc": "请在「能力 → 插件」（智能体列）中为此配置文件启用 tenure。{error}",
     "backend.title": "智能体端没有响应",
-    "benchmark.col_faults": "失误",
+    "benchmark.col_faults": "失误 / 检查",
     "benchmark.col_public": "公开",
     "benchmark.col_range": "95% 区间",
     "benchmark.col_rate": "失误率",
@@ -778,12 +868,13 @@ const TENURE_LOCALES = {
       "other": "{n} 次失误 / {total}"
     },
     "benchmark.no_public": "—",
-    "benchmark.not_enough": "证据不足",
+    "benchmark.not_ranked": "证据尚不足",
+    "benchmark.not_ranked_note": "模型在此类型上有 {n} 次检查后才参与排名。",
     "benchmark.note": "每个模型在你的工作中、针对此操作类型的已验证记录，附失误率的 95% 区间，按区间上限排名。公开分数仅供参考：它衡量的是模型在别人任务上的能力，而不是在你的工作上的可靠性。",
     "benchmark.public_score": "公开分数：{benchmark}，{source}",
     "benchmark.public_score_accessed": "公开分数：{benchmark}，{source}，{accessed}。",
     "benchmark.public_value": "{value}%",
-    "benchmark.range_tip": "失误率及其 95% 区间，坐标轴 0–70%",
+    "benchmark.range_tip": "失误率及其 95% 区间，坐标轴 0–{max}%",
     "benchmark.rate": "{rate}%（{low}–{high}%）",
     "benchmark.search": "搜索操作类型",
     "chip.tip": {
@@ -794,10 +885,10 @@ const TENURE_LOCALES = {
     "common.retry": "重试",
     "emblem.none": "尚未赢得自主权",
     "emblem.review": {
-      "other": "{n} 个考察中"
+      "other": "{n} 个类型考察中"
     },
     "emblem.tenured": {
-      "other": "{n} 个已转正"
+      "other": "{n} 个类型已转正"
     },
     "empty.desc": "照常工作即可。每次更改都会先询问你，每个操作类型会根据你的回答赢得相应级别。",
     "empty.title": "还没有智能体执行过操作",
@@ -825,6 +916,7 @@ const TENURE_LOCALES = {
     "moment.review": "进入考察",
     "nav.label": "Tenure",
     "page.animations": "动画",
+    "page.animations_reduced": "系统要求减少动态效果：动画保持关闭",
     "page.title": "Tenure",
     "page.view_agents": "智能体",
     "page.view_benchmark": "你的基准",
@@ -834,11 +926,15 @@ const TENURE_LOCALES = {
     "palette.revoke": "Tenure：收回当前模型的自主权…",
     "passport.copy": "复制护照",
     "passport.copy_command": "复制命令",
+    "passport.faults_checks": {
+      "other": "{n} 次失误 / {total} 次检查"
+    },
     "passport.generated": "生成时间",
     "passport.ledger": "账本",
     "passport.ledger_value": {
       "other": "{n} 个事件 · 头部 {head}"
     },
+    "passport.pending_note": "按最近记录的设置计算；新设置从下一个操作起生效。",
     "passport.problems": "验证未通过：{problems}",
     "passport.protocol": "协议",
     "passport.rule": "规则",
@@ -857,6 +953,8 @@ const TENURE_LOCALES = {
     "preset.value_pending": "{preset} · 每 {k} 个抽查 1 个 · 从下一个操作起生效",
     "recent.check_failed": "检查失败",
     "recent.check_failed_tip": "自动检查失败：已记为一次失误。撤销可恢复文件。",
+    "recent.collapse": "收起这些操作",
+    "recent.expand": "显示每个操作",
     "recent.flag": "标记",
     "recent.flag_tip": "它犯了一个没人发现的错误：收回此类型的自主权。",
     "recent.flagged": "已标记 {type}：记为一次失误，至少降一级。",
@@ -868,7 +966,9 @@ const TENURE_LOCALES = {
       "other": "{n} 分钟前"
     },
     "recent.more_files": "+{n}",
+    "recent.no_snapshot": "无快照",
     "recent.none": "过去 24 小时内没有可撤销的操作。",
+    "recent.restore_icon": "24 小时内可撤销",
     "recent.show_all": "显示全部 {n} 条",
     "recent.show_fewer": "收起",
     "recent.title": "未询问即执行",
@@ -905,8 +1005,15 @@ const TENURE_LOCALES = {
     "toast.acted_detail": "撤销会恢复最近一次更改的文件，并记为一次失误。",
     "type.always_asks": "始终询问",
     "type.guarantee": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。",
+    "type.guarantee_plain": "其操作中最多约每 {k} 个就有 1 个带着无人批准的错误运行。",
     "type.guarantee_provisional": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。暂定：基于继承的证据。",
     "type.in_a_row": "连续 {series}/{required}",
+    "type.more_to_t2": {
+      "other": "还差 {n} 次进入考察中（T2）"
+    },
+    "type.more_to_t3": {
+      "other": "还差 {n} 次转正"
+    },
     "type.next": {
       "other": "再连续 {n} 次已验证的成功即可转正。"
     },
@@ -1123,22 +1230,82 @@ function useMotion() {
 }
 
 // Static canvases repaint when the theme or the accent changes (the host rewrites attributes on <html> / <body>).
+// They repaint only when a computed colour really changed (the host touches those attributes for other reasons too),
+// and when the device pixel ratio changes (a window moved to another screen, zoom).
 const repaints = new Set()
 let themeObserver = null
+let probe = null
+let onStyle = null
+let lastInk = ''
+let dprQuery = null
+
+/** Relative luminance of a computed CSS colour: rgb()/rgba() in 0..255, or color(srgb …) in 0..1. */
+function luminance(css) {
+  const nums = String(css || '').match(/-?[\d.]+/g)
+  if (!nums || nums.length < 3) return 0
+  const scale = /^color\(/.test(String(css).trim()) ? 1 : 255
+  const lin = v => {
+    const c = Math.max(0, Math.min(1, Number(v) / scale))
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+  }
+  return 0.2126 * lin(nums[0]) + 0.7152 * lin(nums[1]) + 0.0722 * lin(nums[2])
+}
+
+/** Ink on accent paper: whichever of near-black and near-white contrasts more with the accent. */
+const inkOn = accent => {
+  const L = luminance(accent)
+  return (L + 0.05) / 0.0545 > 1.05 / (L + 0.05) ? '#0b0b0c' : '#fcfcfc'
+}
+
+/** The accent and foreground as the page computes them; also sets the ink used on accent paper. */
+function readInk() {
+  if (typeof document === 'undefined' || !document.body) return ''
+  if (!probe) {
+    probe = document.createElement('span')
+    probe.className = 'tn-root tn-probe'
+    probe.setAttribute('aria-hidden', 'true')
+    document.body.append(probe)
+  }
+  const cs = getComputedStyle(probe)
+  const sig = cs.color + '|' + cs.backgroundColor
+  if (sig !== lastInk && onStyle) onStyle.textContent = `.tn-root{--tn-on:${inkOn(cs.color)}}`
+  return sig
+}
+
+function repaintAll() {
+  for (const fn of repaints) fn()
+}
+
+function onDpr() {
+  repaintAll()
+  watchDpr()
+}
+function watchDpr() {
+  if (typeof matchMedia !== 'function' || typeof window === 'undefined') return
+  if (dprQuery) dprQuery.removeEventListener('change', onDpr)
+  dprQuery = matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`)
+  dprQuery.addEventListener('change', onDpr)
+}
+
 function watchTheme() {
   if (themeObserver || typeof MutationObserver !== 'function' || typeof document === 'undefined') return
+  lastInk = readInk()
   let queued = false
   themeObserver = new MutationObserver(() => {
     if (queued) return
     queued = true
     requestAnimationFrame(() => {
       queued = false
-      for (const fn of repaints) fn()
+      const ink = readInk()
+      if (ink === lastInk) return
+      lastInk = ink
+      repaintAll()
     })
   })
   const opts = { attributes: true, attributeFilter: ['class', 'style', 'data-theme', 'data-accent'] }
   themeObserver.observe(document.documentElement, opts)
   if (document.body) themeObserver.observe(document.body, opts)
+  watchDpr()
 }
 
 function useRepaint(fn) {
@@ -1190,7 +1357,7 @@ const BAR_ROWS = 6
  * fill: 0..1 · solid: draw the fill at full density · print: 0..1 Bayer threshold sweep (entrance) ·
  * crumble: { from, k } cells of the old fill beyond `fill` drop and fade · (the benchmark range has its own draw-in).
  */
-function paintBar(cv, { fill, solid, print = 1, crumble = null, rows = BAR_ROWS, headroom = 4 }) {
+function paintBar(cv, { fill, solid, print = 1, crumble = null, rows = BAR_ROWS, headroom = 4, segments = 0, notch = null }) {
   const w = cv.clientWidth || (cv.parentElement && cv.parentElement.clientWidth) || 0
   if (!w) return
   const h = rows * BAR_CELL + headroom
@@ -1202,7 +1369,7 @@ function paintBar(cv, { fill, solid, print = 1, crumble = null, rows = BAR_ROWS,
   const cols = Math.floor(w / BAR_CELL)
   const dot = BAR_CELL - 0.5
   const density = solid ? 1 : 0.38 + 0.62 * clamp01(fill)
-  const fade = Math.min(12, Math.max(3, cols * 0.06))
+  const fade = Math.min(4, Math.max(1, cols * 0.02))
   const edgeOf = f => f * cols
   const value = (i, f) => {
     if (solid && f >= 1) return 1
@@ -1210,8 +1377,20 @@ function paintBar(cv, { fill, solid, print = 1, crumble = null, rows = BAR_ROWS,
     const v = i < edge - fade ? density : i < edge ? density * ((edge - i) / fade) : 0
     return Math.max(v, 0.07)
   }
+  // One segment per verified success the series needs (when each gets at least 3 cells), and a notch where the type
+  // reaches T2.
+  const per = segments > 0 ? cols / segments : 0
+  const segW = per ? per * Math.max(1, Math.ceil(3 / per)) : 0           // a gap every k successes, k cells >= 3
+  const gap = i => segW > 0 && i < cols - 1 && Math.floor((i + 1) / segW) !== Math.floor(i / segW)
+  const nx = notch == null ? -9 : Math.min(cols - 1, Math.round(notch * cols))
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
+      if (i === nx) {
+        x.globalAlpha = 1
+        x.fillRect(i * BAR_CELL, j * BAR_CELL, dot, dot)
+        continue
+      }
+      if (Math.abs(i - nx) === 1 || gap(i)) continue
       const th = bayer(i, j)
       if (th >= print) continue
       if (value(i, fill) > th) {
@@ -1250,11 +1429,12 @@ function useWidth(ref, onResize) {
  * A type's progress bar. change = { dir: 'up' | 'down', token } replays a promotion (fills toward the new value)
  * or a fault (the lost cells crumble, then the bar prints again at its lower value). First mount prints in.
  */
-function DitherBar({ value, solid, track, change, motion, delay = 0, rows = BAR_ROWS, className }) {
+function DitherBar({ value, solid, track, change, motion, delay = 0, rows = BAR_ROWS, className, segments = 0, notch = null }) {
   const ref = useRef(null)
   const st = useRef({ fill: null, solid: false, cancel: null, token: null })
   const target = track ? 0 : solid ? 1 : clamp01(value || 0)
-  const draw = (fill, extra) => ref.current && paintBar(ref.current, { fill, solid: !!solid, rows, headroom: rows > 3 ? 4 : 2, ...extra })
+  const geo = { segments: track || solid ? 0 : segments, notch: track || solid ? null : notch }
+  const draw = (fill, extra) => ref.current && paintBar(ref.current, { fill, solid: !!solid, rows, headroom: rows > 3 ? 4 : 2, ...geo, ...extra })
   useRepaint(() => draw(st.current.fill == null ? target : st.current.fill))
   useWidth(ref, () => draw(st.current.fill == null ? target : st.current.fill))
   const token = change ? change.token : null
@@ -1276,6 +1456,9 @@ function DitherBar({ value, solid, track, change, motion, delay = 0, rows = BAR_
       s.cancel = tween(520, k => draw(target, { crumble: { from, k } }), () => {
         s.cancel = tween(380, k => draw(target, { print: k }))
       })
+    } else if (fresh && change.dir === 'reprint') {
+      // A drop without a fault (a revoke, stricter settings, a stakes change): the bar prints again, nothing crumbles.
+      s.cancel = tween(420, k => draw(target, { print: k }))
     } else if (from !== target) {
       // C. Promotion (or plain progress): the fill grows to its new value.
       s.cancel = tween(fresh ? 700 : 450, k => draw(from + (target - from) * easeOut(k)))
@@ -1283,7 +1466,7 @@ function DitherBar({ value, solid, track, change, motion, delay = 0, rows = BAR_
     return () => {
       if (s.cancel) s.cancel()
     }
-  }, [target, solid, track, token, motion])
+  }, [target, solid, track, token, motion, segments, notch])
   return jsx('canvas', { 'aria-hidden': true, className: cn('tn-bar tn-mirror', className), ref })
 }
 
@@ -1344,7 +1527,12 @@ function Emblem({ share, size = 120, n = 60, rotate = false, pulse = 0, motion, 
         if (!s.rot0) s.rot0 = now - s.rot / 0.00006
         s.rot = (now - s.rot0) * 0.00006 // ~0.06 rad/s
       } else s.rot0 = 0
-      paint(develop, boost, s.rot)
+      // The slow turn alone needs no more than ~14 frames a second; developing and pulsing paint every frame.
+      const idle = develop >= 1 && !s.pulse0
+      if (!idle || now - (s.last || 0) >= 70) {
+        s.last = now
+        paint(develop, boost, s.rot)
+      }
       if (develop < 1 || s.pulse0 || turning) s.raf = requestAnimationFrame(tick)
     }
     s.raf = requestAnimationFrame(tick)
@@ -1433,10 +1621,11 @@ function paintSeal(cv, { size, print = 1 }) {
   }
 }
 
-// ---- benchmark range: dotted 0–70 % axis, the 95 % range dithered, the rate solid; draws in from the start (F).
-function paintRange(cv, { rate, low, high, enough, reveal = 1 }) {
-  const w = cv.clientWidth || 96
-  const rows = 4
+// ---- benchmark range: a dotted axis from 0 to the scale shared by the type's ranked models, the 95 % range as a
+// segment from its low to its high end, the observed rate as a dot; draws in from the start (F).
+function paintRange(cv, { rate, low, high, max, reveal = 1 }) {
+  const w = cv.clientWidth || 120
+  const rows = 5
   const h = rows * BAR_CELL
   const dpr = fitCanvas(cv, w, h)
   const x = cv.getContext('2d')
@@ -1444,30 +1633,30 @@ function paintRange(cv, { rate, low, high, enough, reveal = 1 }) {
   x.clearRect(0, 0, w, h)
   x.fillStyle = inkOf(cv)
   const cols = Math.floor(w / BAR_CELL)
-  const at = v => Math.min(cols, (cols * v) / 0.7)
-  const lo = at(low), hi = Math.max(at(high), at(low) + 1), rt = at(rate)
+  const at = v => Math.min(cols - 1, Math.round(((cols - 1) * v) / (max || 1)))
+  const lo = at(low), hi = Math.max(at(high), lo + 1), rt = at(rate)
   const edge = reveal * (cols + 6)
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
-      const th = bayer(i, j)
-      let v = j === 1 || j === 2 ? 0.07 : 0
-      if (i >= lo && i < hi) v = enough ? 0.5 : 0.25
-      if (enough && Math.abs(i - rt) < 1.01) v = 1
+      let v = j === 2 ? 0.2 : 0
+      if (i >= lo && i <= hi && j >= 1 && j <= 3) v = j === 2 ? 1 : 0.5
+      if (Math.abs(i - rt) <= 1) v = 1
       const fade = i < edge - 6 ? 1 : i < edge ? (edge - i) / 6 : 0
-      if (v * fade > th) x.fillRect(i * BAR_CELL, j * BAR_CELL, BAR_CELL - 0.5, BAR_CELL - 0.5)
+      if (v * fade > bayer(i, j)) x.fillRect(i * BAR_CELL, j * BAR_CELL, BAR_CELL - 0.5, BAR_CELL - 0.5)
     }
   }
 }
 
-function RangeBar({ rate, low, high, enough, motion, delay = 0 }) {
+function RangeBar({ rate, low, high, max, motion, delay = 0 }) {
   const ref = useRef(null)
-  const draw = reveal => ref.current && paintRange(ref.current, { rate, low, high, enough, reveal })
+  const draw = reveal => ref.current && paintRange(ref.current, { rate, low, high, max, reveal })
   useRepaint(() => draw(1))
+  useWidth(ref, () => draw(1))
   useEffect(() => {
     if (!motion) return draw(1)
     draw(0)
     return tween(560, k => draw(easeOut(k)), null, delay)
-  }, [rate, low, high, enough, motion])
+  }, [rate, low, high, max, motion])
   return jsx('canvas', { 'aria-hidden': true, className: 'tn-range tn-mirror', ref })
 }
 
@@ -1483,11 +1672,15 @@ const maskFrame = (pct, m) => `${pct}%{-webkit-mask-image:${m};mask-image:${m}}`
 
 const CSS = `
 .tn-root{--tn-acc:var(--ui-accent,var(--color-primary,#0053fd));--tn-on:var(--dt-midground-foreground,var(--dt-primary-foreground,#fcfcfc));
-  --tn-fg:var(--ui-text-primary,currentColor);--tn-fg2:var(--ui-text-secondary,currentColor);--tn-mut:var(--ui-text-tertiary,currentColor);
+  --tn-fg:var(--ui-text-primary,currentColor);--tn-fg2:var(--ui-text-secondary,currentColor);--tn-mut:color-mix(in srgb,var(--tn-fg) 66%,transparent);
   --tn-acc-text:color-mix(in srgb,var(--tn-acc) 80%,var(--tn-fg));--tn-line:color-mix(in srgb,var(--tn-fg) 13%,transparent);
   --tn-mono:'JetBrains Mono',var(--font-mono,ui-monospace),monospace;--tn-display:'Collapse',var(--font-sans,system-ui),sans-serif}
 .tn-root canvas{display:block}
-.tn-eyebrow{font:500 0.625rem/1.4 var(--tn-mono);letter-spacing:0.12em;text-transform:uppercase;color:var(--tn-acc-text)}
+.tn-probe{position:fixed;inset-block-start:0;inset-inline-start:0;width:0;height:0;overflow:hidden;pointer-events:none;color:var(--tn-acc);background:var(--tn-fg)}
+.tn-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.tn-detail{width:100%;max-width:58rem}
+.tn-bdi{unicode-bidi:isolate;direction:ltr}
+.tn-eyebrow{font:500 0.7rem/1.4 var(--tn-mono);letter-spacing:0.12em;text-transform:uppercase;color:var(--tn-acc-text)}
 .tn-eyebrow .tn-dim{color:var(--tn-mut)}
 .tn-section{display:flex;flex-direction:column;gap:0.5rem}
 .tn-section-head{display:flex;align-items:center;justify-content:space-between;gap:0.5rem;min-height:1.5rem}
@@ -1502,7 +1695,7 @@ const CSS = `
 .tn-preset span:first-child{font-family:var(--tn-mono);text-transform:uppercase;letter-spacing:0.1em;font-size:0.6rem;margin-inline-end:0.4rem}
 .tn-hero-side{display:flex;flex-direction:column;align-items:center;gap:0.25rem;flex:none}
 .tn-hero-side .tn-emblem{color:var(--tn-acc)}
-.tn-emblem-cap{font:0.6rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--tn-mut);text-align:center;max-width:11rem}
+.tn-emblem-cap{font:0.66rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--tn-mut);text-align:center;max-width:11rem}
 .tn-chip{display:inline-flex;align-items:center;font-family:var(--tn-display);font-weight:700;font-size:0.72rem;letter-spacing:0.08em;line-height:1;padding:0.2rem 0.35rem 0.15rem;border:1px solid var(--tn-acc);color:var(--tn-acc-text);white-space:nowrap}
 .tn-chip[data-tier=alone]{background:var(--tn-acc);color:var(--tn-on)}
 .tn-chip[data-tier=cap]{border-style:dashed;border-color:var(--tn-mut);color:var(--tn-mut)}
@@ -1520,12 +1713,23 @@ const CSS = `
 .tn-tl{display:flex;flex-wrap:wrap;align-items:baseline;gap:0.3rem 0.6rem;margin-block-end:0.45rem}
 .tn-tk{font:0.85rem var(--tn-mono);color:var(--tn-fg);overflow-wrap:anywhere}
 .tn-tname{font-family:var(--tn-display);font-weight:700;font-size:1.05rem;line-height:1;color:var(--tn-fg)}
-.tn-tstakes{font-size:0.68rem;color:var(--tn-mut);margin-inline-start:auto}
+.tn-tstakes{font-size:0.7rem;color:var(--tn-mut);margin-inline-start:auto}
 .tn-bar{width:100%;height:16px;color:var(--tn-acc)}
-.tn-tbar{position:relative}
+.tn-tbar{position:relative;display:flex;align-items:center;gap:0.75rem}
+.tn-tbar .tn-bar{flex:1 1 auto;min-width:0}
+.tn-count{flex:none;font:500 0.8rem var(--tn-mono);color:var(--tn-fg);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.tn-count i{font-style:normal;color:var(--tn-mut)}
+.tn-flag{display:inline-flex;align-items:center;height:1.2rem;padding:0 0.4rem;font:500 0.66rem var(--tn-mono);letter-spacing:0.04em;color:var(--tn-acc-text);border:1px dotted var(--tn-acc);white-space:nowrap;outline:none}
+.tn-flag[data-kind=fault]{border-style:solid}
+.tn-flag:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--tn-acc) 45%,transparent)}
+.tn-status{display:flex;align-items:flex-start;gap:0.4rem;padding:0.5rem 0.6rem;font-size:0.72rem;line-height:1.5;border:1px solid var(--tn-line);color:var(--tn-fg2)}
+.tn-status[data-ok=true]{color:var(--tn-acc-text);border-color:color-mix(in srgb,var(--tn-acc) 40%,transparent)}
+.tn-status[data-ok=false]{border-color:var(--tn-acc);color:var(--tn-fg)}
+.tn-note{margin:0;font-size:0.72rem;line-height:1.5;color:var(--tn-fg2);border-inline-start:2px dotted var(--tn-acc);padding-inline-start:0.6rem}
 .tn-tnext{margin:0.3rem 0 0;font-size:0.74rem;line-height:1.5;color:var(--tn-fg2)}
 .tn-tnext .tn-g{font:0.68rem var(--tn-mono);color:var(--tn-mut);font-variant-numeric:tabular-nums}
-.tn-tguar{margin:0.15rem 0 0;font-size:0.68rem;line-height:1.5;color:var(--tn-mut)}
+.tn-tguar{margin:0.15rem 0 0;font-size:0.72rem;line-height:1.5;color:var(--tn-fg2);width:fit-content;outline:none;cursor:help}
+.tn-tguar:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--tn-acc) 45%,transparent)}
 .tn-mirror:dir(rtl){transform:scaleX(-1)}
 .tn-enter{animation:tn-enter 380ms cubic-bezier(.2,.7,.2,1) both}
 @keyframes tn-enter{from{opacity:0;transform:translateY(4px)}}
@@ -1550,10 +1754,13 @@ const CSS = `
 .tn-fault .tn-band-close{color:var(--tn-mut)}
 .tn-leaving{animation:tn-leave 280ms ease forwards}
 @keyframes tn-leave{to{opacity:0;transform:translateY(-4px)}}
-.tn-intro{margin:0 1rem 0.75rem;display:flex;align-items:flex-start;gap:0.75rem;padding:0.7rem 0.85rem;border:1px solid var(--tn-line)}
+.tn-intro{margin:0 1rem 0.75rem;max-width:calc(58rem + 17rem);display:flex;align-items:flex-start;gap:0.75rem;padding:0.7rem 0.85rem;border:1px solid var(--tn-line)}
 .tn-intro p{margin:0}
 .tn-intro-body{font-size:0.74rem;line-height:1.55;color:var(--tn-fg2);max-width:48rem}
-.tn-pass-wrap{perspective:900px;max-width:23rem}
+.tn-pass-wrap{perspective:900px;max-width:23rem;width:100%}
+.tn-pass-grid{display:flex;flex-direction:column;gap:0.75rem}
+.tn-pass-side{display:flex;flex-direction:column;gap:0.75rem;min-width:0;max-width:23rem}
+@media (min-width:1400px){.tn-pass-grid{display:grid;grid-template-columns:23rem minmax(0,1fr);gap:1.5rem;align-items:start}.tn-pass-side{max-width:none}}
 .tn-pass{position:relative;overflow:hidden;background:var(--tn-acc);color:var(--tn-on);padding:1.1rem 1.25rem 1rem;transform-style:preserve-3d;transition:transform 400ms cubic-bezier(.2,.7,.2,1);will-change:transform}
 .tn-pass.tn-tilting{transition:transform 80ms linear}
 .tn-ptop{display:flex;justify-content:space-between;gap:0.5rem;font:0.62rem var(--tn-mono);letter-spacing:0.14em;text-transform:uppercase}
@@ -1563,11 +1770,13 @@ const CSS = `
 .tn-pemb .tn-emblem{color:var(--tn-on)}
 .tn-pname{font-family:var(--tn-display);font-weight:700;font-size:clamp(1.8rem,3.6vw,2.6rem);line-height:0.95;text-align:center;margin:0.2rem 0 0.8rem;min-height:1em;overflow-wrap:anywhere}
 .tn-prows{border-block-start:1px solid color-mix(in srgb,var(--tn-on) 35%,transparent);padding-block-start:0.55rem;display:flex;flex-direction:column;gap:0.35rem}
-.tn-prow{display:grid;grid-template-columns:minmax(0,1fr) 5.5rem;gap:0.15rem 0.75rem;align-items:center;font:0.66rem var(--tn-mono)}
+.tn-prow{display:grid;grid-template-columns:minmax(0,1fr) 4.5rem 2.6rem;gap:0.15rem 0.75rem;align-items:center;font:0.66rem var(--tn-mono)}
 .tn-prow[data-motion=on]{opacity:0;transform:translateY(4px);transition:opacity 400ms,transform 400ms}
 .tn-prow.tn-on{opacity:1;transform:none}
-.tn-prow .tn-pk{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tn-prow b{font-family:var(--tn-display);font-weight:700;letter-spacing:0.06em;margin-inline-start:0.4rem;text-transform:uppercase}
+.tn-prow .tn-pk{min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:0.4rem;overflow:hidden}
+.tn-prow .tn-pk>.tn-bdi{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.tn-prow b{font-family:var(--tn-display);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;unicode-bidi:isolate;white-space:nowrap}
+.tn-prow .tn-pn{direction:ltr;unicode-bidi:isolate;text-align:end;font-variant-numeric:tabular-nums}
 .tn-prow .tn-bar{height:8px;color:var(--tn-on)}
 .tn-pfoot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.25rem 0.75rem;margin-block-start:0.8rem;padding-block-start:0.55rem;border-block-start:1px solid color-mix(in srgb,var(--tn-on) 35%,transparent);font:0.58rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase}
 .tn-hash{font-family:var(--tn-mono);text-transform:none;letter-spacing:0.06em}
@@ -1581,10 +1790,39 @@ const CSS = `
   background-position:calc(50% - var(--tn-gx,0) * 120%) 0;-webkit-mask-image:${MASKS[2]};mask-image:${MASKS[2]};-webkit-mask-size:8px 8px;mask-size:8px 8px}
 .tn-pass[data-motion=on]:hover .tn-glare{opacity:1}
 .tn-chip.tn-out,.tn-chip.tn-in{-webkit-mask-size:8px 8px;mask-size:8px 8px}
-.tn-range{width:96px;height:8px;color:var(--tn-acc)}
+.tn-range{width:100%;height:10px;color:var(--tn-acc)}
 .tn-brow{position:relative;border-block-end:1px solid var(--tn-line)}
-.tn-anim-toggle{display:inline-flex;align-items:center;gap:0.4rem;padding-inline:0.75rem;font:0.6rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--tn-mut)}
-@media (prefers-reduced-motion:reduce){.tn-enter,.tn-scan,.tn-chip.tn-out,.tn-chip.tn-in,.tn-band-title,.tn-leaving{animation:none!important}.tn-prow,.tn-pass,.tn-ok{transition:none!important}.tn-prow{opacity:1;transform:none}}
+.tn-urow{display:flex;align-items:center;gap:0.6rem;padding:0.4rem 0.25rem;font-size:0.78rem;border-block-end:1px solid var(--tn-line)}
+.tn-urow:hover{background:var(--ui-row-hover-background,color-mix(in srgb,var(--tn-fg) 5%,transparent))}
+.tn-urow.tn-sub{padding-inline-start:1.6rem}
+.tn-uicon{flex:none;display:inline-flex;color:var(--tn-mut);outline:none}
+.tn-uicon:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--tn-acc) 45%,transparent)}
+.tn-uname{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tn-fg)}
+.tn-uname .tn-mono{font-family:var(--tn-mono)}
+.tn-uname .tn-dim{color:var(--tn-mut);font-size:0.7rem;margin-inline-start:0.5rem}
+.tn-uacts{flex:none;display:flex;align-items:center;gap:0.25rem;opacity:0;transition:opacity 120ms}
+.tn-urow:hover .tn-uacts,.tn-urow:focus-within .tn-uacts{opacity:1}
+.tn-uago{flex:none;min-width:5.5rem;text-align:end;font-size:0.72rem;color:var(--tn-fg2);font-variant-numeric:tabular-nums}
+.tn-ugroup{display:flex;align-items:center;gap:0.4rem;min-width:0;flex:1 1 auto;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;padding:0;text-align:start}
+.tn-ugroup:focus-visible{outline:1px solid var(--tn-acc);outline-offset:2px}
+.tn-ugroup b{font:600 0.78rem var(--tn-mono);color:var(--tn-acc-text);font-variant-numeric:tabular-nums}
+.tn-head{display:flex;flex-direction:column;gap:0.5rem;padding:0.6rem 1rem 0.5rem}
+.tn-head-row{display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem 0.75rem}
+.tn-head-ctl{display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem 1rem}
+.tn-bench{display:grid;grid-template-columns:2rem minmax(9rem,1fr) 7rem minmax(7rem,10rem) 8.5rem;align-items:center;gap:0.25rem 0.75rem;padding:0.5rem 0.25rem;font-size:0.78rem;border-block-end:1px solid var(--tn-line)}
+.tn-bench[data-pub=true]{grid-template-columns:2rem minmax(9rem,1fr) 7rem minmax(7rem,10rem) 8.5rem 3.5rem}
+.tn-bench-h{padding-block:0.25rem;border-block-end:1px solid var(--tn-line)}
+.tn-bench .tn-bm{min-width:0}
+.tn-bench .tn-bm>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tn-bench .tn-bsub{font-size:0.7rem;color:var(--tn-mut)}
+.tn-bench .tn-bnum{font:0.72rem var(--tn-mono);font-variant-numeric:tabular-nums;color:var(--tn-fg2);white-space:nowrap}
+.tn-bench .tn-end{text-align:end}
+.tn-wait{display:flex;flex-wrap:wrap;gap:0.3rem 1rem;padding:0.5rem 0.25rem;font-size:0.75rem;color:var(--tn-fg2)}
+.tn-anim-toggle{display:inline-flex;align-items:center;gap:0.4rem;font:0.66rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--tn-fg2);white-space:nowrap}
+.tn-anim-toggle[data-off=true]{opacity:0.6}
+.tn-root:dir(rtl),.tn-root:dir(rtl) *{letter-spacing:0!important}
+.tn-root:dir(rtl) :is(.tn-eyebrow,.tn-emblem-cap,.tn-anim-toggle,.tn-ptop,.tn-pfoot,.tn-psig,.tn-preset span:first-child){font-family:var(--font-sans,system-ui),system-ui,sans-serif;text-transform:none}
+@media (prefers-reduced-motion:reduce){.tn-uacts{transition:none}.tn-enter,.tn-scan,.tn-chip.tn-out,.tn-chip.tn-in,.tn-band-title,.tn-leaving{animation:none!important}.tn-prow,.tn-pass,.tn-ok{transition:none!important}.tn-prow{opacity:1;transform:none}}
 `
 
 // ------------------------------------------------------------------------------------------------ pieces
@@ -1624,15 +1862,11 @@ function TierChip({ tier, t, motion }) {
   })
 }
 
-function StatePill({ label, tip, tone, t }) {
+/** A state flag in the one colour: dotted outline for carried / trial states, solid outline for a fault. */
+function StatePill({ label, tip, kind, t }) {
   return jsx(Tip, {
     label: tip,
-    children: jsx('span', {
-      'aria-label': t('state.aria', { label, tip }),
-      className: 'inline-flex rounded-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring/50',
-      tabIndex: 0,
-      children: jsx(PanelPill, { tone, children: label })
-    })
+    children: jsx('span', { 'aria-label': t('state.aria', { label, tip }), className: 'tn-flag', 'data-kind': kind || 'state', tabIndex: 0, children: label })
   })
 }
 
@@ -1642,18 +1876,57 @@ function Eyebrow({ n, children, as = 'h4' }) {
 }
 
 const SERIES_SESSIONS = 2 // rule.SESSIONS: T3 also needs the series spread over at least two sessions
+const WALD = { low: [0.1, 0.3], medium: [0.05, 0.2] } // params.WALD (alpha = beta = 0.05): the middle tier's stakes
+const LN_B = Math.log(0.05 / 0.95)
 
-/** Fill fraction of a type's bar: series toward T3; T3 is solid; a capped type shows only its track. */
+/** Verified successes without a fault still needed before T2 (from the Wald score); null when T2 is out of reach. */
+function toT2(ty) {
+  const w = WALD[ty.stakes]
+  if (!w || !ty.reversible || ty.wald == null || ty.capped) return null
+  const step = -Math.log((1 - w[1]) / (1 - w[0]))
+  return Math.max(0, Math.ceil((ty.wald - LN_B) / step - 1e-9))
+}
+
+/**
+ * One number, one meaning: every bar runs from 0 to the series T3 requires, filled to series / required, one
+ * segment per success needed; T3 is solid; a capped type shows only its dotted track. A T1 type that can reach T2
+ * carries a notch at series + the successes still missing for T2.
+ */
 const fillOf = ty => (ty.capped ? 0 : tierKey(ty) === 'alone' ? 1 : ty.required > 0 ? clamp01(ty.series / ty.required) : 0)
+function notchOf(ty) {
+  if (ty.capped || tierKey(ty) !== 'ask' || !(ty.required > 0)) return null
+  const k = toT2(ty)
+  if (k == null) return null
+  const at = (ty.series || 0) + k
+  return at < ty.required ? at / ty.required : null
+}
+const barGeo = ty => ({ segments: ty.capped ? 0 : ty.required || 0, notch: notchOf(ty) })
 
+/** The next step first (T2 when it is the next one), then T3. */
 function nextLine(ty, t, spot) {
   const tier = tierKey(ty)
   if (ty.capped) return t('type.always_asks')
   if (tier === 'alone') return t('type.tenured_line', { k: Math.round(1 / (spot || 0.1)) })
   const left = Math.max(0, (ty.required || 0) - (ty.series || 0))
+  const k2 = tier === 'ask' ? toT2(ty) : null
+  if (k2) return left > 0 ? t('type.more_to_t2', { n: k2 }) + ' · ' + t('type.more_to_t3', { n: left }) : t('type.more_to_t2', { n: k2 })
   if (left > 0) return t('type.next', { n: left })
   if ((ty.sessions || 0) < SERIES_SESSIONS) return t('type.next_session')
   return ''
+}
+
+/** "9/52": the series against what T3 requires; a capped type has no series to show. */
+function Count({ ty }) {
+  if (ty.capped) return null
+  return jsxs('span', { 'aria-hidden': true, className: 'tn-count', children: [String(ty.series || 0), jsx('i', { children: '/' + String(ty.required || 0) })] })
+}
+
+/** The guarantee in plain words, its statistical detail in a tooltip. */
+function Guarantee({ g, t }) {
+  const detail = t(g.conditional ? 'type.guarantee_provisional' : 'type.guarantee', { aoql: pct(g.aoql), worst: pct(g.worst_case) })
+  if (!(g.aoql > 0)) return jsx('p', { className: 'tn-tguar', children: detail })
+  const plain = t('type.guarantee_plain', { k: Math.max(1, Math.round(1 / g.aoql)) }) + (g.conditional ? ' · ' + t('state.provisional') : '')
+  return jsx(Tip, { label: detail, children: jsx('p', { 'aria-label': plain + ' ' + detail, className: 'tn-tguar', tabIndex: 0, children: plain }) })
 }
 
 function TypeRow({ type, t, index, motion, change, spot }) {
@@ -1662,6 +1935,7 @@ function TypeRow({ type, t, index, motion, change, spot }) {
   const stakes = ['low', 'medium', 'high'].includes(type.stakes) ? t('type.stakes_' + type.stakes) : t('type.stakes_other', { stakes: type.stakes })
   const progress = t('type.in_a_row', { series: type.series, required: type.required })
   const next = nextLine(type, t, spot)
+  const geo = barGeo(type)
   return jsxs('div', {
     className: cn('tn-trow', motion && 'tn-enter'),
     style: motion ? { animationDelay: `${index * 40}ms` } : undefined,
@@ -1673,7 +1947,7 @@ function TypeRow({ type, t, index, motion, change, spot }) {
           jsxs('div', {
             className: 'tn-tl',
             children: [
-              jsx('span', { className: 'tn-tk', children: type.type }),
+              jsx('span', { className: 'tn-tk tn-bdi', children: type.type }),
               jsx(TierChip, { tier, t, motion }),
               jsx('span', { className: 'tn-tname', children: tierName(tier, t) }),
               jsx('span', { className: 'tn-tstakes', children: stakes })
@@ -1686,20 +1960,21 @@ function TypeRow({ type, t, index, motion, change, spot }) {
             'aria-valuenow': type.capped ? undefined : type.series,
             className: 'tn-tbar',
             role: type.capped ? 'img' : 'progressbar',
-            children: jsx(DitherBar, { change: change && change.dir !== 'spot' ? change : null, delay: 120 + index * 40, motion, solid: tier === 'alone', track: type.capped, value: fillOf(type) })
+            children: [
+              jsx(DitherBar, { change: change && change.dir !== 'spot' ? change : null, delay: 120 + index * 40, motion, notch: geo.notch, segments: geo.segments, solid: tier === 'alone', track: type.capped, value: fillOf(type) }),
+              jsx(Count, { ty: type })
+            ]
           }),
           jsxs('p', {
             className: 'tn-tnext',
             children: [
               next,
               !type.capped
-                ? jsx('span', { className: 'tn-g', children: (next ? ' · ' : '') + progress + ' · ' + t('type.sessions', { n: type.sessions }) })
+                ? jsx('span', { className: 'tn-g', children: (next ? ' · ' : '') + t('type.sessions', { n: type.sessions }) })
                 : null
             ]
           }),
-          !type.capped && g
-            ? jsx('p', { className: 'tn-tguar', children: t(g.conditional ? 'type.guarantee_provisional' : 'type.guarantee', { aoql: pct(g.aoql), worst: pct(g.worst_case) }) })
-            : null
+          !type.capped && g ? jsx(Guarantee, { g, t }) : null
         ]
       }),
       change && change.dir === 'spot' && motion ? jsx('span', { 'aria-hidden': true, className: 'tn-scan' }, change.token) : null
@@ -1734,15 +2009,28 @@ function Intro({ t, spot }) {
   })
 }
 
+/** Consecutive actions of the same type with no file to name collapse into one row: "12 × file:write". */
+function groupUndo(rows) {
+  const out = []
+  for (const r of rows) {
+    const last = out[out.length - 1]
+    if (!r.file && last && !last.file && last.type === r.type && last.agent === r.agent && last.profile === r.profile) last.rows.push(r)
+    else out.push({ key: r.profile + '|' + r.id, file: r.file, type: r.type, agent: r.agent, profile: r.profile, rows: [r] })
+  }
+  return out
+}
+
 function RecentSection({ agent, t, n }) {
   const profile = useValue(host.state.profile)
   const qc = useQueryClient()
   const [busy, setBusy] = useState(null)
   const [flagging, setFlagging] = useState(null)
+  const [open, setOpen] = useState({})
   const { data } = useQuery({ queryKey: ['tenure', profile, 'activity'], queryFn: () => rest('/activity?since=0'), refetchInterval: HEARTBEAT_MS })
   const [all, setAll] = useState(false)
   const every = ((data && data.undoable) || []).filter(r => r.agent === agent.agent && r.profile === agent.profile)
-  const rows = all ? every : every.slice(0, 5)
+  const groups = groupUndo(every)
+  const shown = all ? groups : groups.slice(0, 5)
   const act = async (key, fn, ok, fail) => {
     setBusy(key)
     try {
@@ -1756,59 +2044,98 @@ function RecentSection({ agent, t, n }) {
       setBusy(null)
     }
   }
+  const icon = () =>
+    jsx(Tip, {
+      label: t('recent.restore_icon'),
+      children: jsx('span', { 'aria-label': t('recent.restore_icon'), className: 'tn-uicon', role: 'img', tabIndex: 0, children: jsx(Codicon, { name: 'history', size: '0.8rem' }) })
+    })
+  const name = r =>
+    jsxs('span', {
+      className: 'tn-uname',
+      children: [
+        jsx('span', { className: 'tn-mono tn-bdi', children: r.file || r.type }),
+        r.files > 1 ? jsx('span', { className: 'tn-dim tn-bdi', children: t('recent.more_files', { n: r.files - 1 }) }) : null,
+        r.file ? jsx('span', { className: 'tn-dim tn-mono tn-bdi', children: r.type }) : jsx('span', { className: 'tn-dim', children: t('recent.no_snapshot') })
+      ]
+    })
+  const row = (r, sub) =>
+    jsxs(
+      'div',
+      {
+        className: cn('tn-urow', sub && 'tn-sub'),
+        children: [
+          icon(),
+          name(r),
+          r.counts_as_fault === false ? jsx(StatePill, { kind: 'fault', label: t('recent.check_failed'), tip: t('recent.check_failed_tip'), t }) : null,
+          jsxs('span', {
+            className: 'tn-uacts',
+            children: [
+              jsx(Tip, {
+                label: t('recent.flag_tip'),
+                children: jsx(Button, { disabled: busy !== null, onClick: () => setFlagging(r), size: 'xs', variant: 'ghost', children: t('recent.flag') })
+              }),
+              jsx(Tip, {
+                label: t('recent.undo_tip'),
+                children: jsxs(Button, {
+                  'aria-busy': busy === 'undo' + r.id || undefined,
+                  disabled: busy !== null,
+                  onClick: () =>
+                    act('undo' + r.id, () => rest('/undo?of=' + encodeURIComponent(r.profile), { method: 'POST', body: { id: r.id } }), t('recent.undone'), t('recent.undo_failed')),
+                  size: 'xs',
+                  variant: 'outline',
+                  children: [busy === 'undo' + r.id ? jsx(Codicon, { name: 'loading', size: '0.75rem', spinning: true }) : null, t('recent.undo')]
+                })
+              })
+            ]
+          }),
+          jsx('span', { className: 'tn-uago', children: ago(t, r.age) })
+        ]
+      },
+      r.profile + r.id
+    )
+  const groupRow = g => {
+    const expanded = !!open[g.key]
+    const first = g.rows[0]
+    return [
+      jsxs(
+        'div',
+        {
+          className: 'tn-urow',
+          children: [
+            icon(),
+            jsxs('button', {
+              'aria-expanded': expanded,
+              'aria-label': (expanded ? t('recent.collapse') : t('recent.expand')) + ': ' + g.rows.length + ' × ' + g.type,
+              className: 'tn-ugroup',
+              onClick: () => setOpen(o => ({ ...o, [g.key]: !expanded })),
+              type: 'button',
+              children: [
+                jsx(Codicon, { name: expanded ? 'chevron-down' : 'chevron-right', size: '0.75rem' }),
+                jsx('b', { className: 'tn-bdi', children: g.rows.length + ' ×' }),
+                jsx('span', { className: 'tn-mono tn-bdi', children: g.type }),
+                jsx('span', { className: 'tn-dim', style: { color: 'var(--tn-mut)', fontSize: '0.7rem' }, children: t('recent.no_snapshot') })
+              ]
+            }),
+            jsx('span', { className: 'tn-uago', children: ago(t, first.age) })
+          ]
+        },
+        'g' + g.key
+      ),
+      ...(expanded ? g.rows.map(r => row(r, true)) : [])
+    ]
+  }
   return jsxs('section', {
     className: 'tn-section',
     children: [
       jsx(Eyebrow, { n, children: t('recent.title') }),
-      rows.length === 0
-        ? jsx('p', { className: 'text-xs text-muted-foreground/70', style: { margin: 0 }, children: t('recent.none') })
+      shown.length === 0
+        ? jsx('p', { style: { margin: 0, fontSize: '0.75rem', color: 'var(--tn-fg2)' }, children: t('recent.none') })
         : jsx('div', {
             className: 'flex flex-col',
-            children: rows.map(r =>
-              jsxs(
-                'div',
-                {
-                  className: 'tn-brow group/row flex items-center gap-3 px-1 py-1.5 text-[0.78rem] hover:bg-(--ui-row-hover-background)',
-                  children: [
-                    jsx(Codicon, { className: 'shrink-0 text-muted-foreground/55', name: 'history', size: '0.8rem' }),
-                    jsxs('span', {
-                      className: 'min-w-0 flex-1 truncate text-[0.75rem] text-foreground/85',
-                      children: [
-                        jsx('span', { className: 'font-mono', children: r.file || r.type }),
-                        r.files > 1 ? jsx('span', { className: 'text-muted-foreground/60', children: ' ' + t('recent.more_files', { n: r.files - 1 }) }) : null,
-                        r.file ? jsx('span', { className: 'font-mono text-[0.68rem] text-muted-foreground/55', style: { marginInlineStart: '0.5rem' }, children: r.type }) : null
-                      ]
-                    }),
-                    r.counts_as_fault === false ? jsx(StatePill, { label: t('recent.check_failed'), tip: t('recent.check_failed_tip'), tone: 'bad', t }) : null,
-                    jsx('span', { className: 'shrink-0 text-[0.7rem] tabular-nums text-muted-foreground/60', children: ago(t, r.age) }),
-                    jsxs('span', {
-                      className: 'flex shrink-0 items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover/row:opacity-100',
-                      children: [
-                        jsx(Tip, {
-                          label: t('recent.flag_tip'),
-                          children: jsx(Button, { disabled: busy !== null, onClick: () => setFlagging(r), size: 'xs', variant: 'ghost', children: t('recent.flag') })
-                        }),
-                        jsx(Tip, {
-                          label: t('recent.undo_tip'),
-                          children: jsxs(Button, {
-                            'aria-busy': busy === 'undo' + r.id || undefined,
-                            disabled: busy !== null,
-                            onClick: () =>
-                              act('undo' + r.id, () => rest('/undo?of=' + encodeURIComponent(r.profile), { method: 'POST', body: { id: r.id } }), t('recent.undone'), t('recent.undo_failed')),
-                            size: 'xs',
-                            variant: 'outline',
-                            children: [busy === 'undo' + r.id ? jsx(Codicon, { name: 'loading', size: '0.75rem', spinning: true }) : null, t('recent.undo')]
-                          })
-                        })
-                      ]
-                    })
-                  ]
-                },
-                r.profile + r.id
-              )
-            ).concat(
-              every.length > 5
-                ? [jsx('div', { className: 'pt-1', children: jsx(Button, { onClick: () => setAll(!all), size: 'xs', variant: 'ghost', children: all ? t('recent.show_fewer') : t('recent.show_all', { n: every.length }) }) }, 'more')]
+            style: { borderBlockStart: '1px solid var(--tn-line)' },
+            children: shown.flatMap(g => (g.rows.length > 1 ? groupRow(g) : [row(g.rows[0], false)])).concat(
+              groups.length > 5
+                ? [jsx('div', { style: { paddingBlockStart: '0.5rem' }, children: jsx(Button, { onClick: () => setAll(!all), size: 'xs', variant: 'outline', children: all ? t('recent.show_fewer') : t('recent.show_all', { n: groups.length }) }) }, 'more')]
                 : []
             )
           }),
@@ -1970,14 +2297,19 @@ function PassportCard({ agent, doc, settled, ok, t, motion }) {
           ref: rowsRef,
           children: shown.map((ty, i) => {
             const tier = tierKey(ty)
+            const geo = barGeo(ty)
             return jsxs(
               'div',
               {
                 className: cn('tn-prow', !motion && 'tn-on'),
                 'data-motion': motion ? 'on' : 'off',
                 children: [
-                  jsxs('span', { className: 'tn-pk', children: [`#${pad2(i + 1)} ${ty.type}`, jsx('b', { children: `${TIER_SHORT[tier]} · ${tierName(tier, t)}` })] }),
-                  jsx(DitherBar, { delay: 1700 + i * 200, motion, rows: 3, solid: tier === 'alone', track: ty.capped, value: fillOf(ty) })
+                  jsxs('span', {
+                    className: 'tn-pk',
+                    children: [jsx('span', { className: 'tn-bdi', children: `#${pad2(i + 1)} ${ty.type}` }), jsx('b', { children: `${TIER_SHORT[tier]} · ${tierName(tier, t)}` })]
+                  }),
+                  jsx(DitherBar, { delay: 1700 + i * 200, motion, notch: geo.notch, rows: 3, segments: geo.segments, solid: tier === 'alone', track: ty.capped, value: fillOf(ty) }),
+                  jsx('span', { className: 'tn-pn', children: ty.capped ? '' : `${ty.series || 0}/${ty.required || 0}` })
                 ]
               },
               ty.type
@@ -1987,7 +2319,7 @@ function PassportCard({ agent, doc, settled, ok, t, motion }) {
         jsxs('div', {
           className: 'tn-pfoot',
           children: [
-            jsx('span', { children: t('benchmark.faults', { n: totals.f, total: totals.n }) }),
+            jsx('span', { children: t('passport.faults_checks', { n: totals.f, total: totals.n }) }),
             jsxs('span', { children: [t('passport.ledger'), ' ', jsx('span', { className: 'tn-hash', ref: hashRef, children: motion ? '········' : head || '········' })] })
           ]
         }),
@@ -2011,6 +2343,7 @@ function PassportSection({ agent, t, n, motion }) {
   })
   const ok = doc && Array.isArray(doc.verify) && doc.verify.length === 0
   const p = doc && doc.passport
+  const pending = !!(agent.settings && agent.settings.pending)
   return jsxs('section', {
     className: 'tn-section',
     children: [
@@ -2021,13 +2354,20 @@ function PassportSection({ agent, t, n, motion }) {
           p ? jsx(CopyButton, { buttonSize: 'xs', label: t('passport.copy'), showLabel: true, text: JSON.stringify(p, null, 2) }) : null
         ]
       }),
+      jsxs('div', {
+        className: 'tn-pass-grid',
+        children: [
       jsx(PassportCard, { agent, doc, motion, ok: !!ok, settled: !!error || (!!doc && !isLoading), t }, agent.key),
+      jsxs('div', {
+        className: 'tn-pass-side',
+        children: [
+      pending ? jsx('p', { className: 'tn-note', children: t('passport.pending_note') }) : null,
       isLoading && !doc
-        ? jsxs('p', { className: 'flex items-center gap-1.5 text-xs text-muted-foreground/70', style: { margin: 0 }, children: [jsx(Codicon, { name: 'loading', size: '0.8rem', spinning: true }), t('passport.verifying')] })
+        ? jsxs('p', { className: 'tn-status', style: { margin: 0 }, children: [jsx(Codicon, { name: 'loading', size: '0.8rem', spinning: true }), t('passport.verifying')] })
         : jsxs('div', {
-            className: cn('flex items-start gap-1.5 p-2 text-[0.72rem]', ok ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'),
+            className: 'tn-status',
+            'data-ok': ok ? 'true' : 'false',
             role: 'status',
-            style: { maxWidth: '23rem' },
             children: [
               jsx(Codicon, { className: 'mt-px shrink-0', name: ok ? 'verified-filled' : 'warning', size: '0.85rem' }),
               jsx('span', {
@@ -2065,6 +2405,10 @@ function PassportSection({ agent, t, n, motion }) {
             ]
           })
         : null
+        ]
+      })
+        ]
+      })
     ]
   })
 }
@@ -2078,6 +2422,8 @@ function useTransitions(agent) {
   const [changes, setChanges] = useState({})
   const [moment, setMoment] = useState(null)
   const [pulse, setPulse] = useState(0)
+  const timers = useRef([])
+  useEffect(() => () => timers.current.forEach(clearTimeout), [])
   useEffect(() => {
     const now = new Map((agent.types || []).map(ty => [ty.type, { rank: TIER_RANK[tierKey(ty)], faults: ty.faults || 0, spots: ty.spot_checks || 0 }]))
     const prev = seen.get(agent.key)
@@ -2092,34 +2438,60 @@ function useTransitions(agent) {
       const b = now.get(ty.type)
       if (!a) continue
       let m = null
-      if (b.rank < a.rank || b.faults > a.faults) {
+      if (b.faults > a.faults) {
+        // A fault, and only a fault, crumbles the bar; "Back on probation" when it sent an earned type back to T1.
         out[ty.type] = { dir: 'down', token: stamp + ty.type }
         if (b.rank === TIER_RANK.ask && a.rank > TIER_RANK.ask) m = { kind: 'probation', type: ty }
+      } else if (b.rank < a.rank) {
+        // A drop without a fault (a revoke, stricter settings, a stakes change, a copied profile): no crumble, no band.
+        out[ty.type] = { dir: 'reprint', token: stamp + ty.type }
       } else if (b.rank > a.rank) {
         out[ty.type] = { dir: 'up', token: stamp + ty.type }
-        m = { kind: b.rank === TIER_RANK.alone ? 'granted' : 'review', type: ty }
+        // CAP -> T1 is no promotion: a moment only from T2 up, "Under review" for T2, "Tenure granted" for T3.
+        if (b.rank === TIER_RANK.alone) m = { kind: 'granted', type: ty }
+        else if (b.rank === TIER_RANK.notify) m = { kind: 'review', type: ty }
       } else if (b.spots > a.spots) out[ty.type] = { dir: 'spot', token: stamp + ty.type }
       if (m && (!best || rankOf(m) > rankOf(best))) best = m
     }
-    if (Object.keys(out).length) setChanges(c => ({ ...c, ...out }))
-    if (Object.values(out).some(c => c.dir === 'up')) setPulse(x => x + 1)
+    if (Object.keys(out).length) {
+      setChanges(c => ({ ...c, ...out }))
+      // The scan line plays once: the spot-check change is gone after its 900 ms sweep.
+      const spots = Object.keys(out).filter(k => out[k].dir === 'spot')
+      if (spots.length)
+        timers.current.push(
+          setTimeout(() => setChanges(c => {
+            const next = { ...c }
+            for (const k of spots) if (next[k] && next[k].token === out[k].token) delete next[k]
+            return next
+          }), 950)
+        )
+    }
+    if (best && best.kind !== 'probation') setPulse(x => x + 1)
     if (best) setMoment({ ...best, key: stamp })
   }, [agent])
-  return { changes, moment, pulse, dismiss: () => setMoment(null) }
+  return { changes, moment, pulse, dismiss: key => setMoment(m => (m && m.key === key ? null : m)) }
 }
+
+const momentTitle = (moment, t) =>
+  moment.kind === 'probation' ? t('moment.probation') : moment.kind === 'granted' ? t('moment.granted') : t('moment.review')
 
 /** C / D. The big moment, once: a filled accent band for a promotion, a quiet card for a fault (the repair path). */
 function MomentBand({ moment, agent, t, motion, onClose }) {
   const ref = useRef(null)
   const [leaving, setLeaving] = useState(false)
+  const leave = useRef(0)
   const close = () => {
     if (!motion) return onClose()
     setLeaving(true)
-    setTimeout(onClose, 280)
+    clearTimeout(leave.current)
+    leave.current = setTimeout(onClose, 280)
   }
   useEffect(() => {
     const id = setTimeout(close, 6000)
-    return () => clearTimeout(id)
+    return () => {
+      clearTimeout(id)
+      clearTimeout(leave.current)
+    }
   }, [moment.key])
   const down = moment.kind === 'probation'
   const paintFade = k => {
@@ -2140,22 +2512,23 @@ function MomentBand({ moment, agent, t, motion, onClose }) {
     }
   }
   useRepaint(() => paintFade(1))
+  useWidth(ref, () => paintFade(1))
   useEffect(() => {
     if (down) return
     if (!motion) return paintFade(1)
     return tween(1000, k => paintFade(k), null, 200)
   }, [moment.key, motion])
   const ty = moment.type
-  const title = down ? t('moment.probation') : moment.kind === 'granted' ? t('moment.granted') : t('moment.review')
+  const title = momentTitle(moment, t)
   const sub = down ? nextLine(ty, t, (agent.settings || {}).spot) : `${displayName(agent.model)} · ${TierLabel(tierKey(ty), t)}`
+  const geo = barGeo(ty)
   return jsxs('div', {
-    'aria-live': 'polite',
     className: cn(down ? 'tn-fault' : 'tn-band', leaving && 'tn-leaving', motion && 'tn-enter'),
     'data-motion': motion ? 'on' : 'off',
-    role: 'status',
     children: [
       jsx('button', { 'aria-label': t('moment.dismiss'), className: 'tn-band-close', onClick: close, type: 'button', children: jsx(Codicon, { name: 'close', size: '0.8rem' }) }),
       jsxs('div', {
+        'aria-hidden': true,
         className: down ? undefined : 'tn-band-in',
         children: [
           jsx('div', { className: 'tn-eyebrow', children: t(down ? 'moment.eyebrow_down' : 'moment.eyebrow_up', { type: ty.type }) }),
@@ -2164,7 +2537,7 @@ function MomentBand({ moment, agent, t, motion, onClose }) {
         ]
       }),
       down
-        ? jsx('div', { style: { marginBlockStart: '0.75rem' }, children: jsx(DitherBar, { change: { dir: 'down', token: moment.key }, motion, value: fillOf(ty) }) })
+        ? jsx('div', { style: { marginBlockStart: '0.75rem' }, children: jsx(DitherBar, { change: { dir: 'down', token: moment.key }, motion, notch: geo.notch, segments: geo.segments, value: fillOf(ty) }) })
         : jsx('canvas', { 'aria-hidden': true, className: 'tn-mirror', ref })
     ]
   })
@@ -2188,8 +2561,14 @@ function AgentDetail({ agent, t, onRevoke }) {
       ]
     })
   return jsxs(PanelDetail, {
-    className: 'tn-root max-w-3xl',
+    className: 'tn-root tn-detail',
     children: [
+      jsx('div', {
+        'aria-live': 'polite',
+        className: 'tn-sr',
+        role: 'status',
+        children: moment ? `${momentTitle(moment, t)} · ${moment.type.type} · ${moment.kind === 'probation' ? nextLine(moment.type, t, s.spot) : TierLabel(tierKey(moment.type), t)}` : ''
+      }),
       jsxs('header', {
         className: 'tn-hero',
         children: [
@@ -2201,9 +2580,10 @@ function AgentDetail({ agent, t, onRevoke }) {
                 children: [
                   '#' + t('hero.agent'),
                   jsx('span', { className: 'tn-dim', children: ' · ' }),
-                  jsx(Tip, { label: t('meta.provider'), children: jsx('span', { tabIndex: 0, children: agent.provider }) }),
+                  jsx(Tip, { label: t('meta.provider'), children: jsx('span', { className: 'tn-bdi', tabIndex: 0, children: agent.provider }) }),
                   jsx('span', { className: 'tn-dim', children: ' · ' }),
-                  `${t('meta.profile')} ${agent.profile}`
+                  `${t('meta.profile')} `,
+                  jsx('span', { className: 'tn-bdi', children: agent.profile })
                 ]
               }),
               jsx(Tip, { label: agent.agent, children: jsx('h3', { className: 'tn-name', children: displayName(agent.model) }) }),
@@ -2211,10 +2591,10 @@ function AgentDetail({ agent, t, onRevoke }) {
                 className: 'tn-pills',
                 children: [
                   jsx(TierChip, { motion, t, tier: bestTier(agent) }),
-                  agent.provisional ? jsx(StatePill, { label: t('state.provisional'), tip: t('state.provisional_tip'), tone: 'warn', t }) : null,
-                  agent.trial ? jsx(StatePill, { label: t('state.trial'), tip: t('state.trial_tip'), tone: 'warn', t }) : null,
-                  agent.unresolved_fault ? jsx(StatePill, { label: t('state.fault'), tip: t('state.fault_tip'), tone: 'bad', t }) : null,
-                  agent.suspended ? jsx(StatePill, { label: t('state.suspended'), tip: t('state.suspended_tip'), tone: 'bad', t }) : null
+                  agent.provisional ? jsx(StatePill, { label: t('state.provisional'), tip: t('state.provisional_tip'), t }) : null,
+                  agent.trial ? jsx(StatePill, { label: t('state.trial'), tip: t('state.trial_tip'), t }) : null,
+                  agent.unresolved_fault ? jsx(StatePill, { kind: 'fault', label: t('state.fault'), tip: t('state.fault_tip'), t }) : null,
+                  agent.suspended ? jsx(StatePill, { kind: 'fault', label: t('state.suspended'), tip: t('state.suspended_tip'), t }) : null
                 ]
               }),
               jsxs('div', {
@@ -2250,7 +2630,7 @@ function AgentDetail({ agent, t, onRevoke }) {
           })
         ]
       }),
-      moment ? jsx(MomentBand, { agent, moment, motion, onClose: dismiss, t }, moment.key) : null,
+      moment ? jsx(MomentBand, { agent, moment, motion, onClose: () => dismiss(moment.key), t }, moment.key) : null,
       jsxs('section', {
         className: 'tn-section',
         children: [
@@ -2306,7 +2686,7 @@ function AgentsView({ data, t }) {
                   {
                     active: !!agent && agent.key === a.key,
                     dotClassName: TIER_DOT[bestTier(a)],
-                    menuItems: [{ icon: 'circle-slash', label: t('revoke.action'), onSelect: () => setPending(a), tone: 'danger' }],
+                    menuItems: [{ icon: 'circle-slash', label: t('revoke.action'), onSelect: () => setPending(a) }],
                     menuLabel: displayName(a.model),
                     meta: TIER_SHORT[bestTier(a)],
                     onSelect: () => setSelected(a.key),
@@ -2341,6 +2721,8 @@ function AgentsView({ data, t }) {
 }
 
 
+const RANK_MIN = 20 // checks on a type before a model is ranked on it
+
 function BenchmarkView({ t }) {
   const profile = useValue(host.state.profile)
   const motion = useMotion()
@@ -2360,8 +2742,14 @@ function BenchmarkView({ t }) {
   const q = query.trim().toLowerCase()
   const visibleTypes = types.filter(x => !q || x.toLowerCase().includes(q))
   const type = selected && visibleTypes.includes(selected) ? selected : visibleTypes[0]
-  const ranked = rows.filter(r => r.type === type)
-  const pub = (ranked.find(r => r.public) || {}).public
+  // Ranked from RANK_MIN checks on the type: below that, the 95 % range is too wide to order anything.
+  const ofType = rows.filter(r => r.type === type)
+  const ranked = ofType.filter(r => r.successes + r.faults >= RANK_MIN)
+  const waiting = ofType.filter(r => r.successes + r.faults < RANK_MIN)
+  const max = Math.min(1, Math.max(0.05, Math.ceil(Math.max(0, ...ranked.map(r => r.high || 0)) * 20) / 20))
+  const pub = (ofType.find(r => r.public) || {}).public
+  // The public column only when most ranked models have a public score.
+  const showPub = ranked.length > 0 && ranked.filter(r => r.public && r.public.new != null).length * 2 >= ranked.length
   return jsxs(PanelBody, {
     className: 'px-4 pb-4',
     children: [
@@ -2377,7 +2765,7 @@ function BenchmarkView({ t }) {
               {
                 active: x === type,
                 icon: 'symbol-event',
-                meta: String(rows.filter(r => r.type === x).length),
+                meta: String(rows.filter(r => r.type === x && r.successes + r.faults >= RANK_MIN).length),
                 onSelect: () => setSelected(x),
                 rowKey: x,
                 title: jsx('span', { className: 'font-mono', children: x })
@@ -2391,7 +2779,7 @@ function BenchmarkView({ t }) {
       !type
         ? jsx(PanelEmpty, { description: t('common.no_match'), icon: 'search' })
         : jsxs(PanelDetail, {
-            className: 'tn-root max-w-3xl',
+            className: 'tn-root tn-detail',
             children: [
               jsxs('header', {
                 className: 'tn-hero',
@@ -2403,72 +2791,80 @@ function BenchmarkView({ t }) {
                 ]
               }),
               jsxs('div', {
-                className: 'flex items-center gap-x-3 px-1',
                 'aria-hidden': true,
+                className: 'tn-bench tn-bench-h',
+                'data-pub': showPub ? 'true' : 'false',
                 children: [
-                  jsx('span', { className: 'w-6 shrink-0' }),
-                  jsx('span', { className: 'min-w-[10rem] flex-1' }),
-                  jsxs('span', {
-                    className: 'flex shrink-0 items-center gap-3',
-                    children: [
-                      jsx('span', { className: 'tn-eyebrow w-24', style: { textAlign: 'end' }, children: t('benchmark.col_faults') }),
-                      jsx('span', { className: 'tn-eyebrow w-24', children: t('benchmark.col_range') }),
-                      jsx('span', { className: 'tn-eyebrow w-28', children: t('benchmark.col_rate') }),
-                      jsx('span', { className: 'tn-eyebrow w-12', style: { textAlign: 'end' }, children: t('benchmark.col_public') })
-                    ]
-                  })
+                  jsx('span', {}),
+                  jsx('span', {}),
+                  jsx('span', { className: 'tn-eyebrow tn-end', children: t('benchmark.col_faults') }),
+                  jsx('span', { className: 'tn-eyebrow', children: t('benchmark.col_range') }),
+                  jsx('span', { className: 'tn-eyebrow', children: t('benchmark.col_rate') }),
+                  showPub ? jsx('span', { className: 'tn-eyebrow tn-end', children: t('benchmark.col_public') }) : null
                 ]
               }),
               jsx('div', {
                 className: 'flex flex-col',
-                style: { borderBlockStart: '1px solid var(--tn-line)' },
                 children: ranked.map((r, i) =>
                   jsxs(
                     'div',
                     {
-                      className: cn('tn-brow flex flex-wrap items-center gap-x-3 gap-y-1 px-1 py-2 text-[0.78rem] hover:bg-(--ui-row-hover-background)', motion && 'tn-enter'),
+                      className: cn('tn-bench', motion && 'tn-enter'),
+                      'data-pub': showPub ? 'true' : 'false',
                       style: motion ? { animationDelay: `${i * 40}ms` } : undefined,
                       children: [
-                        jsx('span', { className: 'tn-tnum w-6 shrink-0', style: { paddingBlockStart: 0 }, children: '#' + pad2(i + 1) }),
+                        jsx('span', { className: 'tn-tnum', style: { paddingBlockStart: 0 }, children: '#' + pad2(i + 1) }),
                         jsxs('span', {
-                          className: 'min-w-[10rem] flex-1',
+                          className: 'tn-bm',
                           children: [
-                            jsx(Tip, { label: r.agent, children: jsx('span', { className: 'block truncate text-foreground/85', children: displayName(r.model) }) }),
-                            jsx('span', { className: 'block truncate text-[0.68rem] text-muted-foreground/65', children: `${r.provider} · ${r.profile}` })
+                            jsx(Tip, { label: r.agent, children: jsx('span', { style: { color: 'var(--tn-fg)' }, children: displayName(r.model) }) }),
+                            jsx('span', { className: 'tn-bsub tn-bdi', children: `${r.provider} · ${r.profile}` })
                           ]
                         }),
-                        jsxs('span', {
-                          className: 'flex shrink-0 items-center gap-3',
-                          children: [
-                            jsx('span', { className: 'w-24 whitespace-nowrap font-mono text-[0.72rem] tabular-nums', style: { textAlign: 'end' }, children: t('benchmark.faults', { n: r.faults, total: r.successes + r.faults }) }),
-                            jsx(Tip, {
-                              label: t('benchmark.range_tip'),
-                              children: jsx('span', {
-                                'aria-label': r.enough ? t('benchmark.rate', { rate: pct(r.rate), low: pct(r.low), high: pct(r.high) }) : t('benchmark.not_enough'),
-                                className: 'inline-flex w-24',
-                                role: 'img',
-                                tabIndex: 0,
-                                children: jsx(RangeBar, { delay: 80 + i * 40, enough: r.enough, high: r.high, low: r.low, motion, rate: r.rate })
-                              })
-                            }),
-                            jsx('span', { className: 'w-28 text-[0.7rem] tabular-nums text-muted-foreground/80', children: r.enough ? t('benchmark.rate', { rate: pct(r.rate), low: pct(r.low), high: pct(r.high) }) : t('benchmark.not_enough') }),
-                            jsx(Tip, {
+                        jsx('span', { className: 'tn-bnum tn-end', children: t('benchmark.faults', { n: r.faults, total: r.successes + r.faults }) }),
+                        jsx(Tip, {
+                          label: t('benchmark.range_tip', { max: pct(max) }),
+                          children: jsx('span', {
+                            'aria-label': t('benchmark.rate', { rate: pct(r.rate), low: pct(r.low), high: pct(r.high) }),
+                            role: 'img',
+                            style: { display: 'block', outline: 'none' },
+                            tabIndex: 0,
+                            children: jsx(RangeBar, { delay: 80 + i * 40, high: r.high, low: r.low, max, motion, rate: r.rate })
+                          })
+                        }),
+                        jsx('span', { className: 'tn-bnum', children: t('benchmark.rate', { rate: pct(r.rate), low: pct(r.low), high: pct(r.high) }) }),
+                        showPub
+                          ? jsx(Tip, {
                               label: pub ? t('benchmark.public_score', { benchmark: pub.benchmark, source: pub.source }) : '',
                               children: jsx('span', {
-                                className: 'w-12 text-[0.7rem] tabular-nums text-muted-foreground/80',
-                                style: { textAlign: 'end' },
+                                className: 'tn-bnum tn-end',
                                 children: r.public && r.public.new != null ? t('benchmark.public_value', { value: dec1(Number(r.public.new)) }) : t('benchmark.no_public')
                               })
                             })
-                          ]
-                        })
+                          : null
                       ]
                     },
                     type + '|' + r.agent + r.profile
                   )
                 )
               }),
-              pub ? jsx('p', { className: 'text-[0.7rem] text-muted-foreground/70', style: { margin: 0 }, children: t('benchmark.public_score_accessed', { benchmark: pub.benchmark, source: pub.source, accessed: pub.accessed }) }) : null
+              waiting.length
+                ? jsxs('div', {
+                    className: 'tn-section',
+                    style: { marginBlockStart: '0.5rem' },
+                    children: [
+                      jsx(Eyebrow, { children: t('benchmark.not_ranked') }),
+                      jsx('p', { className: 'tn-intro-body', style: { margin: 0 }, children: t('benchmark.not_ranked_note', { n: RANK_MIN }) }),
+                      jsx('div', {
+                        className: 'tn-wait',
+                        children: waiting.map(r =>
+                          jsx(Tip, { label: `${r.provider} · ${r.profile}`, children: jsx('span', { tabIndex: 0, children: displayName(r.model) }) }, r.agent + r.profile)
+                        )
+                      })
+                    ]
+                  })
+                : null,
+              pub ? jsx('p', { style: { margin: 0, fontSize: '0.7rem', color: 'var(--tn-fg2)' }, children: t('benchmark.public_score_accessed', { benchmark: pub.benchmark, source: pub.source, accessed: pub.accessed }) }) : null
             ]
           })
     ]
@@ -2480,13 +2876,22 @@ let focusRevoke = false
 
 function AnimationsToggle({ t }) {
   const [on, setOn] = useState(() => animPref !== 'off')
-  return jsxs('label', {
+  const [reduced, setReduced] = useState(() => !!(reducedQuery && reducedQuery.matches))
+  useEffect(() => {
+    if (!reducedQuery || !reducedQuery.addEventListener) return
+    const update = () => setReduced(reducedQuery.matches)
+    reducedQuery.addEventListener('change', update)
+    return () => reducedQuery.removeEventListener('change', update)
+  }, [])
+  const label = jsxs('label', {
     className: 'tn-anim-toggle',
+    'data-off': reduced ? 'true' : 'false',
     children: [
       jsx('span', { children: t('page.animations') }),
       jsx(Switch, {
-        'aria-label': t('page.animations'),
-        checked: on,
+        'aria-label': reduced ? t('page.animations_reduced') : t('page.animations'),
+        checked: on && !reduced,
+        disabled: reduced,
         onCheckedChange: value => {
           setOn(!!value)
           setAnimPref(value ? 'on' : 'off')
@@ -2495,6 +2900,7 @@ function AnimationsToggle({ t }) {
       })
     ]
   })
+  return reduced ? jsx(Tip, { label: t('page.animations_reduced'), children: jsx('span', { tabIndex: 0, children: label }) }) : label
 }
 
 function TenurePage() {
@@ -2522,31 +2928,32 @@ function TenurePage() {
     className: 'tn-root relative flex h-full flex-col overflow-hidden bg-(--ui-surface-background)',
     children: [
       jsxs('header', {
-        className: 'flex shrink-0 flex-wrap items-center gap-2 px-4 py-2',
+        className: 'tn-head shrink-0',
         children: [
-          jsx('h1', { className: 'text-sm font-semibold text-foreground', children: t('page.title') }),
+          jsxs('div', {
+            className: 'tn-head-row',
+            children: [
+              jsx('h1', { className: 'text-sm font-semibold text-foreground', style: { margin: 0 }, children: t('page.title') }),
+              agents.length
+                ? jsx('span', { className: 'rounded-full bg-(--ui-bg-quaternary) px-1.5 py-px text-[0.625rem] tabular-nums text-(--ui-text-tertiary)', children: String(agents.length) })
+                : null
+            ]
+          }),
           agents.length
-            ? jsx('span', { className: 'rounded-full bg-(--ui-bg-quaternary) px-1.5 py-px text-[0.625rem] tabular-nums text-(--ui-text-tertiary)', children: String(agents.length) })
-            : null,
-          agents.length
-            ? jsx(WorkspacePageHeaderControl, {
-                id: 'tenure:view',
-                children: jsxs('div', {
-                  className: 'tn-root',
-                  style: { marginInlineStart: 'auto', display: 'flex', alignItems: 'center', gap: '0.75rem' },
-                  children: [
-                    jsx(AnimationsToggle, { t }),
-                    jsx(SegmentedControl, {
-                      onChange: setView,
-                      options: [
-                        { id: 'agents', label: t('page.view_agents') },
-                        { id: 'benchmark', label: t('page.view_benchmark') }
-                      ],
-                      sizing: 'content',
-                      value: view
-                    })
-                  ]
-                })
+            ? jsxs('div', {
+                className: 'tn-head-ctl',
+                children: [
+                  jsx(SegmentedControl, {
+                    onChange: setView,
+                    options: [
+                      { id: 'agents', label: t('page.view_agents') },
+                      { id: 'benchmark', label: t('page.view_benchmark') }
+                    ],
+                    sizing: 'content',
+                    value: view
+                  }),
+                  jsx(AnimationsToggle, { t })
+                ]
               })
             : null
         ]
@@ -2599,11 +3006,21 @@ export default {
     style.dataset.plugin = ID
     style.textContent = CSS
     document.head.append(style)
+    onStyle = document.createElement('style')
+    onStyle.dataset.plugin = ID
+    document.head.append(onStyle)
     watchTheme()
     ctx.onDispose(() => {
       rest = null
       storage = null
       style.remove()
+      if (onStyle) onStyle.remove()
+      onStyle = null
+      if (probe) probe.remove()
+      probe = null
+      lastInk = ''
+      if (dprQuery) dprQuery.removeEventListener('change', onDpr)
+      dprQuery = null
       if (themeObserver) themeObserver.disconnect()
       themeObserver = null
       repaints.clear()
