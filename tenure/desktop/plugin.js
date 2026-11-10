@@ -1574,7 +1574,7 @@ const CSS = `
 .tn-psig{display:flex;align-items:center;gap:0.45rem;margin-block-start:0.6rem;font:0.56rem var(--tn-mono);letter-spacing:0.12em;opacity:0.85}
 .tn-psig b{font-family:var(--tn-display);font-weight:700;letter-spacing:0.12em}
 .tn-psig .tn-emblem{color:var(--tn-on)}
-.tn-seal{position:absolute;inset-block-end:0.7rem;inset-inline-end:0.85rem;width:44px;height:44px;color:var(--tn-on);transform:rotate(-10deg);opacity:0.92}
+.tn-seal{position:absolute;inset-block-start:2.6rem;inset-inline-end:0.9rem;width:44px;height:44px;color:var(--tn-on);transform:rotate(-10deg);opacity:0.92}
 .tn-sweep{position:absolute;inset-inline:0;height:46px;inset-block-start:-60px;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--tn-on) 16%,transparent),transparent);pointer-events:none}
 .tn-glare{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 300ms;
   background:linear-gradient(105deg,transparent 38%,color-mix(in srgb,var(--tn-on) 34%,transparent) 50%,transparent 62%);background-size:260% 100%;
@@ -1583,7 +1583,7 @@ const CSS = `
 .tn-chip.tn-out,.tn-chip.tn-in{-webkit-mask-size:8px 8px;mask-size:8px 8px}
 .tn-range{width:96px;height:8px;color:var(--tn-acc)}
 .tn-brow{position:relative;border-block-end:1px solid var(--tn-line)}
-.tn-anim-toggle{display:inline-flex;align-items:center;gap:0.4rem;font:0.6rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--tn-mut)}
+.tn-anim-toggle{display:inline-flex;align-items:center;gap:0.4rem;padding-inline:0.75rem;font:0.6rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--tn-mut)}
 @media (prefers-reduced-motion:reduce){.tn-enter,.tn-scan,.tn-chip.tn-out,.tn-chip.tn-in,.tn-band-title,.tn-leaving{animation:none!important}.tn-prow,.tn-pass,.tn-ok{transition:none!important}.tn-prow{opacity:1;transform:none}}
 `
 
