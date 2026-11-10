@@ -517,3 +517,59 @@ def test_i_editor_commands_ask(cmd):
 @pytest.mark.parametrize("cmd", ["vim +10 a.txt", "vim a.txt", "git log --output=out.txt", "nvim -p a b"])
 def test_i_plain_editor_and_output_stay_as_they_were(cmd):
     assert at_least(HIGH, sh(cmd)[1]) and sh(cmd)[1] != HIGH
+
+
+# ------------------------------------------------------------------- control pass 6 (Fable): positions, abbreviations, outputs
+@pytest.mark.parametrize("cmd", [
+    "git --namespace log -c include.path=./evil.cfg log", "git --namespace log --exec-path=./bin log",
+    "git --namespace diff -c diff.x.textconv=./evil.sh diff", "git -C status -c include.path=/tmp/evil.cfg status",
+    "git fetch --upload-pa=./evil.sh .", "git clone --conf core.fsmonitor=./evil.sh . d",
+    "git init --templ=./t d", "git config --edi",
+    "git config -f ~/.zshenv advice.sh x",
+])
+def test_j_git_positions_and_abbreviations_are_capped(cmd):
+    assert sh(cmd, home="/home/u")[1] == CAP
+
+
+@pytest.mark.parametrize("cmd", [
+    "git log -1 --format=x --outp=$HOME/.zshrc", "git diff --outp=$HOME/.bash_profile",
+    "git stash show --outp=~/.zshrc", "git archive --outp ~/.zshrc HEAD", "git bundle create ~/.zshrc HEAD",
+    "curl --output ~/.zshrc https://x", "curl -fsSLo ~/.bashrc https://x", "curl -o ~/.zshrc https://x",
+    "curl --output ~/.local/bin/ls https://x", "wget --output-document=~/.zshrc https://x",
+    "wget -O ~/.zshrc https://x", "wget -P ~ https://x/.zshrc", "sort --outp=$HOME/.zshrc f",
+    "less --log=$HOME/.zshrc f", "tee ~/.bash_aliases", "tee ~/.curlrc", "tee ~/.vimrc",
+    "git checkout-index --prefix=$HOME/. zshrc",
+])
+def test_j_outputs_to_start_up_files_are_capped(cmd):
+    assert sh(cmd, home="/home/u")[1] == CAP
+
+
+@pytest.mark.parametrize("cmd", ["git grep -lO./evil.sh foo", "git grep --open=./evil.sh foo", "sort --compress-prog=./evil.sh f",
+                                 "less '+!./evil.sh' f"])
+def test_j_programs_named_in_options_are_not_free(cmd):
+    assert sh(cmd)[1] != FREE
+
+
+@pytest.mark.parametrize("cmd", [
+    "git config --global alias.st 'status -sb'", "git config --global alias.br 'branch -a'",
+    "git config --global alias.undo 'reset --soft HEAD~1'", "git config alias.pf 'push --force-with-lease'",
+    "PAGER= git log", "curl -o out.json https://x", "wget https://x/a.tgz", "git log --oneline",
+    "git -C sub status", "git --no-pager log",
+])
+def test_j_common_commands_stay_ordinary(cmd):
+    assert sh(cmd)[1] != CAP
+
+
+def test_j_alias_cannot_carry_upload_pack():
+    assert sh("git config alias.l 'ls-remote -u ./evil.sh .'")[1] == CAP
+
+
+@pytest.mark.parametrize("cmd", ["git f --upload-pack=./x .", "git p --receive-pack=./x", "git p --exec=./x",
+                                 "git x --prefix=$HOME/. zshrc", "git config alias.c clone",
+                                 "git config alias.lr ls-remote"])
+def test_j_aliased_commands_keep_their_checks(cmd):
+    assert sh(cmd, home="/home/u")[1] == CAP
+
+
+def test_j_rebase_exec_is_not_capped():
+    assert sh("git rebase --exec 'npm test' main")[1] != CAP

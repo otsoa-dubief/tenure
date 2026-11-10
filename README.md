@@ -169,8 +169,9 @@ settings.
 
 ## Self-protection
 
-An agent that can switch off its own supervision is not supervised. So the following are capped at **Ask**, and no
-type override lowers them (`self:*`, `secrets:*`, `file:sensitive`):
+An agent that can switch off its own supervision is not supervised. So the following are capped at **Ask** in every
+form clearance recognises, and no type override lowers them (`self:*`, `secrets:*`, `file:sensitive`). clearance
+reads commands; it does not run them (see Limits):
 
 - Hermes' own CLI, when the program run is `hermes` (also through `sh -c`, `script -c`, `su -c`, `tmux`, `screen`,
   `expect`, `ssh`, `uvx`, `uv run`, `pipx run`, a git alias, `$(which hermes)`), or Python code that imports or runs
@@ -263,7 +264,12 @@ enabled: true
 
 - **It over-asks by design.** Shell constructs outside the supported grammar (`if`, `for`, functions, globs in a
   write target), write targets it cannot resolve, and any name that looks sensitive are classified as high stakes
-  or always-ask. A wrong guess costs you a question, never a silent action.
+  or always-ask. Most wrong guesses cost you a question.
+- **Static reading, not a sandbox.** clearance classifies the text of a command before it runs. A spelling it does
+  not recognise can slip through: a tool's own setting variable it does not watch (`GH_PAGER`,
+  `RIPGREP_CONFIG_PATH`, `KUBECONFIG`...), a shell alias, function or `trap` set in an earlier call, or a form of a
+  command nobody has thought of yet. Each one found so far is capped in the tests (`tests/test_audit_cap_bypass.py`).
+  If the agent itself is untrusted, run Hermes in a container as well.
 - **Granularity is per action type.** A cleared `shell:python` can run any Python. Reclassify broad types as `cap`
   if that matters to you.
 - **Memory is low stakes.** Hermes' `memory` tool is classed with project files (low stakes), so it can be cleared;

@@ -830,7 +830,8 @@ GIT_CONFIG_FILES = re.compile(r"(?:^|/)\.git/(?:(?:modules|worktrees)/(?:[^/]+/)
 # Files a shell, the session manager or Python runs by themselves: start-up files, login agents and services,
 # Python's site hooks, and the user's own program folder that comes before the system on PATH (counter-audit P1).
 START_UP_FILES = re.compile(r"(?:^|/)\.(?:zshenv|zshrc|zprofile|zlogin|zlogout|bashrc|bash_profile|bash_login|bash_logout"
-                            r"|profile|kshrc|cshrc|tcshrc|login|inputrc)$|/library/launchagents/|/library/launchdaemons/"
+                            r"|profile|kshrc|cshrc|tcshrc|login|inputrc|bash_aliases|zshrc\.zwc|curlrc|wgetrc|lesskey|vimrc|exrc"
+                            r"|gvimrc|nanorc)$|/\.oh-my-zsh/custom/|/\.cargo/env$|/\.config/(?:gh|nvim)/|/library/launchagents/|/library/launchdaemons/"
                             r"|/\.config/(?:systemd/user|autostart|fish)/|(?:^|/)(?:site|user)customize\.py$"
                             r"|/site-packages/[^/]*\.pth$|/\.local/bin/")
 
@@ -1144,7 +1145,41 @@ INTERPRETERS = {"python", "python2", "python3", "node", "deno", "bun", "perl", "
 INLINE_FLAGS = {"-c", "-e", "-r", "-Command", "--command", "--eval", "-p", "--print"}
 RUNNERS = {"npm", "pnpm", "yarn", "bun"}
 MAKES = {"make", "gmake", "just", "task"}
-GIT_VALUE_OPTS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--config-env"}
+GIT_VALUE_OPTS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--config-env",
+                  "--attr-source", "--super-prefix"}
+# Long options of git that name a program, a configuration, a template or a file it writes: an abbreviation of one
+# of them (git accepts any unique prefix) is read as the option itself.
+GIT_LONG_OPTS = ("--upload-pack", "--receive-pack", "--exec-path", "--exec", "--config-env", "--config", "--template",
+                 "--output-directory", "--output", "--open-files-in-pager", "--edit", "--file", "--git-dir",
+                 "--work-tree", "--namespace", "--attr-source", "--super-prefix", "--prefix", "--extcmd")
+
+
+def _canon_long(args: list[str], names: tuple[str, ...]) -> list[str]:
+    """``args`` with each long option that abbreviates one of ``names`` (at least two letters after the dashes)
+    written in full, its `=value` kept."""
+    out = []
+    for a in args:
+        if a.startswith("--") and len(a) > 3:
+            name, eq, value = a.partition("=")
+            if name not in names and len(name) >= 4:
+                full = next((f for f in names if f.startswith(name)), None)
+                if full:
+                    a = full + eq + value
+        out.append(a)
+    return out
+
+
+def _sub_at(args: list[str], value_opts: set[str]) -> int:
+    """Position of the subcommand: the first word that is neither an option nor the value of one."""
+    n = 0
+    while n < len(args):
+        if args[n] in value_opts:
+            n += 2
+        elif args[n].startswith("-"):
+            n += 1
+        else:
+            return n
+    return len(args)
 GH_VALUE_OPTS = {"-R", "--repo", "--hostname"}
 # Options whose value comes before the subcommand (kubectl -n ns get, aws --profile p s3, gcloud --project p compute):
 # the value is a name of the user's (a namespace, an account), never the subcommand.
@@ -1538,7 +1573,7 @@ def _ro_writes(prog: str, args: list[str]) -> bool:
     """A normally read-only program that writes, deletes or runs something through an option of this call."""
     if prog == "sort":
         return bool(_opt_values(args, "o", ("--output",))) or any(
-            a.startswith("--compress-program") for a in args) or any(
+            a.startswith("--comp") for a in args) or any(
             re.match(r"-[A-Za-z]*o", a) and not a.startswith("--") for a in args)
     if prog == "yq":
         return any(a == "--inplace" or re.fullmatch(r"-[A-Za-z]*i[A-Za-z]*", a) for a in args)
@@ -1555,7 +1590,7 @@ def _ro_writes(prog: str, args: list[str]) -> bool:
     if prog == "less":
         return bool(_opt_values(args, "o", ("--log-file",)) or _opt_values(args, "O", ("--LOG-FILE",))
                     or _opt_values(args, "k", ("--lesskey-file", "--lesskey-src", "--lesskey-content"))
-                    or any(a.startswith("--lesskey") for a in args))
+                    or any(a.startswith(("--lesskey", "--log", "--LOG", "+")) for a in args))
     if prog == "date":
         return any(a in ("-s", "--set") or a.startswith(("--set=", "-s")) for a in args)
     if prog == "hostname":
@@ -2105,12 +2140,63 @@ def _watch(args: list[str], cwd, home: str, depth: int) -> tuple[str, str]:
 UNRESOLVED = "$`?*[{"
 
 
+OUTPUT_OPTS = {
+    "curl": ("o", ("--output", "--output-dir", "--dump-header", "--cookie-jar", "--trace", "--trace-ascii",
+                   "--stderr", "--libcurl", "--etag-save")),
+    "wget": ("Oo", ("--output-document", "--output-file", "--append-output", "--directory-prefix",
+                    "--save-cookies")),
+    "sort": ("o", ("--output",)),
+    "less": ("oO", ("--log-file", "--LOG-FILE")),
+}
+
+
+def _tool_outputs(tokens: list[str]) -> list[str]:
+    """Files curl, wget, sort or less write through an option, long options abbreviated or not, short ones alone,
+    grouped (`-fsSLo f`) or with the value attached; for wget -P, also the folder with each URL's file name."""
+    toks = _unwrap(tokens)
+    if not toks or os.path.basename(toks[0]) not in OUTPUT_OPTS:
+        return []
+    prog = os.path.basename(toks[0])
+    shorts, longs = OUTPUT_OPTS[prog]
+    args = _canon_long(toks[1:], longs)
+    out, n = [], 0
+    while n < len(args):
+        a = args[n]
+        name, eq, value = a.partition("=")
+        if name in longs:
+            if eq:
+                out.append(value)
+            elif n + 1 < len(args):
+                out.append(args[n + 1])
+                n += 1
+        elif a.startswith("-") and not a.startswith("--") and len(a) > 1:
+            for k, ch in enumerate(a[1:], 1):
+                if ch in shorts:
+                    if a[k + 1:]:
+                        out.append(a[k + 1:])
+                    elif n + 1 < len(args):
+                        out.append(args[n + 1])
+                        n += 1
+                    break
+        n += 1
+    if prog == "wget":
+        dirs = [v for k, v in zip(args, args[1:]) if k in ("-P", "--directory-prefix")]
+        dirs += [a.split("=", 1)[1] for a in args if a.startswith("--directory-prefix=")]
+        urls = [a for a in args if "://" in a]
+        out += [d.rstrip("/") + "/" + u.rstrip("/").rsplit("/", 1)[-1] for d in dirs for u in urls]
+    return out
+
+
 def _shell_segment(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     """One command (``_segment_main``); a segment that sets a code-hijacking variable is capped as self:env unless
     it is already capped under a more precise type (Hermes' own CLI, a protected file)."""
     r = _segment_main(tokens, cwd, home, depth)
     if r[1] == CAP:
         return r
+    for target in _tool_outputs(tokens):
+        f = _file(_expand(target, home), None if cwd == UNKNOWN else cwd, home)
+        if f[1] == CAP:
+            return f[0], CAP                                 # a protected file written through an option
     h = _hijacks(tokens)
     if h == CAP:
         return SELF_ENV
@@ -2322,6 +2408,7 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
             inners = [_lit(_shell(c[1:], cwd, home, depth + 1)[:2]) for c in code if c.startswith("!")]
             return _top([(f"shell:{prog}:command", HIGH)] + inners)
     if prog == "git":
+        args = _canon_long(args, GIT_LONG_OPTS)
         plain = _strip(args, GIT_VALUE_OPTS)
         sub = plain[0] if plain else ""
         if _git_config_runs_code(args, plain):
@@ -2382,7 +2469,8 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     if prog in CLOUD:
         return f"shell:{prog}:{sub}", HIGH if CLOUD_WRITE & set(args) else FREE
     if prog == "git":
-        if sub == "grep" and any(a.startswith(("-O", "--open-files-in-pager")) for a in args):
+        if sub == "grep" and any(a.startswith("--open-files-in-pager") or re.match(r"-[A-Za-z]*O", a)
+                                 and not a.startswith("--") for a in args):
             return "shell:git:grep", MEDIUM                  # opens the matches with a program it names
         rest = plain[1:] if plain else []
         if not writes and ((sub == "config" and ((rest and rest[0] in ("get", "list") and len(rest) <= 2)
@@ -2490,7 +2578,7 @@ def _bare_program(value: str) -> bool:
     """``value`` starts a known editor, pager or helper (KNOWN_TOOLS, by name or from a system folder) with only the
     arguments its allow list names: no file name, no shell punctuation, no `!`."""
     value = value.strip().strip("'\"")
-    if value in (":", "true"):
+    if value in (":", "true", ""):
         return True
     if not BARE_PROGRAM.fullmatch(value.replace("/", "_")) or "!" in value:
         return False
@@ -2508,11 +2596,11 @@ def _bare_program(value: str) -> bool:
     return all(allowed and re.fullmatch(allowed, a) for a in args)
 
 
-ALIAS_RISKY_COMMANDS = {"submodule", "bisect", "filter-branch", "difftool", "mergetool", "instaweb", "daemon",
+ALIAS_RISKY_COMMANDS = {"clone", "ls-remote", "submodule", "bisect", "filter-branch", "difftool", "mergetool", "instaweb", "daemon",
                         "send-email", "web--browse", "config", "credential", "hook", "for-each-repo", "p4", "svn",
                         "archimport", "cvsimport", "cvsexportcommit", "quiltimport"}
 ALIAS_OPTIONS = re.compile(r"--(?:oneline|graph|decorate|all|stat|short|cached|staged|amend|no-edit|abbrev-commit"
-                           r"|no-merges|verbose|branch)|-[sbvpu]|-\d+")
+                           r"|no-merges|verbose|branch|soft|force-with-lease)?|-[sbvpam]+|-\d+")
 
 
 def _alias_safe(value: str) -> bool:
@@ -2557,6 +2645,17 @@ def _git_outputs(args: list[str], sub: str) -> list[str]:
             out.append(args[n + 1])
         elif a.startswith("-o") and len(a) > 2 and not a.startswith("--") and sub in ("archive", "format-patch"):
             out.append(a[2:])
+        elif a in ("-f", "--file", "--output-directory", "--git-dir", "--work-tree") and n + 1 < len(args) \
+                and (a not in ("-f", "--file") or sub == "config"):
+            out.append(args[n + 1])
+        elif a.startswith(("--output-directory=", "--git-dir=", "--work-tree=")) or (a.startswith("--file=") and sub == "config"):
+            out.append(a.split("=", 1)[1])
+    plain = [a for a in args if not a.startswith("-")]
+    if sub == "bundle" and len(plain) > 2 and plain[1] == "create":
+        out.append(plain[2])
+    prefix = next((a.split("=", 1)[1] for a in args if a.startswith("--prefix=")), None)
+    if prefix and sub != "archive":
+        out += [prefix] + [prefix + w for w in plain[1:]]
     return out
 
 
@@ -2579,10 +2678,7 @@ def _git_config_runs_code(args: list[str], plain: list[str]) -> bool:
     (it installs hooks), with a key that may run a program; or a `git config` that sets such a key or opens the
     editor on the file."""
     sub = plain[0] if plain else ""
-    try:
-        at = args.index(sub) if sub else len(args)
-    except ValueError:
-        at = len(args)
+    at = _sub_at(args, GIT_VALUE_OPTS)
     i = 0
     while i < len(args):
         a = args[i]
@@ -2598,7 +2694,9 @@ def _git_config_runs_code(args: list[str], plain: list[str]) -> bool:
             return True
         elif sub in ("init", "clone") and (a == "--template" or a.startswith("--template=")):
             return True
-        elif i > at and a.split("=", 1)[0] in GIT_PROGRAM_OPTS.get(sub, ()):
+        elif i > at and (a.split("=", 1)[0] in GIT_PROGRAM_OPTS.get(sub, ())
+                         or a.split("=", 1)[0] in ("--upload-pack", "--receive-pack")
+                         or (a.split("=", 1)[0] == "--exec" and sub != "rebase")):   # an alias of fetch or push
             return True                                      # the program run on the other end of the transport
         if value is not None:
             key, eq, val = value.partition("=")
