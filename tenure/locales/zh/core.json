@@ -1,0 +1,264 @@
+{
+  "approval.button.always": "始终允许",
+  "approval.button.reject": "拒绝",
+  "approval.button.run": "运行",
+  "approval.button.session": "允许本会话",
+  "ask.capped": "tenure — {summary}\n{type} 受限：始终询问。",
+  "ask.internal_error": "tenure：内部错误（{error}）；改为询问你，而不是直接放行该操作。",
+  "ask.prompt": "tenure — {summary}\n{why}\n正确就点「{run}」，错误就点「{reject}」（记为失误）。「{session}」/「{always}」= 一次「{run}」；何时不再询问由 tenure 决定。",
+  "ask.spot": "tenure 抽查 — {summary}\n{type} 已自主执行；每 {spot} 个操作仍会随机检查 1 个。\n正确就点「{run}」，错误就点「{reject}」（该类型会降级）。「{session}」/「{always}」= 一次「{run}」。",
+  "ask.why.capped": {
+    "other": "{type}（{stakes}风险）受你的设置限制：始终询问（记录中有 {n} 次已验证的成功）。"
+  },
+  "ask.why.other_stakes": "{type} 的记录是在{earned}风险下赢得的，而此操作为{stakes}风险：需要询问。",
+  "ask.why.provisional": {
+    "other": "其中 {n} 次继承自上一个智能体，暂定。"
+  },
+  "ask.why.series": "{type}（{stakes}风险）先询问：已连续成功 {series}/{required} 次，会话 {sessions}/{needed} 个，达标后才会自主执行。",
+  "ask.why.suspended": "此会话读取了外部内容，因此每次操作都会重新询问（已暂停：读取了外部内容）。",
+  "ask.why.trial": {
+    "other": "{type} 因失误处于考察期：还需 {n} 次已验证的成功，且不能有失误。"
+  },
+  "ask.why.trial_wait": {
+    "other": "{type} 未通过考察期：每次操作都会询问，再执行 {n} 个此类型的操作后将开启新的考察期。"
+  },
+  "ask.why.unsaved": "{type} 本可先执行后告知你，但无法为此操作准备撤销（文件过大、为二进制或无法读取）：改为询问。",
+  "benchmarks.note.no_model": "{model} 在 {benchmark} 上没有公开测评。",
+  "benchmarks.note.no_previous": "没有可比较的上一个模型。",
+  "benchmarks.note.no_type": "此操作类型没有公开测评。",
+  "benchmarks.note.published": "每个分数都是该模型已公布的最高分（不限测试框架），并非受控对比。",
+  "benchmarks.note.scores": "{benchmark} {version}，百分比。公开分数仅供参考，从不授予自主权。",
+  "carry.carried": "继承的记录为旧连续记录的一半，在此智能体自己的成功追平之前为暂定。",
+  "carry.kept": {
+    "other": "{n} 个保留了此智能体自己的记录。"
+  },
+  "carry.new_agent": "tenure：新智能体 {new}（原为 {old}）。操作类型：{carried} 个继承并进入考察期，{reset} 个重置，{vetoed} 个被公开基准否决。",
+  "carry.strict": "严格模式：每个类型都从头开始，记录中的失误转为考察期。",
+  "cli.ago.h": {
+    "other": "{n} 小时前"
+  },
+  "cli.ago.min": {
+    "other": "{n} 分钟前"
+  },
+  "cli.ago.s": {
+    "other": "{n} 秒前"
+  },
+  "cli.cleanup.dead": {
+    "other": "永久允许列表（{setting}）的 {total} 个条目中有 {n} 个失效的 tenure 键。每次询问都使用一次性键：它们永远不会再匹配。"
+  },
+  "cli.cleanup.no_config": "无法读取 Hermes 的配置（此处没有 {module}）：未做任何检查。",
+  "cli.cleanup.none": {
+    "other": "永久允许列表中没有 tenure 键（已检查 {n} 个条目）。"
+  },
+  "cli.cleanup.remove": "请删除它们（tenure 不会修改你的配置）：",
+  "cli.col.agent": "智能体",
+  "cli.col.fault_rate": "失误率",
+  "cli.col.guarantee": "保证",
+  "cli.col.model": "模型",
+  "cli.col.note": "备注",
+  "cli.col.number": "#",
+  "cli.col.provider": "提供方",
+  "cli.col.record": "记录",
+  "cli.col.restores": "恢复内容",
+  "cli.col.series": "连续",
+  "cli.col.sessions": "会话",
+  "cli.col.stakes": "风险等级",
+  "cli.col.tier_now": "当前级别",
+  "cli.col.type": "类型",
+  "cli.col.when": "时间",
+  "cli.count.agents": {
+    "other": "{n} 个智能体"
+  },
+  "cli.count.checks": {
+    "other": "{n} 次检查"
+  },
+  "cli.count.events": {
+    "other": "{n} 个事件"
+  },
+  "cli.count.faults": {
+    "other": "{n} 次失误"
+  },
+  "cli.count.ledger_events": {
+    "other": "{n} 个账本事件"
+  },
+  "cli.count.types": {
+    "other": "{n} 个类型"
+  },
+  "cli.err.ambiguous": {
+    "other": "{wanted} 匹配到 {n} 个智能体（{agents}）：请写得更具体。"
+  },
+  "cli.err.no_agents": "还没有智能体有记录。",
+  "cli.err.no_match": "没有以 {wanted} 开头的智能体。智能体：{agents}。",
+  "cli.err.not_json": "{path} 不是有效的 JSON（{error}）。",
+  "cli.err.not_ledger": "{path} 不是导出的账本（{error}）。",
+  "cli.err.profile_missing": "配置文件 {profile} 没有 tenure 记录（查找位置：{path}）。",
+  "cli.err.profile_unreadable": "无法读取配置文件 {profile} 的记录：{error}",
+  "cli.err.unreadable": "无法读取 {path}：{error}。",
+  "cli.explain.fault": "一次失误（被拒绝的抽查或你标记的错误）就会让该类型降级：处于 T3 的低风险可逆类型降到 T2（已在 T2 的，由得分决定留在 T2 还是降到 T1）；其他任何失误都会让它退回 T1。在中、高风险下，下一次晋升需要的连续记录延长 25%。",
+  "cli.explain.footer": "这一保证覆盖的是你被询问时会拒绝的错误；没人会注意到的错误无法计入。测试套件中已用模拟对照理论进行测量。",
+  "cli.explain.guarantee_title": "按你的设置，它能保证什么（你发现的错误永远不会运行：被拒绝的操作会被拦截）：",
+  "cli.explain.level": "{level}：i = {n}。对于错误率稳定的智能体，未经你批准而运行的错误不超过它在该类型上操作的 {aoql}。对于晋升后变差的智能体，在第一次发现错误之前最多 {worst}。",
+  "cli.explain.level_capped": "{level}：始终询问。",
+  "cli.explain.new_model": "新模型从上一个模型连续记录的一半开始，标为暂定，直到它自己确认为止（严格模式：空记录）。",
+  "cli.explain.new_model_strict": "新模型从空记录开始（严格模式）。",
+  "cli.explain.reads": "读取从不询问；密钥、智能体自己的技能和插件，以及敏感文件始终询问。",
+  "cli.explain.t1": "T1 先询问。新类型的每个操作都会询问你。",
+  "cli.explain.t2": "T2 先执行后告知。在低风险下连续获批 {low} 次、中风险下 {medium} 次后，可逆类型会先执行再告知你，并可撤销（{command}）。高风险和不可逆类型永远不会升到 T2。",
+  "cli.explain.t3": "T3 自主执行。连续获批 i 次，且至少跨 {sessions} 个会话后（i 见下文，即 Dodge 的放行数，连续抽样方案 CSP-1）；每 {spot} 个操作仍会随机抽查 1 个。",
+  "cli.explain.title": "tenure 如何决定，一次一个操作类型：",
+  "cli.export.written": {
+    "other": "证据已写入：{path}（{n} 条）。用它验证护照：{command} {path}"
+  },
+  "cli.flag.done": "tenure：已为 {agent} 在 {type} 上记录失误；现为 {tier}。",
+  "cli.flag.unknown_type": "{agent} 没有 {type} 的记录。类型：{types}。",
+  "cli.list.joiner": "；",
+  "cli.list.separator": "、",
+  "cli.models.few": {
+    "other": "少于 {n} 次检查：太少，无法比较"
+  },
+  "cli.models.no_check": "还没有检查",
+  "cli.models.none": "还没有记录。",
+  "cli.models.none_type": "{type} 还没有记录。",
+  "cli.models.rate": "{rate}（95% 区间 {low} 至 {high}）",
+  "cli.models.title": "各模型在你自己工作上的已验证记录（失误 / 检查）：",
+  "cli.none_yet": "暂无",
+  "cli.passport.check": "任何人都可以验证：{command} {path} <导出的账本>",
+  "cli.passport.none": "{agent} 没有记录：没有可写入护照的内容。",
+  "cli.passport.not_redacted": "未脱敏",
+  "cli.passport.redacted": "已脱敏",
+  "cli.passport.signed": "已签名",
+  "cli.passport.summary": "{agent}：{types}，{redaction}，{signature}，账本头部 {head}（{events}）",
+  "cli.passport.unsigned": "未签名（缺少 cryptography 包）",
+  "cli.passport.warning": "警告：类型名按原样写入。名称中可能带有你的脚本、make 目标或 git 别名。只分享已脱敏的护照。",
+  "cli.passport.written": "护照已写入：{path}",
+  "cli.presets.capped": "{level}：始终询问",
+  "cli.presets.footer": "低风险：项目内的文件、记忆、表情回应。中风险：命令、代码、其他位置的文件、内部工具。高风险：任何离开本机的内容（发给他人的消息、推送、上传、发布）以及涉及金钱的操作。使用其中一个：{command}。或在 config.yaml 中设置 {setting}（例如 {example}）。",
+  "cli.presets.header": "推荐方案（类型放行后，每 {spot} 个抽查 1 个）：",
+  "cli.presets.level": {
+    "other": "{level}：{n} 次批准（风险率 {risk}）"
+  },
+  "cli.presets.line": "{name}：{levels}",
+  "cli.presets.line_default": "{name}（默认）：{levels}",
+  "cli.revoke.done": "已收回 {who} 的 tenure：{types}。",
+  "cli.revoke.item_agent": "{type}（{agent}）",
+  "cli.revoke.nothing": "没有可收回的内容。",
+  "cli.setup.in_force": "预设 {name} 已生效。",
+  "cli.setup.no_context": "没有 Hermes 上下文",
+  "cli.setup.paused": "学习已暂停：{setting} 已关闭。将 {setting} 设为 smart 或 manual，tenure 才能学习。",
+  "cli.setup.save_failed": "无法保存预设（{error}）。请设置 {setting}: {name}",
+  "cli.setup.unknown": "未知预设 {name}。",
+  "cli.status.capped": "受限：始终询问",
+  "cli.status.chain_broken": {
+    "other": "证据：{n} 条，哈希链断裂（{problem}）。"
+  },
+  "cli.status.chain_ok": {
+    "other": "证据：{n} 条，哈希链完整。"
+  },
+  "cli.status.disabled": "tenure 已禁用（{setting}: false）。",
+  "cli.status.empty": "还没有操作类型有记录。读取从不询问；其他操作都会询问，直到其类型赢得自主权。",
+  "cli.status.guarantee": "未经检查的错误低于其操作的 {rate}",
+  "cli.status.guarantee_provisional": "未经检查的错误低于其操作的 {rate}（暂定）",
+  "cli.status.header.here": "tenure：此配置文件，预设 {preset}，每 {spot} 个抽查 1 个",
+  "cli.status.header.here_strict": "tenure：此配置文件，预设 {preset}，每 {spot} 个抽查 1 个，严格模式",
+  "cli.status.header.profile": "tenure：配置文件 {profile}，预设为最后记录的值，每 {spot} 个抽查 1 个",
+  "cli.status.header.profile_strict": "tenure：配置文件 {profile}，预设为最后记录的值，每 {spot} 个抽查 1 个，严格模式",
+  "cli.status.note.provisional": {
+    "other": "{n} 项暂定"
+  },
+  "cli.status.note.trial": {
+    "other": "考察期：还差 {n} 次"
+  },
+  "cli.status.note.trial_wait": {
+    "other": "考察未通过：需等待 {n} 个操作"
+  },
+  "cli.status.notes": "{guarantee} [{notes}]",
+  "cli.status.others": {
+    "other": "另有 {n} 个智能体有记录（{agents}）：{command}"
+  },
+  "cli.status.paused": "此处学习已暂停：没人应答审批（{why}）。已赢得的级别照常运行。",
+  "cli.strict.off": "严格模式已关闭：新模型继承上一个模型一半的记录，除非公开基准否决该类型。",
+  "cli.strict.on": "严格模式已开启：新模型从空记录开始，不继承任何记录。",
+  "cli.strict.save_failed": "无法保存严格模式（{error}）。请设置 {setting}: {value}",
+  "cli.tier.held": "{tier}（受设置压制）",
+  "cli.undo.footer": "撤销其中一个：{command} <编号>",
+  "cli.undo.footer_more": "共 {total} 个中最新的 {shown} 个。撤销其中一个：{command} <编号>",
+  "cli.undo.more_files": {
+    "other": "{file}（另有 {n} 个）"
+  },
+  "cli.undo.none": {
+    "other": "没有可撤销的操作：过去 {n} 小时内没有自主执行的操作。"
+  },
+  "cli.undo.title": {
+    "other": "过去 {n} 小时内自主执行的操作（撤销任一个都记为失误）："
+  },
+  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    undo [ID]                                  恢复一个先执行后告知的操作写入的文件（记为失误）；不带参数时列出清单\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    strict on|off                              严格模式：新模型从空记录开始\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n",
+  "cli.verify.after": {
+    "other": "注意：此护照之后账本中有 {n} 个事件；级别没有变化。"
+  },
+  "cli.verify.after_changed": {
+    "other": "注意：此护照之后账本中有 {n} 个事件；现在：{changes}"
+  },
+  "cli.verify.key_differs": "公钥与你预期的不同（{option}）：签名者另有其人",
+  "cli.verify.no_ledger": "签名和哈希链未对照类型检查：请提供账本",
+  "cli.verify.no_ledger_types": "类型未检查：请提供账本",
+  "cli.verify.ok": "OK：签名有效，账本哈希链完整，{types} 已通过重放 {events} 重新计算。",
+  "cli.verify.pin": "签名只能证明护照与此账本相符，不能证明是谁制作的：请用 {option} 加上所有者的公钥来锁定。",
+  "cli.verify.problems": {
+    "other": "{n} 个问题："
+  },
+  "notice.confirmed": "tenure：{type}：从上一个智能体继承的记录现已由此智能体自己的成功确认。",
+  "notice.count.sessions": {
+    "other": "{n} 个会话"
+  },
+  "notice.count.successes_in_a_row": {
+    "other": "连续 {n} 次已验证的成功"
+  },
+  "notice.tier.fault": "tenure：{type} 因失误退回 {tier}。",
+  "notice.tier.series": "tenure：{type} 在 {sessions} 中取得 {successes} 后，现在自主执行。每 {spot} 个操作仍会抽查 1 个，一次失误就会让它降级。",
+  "notice.tier.settings": "tenure：按你的新设置，{type} 退回 {tier}。",
+  "notice.tier.stakes": "tenure：{type} 现为{stakes}风险：它在此风险等级下的记录从头开始（考察期和已记录的失误保留）。",
+  "notice.tier.wald": "tenure：{type} 在一连串已验证的成功后，现在先执行后告知你，并可撤销。",
+  "notice.trial.failed": {
+    "other": "tenure：{type} 未通过考察期：每次操作都会询问，再执行 {n} 个此类型的操作后将开启新的考察期。"
+  },
+  "notice.trial.fault": {
+    "other": "tenure：{type} 进入考察期：接下来的 {n} 个操作都会询问，且必须全部成功。"
+  },
+  "notice.trial.passed": "tenure：{type} 通过了考察期。",
+  "notice.trial.wait_over": {
+    "other": "tenure：{type} 获得新的考察期：接下来的 {n} 个操作会询问。"
+  },
+  "settle.acted": "tenure：{type} 已执行并告知你 · {command} {id}",
+  "settle.acted_fault": "tenure：{type} 已执行并告知你，但自动检查失败（{reason}）；已记为失误 · {command} {id}",
+  "settle.check_failed": "tenure：{type}：自动检查失败（{reason}）；已记为失误。",
+  "stakes.high": "高",
+  "stakes.low": "低",
+  "stakes.medium": "中",
+  "tier.long.alone": "T3，自主执行",
+  "tier.long.ask": "T1，先询问",
+  "tier.long.notify": "T2，先执行后告知你，可撤销",
+  "tier.short.alone": "T3 自主执行",
+  "tier.short.ask": "T1 先询问",
+  "tier.short.notify": "T2 先执行后告知",
+  "undo.already": "撤销 {id} 已经执行过。",
+  "undo.done": "撤销 {id}：文件已恢复。已记为 {agent} 在 {type} 上的一次失误；现为 {tier}。",
+  "undo.done_already_fault": "撤销 {id}：文件已恢复。自动检查已将此操作记为 {type} 的一次失误；不会重复记录。",
+  "undo.expired": {
+    "other": "撤销 {id} 已超过 {n} 小时：快照不再保留。"
+  },
+  "undo.gone": "撤销 {id}：快照已不存在，未恢复任何内容。",
+  "undo.missing": "没有撤销条目 {id}。",
+  "undo.no_snapshot": "撤销 {id}：此操作没有保存快照，无可恢复内容。",
+  "undo.partial": {
+    "other": "撤销 {id}：{n} 个文件无法恢复（已恢复 {restored} 个）。未标记为已撤销，也未记录失误：请排除原因（权限、文件被锁定）后重试。"
+  },
+  "undo.refused": "撤销 {id} 被拒绝：{reason}。未恢复任何内容，未标记为已撤销，也未记录失误。",
+  "undo.refused.changed": "快照在生成后被修改过",
+  "undo.refused.file_changed": "某个已保存的文件在快照后被修改过",
+  "undo.refused.folder": "某个目标的文件夹现在指向别处（其路径上被放了符号链接）",
+  "undo.refused.manifest": "无法读取清单（{error}）",
+  "undo.refused.no_mac": "快照没有 MAC",
+  "undo.refused.not_absolute": "某个记录的路径不是绝对路径",
+  "undo.refused.protected": "某个目标是受保护的文件",
+  "undo.refused.symlink": "某个目标现在是符号链接"
+}

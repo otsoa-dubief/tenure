@@ -35,7 +35,8 @@ def catalogs(surface: str) -> dict:
 
 
 def block(surface: str) -> str:
-    body = json.dumps(catalogs(surface), ensure_ascii=False, indent=2, sort_keys=True)
+    cats = {lang: dict(sorted(cat.items())) for lang, cat in catalogs(surface).items()}   # English first, keys sorted
+    body = json.dumps(cats, ensure_ascii=False, indent=2)
     return f"{BEGIN}\nconst TENURE_LOCALES = {body};\n{END}"
 
 

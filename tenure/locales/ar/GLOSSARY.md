@@ -1,0 +1,40 @@
+# Tenure — glossaire arabe (ar, MSA)
+
+- tier → المستوى (T1 / T2 / T3 inchangés)
+- earned autonomy → الاستقلالية المكتسبة
+- action type → نوع الإجراء (pl. أنواع الإجراءات)
+- action → إجراء
+- spot check → فحص عشوائي
+- check (automatic) → الفحص التلقائي
+- fault → إخفاق (distinct de error → خطأ)
+- flag (verb/button) → إبلاغ / أبلغ عن
+- revoke → سحب (سحب الاستقلالية)
+- undo → تراجع (Hermes : تراجع)
+- preset → الإعداد المسبق
+- careful / balanced / fast → حذِر / متوازن / سريع (libellés ; la commande garde `careful|balanced|fast`)
+- custom → مخصص
+- passport → جواز (signed passport → جواز موقَّع)
+- ledger → الدفتر (دفتر الأدلة) ; record → السجل
+- provisional → مؤقت
+- carried over → منقول ; carry-over → النقل
+- kept / reset / vetoed → محفوظ / مُصفَّر / مرفوض
+- stakes → الخطورة ; low/medium/high → منخفضة / متوسطة / عالية
+- risk (accepted) → المخاطرة (المقبولة)
+- clean run → متتالية سليمة ; in a row → على التوالي ; series → السلسلة
+- benchmark (your) → مقياسك ; public score → النتيجة العامة ; public measure → المقياس العام
+- 95% range → نطاق 95%
+- acts on its own → يعمل وحده
+- asks first → يسأل أولًا
+- acts then tells you → ينفّذ ثم يُبلغك
+- capped → مقيَّد (chip CAP inchangé)
+- trial → اختبار ; on trial → تحت الاختبار
+- suspended → معلّق
+- strict mode → الوضع الصارم
+- evidence → الأدلة
+- guarantee → الضمان
+- agent / model / provider / profile / session → الوكيل / النموذج / المزوّد / الملف الشخصي / الجلسة (termes Hermes)
+- settings / plugins / Capabilities → الإعدادات / الإضافات / المهارات (libellé du Desktop Hermes)
+- approval buttons → تشغيل / رفض / السماح لهذه الجلسة / السماح دائما (= Desktop Hermes assistant.approval)
+- dashboard → اللوحة
+- snapshot → لقطة ; hash chain → سلسلة التجزئة ; signature → التوقيع
+- arrow (common.arrow, event.tier, toast.transition) → ← (lecture RTL)

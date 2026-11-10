@@ -74,7 +74,7 @@
   "recent.check_failed_tip": "The automatic check failed: already counted as a fault. Undo restores the files.",
   "recent.flag": "Flag",
   "recent.flag_tip": "It made an error nobody caught: revoke this type.",
-  "recent.flagged": "{type} revoked: it asks first again.",
+  "recent.flagged": "{type} flagged: counted as a fault, it drops at least one tier.",
   "recent.hours_ago": {
     "one": "{n} h ago",
     "other": "{n} h ago"

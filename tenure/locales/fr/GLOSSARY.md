@@ -1,0 +1,43 @@
+# Glossaire français de Tenure
+
+Style repris des catalogues français de Hermes : vouvoiement, guillemets « », espace simple avant « : ; ? ! », « 12 % ».
+
+- tier → niveau (codes T1 T2 T3 et CAP gardés tels quels)
+- earned autonomy → autonomie acquise (« gagner son autonomie »)
+- action type → type d'action
+- spot check → contrôle aléatoire (« contrôlée au hasard »)
+- check (verified action) → vérification
+- fault → faute (distinct de « erreur » = error)
+- flag → signaler
+- revoke / revocation → révoquer / révocation
+- undo → annuler / annulation (bouton « Annuler », comme Hermes /undo)
+- snapshot → instantané
+- preset → préréglage ; libellés prudent / équilibré / rapide / personnalisé ; dans les commandes, l'id anglais reste (`hermes tenure setup balanced`)
+- passport → passeport
+- ledger → registre ; ledger head → tête du registre ; hash chain → chaîne de hachage
+- provisional → provisoire / à titre provisoire
+- carried over / carry-over → hérité / héritage
+- kept / reset / vetoed → conservé / remis à zéro / bloqué
+- stakes (low / medium / high) → enjeu (faible / moyen / élevé) ; « à enjeu faible »
+- clean run / in a row → succès sans faute / d'affilée
+- series → série
+- trial → essai (« à l'essai », « essai échoué »)
+- suspended → suspendu
+- capped → plafonné
+- record → historique
+- benchmark → benchmark (« Votre benchmark »)
+- public score / public measure → score public / mesure publique
+- 95% range → fourchette à 95 %
+- fault rate → taux de fautes
+- guarantee → garantie
+- acts on its own → agit seul
+- asks first → demande d'abord
+- acts then tells you / notifies → agit, puis vous prévient
+- strict mode → mode strict
+- evidence → preuves
+- settings → paramètres
+- profile / model / provider → profil / modèle / fournisseur
+- approval buttons (Hermes Desktop) → Exécuter / Rejeter / Autoriser cette session / Toujours autoriser
+- dashboard → tableau de bord
+- harness (benchmark) → dispositif d'évaluation
+- Dodge's clearance number (CSP-1) → nombre de libération de Dodge (plan d'échantillonnage continu CSP-1)

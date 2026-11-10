@@ -1,0 +1,44 @@
+# Tenure — glosario español
+
+Registro: tú (como Hermes Desktop). Porcentaje con espacio no separable (U+00A0): `12 %` (como Hermes: «85 %»).
+
+- tier → nivel (T1, T2, T3 sin traducir)
+- earned autonomy → autonomía ganada
+- action type → tipo de acción
+- spot check → control aleatorio
+- fault → fallo
+- flag (verb / button) → marcar / Marcar
+- revoke → revocar
+- undo → deshacer / Deshacer (como Hermes)
+- preset → preajuste (término de Hermes, MoA)
+- careful / balanced / fast → prudente / equilibrado / rápido (solo en etiquetas; en comandos y en `{name}`/`{preset}` se queda `careful|balanced|fast`)
+- custom (preset) → personalizado
+- passport → pasaporte
+- ledger → registro
+- record (an agent's) → historial
+- provisional → provisional
+- carried over / carry-over → heredado / herencia
+- kept / reset / vetoed → conservado / reiniciado / vetado
+- stakes (low/medium/high) → impacto (bajo/medio/alto)
+- capped / CAP → limitado / CAP (chip sin traducir; peldaño de ajustes: «tope»)
+- clean run / in a row → acción limpia / seguidas
+- series → serie
+- trial → periodo de prueba; pastilla: «a prueba»
+- suspended → suspendido
+- verified success → éxito verificado
+- check (count) → comprobación
+- benchmark / your benchmark → benchmark / Tu benchmark
+- public score / public measure → puntuación pública / medida pública
+- 95% range → rango del 95 %
+- fault rate → tasa de fallos
+- guarantee → garantía
+- acts on its own → actúa por su cuenta
+- asks first → pregunta antes
+- acts, then tells/notifies you → actúa y luego te avisa
+- strict mode → modo estricto
+- evidence → evidencia
+- snapshot → instantánea
+- allowlist → lista de permitidos (como Hermes CLI)
+- redacted / raw → oculto / sin ocultar (nombres «reales» en el panel)
+- dashboard → panel
+- Run / Reject / Allow this session / Always allow → Ejecutar / Rechazar / Permitir esta sesión / Permitir siempre (Hermes Desktop, `assistant.approval`)

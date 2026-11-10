@@ -111,7 +111,7 @@
   "cli.err.profile_missing": "No tenure record for profile {profile} (looked for {path}).",
   "cli.err.profile_unreadable": "Cannot read the record of profile {profile}: {error}",
   "cli.err.unreadable": "Cannot read {path}: {error}.",
-  "cli.explain.fault": "One fault, a refused spot check or an error you flag, sends the type back down: a low-stakes reversible type at T3 drops to T2 (already at T2, its score decides between T2 and T1); every other fault sends it to T1. At medium or high stakes the next climb is 25 % longer.",
+  "cli.explain.fault": "One fault, a refused spot check or an error you flag, sends the type back down: a low-stakes reversible type at T3 drops to T2 (already at T2, its score decides between T2 and T1); every other fault sends it to T1. At medium or high stakes the next climb is 25% longer.",
   "cli.explain.footer": "The guarantee covers the errors you would refuse when asked; an error nobody would notice cannot be counted. Measured against theory by simulation in the test suite.",
   "cli.explain.guarantee_title": "What it guarantees, with your settings (errors you catch never run: a refused action is blocked):",
   "cli.explain.level": "{level}: i = {n}. For an agent whose error rate is stable, errors that run without your approval stay under {aoql} of its actions of that type. For an agent that turns bad after tenure, at most {worst} until the first caught error.",
@@ -248,7 +248,7 @@
     "other": "{n} verified successes in a row"
   },
   "notice.tier.fault": "tenure: {type} is back at {tier}, after a fault.",
-  "notice.tier.series": "tenure: {type} now acts on its own, after {successes} from {sessions}. 1 action in {spot} is still spot-checked, and a fault sends it back down.",
+  "notice.tier.series": "tenure: {type} now acts on its own, after {successes} over {sessions}. 1 action in {spot} is still spot-checked, and a fault sends it back down.",
   "notice.tier.settings": "tenure: {type} is back at {tier}, under your new settings.",
   "notice.tier.stakes": "tenure: {type} now has {stakes} stakes: its record starts over at these stakes (a trial and the faults on record stay).",
   "notice.tier.wald": "tenure: {type} now acts, then notifies you with an undo, after a run of verified successes.",
@@ -277,11 +277,11 @@
   "tier.short.alone": "T3 acts on its own",
   "tier.short.ask": "T1 asks first",
   "tier.short.notify": "T2 acts, then notifies",
-  "undo.already": "Undo {id} is already undone.",
+  "undo.already": "Action {id} is already undone.",
   "undo.done": "Undo {id}: files restored. Counted as a fault of {type} for {agent}; it is now at {tier}.",
   "undo.done_already_fault": "Undo {id}: files restored. The automatic check had already counted this action as a fault of {type}; no second fault is recorded.",
   "undo.expired": {
-    "one": "Undo {id} is older than {n} hour: the snapshot is no longer kept.",
+    "one": "Undo {id} is older than {n} h: the snapshot is no longer kept.",
     "other": "Undo {id} is older than {n} h: the snapshot is no longer kept."
   },
   "undo.gone": "Undo {id}: the snapshot is gone, nothing restored.",
