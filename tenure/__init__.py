@@ -395,6 +395,27 @@ def nobody_answers(session_id: str = "") -> str | None:
     return None
 
 
+def _profile_name() -> str:
+    """The Hermes profile this process serves: ``profiles/<name>`` in its home, else ``default``."""
+    try:
+        home = os.path.realpath(_hermes_home())
+        parent = os.path.basename(os.path.dirname(home))
+        return os.path.basename(home) if parent == "profiles" else "default"
+    except Exception:
+        return "default"
+
+
+def _push(event: str, payload: dict | None = None) -> None:
+    """Tell the desktop half, live (``plugin.tenure.<event>`` on Hermes' event stream): ``changed`` after any
+    outcome, ``acted`` when an act-then-notify action ran and can be undone. A process with no Desktop client
+    (cron, ``hermes chat``) has nobody to tell: Hermes logs a no-op."""
+    try:
+        from hermes_cli.plugin_events import broadcast_plugin_event
+        broadcast_plugin_event("tenure", event, payload or {})
+    except Exception:
+        log.debug("tenure: plugin event %s not sent", event, exc_info=True)
+
+
 def _announce(text: str) -> None:
     try:
         if ST.ctx is not None and hasattr(ST.ctx, "post_message"):
@@ -732,8 +753,11 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     _bump(st, agent, result_source[0], checked=phase == "approved",
           alone=not blocked and phase in ("notify", "alone"))
     posts = []
+    _push("changed", {"agent": agent, "type": key})
     if phase == "notify" and not blocked and not failed:    # the files were written: the owner can revert them
         undo_id = st.add_undo(agent, key, p["snap_id"], fault=bool(reason))
+        _push("acted", {"agent": agent, "type": key, "undo_id": undo_id, "fault": bool(reason),
+                        "profile": _profile_name()})
         if reason:
             posts.append(f"tenure: {key} acted on its own, but the automatic check failed ({reason}); counted as "
                          f"a fault · /tenure undo {undo_id}")

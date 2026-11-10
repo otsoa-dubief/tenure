@@ -443,9 +443,11 @@ def _post(fn, body, of: str | None, raw: bool):
     core = _core()
     _mine(core, of)
     try:
-        return fn(body, raw)
+        out = fn(body, raw)
     except (core.LockTimeout, sqlite3.OperationalError):
         raise HTTPException(503, "the store is busy, try again")
+    core._push("changed", {"by": fn.__name__.lstrip("_")})       # the desktop half refreshes at once
+    return out
 
 
 def _known(st, agent: str) -> dict:
