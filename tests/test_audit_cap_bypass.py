@@ -248,3 +248,48 @@ def test_p1_shell_start_up_and_persistence_files_are_capped(path):
                                  "python3 -c \"import urllib.request as u; u.urlopen('http://localhost:9119/api/plugins/clearance/revoke')\""])
 def test_p2_the_dashboard_api_is_capped(cmd):
     assert sh(cmd)[1] == CAP, cmd
+
+
+# ------------------------------------------------------------------------------------ final pass (10/11, later still)
+@pytest.mark.parametrize("cmd", ["git config -z core.fsmonitor ./x", "git config --null core.fsmonitor ./x",
+                                 "git config --show-origin core.fsmonitor ./x", "git config --name-only core.pager ./x",
+                                 "env -S 'PATH=./bin ls'", "env -S'PATH=./bin ls'",
+                                 "git fetch --upload-pack=./x origin", "git fetch -u ./x origin",
+                                 "git ls-remote --upload-pack=./x origin", "git clone -u ./x r d",
+                                 "git push --receive-pack=./x origin", "git push --exec=./x origin"])
+def test_f_more_ways_git_or_env_run_a_chosen_program(cmd):
+    assert sh(cmd)[1] == CAP, cmd
+
+
+@pytest.mark.parametrize("cmd", ["git grep -O./x foo", "git grep --open-files-in-pager=./x foo",
+                                 "kubectl --kubeconfig=./k get pods", "kubectl --kubeconfig ./k get pods"])
+def test_f_reads_that_name_a_program_or_config_are_not_free(cmd):
+    assert sh(cmd)[1] != FREE, cmd
+
+
+@pytest.mark.parametrize("cmd", ['export PATH="$HOME/.local/bin:$PATH"', "export PATH=/opt/homebrew/bin:$PATH",
+                                 "export NODE_OPTIONS=--max-old-space-size=4096", 'GIT_SSH_COMMAND="ssh -i k" git fetch',
+                                 "EDITOR=vim git commit", "VISUAL='code --wait' git commit", "PAGER='less -R' git log",
+                                 "git config --global core.editor vim", "git -c core.editor=nano commit",
+                                 "git config core.pager 'less -FRX'"])
+def test_f_common_settings_are_not_capped(cmd):
+    assert sh(cmd)[1] != CAP, cmd
+
+
+@pytest.mark.parametrize("cmd", ["NODE_OPTIONS='--require ./x' node a.js", "export NODE_OPTIONS=-r./x",
+                                 "EDITOR='./x' git commit", "EDITOR='vim; ./x' git commit", "PAGER='less +!./x' git log",
+                                 "git config core.editor ./x", "export PATH=$HOME/bin:$PATH", "export PATH=./bin:$PATH"])
+def test_f_the_same_settings_pointing_at_a_chosen_program_stay_capped(cmd):
+    assert sh(cmd)[1] == CAP, cmd
+
+
+def test_f_mcp_false_positives(home, tmp_path):
+    proj = str(tmp_path / "proj")
+    assert kind("mcp__filesystem__read_file", {"path": proj + "/.hermes.md"}, cwd=proj)[1] == FREE
+    assert kind("mcp__github__get_file_contents", {"owner": "o", "repo": "r", "path": "docs/.hermes/config.yaml"})[1] \
+        != CAP
+    assert kind("mcp__filesystem__list_directory", {"path": "~"})[1] != CAP
+    assert kind("mcp__filesystem__read_file", {"path": "src/a.py"})[1] == FREE
+    assert kind("mcp__github__list_commits", {"owner": "o", "repo": "r", "path": "src"})[1] == FREE
+    assert kind("mcp__notion__get_page", {"id": "1", "output_format": "md"})[1] == FREE
+    assert kind("mcp__filesystem__write_file", {"path": f"{home}/config.yaml", "content": "x"})[1] == CAP
