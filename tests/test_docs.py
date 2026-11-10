@@ -6,7 +6,7 @@ from clearance import params
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 README = (ROOT / "README.md").read_text(encoding="utf-8")
 MANIFEST = (ROOT / "clearance" / "plugin.yaml").read_text(encoding="utf-8")
-CLAIM = "the same rule as a study registered on OSF, simulated on 6,000+ agents"
+CLAIM = "the same rule as a preregistered study, replayed on 6,000+ simulated agents"
 
 
 def _cell(d):
@@ -36,7 +36,8 @@ def test_allowed_study_claim_verbatim_with_layers():
     for layer in ("spot checks", "two distinct sessions", "suspension"):
         assert layer in README
     study = (ROOT / "docs" / "the-study.md").read_text(encoding="utf-8")
-    assert CLAIM in study and "publication pending" in study.lower()
+    assert CLAIM in study and "results pending" in study.lower()
+    assert "does not claim that the study has confirmed the rule" in study.lower()
 
 
 def test_readme_references_real_files_and_commands():

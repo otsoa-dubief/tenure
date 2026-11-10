@@ -31,7 +31,7 @@ Notes:
 | Target | Beat | Cast mark (scenario label) | Dashboard shot |
 |---|---|---|---|
 | 0-5 s | Hook with the session's real totals ("N actions, M checked"), then title | end of recording (totals read from the ledger afterwards) | Overview totals |
-| 5-15 s | Install command, tab appears; "same rule as a study registered on OSF, simulated on 6,000+ agents" | `welcome` | Tab appearing in the dashboard |
+| 5-15 s | Install command, tab appears; "same rule as a preregistered study, replayed on 6,000+ simulated agents" | `welcome` | Tab appearing in the dashboard |
 | 15-45 s | Agent works, tiers light up: 12 approvals, then act-then-notify with Undo; 21 in a row from 2 sessions, then alone; refused spot check drops the type back to T2 | `setup-fast` (on screen: preset fast), `approve-build-up`, `act-then-notify`, `undo-once`, `new-session`, `task-2`, `spot-check-deny`, `status-after-deny` | Live card: tiers, then the type back to notify |
 | 45-65 s | Chain of 4 models (typed `/model <id> --provider nous`): sonnet-5.5 earns, then opus-5.5, gpt-6-astra-pro, deepseek-v4-pro each carry half the record on trial and ask again on a short task; the cast ends on `/clearance models` | `model-opus`, `approve-opus`, `carry-opus` (the first `half-trial`), `model-astra`..., `model-deepseek`..., `models-table` | Model card + carry-over banner |
 | 65-80 s | Passport: export, then `verify` finds the same tiers | not in the cast; run `/clearance passport` and `verify` in a second short recording | Passport page |

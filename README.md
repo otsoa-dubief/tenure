@@ -1,47 +1,42 @@
-# clearance: everything covered, autonomy earned
+<h1 align="center">clearance</h1>
 
-**Every change your agent makes is covered; each action type earns the right to act alone, on evidence, under a risk you set.**
+<p align="center"><strong>Every change your agent makes is covered. Each action type earns the right to act alone, on evidence, under a risk you set.</strong></p>
 
-Hermes alone asks only for commands that look dangerous. clearance covers every action that changes something,
-and your agent earns its way back to acting alone, one action type at a time, with a guarantee you choose.
+<p align="center">
+  <img alt="Hermes 0.23+" src="https://img.shields.io/badge/Hermes-0.23%2B-111827">
+  <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB">
+  <img alt="License Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-2563eb">
+  <img alt="No network, no LLM call" src="https://img.shields.io/badge/network-none-16a34a">
+  <img alt="Preregistered study" src="https://img.shields.io/badge/study-preregistered%20on%20OSF-7c3aed">
+</p>
 
-Out of the box, Hermes asks about a short list of risky-looking commands and lets everything else through,
-and there is no way to say "trust it on this, not on that". clearance
-closes that gap: every action that changes something asks first, through Hermes' own approval prompt. Each
-action type (writing files in the project, `npm`, `git push`, sending a message, one MCP tool) keeps its own
-verified record, and climbs three tiers: ask, act then notify (with undo), act alone. It climbs only on
-evidence. Ordinary reads never ask; secrets, sensitive files and the agent's own skills and plugins always do.
-So does anything that could switch clearance off. No type override lowers these (`self:*`, `secrets:*`,
-`file:sensitive`):
+<p align="center">
+  <a href="#install-in-60-seconds">Install</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#the-study-behind-the-rule">The study</a> ·
+  <a href="#the-guarantee">The guarantee</a> ·
+  <a href="#self-protection">Self-protection</a> ·
+  <a href="#commands">Commands</a>
+</p>
 
-- Hermes' own CLI, when the program run is `hermes` (also through `sh -c`, `script -c`, `su -c`, `tmux`, `screen`,
-  `expect`, `ssh`, `uvx`, `uv run`, `pipx run`, a git alias, `$(which hermes)`), or Python code that imports or runs
-  `hermes_cli` or `hermes_constants`. Only these reads are not capped: `hermes status`, `hermes --version`,
-  `hermes config get|show|path|env-path` and `hermes clearance status|models|explain|verify|anchor`.
-- Hermes' own entries in each Hermes home (wherever `HERMES_HOME` points, its root, and `~/.hermes`), and the same
-  entries in each `profiles/<name>/`: `config.yaml`, `.env`, `auth.json` and `auth.lock`, `SOUL.md`, `profile.yaml`,
-  `state.db` and its journal files, and the folders `plugins/`, `plugin-data/`, `skills/`, `optional-skills/`,
-  `hooks/`, `cron/`, `memories/`, `sessions/`, `logs/`, `plans/`, `skins/`, `pairing/`, `platforms/`, `bin/`,
-  `mcp/`, `secrets/`, `vault/`, `backups/`, `state-snapshots/`, `hermes-agent/`, `.deleted/`, the gateway's
-  `gateway.sock`, `gateway.pid` and `gateway.lock`; a whole profile, and removing or moving a home. A project or a
-  workspace inside a home (`workspace/`, `kanban/workspaces/...`) is ordinary.
-- Anything naming clearance's own data: `clearance.db`, `plugin-data/clearance`, the passport key.
-- The fail-safe behind these rules: a command that writes is capped when one of its arguments resolves (through
-  symlinks, `$HERMES_HOME`, variables set earlier on the line, options glued to their value, or a glob that may
-  match) to a Hermes home level (a home, its root, the `.hermes` folder at the top of a home, a `profiles/<name>`
-  folder) or to the Hermes program (a path to `bin/hermes`, a link, hard link or copy of it, its installed package),
-  and when it runs inside a home level or an entry. A `cd`, `pushd` or `env -C` into one, or to a target that cannot
-  be worked out, is capped even alone, and the terminal's working directory is followed from one call to the next.
-  The same holds for paths written in code (`execute_code`, `python -c`). A program that resolves to Hermes under
-  another name, looked up on PATH at each call, is Hermes. Workspaces below a home level stay ordinary, and so do a
-  `.hermes` folder inside a project and your own home folder when Hermes lives there (Docker); unpacking an archive
-  into your home folder asks (high stakes). A path argument the shell computes (a variable, a substitution, a brace
-  list, `~user`, the `{}` of find or xargs), a `cd` to such a target, and `tar -P` ask too (high stakes), and are
-  capped when their literal part names Hermes. Setting `CDPATH` is capped.
-- The limit, stated plainly: this is a static reading of the command, not a proof of what it will do. It is a
-  fail-safe floor: what it cannot read with certainty goes up to asking you, and a determined program can still
-  hide its target (code that builds a path at run time, a variable set by an earlier command) behind a high-stakes
-  ask rather than a cap.
+## The problem
+
+Out of the box, Hermes asks about a short list of risky-looking commands and lets everything else through, and
+there is no way to say "trust it on this, not on that". You either babysit every step or hand over the keys.
+
+clearance is a plugin for [Hermes Agent](https://github.com/NousResearch/hermes-agent) that closes that gap. Every
+action that changes something asks first, through Hermes' own approval prompt. Each action type (writing files in
+the project, `npm`, `git push`, sending a message, one MCP tool) keeps its own verified record and climbs three
+tiers, only on evidence:
+
+| Tier | What happens |
+|---|---|
+| **Ask** | Every action of the type asks you first. Everything starts here. |
+| **Act, then notify** | The agent acts, then tells you, with an undo: the files it touched were saved first (24 hours, 5 MB per action). Only for reversible types at low or medium stakes. |
+| **Act alone** | The agent acts alone. A random share of actions (one in ten by default) still asks, as a spot check. |
+
+One fault and the type drops back. Ordinary reads never ask; secrets, sensitive files, the agent's own skills and
+plugins, and anything that could switch clearance off always do (see [Self-protection](#self-protection)).
 
 ## Three pillars
 
@@ -76,15 +71,51 @@ hermes clearance setup          # the three presets side by side
 Requires Hermes 0.23.0 or later and Python 3.11 or later. No network, no LLM call, nothing to configure to start.
 Work as usual: `hermes clearance` shows where each action type stands.
 
+## The study behind the rule
+
+clearance uses the same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending; see [docs/the-study.md](docs/the-study.md)).
+
+**The question.** When can an AI agent be trusted to act alone, one action type at a time, on verified evidence,
+under an error budget fixed in advance, with a guarantee anyone can check and revoke?
+
+**Preregistered.** The experiment plan, the rule, the replay engine and the decision criteria were frozen at a git
+tag and registered on OSF on 10 November 2026, before any confirmatory data existed. The registration is embargoed
+until the results are published. What would refute the rule is written down in advance, and the result will be
+published whatever it is, negative included.
+
+**Validated before the freeze.** The rule was replayed on 6,000+ simulated agents (519 synthetic worlds × 12
+model-environment configurations), where the truth is known, to check that the decision procedure reaches the
+right verdict.
+
+**Running now.** Three Claude models play four environments of two public agent benchmarks (τ-bench 2.0 airline,
+retail and banking; WorkBench): 14,266 planned episodes. Every write action with a known tool is judged by exact comparison
+with the task's expected actions, and automated alerts are reviewed on blind sheets. The rule is then replayed offline against fixed lists and risk-based triage.
+
+**What clearance claims, and what it does not.** It runs the study's rule, with the layers below. It does not
+claim that the study has confirmed the rule: the results are pending, and this section will say what they are.
+
+### What clearance adds or adapts
+
+The middle tier (act, then notify) is part of the study.
+
+Added layers:
+
+- spot checks on a cleared type (one in ten by default);
+- the requirement of two distinct sessions;
+- suspension after external content.
+
+Adaptations:
+
+- human approval plus clean execution counts as proof, an adaptation of the study's automatic control;
+- one trial covers the faults that happen during the wait and the inherited faults;
+- evidence is re-based when the stakes of a type change;
+- a trial is the next 3 real actions, asked; the study replays 3 hidden variants of the faulty case.
+
+Carry-over is our addition; strict mode is the study. The public-benchmark veto is our addition too.
+
 ## How it works
 
-**Tiers.** Each action type of each agent (`model@provider`) is in one of three tiers.
-
-| Tier | What happens |
-|---|---|
-| Ask | Every action of the type asks you first. Everything starts here. |
-| Act, then notify | The agent acts, then tells you, with an undo: the files it touched were saved first (24 hours, 5 MB per action). Only for reversible types at low or medium stakes. |
-| Act alone | The agent acts alone. A random share of actions (one in ten by default) still asks, as a spot check. |
+**Agents.** Each action type of each agent (`model@provider`) is in one of the three tiers above.
 
 **Proofs.** A type climbs on verified outcomes, judged after the tool has run: an approved action that ran
 cleanly and whose automatic check passed (the written file still parses, the exit code is zero) is a success, and
@@ -136,28 +167,39 @@ stable agent), worst case (for an agent that turns bad after clearance, until a 
 Errors you catch never run: a refused action is blocked. `hermes clearance explain` prints the numbers for your own
 settings.
 
-## The study behind the rule
+## Self-protection
 
-clearance uses the same rule as a study registered on OSF, simulated on 6,000+ agents (publication pending; see [docs/the-study.md](docs/the-study.md)).
+An agent that can switch off its own supervision is not supervised. So the following are capped at **Ask**, and no
+type override lowers them (`self:*`, `secrets:*`, `file:sensitive`):
 
-### What clearance adds or adapts
-
-The middle tier (act, then notify) is part of the study.
-
-Added layers:
-
-- spot checks on a cleared type (one in ten by default);
-- the requirement of two distinct sessions;
-- suspension after external content.
-
-Adaptations:
-
-- human approval plus clean execution counts as proof, an adaptation of the study's automatic control;
-- one trial covers the faults that happen during the wait and the inherited faults;
-- evidence is re-based when the stakes of a type change;
-- a trial is the next 3 real actions, asked; the study replays 3 hidden variants of the faulty case.
-
-Carry-over is our addition; strict mode is the study. The public-benchmark veto is our addition too.
+- Hermes' own CLI, when the program run is `hermes` (also through `sh -c`, `script -c`, `su -c`, `tmux`, `screen`,
+  `expect`, `ssh`, `uvx`, `uv run`, `pipx run`, a git alias, `$(which hermes)`), or Python code that imports or runs
+  `hermes_cli` or `hermes_constants`. Only these reads are not capped: `hermes status`, `hermes --version`,
+  `hermes config get|show|path|env-path` and `hermes clearance status|models|explain|verify|anchor`.
+- Hermes' own entries in each Hermes home (wherever `HERMES_HOME` points, its root, and `~/.hermes`), and the same
+  entries in each `profiles/<name>/`: `config.yaml`, `.env`, `auth.json` and `auth.lock`, `SOUL.md`, `profile.yaml`,
+  `state.db` and its journal files, and the folders `plugins/`, `plugin-data/`, `skills/`, `optional-skills/`,
+  `hooks/`, `cron/`, `memories/`, `sessions/`, `logs/`, `plans/`, `skins/`, `pairing/`, `platforms/`, `bin/`,
+  `mcp/`, `secrets/`, `vault/`, `backups/`, `state-snapshots/`, `hermes-agent/`, `.deleted/`, the gateway's
+  `gateway.sock`, `gateway.pid` and `gateway.lock`; a whole profile, and removing or moving a home. A project or a
+  workspace inside a home (`workspace/`, `kanban/workspaces/...`) is ordinary.
+- Anything naming clearance's own data: `clearance.db`, `plugin-data/clearance`, the passport key.
+- The fail-safe behind these rules: a command that writes is capped when one of its arguments resolves (through
+  symlinks, `$HERMES_HOME`, variables set earlier on the line, options glued to their value, or a glob that may
+  match) to a Hermes home level (a home, its root, the `.hermes` folder at the top of a home, a `profiles/<name>`
+  folder) or to the Hermes program (a path to `bin/hermes`, a link, hard link or copy of it, its installed package),
+  and when it runs inside a home level or an entry. A `cd`, `pushd` or `env -C` into one, or to a target that cannot
+  be worked out, is capped even alone, and the terminal's working directory is followed from one call to the next.
+  The same holds for paths written in code (`execute_code`, `python -c`). A program that resolves to Hermes under
+  another name, looked up on PATH at each call, is Hermes. Workspaces below a home level stay ordinary, and so do a
+  `.hermes` folder inside a project and your own home folder when Hermes lives there (Docker); unpacking an archive
+  into your home folder asks (high stakes). A path argument the shell computes (a variable, a substitution, a brace
+  list, `~user`, the `{}` of find or xargs), a `cd` to such a target, and `tar -P` ask too (high stakes), and are
+  capped when their literal part names Hermes. Setting `CDPATH` is capped.
+- The limit, stated plainly: this is a static reading of the command, not a proof of what it will do. It is a
+  fail-safe floor: what it cannot read with certainty goes up to asking you, and a determined program can still
+  hide its target (code that builds a path at run time, a variable set by an earlier command) behind a high-stakes
+  ask rather than a cap.
 
 ## Commands
 

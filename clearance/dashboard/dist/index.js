@@ -1081,7 +1081,7 @@
       msg ? h("div", { className: "clr-msg clr-tone--" + msg.tone }, msg.text) : null,
       h("section", { className: "clr-about" },
         h("div", { className: "clr-section-title" }, "About the rule"),
-        h("p", null, "The same rule as a study registered on OSF, simulated on 6,000+ agents. Added layers make it stricter: ",
+        h("p", null, "The same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending). Added layers make it stricter: ",
           "spot checks (" + oneIn(cur.spot) + " cleared actions still asks), two distinct sessions in the series that reaches T3, ",
           "and suspension after a session reads external content."),
         h("p", { className: "clr-dim" }, "Carry-over is our addition; strict mode is the study.")));

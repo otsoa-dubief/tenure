@@ -3,7 +3,7 @@
 """The numbers of the rule, for the risk a user accepts: series lengths, the middle tier's steps, the guarantee.
 
 The series length for an accepted risk ``bar`` (the share of errors that may run without a human check) is the
-formula of the study registered on OSF, in exact fractions: N = ceil(1 / (DETECTION * bar)) - 1 (``study_n``). A type
+formula of the preregistered earned-autonomy study, in exact fractions: N = ceil(1 / (DETECTION * bar)) - 1 (``study_n``). A type
 whose last N verified outcomes are successes acts alone, except for a random fraction ``f`` of its actions that still
 asks (spot checks); one caught error takes the autonomy back.
 
@@ -35,7 +35,7 @@ DEFAULT_SPOT = 0.1          # one cleared action in ten still asks
 LEVELS = ("low", "medium", "high")
 
 
-# Detection rate of the study registered on OSF; series length N = ceil(1 / (DETECTION * bar)) - 1.
+# Detection rate of the preregistered earned-autonomy study; series length N = ceil(1 / (DETECTION * bar)) - 1.
 DETECTION = Fraction(95, 100)
 # Wald sequential test for the middle tier: (pb, pm) = (acceptable, unacceptable) error rate per stakes.
 WALD = {"low": (0.10, 0.30), "medium": (0.05, 0.20)}

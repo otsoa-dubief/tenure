@@ -1,6 +1,6 @@
 # Copyright 2026 Otsoa Dubief
 # SPDX-License-Identifier: Apache-2.0
-"""The rule for one action type: rule B of the earned-autonomy study (registered on OSF), with the middle tier of its
+"""The rule for one action type: rule B of the preregistered earned-autonomy study, with the middle tier of its
 amendment A1.
 
 Tiers:
