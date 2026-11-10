@@ -58,8 +58,8 @@
   "counters.checked.sub": "par vous, sur {total}",
   "counters.faults.label": "fautes repérées",
   "counters.faults.sub": {
-    "one": "{faults} / {n} vérification",
-    "other": "{faults} / {n} vérifications"
+    "one": "{faults} sur {n} vérification par vous",
+    "other": "{faults} sur {n} vérifications par vous"
   },
   "counters.window": "7 derniers jours, tous les profils",
   "drawer.aria": "Agent {agent}",
@@ -452,6 +452,7 @@
   "undo.confirm": "Annuler le n° {id} ?",
   "undo.effect.already": "restaure les fichiers · la vérification automatique a déjà compté une faute",
   "undo.effect.fault": "restaure les fichiers · compte comme une faute",
+  "undo.effect.none": "rien à restaurer (pas d'instantané) · compterait comme une faute",
   "undo.empty.body": "Les actions en T2 (agir, puis prévenir) gardent 24 heures un instantané des fichiers qu'elles ont écrits. Elles apparaissent ici, de la plus récente à la plus ancienne, chacune avec son bouton Annuler.",
   "undo.empty.title": "Rien à annuler",
   "undo.expand": "Détailler",

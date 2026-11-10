@@ -121,7 +121,7 @@ def test_explain_uses_the_params_numbers(plugin):
     mod, _ = plugin()
     out = mod.cli.slash("explain")
     g = mod.params.describe("balanced")
-    assert f"i = {g['low']['n']}" in out and f"{g['low']['aoql']:.2%}" in out and "high: always asked" in out
+    assert f"{g['low']['n']} in a row" in out and f"{g['low']['aoql']:.2%}" in out and "high: always asked" in out
 
 
 def test_explain_speaks_the_tiers_of_the_screens(plugin):

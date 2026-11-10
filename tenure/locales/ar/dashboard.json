@@ -82,12 +82,12 @@
   "counters.checked.sub": "بفحصك، من {total}",
   "counters.faults.label": "إخفاقات مكتشفة",
   "counters.faults.sub": {
-    "zero": "{faults} / {n} فحوص",
-    "one": "{faults} / {n} فحص",
-    "two": "{faults} / {n} فحصان",
-    "few": "{faults} / {n} فحوص",
-    "many": "{faults} / {n} فحصًا",
-    "other": "{faults} / {n} فحص"
+    "zero": "{faults} من {n} فحص أجريته",
+    "one": "{faults} من {n} فحص أجريته",
+    "two": "{faults} من {n} فحصين أجريتهما",
+    "few": "{faults} من {n} فحوص أجريتها",
+    "many": "{faults} من {n} فحصًا أجريته",
+    "other": "{faults} من {n} فحص أجريته"
   },
   "counters.window": "آخر 7 أيام، كل الملفات الشخصية",
   "drawer.aria": "الوكيل {agent}",
@@ -604,6 +604,7 @@
   "undo.confirm": "التراجع عن #{id}؟",
   "undo.effect.already": "يستعيد الملفات · سبق أن حسب الفحص التلقائي إخفاقًا",
   "undo.effect.fault": "يستعيد الملفات · يُحسب إخفاقًا",
+  "undo.effect.none": "لا شيء للاستعادة (لا لقطة) · سيُحتسب إخفاقًا",
   "undo.empty.body": "الإجراءات في T2 (ينفّذ ثم يُبلغ) تحتفظ بلقطة من الملفات التي كتبتها لمدة 24 ساعة. تظهر هنا، الأحدث أولًا، ولكل منها زر تراجع.",
   "undo.empty.title": "لا شيء للتراجع عنه",
   "undo.expand": "عرض التفاصيل",

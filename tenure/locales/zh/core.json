@@ -96,14 +96,14 @@
   "cli.explain.fault": "一次失误（被拒绝的抽查或你标记的错误）就会让该类型降级：处于 T3 的低风险可逆类型降到 T2（已在 T2 的，由得分决定留在 T2 还是降到 T1）；其他任何失误都会让它退回 T1。在中、高风险下，下一次晋升需要的连续记录延长 25%。",
   "cli.explain.footer": "这一保证覆盖的是你被询问时会拒绝的错误；没人会注意到的错误无法计入。测试套件已通过模拟将其与理论值对照验证。",
   "cli.explain.guarantee_title": "按你的设置，它能保证什么（你发现的错误永远不会运行：被拒绝的操作会被拦截）：",
-  "cli.explain.level": "{level}：i = {n}。对于错误率稳定的智能体，未经你批准而运行的错误不超过它在该类型上操作的 {aoql}。若智能体在获得自主权后变差，在第一次发现错误之前最多 {worst}。",
+  "cli.explain.level": "{level}：连续 {n} 次。对于错误率稳定的智能体，未经你批准而运行的错误不超过它在该类型上操作的 {aoql}。若智能体在获得自主权后变差，在第一次发现错误之前最多 {worst}。",
   "cli.explain.level_capped": "{level}：始终询问。",
   "cli.explain.new_model": "新模型从上一个模型连续记录的一半开始，标为暂定，直到它自己确认为止（严格模式：空记录）。",
   "cli.explain.new_model_strict": "新模型从空记录开始（严格模式）。",
   "cli.explain.reads": "读取从不询问；密钥、智能体自己的技能和插件，以及敏感文件始终询问。",
   "cli.explain.t1": "T1 先询问。新类型的每个操作都会询问你。",
   "cli.explain.t2": "T2 先执行后告知。在低风险下连续获批 {low} 次、中风险下 {medium} 次后，可逆类型会先执行再告知你，并可撤销（{command}）。高风险和不可逆类型永远不会升到 T2。",
-  "cli.explain.t3": "T3 自主执行。连续获批 i 次且跨越至少 {sessions} 个会话后升到 T3（i 见下文：Dodge 的放行数，连续抽样方案 CSP-1）；之后每 {spot} 个操作仍会随机抽查 1 个。",
+  "cli.explain.t3": "T3 自主执行。按其风险等级连续获批下文所列次数、且跨越至少 {sessions} 个会话后升到 T3；之后每 {spot} 个操作仍会随机抽查 1 个。所需次数由 Dodge 的连续抽样方案 CSP-1 确定。",
   "cli.explain.title": "tenure 如何逐个操作类型作出决定：",
   "cli.export.written": {
     "other": "证据已写入：{path}（{n} 条）。用它验证护照：{command} {path}"

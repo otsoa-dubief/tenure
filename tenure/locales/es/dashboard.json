@@ -58,8 +58,8 @@
   "counters.checked.sub": "por ti, de {total}",
   "counters.faults.label": "fallos detectados",
   "counters.faults.sub": {
-    "one": "{faults} / {n} comprobación",
-    "other": "{faults} / {n} comprobaciones"
+    "one": "{faults} de {n} comprobación tuya",
+    "other": "{faults} de {n} comprobaciones tuyas"
   },
   "counters.window": "últimos 7 días, todos los perfiles",
   "drawer.aria": "Agente {agent}",
@@ -452,6 +452,7 @@
   "undo.confirm": "¿Deshacer n.º {id}?",
   "undo.effect.already": "restaura los archivos · la comprobación automática ya contó un fallo",
   "undo.effect.fault": "restaura los archivos · cuenta como fallo",
+  "undo.effect.none": "nada que restaurar (sin instantánea) · contaría como fallo",
   "undo.empty.body": "Las acciones en T2 (actúa y luego avisa) guardan una instantánea de los archivos que escribieron durante 24 horas. Aparecen aquí, las más recientes primero, cada una con su botón Deshacer.",
   "undo.empty.title": "Nada que deshacer",
   "undo.expand": "Desplegar",

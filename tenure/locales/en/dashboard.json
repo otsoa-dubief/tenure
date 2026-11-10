@@ -58,8 +58,8 @@
   "counters.checked.sub": "by you, of {total}",
   "counters.faults.label": "faults caught",
   "counters.faults.sub": {
-    "one": "{faults} / {n} check",
-    "other": "{faults} / {n} checks"
+    "one": "{faults} of {n} check by you",
+    "other": "{faults} of {n} checks by you"
   },
   "counters.window": "last 7 days, every profile",
   "drawer.aria": "Agent {agent}",
@@ -452,6 +452,7 @@
   "undo.confirm": "Undo #{id}?",
   "undo.effect.already": "restores the files · the automatic check already counted a fault",
   "undo.effect.fault": "restores the files · counts as a fault",
+  "undo.effect.none": "nothing to restore (no snapshot) · would count as a fault",
   "undo.empty.body": "Actions at T2 (acts, then tells you) keep a snapshot of the files they wrote for 24 hours. They appear here, newest first, each with its own undo.",
   "undo.empty.title": "Nothing to undo",
   "undo.expand": "Show each",

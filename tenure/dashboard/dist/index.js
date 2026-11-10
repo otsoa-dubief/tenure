@@ -91,8 +91,8 @@ const TENURE_LOCALES = {
     "counters.checked.sub": "by you, of {total}",
     "counters.faults.label": "faults caught",
     "counters.faults.sub": {
-      "one": "{faults} / {n} check",
-      "other": "{faults} / {n} checks"
+      "one": "{faults} of {n} check by you",
+      "other": "{faults} of {n} checks by you"
     },
     "counters.window": "last 7 days, every profile",
     "drawer.aria": "Agent {agent}",
@@ -485,6 +485,7 @@ const TENURE_LOCALES = {
     "undo.confirm": "Undo #{id}?",
     "undo.effect.already": "restores the files · the automatic check already counted a fault",
     "undo.effect.fault": "restores the files · counts as a fault",
+    "undo.effect.none": "nothing to restore (no snapshot) · would count as a fault",
     "undo.empty.body": "Actions at T2 (acts, then tells you) keep a snapshot of the files they wrote for 24 hours. They appear here, newest first, each with its own undo.",
     "undo.empty.title": "Nothing to undo",
     "undo.expand": "Show each",
@@ -595,12 +596,12 @@ const TENURE_LOCALES = {
     "counters.checked.sub": "بفحصك، من {total}",
     "counters.faults.label": "إخفاقات مكتشفة",
     "counters.faults.sub": {
-      "zero": "{faults} / {n} فحوص",
-      "one": "{faults} / {n} فحص",
-      "two": "{faults} / {n} فحصان",
-      "few": "{faults} / {n} فحوص",
-      "many": "{faults} / {n} فحصًا",
-      "other": "{faults} / {n} فحص"
+      "zero": "{faults} من {n} فحص أجريته",
+      "one": "{faults} من {n} فحص أجريته",
+      "two": "{faults} من {n} فحصين أجريتهما",
+      "few": "{faults} من {n} فحوص أجريتها",
+      "many": "{faults} من {n} فحصًا أجريته",
+      "other": "{faults} من {n} فحص أجريته"
     },
     "counters.window": "آخر 7 أيام، كل الملفات الشخصية",
     "drawer.aria": "الوكيل {agent}",
@@ -1117,6 +1118,7 @@ const TENURE_LOCALES = {
     "undo.confirm": "التراجع عن #{id}؟",
     "undo.effect.already": "يستعيد الملفات · سبق أن حسب الفحص التلقائي إخفاقًا",
     "undo.effect.fault": "يستعيد الملفات · يُحسب إخفاقًا",
+    "undo.effect.none": "لا شيء للاستعادة (لا لقطة) · سيُحتسب إخفاقًا",
     "undo.empty.body": "الإجراءات في T2 (ينفّذ ثم يُبلغ) تحتفظ بلقطة من الملفات التي كتبتها لمدة 24 ساعة. تظهر هنا، الأحدث أولًا، ولكل منها زر تراجع.",
     "undo.empty.title": "لا شيء للتراجع عنه",
     "undo.expand": "عرض التفاصيل",
@@ -1207,8 +1209,8 @@ const TENURE_LOCALES = {
     "counters.checked.sub": "por ti, de {total}",
     "counters.faults.label": "fallos detectados",
     "counters.faults.sub": {
-      "one": "{faults} / {n} comprobación",
-      "other": "{faults} / {n} comprobaciones"
+      "one": "{faults} de {n} comprobación tuya",
+      "other": "{faults} de {n} comprobaciones tuyas"
     },
     "counters.window": "últimos 7 días, todos los perfiles",
     "drawer.aria": "Agente {agent}",
@@ -1601,6 +1603,7 @@ const TENURE_LOCALES = {
     "undo.confirm": "¿Deshacer n.º {id}?",
     "undo.effect.already": "restaura los archivos · la comprobación automática ya contó un fallo",
     "undo.effect.fault": "restaura los archivos · cuenta como fallo",
+    "undo.effect.none": "nada que restaurar (sin instantánea) · contaría como fallo",
     "undo.empty.body": "Las acciones en T2 (actúa y luego avisa) guardan una instantánea de los archivos que escribieron durante 24 horas. Aparecen aquí, las más recientes primero, cada una con su botón Deshacer.",
     "undo.empty.title": "Nada que deshacer",
     "undo.expand": "Desplegar",
@@ -1687,8 +1690,8 @@ const TENURE_LOCALES = {
     "counters.checked.sub": "par vous, sur {total}",
     "counters.faults.label": "fautes repérées",
     "counters.faults.sub": {
-      "one": "{faults} / {n} vérification",
-      "other": "{faults} / {n} vérifications"
+      "one": "{faults} sur {n} vérification par vous",
+      "other": "{faults} sur {n} vérifications par vous"
     },
     "counters.window": "7 derniers jours, tous les profils",
     "drawer.aria": "Agent {agent}",
@@ -2081,6 +2084,7 @@ const TENURE_LOCALES = {
     "undo.confirm": "Annuler le n° {id} ?",
     "undo.effect.already": "restaure les fichiers · la vérification automatique a déjà compté une faute",
     "undo.effect.fault": "restaure les fichiers · compte comme une faute",
+    "undo.effect.none": "rien à restaurer (pas d'instantané) · compterait comme une faute",
     "undo.empty.body": "Les actions en T2 (agir, puis prévenir) gardent 24 heures un instantané des fichiers qu'elles ont écrits. Elles apparaissent ici, de la plus récente à la plus ancienne, chacune avec son bouton Annuler.",
     "undo.empty.title": "Rien à annuler",
     "undo.expand": "Détailler",
@@ -2161,7 +2165,7 @@ const TENURE_LOCALES = {
     "counters.checked.sub": "由你确认，共 {total} 个",
     "counters.faults.label": "发现的失误",
     "counters.faults.sub": {
-      "other": "{faults} / {n} 次检查"
+      "other": "你检查的 {n} 次中有 {faults} 次"
     },
     "counters.window": "最近 7 天，所有配置文件",
     "drawer.aria": "智能体 {agent}",
@@ -2523,6 +2527,7 @@ const TENURE_LOCALES = {
     "undo.confirm": "撤销 #{id}？",
     "undo.effect.already": "恢复文件 · 自动检查已记过一次失误",
     "undo.effect.fault": "恢复文件 · 记为一次失误",
+    "undo.effect.none": "没有可恢复的内容（无快照）· 会记为一次失误",
     "undo.empty.body": "T2 级别的操作（先执行后告知）会将写入的文件快照保留 24 小时。它们按最新在前显示在这里，每条都可单独撤销。",
     "undo.empty.title": "没有可撤销的操作",
     "undo.expand": "展开",
@@ -4206,11 +4211,11 @@ const TENURE_LOCALES = {
         h("td", null, h("bdi", null, u.agent), h("div", { className: "tnr-dim tnr-small" }, t("common.profile", { profile: u.profile }))),
         h("td", null, h("code", null, u.type)),
         h("td", null, fileCell(u)),
-        h("td", { className: "tnr-small" }, u.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already")),
+        h("td", { className: "tnr-small" }, !u.file ? t("undo.effect.none") : u.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already")),
         h("td", { className: "tnr-dtable-actions" }, h(ConfirmBtn, {
           disabled: !mine, confirm: t("undo.confirm", { id: String(u.id) }),
           dialogTitle: t("confirm.undo.title", { id: String(u.id) }),
-          dialogDesc: u.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already"),
+          dialogDesc: !u.file ? t("undo.effect.none") : u.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already"),
           title: mine ? t("undo.title") : t("undo.own_profile_only"),
           onConfirm: function () {
             return apiPost("/undo", { id: u.id }, { raw: props.raw }).then(function (r) {
@@ -4239,7 +4244,7 @@ const TENURE_LOCALES = {
               h("td", null, h("bdi", null, g.agent), h("div", { className: "tnr-dim tnr-small" }, t("common.profile", { profile: g.profile }))),
               h("td", null, h("code", null, g.type)),
               h("td", null, h("span", { className: "tnr-dim tnr-small" }, t("undo.no_snapshot"))),
-              h("td", { className: "tnr-small" }, first.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already")),
+              h("td", { className: "tnr-small" }, !first.file ? t("undo.effect.none") : first.counts_as_fault ? t("undo.effect.fault") : t("undo.effect.already")),
               h("td", { className: "tnr-dtable-actions" },
                 h(Btn, { onClick: function () { var o = Object.assign({}, open); o[g.key] = !expanded; setOpen(o); } },
                   expanded ? t("undo.collapse") : t("undo.expand"))));

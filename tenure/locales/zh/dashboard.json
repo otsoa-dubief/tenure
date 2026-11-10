@@ -52,7 +52,7 @@
   "counters.checked.sub": "由你确认，共 {total} 个",
   "counters.faults.label": "发现的失误",
   "counters.faults.sub": {
-    "other": "{faults} / {n} 次检查"
+    "other": "你检查的 {n} 次中有 {faults} 次"
   },
   "counters.window": "最近 7 天，所有配置文件",
   "drawer.aria": "智能体 {agent}",
@@ -414,6 +414,7 @@
   "undo.confirm": "撤销 #{id}？",
   "undo.effect.already": "恢复文件 · 自动检查已记过一次失误",
   "undo.effect.fault": "恢复文件 · 记为一次失误",
+  "undo.effect.none": "没有可恢复的内容（无快照）· 会记为一次失误",
   "undo.empty.body": "T2 级别的操作（先执行后告知）会将写入的文件快照保留 24 小时。它们按最新在前显示在这里，每条都可单独撤销。",
   "undo.empty.title": "没有可撤销的操作",
   "undo.expand": "展开",
