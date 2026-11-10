@@ -212,6 +212,7 @@
     "one": "{file} (+{n} más)",
     "other": "{file} (+{n} más)"
   },
+  "cli.undo.no_snapshot": "(sin instantánea)",
   "cli.undo.none": {
     "one": "Nada que deshacer: ninguna acción se hizo por su cuenta en la última hora.",
     "other": "Nada que deshacer: ninguna acción se hizo por su cuenta en las últimas {n} horas."

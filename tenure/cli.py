@@ -372,7 +372,7 @@ def undo_list() -> str:
     for uid, agent, key, at, snap in rows:
         d = undo.describe(snap, core.data_dir())
         what = ((tr("cli.undo.more_files", file=d["file"], n=d["files"] - 1) if d["files"] > 1 else d["file"])
-                if d else "-")
+                if d else tr("cli.undo.no_snapshot"))
         cells.append([str(uid), key, what, _ago(now - at), agent])
     lines = [tr("cli.undo.title", n=core.UNDO_WINDOW // 3600)]
     lines += ["  " + ln for ln in _table(_cols("number", "type", "restores", "when", "agent"), cells)]

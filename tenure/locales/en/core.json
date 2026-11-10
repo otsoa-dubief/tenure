@@ -212,6 +212,7 @@
     "one": "{file} (+{n} more)",
     "other": "{file} (+{n} more)"
   },
+  "cli.undo.no_snapshot": "(no snapshot)",
   "cli.undo.none": {
     "one": "Nothing to undo: no action was taken alone in the last {n} hour.",
     "other": "Nothing to undo: no action was taken alone in the last {n} hours."

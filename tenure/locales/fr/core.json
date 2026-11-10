@@ -212,6 +212,7 @@
     "one": "{file} (+{n} autre)",
     "other": "{file} (+{n} autres)"
   },
+  "cli.undo.no_snapshot": "(pas d'instantané)",
   "cli.undo.none": {
     "one": "Rien à annuler : aucune action faite sans demander depuis {n} heure.",
     "other": "Rien à annuler : aucune action faite sans demander ces {n} dernières heures."

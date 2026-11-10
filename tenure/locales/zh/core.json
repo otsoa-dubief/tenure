@@ -185,6 +185,7 @@
   "cli.undo.more_files": {
     "other": "{file}（另有 {n} 个）"
   },
+  "cli.undo.no_snapshot": "（无快照）",
   "cli.undo.none": {
     "other": "没有可撤销的操作：过去 {n} 小时内没有自主执行的操作。"
   },
