@@ -101,7 +101,7 @@ const EN = {
   showAll: n => `Show all ${n}`,
   showFewer: 'Show fewer',
   metaPreset: 'Preset',
-  presetValue: (p, spot) => `${p} · 1 in ${Math.round(1 / (spot || 0.1))} spot-checked`,
+  presetValue: (p, spot, pending) => `${p} · 1 in ${Math.round(1 / (spot || 0.1))} spot-checked` + (pending ? ' · applies from the next action' : ''),
   types: 'Action types',
   stakes: s => `${s} stakes`,
   inARow: (s, r) => `${s} of ${r} in a row`,
@@ -146,7 +146,7 @@ const EN = {
   checkFailed: 'check failed',
   checkFailedTip: 'The automatic check failed: already counted as a fault. Undo restores the files.',
   flagTitle: 'Flag this change as an error?',
-  flagDesc: type => `${type} is revoked: it asks first again. Use it for an error nobody caught.`,
+  flagDesc: type => `This counts as a fault: ${type} will drop at least one tier and climb again. Use it for an error nobody caught.`,
   flagConfirm: 'Flag',
   copyCommand: 'Copy command',
   notEnough: 'not enough evidence',
@@ -547,7 +547,7 @@ function AgentDetail({ agent, t, onRevoke }) {
               { label: t('metaChecked'), value: String(tot.checked || 0) },
               { label: t('metaAlone'), value: String(tot.alone || 0) },
               { label: t('metaFaults'), value: String(tot.faults || 0) },
-              { label: t('metaPreset'), value: t('presetValue', s.preset || 'balanced', s.spot) }
+              { label: t('metaPreset'), value: t('presetValue', s.preset || 'balanced', s.spot, s.pending) }
             ]
           })
         ]

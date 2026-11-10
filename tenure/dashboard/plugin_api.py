@@ -151,9 +151,16 @@ def _profile(name: str | None, core) -> dict:
     raise HTTPException(404, f"no such profile: {name}")
 
 
-def _settings(core, st) -> dict:
-    """The settings in force in a profile: those of the ledger's last settings event (what its tiers were computed
-    under), else the default preset."""
+def _settings(core, st, own: bool = False) -> dict:
+    """The settings in force in a profile, with ``pending`` when the ledger has not logged them yet.
+
+    This process's own profile (``own``): the owner's settings, the ones the hooks decide with and `hermes tenure
+    status` shows; the ledger logs them at the next action. Another profile: its config is not readable from here, so
+    the settings of its ledger's last settings event (what its tiers were computed under), else the default preset."""
+    if own:
+        cfg = core.settings()
+        pending = st.get_meta("settings:fingerprint") != core.settings_fingerprint(cfg)
+        return {**cfg, "pending": pending}
     row = st.db.execute("SELECT event FROM ledger WHERE event LIKE '%\"event\":\"settings\"%' "
                         "ORDER BY seq DESC LIMIT 1").fetchone()
     params = core.params
@@ -165,7 +172,7 @@ def _settings(core, st) -> dict:
                   "custom")
     return {"preset": preset, "risks": risks,
             "spot": spot if isinstance(spot, (int, float)) and 0 < spot < 1 else params.DEFAULT_SPOT,
-            "strict": bool(ev.get("strict")), "overrides": {}, "enabled": True}
+            "strict": bool(ev.get("strict")), "overrides": {}, "enabled": True, "pending": False}
 
 
 def _type_row(core, cfg: dict, s, raw: bool = False) -> dict:
@@ -208,12 +215,12 @@ def _agents(raw: bool) -> dict:
             with _open(core, p) as st:
                 if st is None:
                     continue
-                cfg = _settings(core, st)
+                cfg = _settings(core, st, own=p["name"] == current)
                 # Sessions are stored without their agent: the suspended count is the profile's, repeated on each agent.
                 suspended = st.db.execute("SELECT COUNT(*) FROM sessions WHERE tainted = 1").fetchone()[0]
                 out.append({"profile": p["name"], "current": p["name"] == current, "suspended": suspended,
                             "settings": {"preset": cfg["preset"], "risks": cfg["risks"], "spot": cfg["spot"],
-                                         "strict": cfg["strict"]},
+                                         "strict": cfg["strict"], "pending": cfg["pending"]},
                             "agents": _agent_rows(core, st, cfg, suspended, raw)})
         except (_Unreadable, sqlite3.Error):
             out.append({"profile": p["name"], "current": p["name"] == current, "error": "unreadable"})
@@ -247,21 +254,8 @@ def _activity(since: float, raw: bool) -> dict:
 
 
 def _snap_files(p: dict, snap_id: str | None) -> dict:
-    """What an undo would restore, said for the owner of this machine: the first file, relative to the folder the
-    agent worked in, and how many files in all. Read from the snapshot's manifest; nothing when it is unreadable."""
-    try:
-        if not snap_id or not snap_id.isalnum():
-            return {}
-        with open(os.path.join(_data_dir(p), "undo", snap_id, "manifest.json"), encoding="utf-8") as fh:
-            m = json.load(fh)
-        files = [f["path"] for f in m.get("files", []) if isinstance(f, dict) and isinstance(f.get("path"), str)]
-        if not files:
-            return {}
-        cwd = m.get("cwd") or ""
-        first = os.path.relpath(files[0], cwd) if cwd and files[0].startswith(cwd.rstrip("/") + "/") else os.path.basename(files[0])
-        return {"file": first, "files": len(files)}
-    except (OSError, ValueError, KeyError, TypeError):
-        return {}
+    """What an undo would restore (``undo.describe``): the first file and how many in all, or {}."""
+    return _core().undo.describe(snap_id, _data_dir(p))
 
 
 def _models(type_key: str | None, raw: bool) -> dict:
@@ -296,7 +290,7 @@ def _preview(agent: str, to: str, profile: str | None, raw: bool) -> dict:
     with _open(core, p) as st:
         if st is None:
             raise HTTPException(404, f"profile {p['name']} has no tenure database yet")
-        cfg = _settings(core, st)
+        cfg = _settings(core, st, own=p["name"] == _current(core))
         old = {s.key: s for _, s in st.states(agent)}
         if not old:
             raise HTTPException(404, f"no record for {agent} in profile {p['name']}")

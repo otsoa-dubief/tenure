@@ -204,6 +204,25 @@ def restore(snap_id: str, root: str, keep: bool = False, *, key: bytes | None) -
     return count, failed
 
 
+def describe(snap_id: str | None, root: str) -> dict:
+    """What an undo would restore, said for the owner of this machine: the first file, relative to the folder the
+    agent worked in, and how many files in all. Read from the snapshot's manifest; {} when it is unreadable."""
+    try:
+        if not snap_id or not snap_id.isalnum():
+            return {}
+        with open(os.path.join(_undo_dir(root), snap_id, "manifest.json"), encoding="utf-8") as fh:
+            m = json.load(fh)
+        files = [f["path"] for f in m.get("files", []) if isinstance(f, dict) and isinstance(f.get("path"), str)]
+        if not files:
+            return {}
+        cwd = m.get("cwd") or ""
+        first = (os.path.relpath(files[0], cwd) if cwd and files[0].startswith(cwd.rstrip("/") + "/")
+                 else os.path.basename(files[0]))
+        return {"file": first, "files": len(files)}
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return {}
+
+
 def discard(snap_id: str, root: str) -> bool:
     """Delete a snapshot that will not be used (the action asked instead). The saved files are not touched. Return
     True when there was one."""

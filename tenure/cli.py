@@ -6,7 +6,7 @@
     setup [careful|balanced|fast]              the three recommendations; with a name, use it
     explain                                    how tenure decides, and what the numbers guarantee
     models [--type T]                          each model's verified record on your own work
-    undo ID                                    put back the files of an action that acted, then told you (counts a fault)
+    undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list
     flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked
     revoke TYPE|all [--model M | --all]        take earned autonomy back without an error
     passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)
@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import shlex
@@ -193,6 +194,10 @@ def status_text(agent: str | None = None, *, profile: str | None = None, model: 
         lines.append("tenure is disabled (plugins.entries.tenure.settings.enabled: false).")
     for a in agents:
         lines += [""] + _status_agent(st, a, cfg)
+    others = [] if (agent or model or every) else [a for a in st.agents() if a not in agents]
+    if others:
+        lines += ["", f"{len(others)} other agent{' has' if len(others) == 1 else 's have'} a record "
+                      f"({', '.join(others)}): hermes tenure status --all"]
     ledger = st.ledger()
     problems = store.verify(ledger)
     lines += ["", f"Evidence: {len(ledger)} entries, " + ("chain intact." if not problems else
@@ -205,14 +210,24 @@ def explain_text() -> str:
     core = _core()
     cfg = core.settings()
     d = params.describe(cfg["risks"], cfg["spot"])
-    lines = ["How tenure decides (Dodge's continuous sampling plan CSP-1, one per action type):",
-             "  1. Every action of a type asks you, until i of them in a row are approved: i is the clearance number (Dodge's CSP-1).",
-             f"  2. Then the agent acts on its own on that type; 1 action in {round(1 / cfg['spot'])} is still "
-             f"spot-checked at random.",
-             "  3. A refused spot check, or an error you flag, revokes the tenure: back to step 1. At medium or high "
-             "stakes, the next climb is 25 % longer.",
-             "  4. A new model starts with an empty record. Reads never ask; secrets, the agent's own skills and "
-             "plugins, and sensitive files always ask.",
+    spot = round(1 / cfg["spot"])
+    t2 = {lv: math.ceil(params.wald_steps(lv)[2] / params.wald_steps(lv)[1] - 1e-9) for lv in params.WALD}
+    new_model = ("  A new model starts with an empty record (strict mode)." if cfg["strict"] else
+                 "  A new model starts with half of the previous model's series, marked provisional until it "
+                 "confirms it (strict mode: an empty record).")
+    lines = ["How tenure decides, one action type at a time:",
+             "  T1 asks first. Every action of a new type asks you.",
+             f"  T2 acts, then tells you. After {t2['low']} approved in a row at low stakes, {t2['medium']} at medium, "
+             "a reversible type acts and tells you, with an undo (/tenure undo N). High stakes and irreversible "
+             "types never get T2.",
+             f"  T3 acts on its own. After i approved in a row, over at least {rule.SESSIONS} sessions (i below, "
+             f"Dodge's clearance number, continuous sampling plan CSP-1); 1 action in {spot} is still spot-checked "
+             "at random.",
+             "  One fault, a refused spot check or an error you flag, sends the type back down: a low-stakes "
+             "reversible type at T3 drops to T2 (already at T2, its score decides between T2 "
+             "and T1); every other fault sends it to T1. At medium or high stakes the next climb is 25 % longer.",
+             new_model,
+             "  Reads never ask; secrets, the agent's own skills and plugins, and sensitive files always ask.",
              "", "What it guarantees, with your settings (errors you catch never run: a refused action is blocked):"]
     for level in params.LEVELS:
         x = d[level]
@@ -235,7 +250,7 @@ def models_text(type_key: str | None = None) -> str:
     cells = []
     for r in rows:
         rate = ("no check yet" if r["rate"] is None else
-                f"{r['rate']:.1%} (95% interval {r['low']:.1%} to {r['high']:.1%})")
+                f"{r['rate']:.1%} (95% range {r['low']:.1%} to {r['high']:.1%})")
         cells.append([r["type"], r["model"], r["provider"], _record(r["faults"], r["successes"]), rate,
                       "" if r["enough"] else f"under {ENOUGH} checks: too few to compare"])
     lines = ["Verified record per model, on your own work (faults / checks):"]
@@ -284,6 +299,33 @@ def revoke(type_key: str, agent: str | None = None, model: str | None = None, ev
 
 
 # ------------------------------------------------------------------------------------------------ undo
+def _ago(seconds: float) -> str:
+    s = max(0, int(seconds))
+    return f"{s} s ago" if s < 60 else f"{s // 60} min ago" if s < 3600 else f"{s // 3600} h ago"
+
+
+def undo_list() -> str:
+    """The actions taken alone that can still be undone, newest first, with the file each would restore."""
+    core = _core()
+    st = core.store_()
+    now = time.time()
+    rows = st.db.execute("SELECT id, agent, type, at, snap_id FROM undo WHERE undone = 0 AND snap_id IS NOT NULL "
+                         "AND at > ? ORDER BY id DESC LIMIT 20", (now - core.UNDO_WINDOW,)).fetchall()
+    if not rows:
+        return f"Nothing to undo: no action was taken alone in the last {core.UNDO_WINDOW // 3600} hours."
+    total = st.db.execute("SELECT COUNT(*) FROM undo WHERE undone = 0 AND snap_id IS NOT NULL AND at > ?",
+                          (now - core.UNDO_WINDOW,)).fetchone()[0]
+    cells = []
+    for uid, agent, key, at, snap in rows:
+        d = undo.describe(snap, core.data_dir())
+        what = (d["file"] + (f" (+{d['files'] - 1} more)" if d["files"] > 1 else "")) if d else "-"
+        cells.append([str(uid), key, what, _ago(now - at), agent])
+    lines = [f"Actions taken alone in the last {core.UNDO_WINDOW // 3600} hours (undoing one counts as a fault):"]
+    lines += ["  " + ln for ln in _table(["#", "type", "restores", "when", "agent"], cells)]
+    more = f"The {len(rows)} newest of {total}. " if total > len(rows) else ""
+    return "\n".join(lines + ["", more + "Undo one: hermes tenure undo <number>"])
+
+
 def undo_action(entry_id: int) -> str:
     """Restore the files of an action taken alone: the hooks module's ``undo_entry``, the one implementation. The
     returned text's ``ok`` attribute is False when nothing was undone."""
@@ -499,8 +541,8 @@ def _add_subcommands(subparser) -> None:
     p = subs.add_parser("models", help="Each model's verified record on your own work")
     p.add_argument("--type", help="One action type")
     p = subs.add_parser("undo", help="Restore the files of an action that acted, then told you")
-    p.add_argument("id", type=int)
-    p = subs.add_parser("flag", help="Report an error the agent made on its own: revokes the type's tenure")
+    p.add_argument("id", type=int, nargs="?", help="the number from the notice; without it, the list")
+    p = subs.add_parser("flag", help="Report an error the agent made on its own: counts as a fault, the type drops at least one tier")
     p.add_argument("type")
     p.add_argument("note", nargs="*")
     p.add_argument("--model", help="Start of an agent string (default: the last active agent)")
@@ -544,6 +586,8 @@ def execute(ns) -> tuple[str, int]:
         if cmd == "models":
             return models_text(g("type")), 0
         if cmd == "undo":
+            if g("id") is None:
+                return undo_list(), 0
             text = undo_action(g("id"))
             return text, 0 if text.ok else 1
         if cmd == "flag":

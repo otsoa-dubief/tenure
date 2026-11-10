@@ -486,7 +486,7 @@
                 h("span", { className: "tnr-profile-name" }, grp.profile),
                 grp.info.current ? h("span", { className: "tnr-dim" }, " · this dashboard") : h("span", { className: "tnr-dim" }, " · read-only here"),
                 grp.info.suspended ? h(Flag, { kind: "warn" }, num(grp.info.suspended) + " session" + (grp.info.suspended === 1 ? "" : "s") + " suspended: external content read") : null,
-                grp.info.settings ? h("span", { className: "tnr-dim tnr-profile-preset" }, grp.info.settings.preset + " preset · spot checks " + oneIn(grp.info.settings.spot) + (grp.info.settings.strict ? " · strict" : "")) : null)),
+                grp.info.settings ? h("span", { className: "tnr-dim tnr-profile-preset" }, grp.info.settings.preset + " preset · spot checks " + oneIn(grp.info.settings.spot) + (grp.info.settings.strict ? " · strict" : "") + (grp.info.settings.pending ? " · applies from the next action" : "")) : null)),
             grp.rows.map(function (x) {
               var r = x.r, a = r.agent;
               var byType = {};

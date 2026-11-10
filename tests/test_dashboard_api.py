@@ -466,15 +466,32 @@ def test_types_are_redacted_by_default_and_raw_on_request(env):
 
 
 def test_preset_name_reported_when_risks_match_a_preset(env):
+    """Another profile: the settings of its ledger's last settings event, named when they match a preset."""
     core, api, client, root = env
-    first = get(client, "/agents").json()["profiles"][0]["settings"]
-    assert first["preset"] == "custom"                       # the seeded settings (FAST risks) are no preset
+    work = lambda: next(p for p in get(client, "/agents").json()["profiles"] if p["profile"] == "work")["settings"]
+    assert work()["preset"] == "custom"                      # the seeded settings (FAST risks) are no preset
     for name in ("fast", "careful", "balanced"):
-        st = core.store.Store(os.path.join(str(root), "plugin-data", "tenure", "tenure.db"))
+        st = core.store.Store(os.path.join(str(root), "profiles", "work", "plugin-data", "tenure", "tenure.db"))
         with st.transaction():
             st.log(core.settings_event({**FAST, "risks": dict(core.params.PRESETS[name])}))
         st.db.close()
-        assert get(client, "/agents").json()["profiles"][0]["settings"]["preset"] == name
+        assert work()["preset"] == name and work()["pending"] is False
+
+
+def test_current_profile_shows_the_settings_in_force_like_the_cli(env):
+    """This process's profile: the owner's settings, as the hooks decide with them and `hermes tenure status` shows
+    them, not the last ones logged; `pending` says the ledger logs them at the next action."""
+    core, api, client, root = env
+    core.ST.ctx.settings["preset"] = "careful"
+    cur = get(client, "/agents").json()["profiles"][0]
+    assert cur["current"] and cur["settings"]["preset"] == "careful" and cur["settings"]["pending"] is True
+    t = cur["agents"][0]["types"][0]
+    assert t["required"] == core.params.required_n(core.params.PRESETS["careful"], "low")
+    st = core.store.Store(os.path.join(str(root), "plugin-data", "tenure", "tenure.db"))
+    with st.transaction():
+        core.sync_settings(st, core.settings())
+    st.db.close()
+    assert get(client, "/agents").json()["profiles"][0]["settings"]["pending"] is False
 
 
 @pytest.mark.parametrize("layout", ["spread", "one_heavy_profile"])

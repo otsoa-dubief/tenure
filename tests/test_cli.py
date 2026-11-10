@@ -56,12 +56,21 @@ def test_status_model_and_all(plugin):
     mod, ctx = two_models(plugin)
     assert state(mod, "file:write", B) is not None
     only_b = mod.cli.slash("status")
-    assert "model-b@nous" in only_b and "model-a@nous" not in only_b
+    assert "model-b@nous" in only_b.splitlines() and "model-a@nous" not in only_b.splitlines()   # no table for model-a
     assert "model-a@nous" in mod.cli.slash("status --model model-a") and "model-b@nous" not in \
         mod.cli.slash("status --model model-a")
     both = mod.cli.slash("status --all")
     assert "model-a@nous" in both and "model-b@nous" in both
     assert mod.cli.slash("status --model nothing").startswith("No agent starts with 'nothing'")
+
+
+def test_status_names_the_other_agents_it_does_not_show(plugin):
+    """The desktop and the dashboard list every agent: status shows the active one and says the others exist."""
+    mod, ctx = two_models(plugin)
+    only_b = mod.cli.slash("status")
+    assert "1 other agent has a record (model-a@nous): hermes tenure status --all" in only_b
+    assert "other agent" not in mod.cli.slash("status --all")
+    assert "other agent" not in mod.cli.slash("status --model model-a")
 
 
 def test_status_profile_reads_another_profile_read_only(plugin, tmp_path):
@@ -115,11 +124,25 @@ def test_explain_uses_the_params_numbers(plugin):
     assert f"i = {g['low']['n']}" in out and f"{g['low']['aoql']:.2%}" in out and "high: always asked" in out
 
 
+def test_explain_speaks_the_tiers_of_the_screens(plugin):
+    """Same words as the desktop and the dashboard: T1 asks first, T2 acts then tells you, T3 acts on its own; the
+    T2 counts come from the Wald settings; a new model starts provisional, not empty (empty only in strict mode)."""
+    mod, ctx = plugin()
+    out = mod.cli.slash("explain")
+    for tier in ("T1 asks first", "T2 acts, then tells you", "T3 acts on its own"):
+        assert tier in out
+    assert "12 approved in a row at low stakes, 18 at medium" in out and "/tenure undo" in out
+    assert "provisional" in out and "starts with an empty record" not in out
+    ctx.settings["strict"] = True
+    assert "starts with an empty record (strict mode)" in mod.cli.slash("explain")
+    assert "95% range" in mod.cli.slash("models") or "No record yet" in mod.cli.slash("models")
+
+
 # ------------------------------------------------------------------------------------------------------ models
 def test_models_lists_each_model_with_its_denominator(plugin):
     mod, ctx = two_models(plugin)
     out = mod.cli.slash("models")
-    assert re.search(r"file:write\s+model-a\s+nous\s+0 faults / 3 checks\s+0\.0% \(95% interval 0\.0% to", out)
+    assert re.search(r"file:write\s+model-a\s+nous\s+0 faults / 3 checks\s+0\.0% \(95% range 0\.0% to", out)
     assert "under 20 checks: too few to compare" in out
     assert "model-b" in out
     assert "No record yet for shell:npm." == mod.cli.slash("models --type shell:npm")
@@ -192,6 +215,31 @@ def test_undo_restores_and_records_a_fault(plugin):
     for d in list(live.values()) + list(replayed.values()):
         d.pop("changed_at")
     assert replayed == live                                              # the ledger input keeps replay exact
+
+
+def test_undo_without_a_number_lists_what_can_be_undone(plugin):
+    """`hermes tenure undo` alone lists the actions taken alone in the last 24 hours, with the file each restores,
+    instead of an argparse error."""
+    mod, ctx = plugin(FAST)
+    assert mod.cli.slash("undo") == "Nothing to undo: no action was taken alone in the last 24 hours."
+    climb(ctx, 12)
+    with open(os.path.join(ctx.cwd, "src", "u.py"), "w") as f:
+        f.write("before = 1\n")
+    assert ctx.call("write_file", {"path": "src/u.py", "content": "after = 2\n"}) == "ran"
+    uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    out = mod.cli.slash("undo")
+    assert re.search(rf"^  {uid}\s+file:write\s+src/u\.py\s+\d+ (s|min) ago", out, re.M), out
+    assert out.rstrip().endswith("Undo one: hermes tenure undo <number>")
+    st = mod.store_()
+    with st.transaction():
+        for _ in range(25):
+            st.db.execute("INSERT INTO undo (agent, type, at, fault, snap_id, undone) SELECT agent, type, at, fault, "
+                          "snap_id, undone FROM undo WHERE id = ?", (uid,))
+    assert "The 20 newest of 26. Undo one: hermes tenure undo <number>" in mod.cli.slash("undo")
+    with st.transaction():
+        st.db.execute("DELETE FROM undo WHERE id != ?", (uid,))
+    mod.cli.slash(f"undo {uid}")
+    assert mod.cli.slash("undo").startswith("Nothing to undo")
 
 
 def test_undo_of_a_failed_check_restores_without_a_second_fault(plugin):

@@ -201,7 +201,7 @@ The full rules, every protected entry and every known gap: [docs/self-protection
 | `hermes tenure setup [careful\|balanced\|fast]` | The presets side by side; with a name, use it |
 | `hermes tenure explain` | How it decides, and the guarantee for your settings |
 | `hermes tenure models [--type T]` | Each model's verified record on your own work |
-| `hermes tenure undo ID` | Restore the files of an act-then-notify action |
+| `hermes tenure undo [ID]` | Restore the files of an act-then-notify action; without an ID, list what can still be undone |
 | `hermes tenure flag TYPE [note]` | Report an error the agent made on its own: revokes that type |
 | `hermes tenure revoke TYPE\|all [--model M\|--all]` | Take earned autonomy back: one type or every type, for the last active agent, one model, or every agent |
 | `hermes tenure passport [--agent A] [--out FILE] [--no-redact]` | Write the signed passport of an agent |
