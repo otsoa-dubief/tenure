@@ -46,7 +46,7 @@ RUNNER_WORDS = frozenset({"inline", "default", "-m"})   # fixed words classify p
 SUBCOMMANDS = frozenset(
     classify.GIT_READ | classify.KUBE_WRITE | {sub for _, sub in classify.PUBLISH} | {
         # fixed words of classify
-        "run", "send", "api", "unknown", "default", "inline", "clearance", "version",
+        "run", "send", "api", "unknown", "default", "inline", "tenure", "version",
         # git
         "add", "commit", "pull", "merge", "rebase", "checkout", "switch", "branch", "tag", "remote", "reset",
         "restore", "stash", "clone", "init", "cherry-pick", "revert", "clean", "rm", "mv", "config", "worktree",
@@ -108,7 +108,7 @@ def settings_event_fingerprint(event: dict | None) -> str | None:
 
 # ------------------------------------------------------------------------------------------------------ replay
 def _replay(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState], dict | None]:
-    """States by (agent, type), and the last settings event. Mirrors the hooks of ``clearance/__init__.py``:
+    """States by (agent, type), and the last settings event. Mirrors the hooks of ``tenure/__init__.py``:
 
     - settings (``sync_settings``): ``rule.reevaluate`` on every type of every agent known so far (R23);
     - outcome (``record_outcome``): ``rule.rebase`` when the recorded stakes differ, then the event's stakes and
@@ -261,7 +261,7 @@ def keypair(data_dir: str) -> tuple[object | None, str | None]:
         if not isinstance(key, Ed25519PrivateKey):
             raise ValueError("not an Ed25519 private key")
     except Exception as exc:
-        raise RuntimeError(f"clearance: the passport key {path} cannot be read ({exc}). Move that file away and a "
+        raise RuntimeError(f"tenure: the passport key {path} cannot be read ({exc}). Move that file away and a "
                            f"new key will be created; passports signed with the old key keep its public key.") from exc
     if os.name == "posix":
         os.chmod(path, 0o600)
@@ -486,5 +486,5 @@ def anchor_line(st) -> str:
     row = st.db.execute("SELECT at, hash FROM ledger ORDER BY seq DESC LIMIT 1").fetchone()
     count = st.db.execute("SELECT COUNT(*) FROM ledger").fetchone()[0]
     at, head = (row[0], row[1]) if row else (time.time(), store.GENESIS)
-    return (f"clearance ledger head {head} at {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(at))} "
+    return (f"tenure ledger head {head} at {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(at))} "
             f"({count} events)")

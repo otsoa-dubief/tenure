@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from clearance import benchmarks as b
+from tenure import benchmarks as b
 
 FIXTURE = {
     "source": "Epoch AI Benchmarking Hub", "license": "CC BY 4.0", "url": "https://epoch.ai/benchmarks",
@@ -96,10 +96,10 @@ def test_snapshot_has_attribution():
     for k in ("source", "license", "url", "accessed", "benchmarks", "models"):
         assert snap[k]
     assert "CC BY 4.0" in snap["license"]
-    real = json.loads(b.Path(__file__).parent.parent.joinpath("clearance", "data", "benchmarks.json").read_text())
+    real = json.loads(b.Path(__file__).parent.parent.joinpath("tenure", "data", "benchmarks.json").read_text())
     assert real["license"] == "CC BY 4.0" and real["url"].startswith("https://epoch.ai/") and real["accessed"]
     assert real["benchmarks"] and real["models"]
-    notice = b.Path(__file__).parent.parent.joinpath("clearance", "NOTICE").read_text()
+    notice = b.Path(__file__).parent.parent.joinpath("tenure", "NOTICE").read_text()
     assert "Epoch AI" in notice and "CC BY 4.0" in notice and real["accessed"] in notice
 
 

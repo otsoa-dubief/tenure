@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Screenshots and smoke assertions of the clearance dashboard tab, against a running dashboard.
+// Screenshots and smoke assertions of the tenure dashboard tab, against a running dashboard.
 //
 //   NODE_PATH=<node_modules with playwright> node scripts/dashboard_shots.cjs http://127.0.0.1:9219 OUT_DIR
 //
 // For each theme (dark: the default Hermes Teal; light: Nous Blue) and viewport (1440x900, 390x844), it opens
-// /clearance and saves one screenshot per view: map, agent drawer, models, switch preview, passport, undo, settings.
+// /tenure and saves one screenshot per view: map, agent drawer, models, switch preview, passport, undo, settings.
 // The light theme is chosen by answering the dashboard's theme request in the browser only: nothing is written to the
-// server's config. Exits non-zero when "Clearance", the map grid or "Models" is missing, or a view fails to render.
+// server's config. Exits non-zero when "Tenure", the map grid or "Models" is missing, or a view fails to render.
 "use strict";
 
 const path = require("path");
@@ -72,16 +72,16 @@ async function run() {
         const page = await ctx.newPage();
         page.on("pageerror", (e) => errors.push(`${themeName}/${vpName}: ${e.message}`));
         page.on("console", (m) => {
-          if (m.type() === "error" && /clearance|clr-/i.test(m.text())) errors.push(`${themeName}/${vpName}: ${m.text()}`);
+          if (m.type() === "error" && /tenure|clr-/i.test(m.text())) errors.push(`${themeName}/${vpName}: ${m.text()}`);
         });
         const prefix = `${themeName}-${vpName}`;
         console.log(prefix);
 
         const t0 = Date.now();
-        await page.goto(BASE + "/clearance", { waitUntil: "domcontentloaded" });
+        await page.goto(BASE + "/tenure", { waitUntil: "domcontentloaded" });
         await page.waitForSelector(".clr", { timeout: 20000 });
         const registered = Date.now() - t0;
-        if (!(await page.locator(".clr").getByRole("heading", { name: "Clearance" }).isVisible())) fail(`${prefix}: no "Clearance" heading`);
+        if (!(await page.locator(".clr").getByRole("heading", { name: "Tenure" }).isVisible())) fail(`${prefix}: no "Tenure" heading`);
         await page.waitForSelector(mobile ? ".clr-agent-card" : "table.clr-map[role=grid] .clr-map-row", { timeout: 15000 });
         await page.waitForFunction(() => /\d/.test((document.querySelector(".clr-counter-n") || {}).textContent || ""));
         if (!mobile && (await page.locator("table.clr-map[role=grid] td.clr-cell").count()) < 4) fail(`${prefix}: map grid has no cells`);
@@ -134,15 +134,15 @@ async function run() {
         await shot(page, `${prefix}-settings.png`, mobile);
         // Ruling R33: a dashboard process that cannot write settings answers 501; the dial then turns read-only and
         // shows the command. The 501 is answered in the browser, so nothing is written either way.
-        await page.route("**/api/plugins/clearance/settings*", (route) => route.fulfill({
+        await page.route("**/api/plugins/tenure/settings*", (route) => route.fulfill({
           status: 501, contentType: "application/json",
           body: JSON.stringify({ detail: "this process cannot write settings" }),
         }));
         await page.getByRole("button", { name: "Apply" }).click();
         await page.waitForSelector(".clr-readonly", { timeout: 10000 });
-        if (!(await page.getByText("hermes clearance setup careful").first().isVisible())) fail(`${prefix}: no setup command in read-only mode`);
+        if (!(await page.getByText("hermes tenure setup careful").first().isVisible())) fail(`${prefix}: no setup command in read-only mode`);
         await shot(page, `${prefix}-settings-readonly.png`, mobile);
-        await page.unroute("**/api/plugins/clearance/settings*");
+        await page.unroute("**/api/plugins/tenure/settings*");
 
         // Keyboard back to the map, and the shortcut help.
         await page.keyboard.press("m");
@@ -160,7 +160,7 @@ async function run() {
     errors.forEach((e) => console.error("page error: " + e));
     fail(`${errors.length} page error(s)`);
   }
-  if (!process.exitCode) console.log("smoke: Clearance, the map grid and Models are rendered in every theme and viewport");
+  if (!process.exitCode) console.log("smoke: Tenure, the map grid and Models are rendered in every theme and viewport");
 }
 
 run().catch((e) => { console.error(e); process.exit(1); });

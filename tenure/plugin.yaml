@@ -1,8 +1,8 @@
-name: clearance
+name: tenure
 version: 1.0.0
 manifest_version: 2
 api_version: 1
-label: clearance
+label: tenure
 description: >-
   Everything covered, autonomy earned. Every action that changes something asks you through Hermes' own approval
   prompt; each action type of each model earns its way to acting then notifying (with undo), then to acting alone
@@ -11,7 +11,7 @@ description: >-
   content are suspended. Local only: no network, no LLM call.
 author: Otsoa Dubief
 license: Apache-2.0
-homepage: https://github.com/otsoa-dubief/clearance
+homepage: https://github.com/otsoa-dubief/tenure
 tags: [approvals, autonomy, oversight, safety, statistics]
 requires_hermes: ">=0.23.0"
 provides_tools: []
@@ -26,7 +26,7 @@ config_schema:
   preset:
     type: str
     default: balanced
-    description: "careful, balanced or fast: the accepted risk per stakes level (see `hermes clearance setup`)"
+    description: "careful, balanced or fast: the accepted risk per stakes level (see `hermes tenure setup`)"
     required: false
   risks:
     type: dict
@@ -51,5 +51,5 @@ config_schema:
   enabled:
     type: bool
     default: true
-    description: "Turn clearance off without uninstalling it"
+    description: "Turn tenure off without uninstalling it"
     required: false

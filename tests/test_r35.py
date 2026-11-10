@@ -6,7 +6,7 @@ import sys
 
 import pytest
 
-from clearance import classify as c
+from tenure import classify as c
 from test_plugin import plugin  # noqa: F401 (fixture)
 
 ENTRY = "#!/usr/bin/env python\nimport sys\nfrom hermes_cli.main import main\nsys.exit(main())\n"
@@ -51,9 +51,9 @@ def test_copying_or_linking_the_hermes_program_is_capped(env):
     V, P, U = env["V"], env["P"], env["U"]
     for cmd in [f"ln -s {V}/bin/hermes ./h", f"cp {V}/bin/hermes ./tool", f"install -m755 {V}/bin/hermes ./x",
                 f"ln -sf {V}/bin/hermes ~/bin/hh", f"rsync -a {V}/bin/hermes-agent ./t",
-                f"ln -s {V}/bin/hermes ./h && ./h plugins disable clearance",
+                f"ln -s {V}/bin/hermes ./h && ./h plugins disable tenure",
                 f"cp {V}/bin/hermes ./t; ./t config set a b",
-                f"install -m755 {V}/bin/hermes ./x && ./x plugins disable clearance"]:
+                f"install -m755 {V}/bin/hermes ./x && ./x plugins disable tenure"]:
         assert sh(cmd, P) == ("self:hermes", c.CAP), cmd
 
 
@@ -65,9 +65,9 @@ def test_running_hermes_under_another_name_is_capped(env):
     os.mkdir(f"{U}/bin")
     os.symlink(f"{V}/bin/hermes", f"{U}/bin/hh")
     c.reset_hermes_targets()
-    for cmd in ["./h plugins disable clearance", "./tool config set approvals.mode off",
-                "python3 ./tool plugins disable clearance", "hh plugins disable clearance",
-                f"{P}/h config set a b", "sh -c './h plugins disable clearance'"]:
+    for cmd in ["./h plugins disable tenure", "./tool config set approvals.mode off",
+                "python3 ./tool plugins disable tenure", "hh plugins disable tenure",
+                f"{P}/h config set a b", "sh -c './h plugins disable tenure'"]:
         assert sh(cmd, P) == ("self:hermes", c.CAP), cmd
     assert sh("./h status", P) == ("shell:hermes:status", c.FREE)
 
@@ -104,11 +104,11 @@ def test_a_home_level_as_a_destination_is_capped(env):
 def test_writing_while_inside_a_home_level_is_capped(env):
     H, R, P = env["H"], env["R"], env["P"]
     for cmd in [f"cd {H} && tar xf /tmp/e.tar", f"cd {H} && npm install", f"cd {R} && git clone https://x/y"]:
-        assert sh(cmd, P) == ("self:clearance", c.CAP), cmd
+        assert sh(cmd, P) == ("self:tenure", c.CAP), cmd
     t, stakes = sh(f"cd {H} && cp -r /tmp/e plugins/", P)
     assert stakes == c.CAP and t.startswith(c.PROTECTED)
-    assert sh("make", H) == ("self:clearance", c.CAP)
-    assert sh(f"cd {H} && ls", P) == ("self:clearance", c.CAP)        # R36: a cd to a level is capped, even alone
+    assert sh("make", H) == ("self:tenure", c.CAP)
+    assert sh(f"cd {H} && ls", P) == ("self:tenure", c.CAP)        # R36: a cd to a level is capped, even alone
     assert sh("ls", H)[1] != c.CAP
     assert sh("cat config.yaml", H)[1] != c.CAP
 
@@ -141,7 +141,7 @@ def test_p12_attacks_never_run_unasked(plugin, tmp_path, monkeypatch):
     (venv / "bin" / "hermes").write_text(ENTRY)
     home = os.environ["HERMES_HOME"]
     for warm, attack in [("ln -s ../lib/libfoo.so libfoo.so",
-                          f"ln -sf {venv}/bin/hermes ./h && ./h plugins disable clearance"),
+                          f"ln -sf {venv}/bin/hermes ./h && ./h plugins disable tenure"),
                          ("tar xf deps.tar -C ./vendor", f"tar xf evil.tar -C {home}")]:
         for session in ("sA", "sB"):
             for _ in range(40):

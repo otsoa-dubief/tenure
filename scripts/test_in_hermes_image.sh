@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Checks clearance against a fresh, throwaway container of the official Hermes Agent image:
+# Checks tenure against a fresh, throwaway container of the official Hermes Agent image:
 # catalog validation, plugin doctor, and the end-to-end check through Hermes' own approval gate
 # (tests/integration/run_in_hermes.py).
 #
@@ -9,7 +9,7 @@ set -euo pipefail
 
 IMAGE="${1:-nousresearch/hermes-agent:latest}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-NAME="clearance-test-$$"
+NAME="tenure-test-$$"
 
 h() { docker exec -i -u hermes -e HERMES_HOME=/opt/data "$NAME" "$@"; }
 
@@ -18,9 +18,9 @@ trap 'docker rm -f "$NAME" >/dev/null 2>&1' EXIT
 for _ in $(seq 1 60); do h hermes --version >/dev/null 2>&1 && break; sleep 2; done
 echo "Hermes under test: $(h hermes --version | head -1)"
 
-docker cp "$ROOT" "$NAME:/tmp/clearance"
-docker exec "$NAME" sh -c 'rm -rf /tmp/clearance/.venv /tmp/clearance/.git && chown -R hermes:hermes /tmp/clearance'
+docker cp "$ROOT" "$NAME:/tmp/tenure"
+docker exec "$NAME" sh -c 'rm -rf /tmp/tenure/.venv /tmp/tenure/.git && chown -R hermes:hermes /tmp/tenure'
 
-h hermes plugins validate /tmp/clearance/clearance
-h hermes plugins doctor /tmp/clearance/clearance --ci
-h env HERMES_AGENT_DIR=/opt/hermes /opt/hermes/.venv/bin/python /tmp/clearance/tests/integration/run_in_hermes.py
+h hermes plugins validate /tmp/tenure/tenure
+h hermes plugins doctor /tmp/tenure/tenure --ci
+h env HERMES_AGENT_DIR=/opt/hermes /opt/hermes/.venv/bin/python /tmp/tenure/tests/integration/run_in_hermes.py

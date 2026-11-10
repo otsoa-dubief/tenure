@@ -1,20 +1,20 @@
 # Copyright 2026 Otsoa Dubief
 # SPDX-License-Identifier: Apache-2.0
-"""``hermes clearance`` (owner's terminal) and ``/clearance`` (inside a conversation).
+"""``hermes tenure`` (owner's terminal) and ``/tenure`` (inside a conversation).
 
     status [--profile P] [--model M] [--all]   what each agent has earned, per action type
     setup [careful|balanced|fast]              the three recommendations; with a name, use it
-    explain                                    how clearance decides, and what the numbers guarantee
+    explain                                    how tenure decides, and what the numbers guarantee
     models [--type T]                          each model's verified record on your own work
     undo ID                                    put back the files of an action taken alone (counts a fault)
-    flag TYPE [note] [--model M]               report an error the agent made on its own: its clearance is revoked
-    revoke TYPE|all [--model M | --all]        take a clearance back without an error
+    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked
+    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error
     passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)
     verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay
     anchor                                     one line to publish: the ledger's head, date and length
     export [PATH]                              write the evidence ledger (hash-chained JSON lines)
     strict on|off                              strict mode: a new model starts with an empty record
-    cleanup                                    list dead clearance keys in Hermes' permanent allowlist
+    cleanup                                    list dead tenure keys in Hermes' permanent allowlist
 """
 from __future__ import annotations
 
@@ -56,8 +56,8 @@ def presets_text(spot: float) -> str:
         lines.append(f"  {name}{default}: " + "; ".join(parts))
     lines += ["", "Low stakes: files in the project, memory, reactions. Medium: commands, code, files elsewhere, "
                   "internal tools. High: anything that leaves the machine (messages to others, pushes, uploads, "
-                  "publications) and money. Use one: /clearance setup balanced. Or set "
-                  "plugins.entries.clearance.settings.risks in config.yaml (e.g. low: 1/50, medium: 1%, high: cap)."]
+                  "publications) and money. Use one: /tenure setup balanced. Or set "
+                  "plugins.entries.tenure.settings.risks in config.yaml (e.g. low: 1/50, medium: 1%, high: cap)."]
     return "\n".join(lines)
 
 
@@ -123,16 +123,16 @@ def _record(faults: int, successes: int) -> str:
 
 # ------------------------------------------------------------------------------------------------ status
 def _profile_store(core, profile: str):
-    """Another profile's store, read only: ``<root>/profiles/<name>/plugin-data/clearance/clearance.db``."""
+    """Another profile's store, read only: ``<root>/profiles/<name>/plugin-data/tenure/tenure.db``."""
     home = os.path.abspath(core._hermes_home())
     parent = os.path.dirname(home)
     root = os.path.dirname(parent) if os.path.basename(parent) == "profiles" else home
     base = root if profile == "default" else os.path.join(root, "profiles", profile)
-    path = os.path.join(base, "plugin-data", core.PREFIX, "clearance.db")
+    path = os.path.join(base, "plugin-data", core.PREFIX, "tenure.db")
     try:
         return store.Store.open_readonly(path)
     except FileNotFoundError:
-        raise CliError(f"No clearance record for profile {profile!r} (looked for {path}).")
+        raise CliError(f"No tenure record for profile {profile!r} (looked for {path}).")
     except Exception as e:
         raise CliError(f"Cannot read the record of profile {profile!r}: {e}")
 
@@ -184,13 +184,13 @@ def status_text(agent: str | None = None, *, profile: str | None = None, model: 
         st = core.store_()
         agents = _targets(core, st, agent=agent, model=model, every=every)
     where = f"profile {profile}" if profile else "this profile"
-    lines = [f"clearance: {where}, preset {cfg['preset'] if not profile else 'as last logged'}, "
+    lines = [f"tenure: {where}, preset {cfg['preset'] if not profile else 'as last logged'}, "
              f"1 spot check in {round(1 / cfg['spot'])}{', strict mode' if cfg['strict'] else ''}"]
     why = None if profile else core.nobody_answers()
     if why:
         lines.append(f"Learning paused here: nobody answers approvals ({why}). Earned tiers still run.")
     if not profile and not cfg["enabled"]:
-        lines.append("clearance is disabled (plugins.entries.clearance.settings.enabled: false).")
+        lines.append("tenure is disabled (plugins.entries.tenure.settings.enabled: false).")
     for a in agents:
         lines += [""] + _status_agent(st, a, cfg)
     ledger = st.ledger()
@@ -205,11 +205,11 @@ def explain_text() -> str:
     core = _core()
     cfg = core.settings()
     d = params.describe(cfg["risks"], cfg["spot"])
-    lines = ["How clearance decides (Dodge's continuous sampling plan CSP-1, one per action type):",
-             "  1. Every action of a type asks you, until i of them in a row are approved: i is the clearance number.",
+    lines = ["How tenure decides (Dodge's continuous sampling plan CSP-1, one per action type):",
+             "  1. Every action of a type asks you, until i of them in a row are approved: i is the clearance number (Dodge's CSP-1).",
              f"  2. Then the agent acts alone on that type; 1 action in {round(1 / cfg['spot'])} is still "
              f"spot-checked at random.",
-             "  3. A refused spot check, or an error you flag, revokes the clearance: back to step 1. At medium or high "
+             "  3. A refused spot check, or an error you flag, revokes the tenure: back to step 1. At medium or high "
              "stakes, the next climb is 25 % longer.",
              "  4. A new model starts with an empty record. Reads never ask; secrets, the agent's own skills and "
              "plugins, and sensitive files always ask.",
@@ -221,7 +221,7 @@ def explain_text() -> str:
             continue
         lines.append(f"  {level}: i = {x['n']}. For an agent whose error rate is stable, errors that run "
                      f"without your approval stay under {x['aoql']:.2%} of its actions of that type. For an agent "
-                     f"that turns bad after clearance, at most {x['worst_case']:.1%} until the first caught error.")
+                     f"that turns bad after tenure, at most {x['worst_case']:.1%} until the first caught error.")
     lines += ["", "The guarantee covers the errors you would refuse when asked; an error nobody would notice "
                   "cannot be counted. Measured against theory by simulation in the test suite."]
     return "\n".join(lines)
@@ -259,7 +259,7 @@ def flag(type_key: str, note: str = "", agent: str | None = None, model: str | N
                             result="fault", source="flag")
         st.bump(agent, "faults")
         s = st.get_state(agent, type_key, s.stakes, s.reversible)
-    return f"clearance: fault recorded on {type_key} for {agent}; it is now at {TIERS[s.tier]}."
+    return f"tenure: fault recorded on {type_key} for {agent}; it is now at {TIERS[s.tier]}."
 
 
 def revoke(type_key: str, agent: str | None = None, model: str | None = None, every: bool = False) -> str:
@@ -280,7 +280,7 @@ def revoke(type_key: str, agent: str | None = None, model: str | None = None, ev
                     st.log({**ev, "agent": ag})
                 done.append(s.key if len(agents) == 1 else f"{s.key} ({ag})")
     who = agents[0] if len(agents) == 1 else f"{len(agents)} agents"
-    return f"clearance revoked for {who}: {', '.join(done)}." if done else "Nothing to revoke."
+    return f"tenure revoked for {who}: {', '.join(done)}." if done else "Nothing to revoke."
 
 
 # ------------------------------------------------------------------------------------------------ undo
@@ -315,7 +315,7 @@ def passport_cmd(agent: str | None = None, out: str = "", redact: bool = True) -
              f"  {name}: {len(p['types'])} types, {'redacted' if redact else 'NOT redacted'}, "
              f"{'signed' if p['signature'] else 'UNSIGNED (the cryptography package is missing)'}, "
              f"ledger head {p['ledger']['head'][:16]} ({p['ledger']['count']} events)",
-             f"Anyone can check it: hermes clearance verify {out} <exported ledger>"]
+             f"Anyone can check it: hermes tenure verify {out} <exported ledger>"]
     if not redact:
         lines.append("Warning: type names are written as they are. A name can carry a script, a make target or a "
                      "git alias of yours. Share only a redacted passport.")
@@ -387,7 +387,7 @@ def export(path: str = "") -> str:
     core = _core()
     path = path or os.path.join(core.data_dir(), f"evidence-{time.strftime('%Y%m%d-%H%M%S')}.jsonl")
     n = core.store_().export(path)
-    return f"Evidence written: {path} ({n} entries). Check a passport against it: hermes clearance verify PASSPORT {path}"
+    return f"Evidence written: {path} ({n} entries). Check a passport against it: hermes tenure verify PASSPORT {path}"
 
 
 def _save_setting(core, key: str, value) -> str | None:
@@ -422,10 +422,10 @@ def setup_preset(name: str = "") -> str:
     cfg = core.settings()
     warn = ""
     mode = approvals_mode()
-    # manual and smart (the Hermes default) both work: clearance's own approvals skip the smart guardian and
+    # manual and smart (the Hermes default) both work: tenure's own approvals skip the smart guardian and
     # always reach a person. Only off lets Hermes settle every ask by itself.
     if mode == "off":
-        warn = "learning is paused: approvals.mode is off. Set approvals.mode: smart or manual to let clearance learn.\n"
+        warn = "learning is paused: approvals.mode is off. Set approvals.mode: smart or manual to let tenure learn.\n"
     if not name:
         return warn + presets_text(cfg["spot"])
     name = name.strip().lower()
@@ -434,7 +434,7 @@ def setup_preset(name: str = "") -> str:
     err = _save_setting(core, "preset", name)
     if err:
         return warn + (f"Could not save the preset ({err}). "
-                       f"Set plugins.entries.clearance.settings.preset: {name}")
+                       f"Set plugins.entries.tenure.settings.preset: {name}")
     return warn + f"Preset {name} in force.\n" + presets_text(core.settings()["spot"])
 
 
@@ -443,7 +443,7 @@ def strict(value: str) -> str:
     on = value == "on"
     err = _save_setting(core, "strict", on)
     if err:
-        return f"Could not save strict mode ({err}). Set plugins.entries.clearance.settings.strict: {str(on).lower()}"
+        return f"Could not save strict mode ({err}). Set plugins.entries.tenure.settings.strict: {str(on).lower()}"
     return ("Strict mode on: a new model starts with an empty record, nothing is carried over." if on else
             "Strict mode off: a new model inherits half of the previous model's record, unless a public benchmark "
             "vetoes the type.")
@@ -458,23 +458,23 @@ def _allowlist() -> list[str] | None:
     return [str(x) for x in raw] if isinstance(raw, (list, tuple, set)) else []
 
 
-_DEAD = re.compile(r"^(plugin_rule:)?clearance:")
+_DEAD = re.compile(r"^(plugin_rule:)?tenure:")
 
 
 def cleanup() -> str:
-    """List, never edit: clearance keys in Hermes' permanent allowlist. Every ask uses a one-off key, so an entry
+    """List, never edit: tenure keys in Hermes' permanent allowlist. Every ask uses a one-off key, so an entry
     there can never match again; it only clutters the list."""
     allow = _allowlist()
     if allow is None:
         return "Cannot read Hermes' config (hermes_cli.config is not available here): nothing checked."
     dead = [k for k in allow if _DEAD.match(k)]
     if not dead:
-        return f"No clearance key in the permanent allowlist ({len(allow)} entries checked)."
+        return f"No tenure key in the permanent allowlist ({len(allow)} entries checked)."
     keep = [k for k in allow if not _DEAD.match(k)]
-    return "\n".join([f"{len(dead)} dead clearance key(s) in the permanent allowlist (command_allowlist), of "
+    return "\n".join([f"{len(dead)} dead tenure key(s) in the permanent allowlist (command_allowlist), of "
                       f"{len(allow)} entries. Every ask uses a one-off key: these never match again.",
                       *[f"  {k}" for k in dead], "",
-                      "Remove them (clearance does not edit your config):",
+                      "Remove them (tenure does not edit your config):",
                       f"  hermes config set command_allowlist {shlex.quote(json.dumps(keep))}"])
 
 
@@ -488,23 +488,23 @@ class _Parser(argparse.ArgumentParser):
 
 
 def _add_subcommands(subparser) -> None:
-    subs = subparser.add_subparsers(dest="clearance_command")
+    subs = subparser.add_subparsers(dest="tenure_command")
     p = subs.add_parser("status", help="What each agent has earned, per action type")
     p.add_argument("--profile", help="Another Hermes profile (read only)")
     p.add_argument("--model", help="Start of an agent string, e.g. gpt-5")
     p.add_argument("--all", action="store_true", help="Every agent with a record")
     p = subs.add_parser("setup", help="The three recommendations; with a name, use it")
     p.add_argument("preset", nargs="?", default="", help="careful, balanced or fast")
-    subs.add_parser("explain", help="How clearance decides and what the numbers guarantee")
+    subs.add_parser("explain", help="How tenure decides and what the numbers guarantee")
     p = subs.add_parser("models", help="Each model's verified record on your own work")
     p.add_argument("--type", help="One action type")
     p = subs.add_parser("undo", help="Restore the files of an action taken alone")
     p.add_argument("id", type=int)
-    p = subs.add_parser("flag", help="Report an error the agent made on its own: revokes the type's clearance")
+    p = subs.add_parser("flag", help="Report an error the agent made on its own: revokes the type's tenure")
     p.add_argument("type")
     p.add_argument("note", nargs="*")
     p.add_argument("--model", help="Start of an agent string (default: the last active agent)")
-    p = subs.add_parser("revoke", help="Take a clearance back (a type, or all)")
+    p = subs.add_parser("revoke", help="Take earned autonomy back (a type, or all)")
     p.add_argument("type")
     g = p.add_mutually_exclusive_group()
     g.add_argument("--model", help="Start of an agent string (default: the last active agent)")
@@ -522,7 +522,7 @@ def _add_subcommands(subparser) -> None:
     p.add_argument("path", nargs="?", default="")
     p = subs.add_parser("strict", help="Strict mode: a new model starts with an empty record")
     p.add_argument("value", choices=("on", "off"))
-    subs.add_parser("cleanup", help="List dead clearance keys in Hermes' permanent allowlist")
+    subs.add_parser("cleanup", help="List dead tenure keys in Hermes' permanent allowlist")
 
 
 def _usage() -> str:
@@ -533,7 +533,7 @@ def execute(ns) -> tuple[str, int]:
     """(text, exit code) for a parsed command line."""
     def g(name, default=None):
         return getattr(ns, name, default)
-    cmd = g("clearance_command") or "status"
+    cmd = g("tenure_command") or "status"
     try:
         if cmd == "status":
             return status_text(profile=g("profile"), model=g("model"), every=bool(g("all"))), 0
@@ -569,15 +569,15 @@ def execute(ns) -> tuple[str, int]:
 
 def slash(raw_args="", **kwargs):
     try:
-        parser = _Parser(prog="/clearance", add_help=False)
+        parser = _Parser(prog="/tenure", add_help=False)
         _add_subcommands(parser)
         try:
             ns = parser.parse_args(shlex.split(raw_args or ""))
         except _Usage as e:
-            return (f"clearance: {e}\n" if str(e) else "") + _usage()
+            return (f"tenure: {e}\n" if str(e) else "") + _usage()
         return execute(ns)[0]
     except Exception as e:
-        return f"clearance: {type(e).__name__}: {e}"
+        return f"tenure: {type(e).__name__}: {e}"
 
 
 def setup(subparser):

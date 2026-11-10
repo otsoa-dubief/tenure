@@ -7,11 +7,11 @@ there (0600, directory 0700). Paths are never logged.
 A restore trusts nothing it finds on disk. The manifest records, per file, its
 path, the sha256 of the saved bytes and the resolved folder it sat in; an
 HMAC-SHA256 over the snapshot id and the manifest (``manifest.mac``), keyed by a
-secret kept in the clearance database, is written at snapshot time and checked
+secret kept in the tenure database, is written at snapshot time and checked
 before anything is restored. A restore is refused whole (``Refused``) when the
 MAC or a saved file does not match, when a target is now a symlink or sits in a
 folder that now resolves elsewhere, or when classify caps the target as a write
-(a sensitive file, a Hermes home, clearance's own data).
+(a sensitive file, a Hermes home, tenure's own data).
 """
 from __future__ import annotations
 
@@ -113,7 +113,7 @@ def _write_private(path: str, data: bytes) -> None:
 def _atomic_write(target: str, data: bytes, mode: int) -> None:
     directory = os.path.dirname(target)
     os.makedirs(directory, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=directory, prefix=".clearance-")
+    fd, tmp = tempfile.mkstemp(dir=directory, prefix=".tenure-")
     try:
         with os.fdopen(fd, "wb") as fh:
             fh.write(data)

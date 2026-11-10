@@ -8,8 +8,8 @@ import sys
 
 import pytest
 
-from clearance import classify as c
-from clearance import undo
+from tenure import classify as c
+from tenure import undo
 from test_plugin import FAST, outcomes, plugin  # noqa: F401 (plugin: fixture)
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -51,7 +51,7 @@ def test_p5_a_profile_workspace_writes_are_ordinary(tmp_path, monkeypatch, no_hc
         t, stakes = kind(tool, args, str(ws))
         assert stakes == (c.LOW if tool != "terminal" else c.MEDIUM), (tool, args, t)
     assert sh("rm -rf build", str(ws)) == ("shell:rm", c.MEDIUM)
-    for path in (home / "config.yaml", home / "plugin-data" / "clearance" / "clearance.db", root / "config.yaml",
+    for path in (home / "config.yaml", home / "plugin-data" / "tenure" / "tenure.db", root / "config.yaml",
                  root / ".env", home / "auth.json", root / "profiles" / "other" / "config.yaml",
                  home / "plugins" / "x" / "__init__.py", home / "skills" / "a" / "SKILL.md", home / "state.db"):
         assert kind("write_file", {"path": str(path)}, str(ws))[1] == c.CAP, path
@@ -69,7 +69,7 @@ def test_p5_b_default_home_workspace_writes_are_ordinary(tmp_path, monkeypatch, 
         t, stakes = kind(tool, args, str(ws))
         assert stakes == (c.LOW if tool != "terminal" else c.MEDIUM), (tool, args, t)
     assert kind("write_file", {"path": str(user / ".hermes" / "config.yaml")}, str(ws))[1] == c.CAP
-    assert kind("write_file", {"path": "~/.hermes/plugin-data/clearance/x"}, str(ws))[1] == c.CAP
+    assert kind("write_file", {"path": "~/.hermes/plugin-data/tenure/x"}, str(ws))[1] == c.CAP
     assert sh("cd ~ && rm -rf .hermes", str(ws))[1] == c.CAP
     # another user's .hermes, never resolved as a home: entries still protected, workspaces not
     assert kind("write_file", {"path": "/srv/u/.hermes/config.yaml"}, "/srv/p")[1] == c.CAP
@@ -86,7 +86,7 @@ def test_p8_a_project_under_a_custom_home_restores_from_any_process_cwd(tmp_path
     f = ws / "a.py"
     f.write_text("v1")
     assert kind("write_file", {"path": str(f)}, str(ws))[1] == c.LOW
-    root = str(home / "plugin-data" / "clearance")
+    root = str(home / "plugin-data" / "tenure")
     sid = undo.snapshot([str(f)], root, key=KEY, cwd=str(ws), home=str(tmp_path))
     manifest = json.loads((pathlib.Path(root) / "undo" / sid / "manifest.json").read_text())
     assert manifest["cwd"] == str(ws) and manifest["home"] == str(tmp_path)
@@ -109,35 +109,35 @@ def test_restore_checks_with_the_recorded_cwd(tmp_path, monkeypatch, no_hc):
 
 # ----------------------------------------------------------------------------- 3. command-string wrappers
 P6_P7 = [
-    'busybox sh -c "hermes plugins disable clearance"',
-    'busybox hermes plugins disable clearance',
-    'script -qc "hermes plugins disable clearance" /dev/null',
-    'script -c "hermes plugins disable clearance"',
-    'su -c "hermes plugins disable clearance"',
-    'su root -c "hermes plugins disable clearance"',
-    'tmux new -d "hermes plugins disable clearance"',
+    'busybox sh -c "hermes plugins disable tenure"',
+    'busybox hermes plugins disable tenure',
+    'script -qc "hermes plugins disable tenure" /dev/null',
+    'script -c "hermes plugins disable tenure"',
+    'su -c "hermes plugins disable tenure"',
+    'su root -c "hermes plugins disable tenure"',
+    'tmux new -d "hermes plugins disable tenure"',
     'tmux new-session -d -s x "hermes config set a b"',
-    'tmux send-keys "hermes plugins disable clearance" Enter',
-    'screen -dm hermes plugins disable clearance',
-    'screen -dmS x sh -c "hermes plugins disable clearance"',
-    'ssh localhost "hermes plugins disable clearance"',
-    'dash -c "hermes plugins disable clearance"',
-    'fish -c "hermes plugins disable clearance"',
-    'find . -maxdepth 0 -exec hermes plugins disable clearance \\;',
-    'setsid hermes plugins disable clearance',
-    'git -c alias.x="!hermes plugins disable clearance" x',
-    "git -c core.pager='hermes plugins disable clearance' log",
-    'make -f /dev/stdin <<< "a:; hermes plugins disable clearance"',
-    'uvx --from hermes-agent hermes plugins disable clearance',
+    'tmux send-keys "hermes plugins disable tenure" Enter',
+    'screen -dm hermes plugins disable tenure',
+    'screen -dmS x sh -c "hermes plugins disable tenure"',
+    'ssh localhost "hermes plugins disable tenure"',
+    'dash -c "hermes plugins disable tenure"',
+    'fish -c "hermes plugins disable tenure"',
+    'find . -maxdepth 0 -exec hermes plugins disable tenure \\;',
+    'setsid hermes plugins disable tenure',
+    'git -c alias.x="!hermes plugins disable tenure" x',
+    "git -c core.pager='hermes plugins disable tenure' log",
+    'make -f /dev/stdin <<< "a:; hermes plugins disable tenure"',
+    'uvx --from hermes-agent hermes plugins disable tenure',
     'uv run hermes config set a b',
     'pipx run hermes-agent',
-    'expect -c "spawn hermes plugins disable clearance"',
-    'awk "BEGIN{system(\\"hermes plugins disable clearance\\")}"',
-    'ruby -e "system(%q(hermes plugins disable clearance))"',
-    '$(which hermes) plugins disable clearance',
+    'expect -c "spawn hermes plugins disable tenure"',
+    'awk "BEGIN{system(\\"hermes plugins disable tenure\\")}"',
+    'ruby -e "system(%q(hermes plugins disable tenure))"',
+    '$(which hermes) plugins disable tenure',
     '"$(command -v hermes)" config set approvals.mode off',
     '`which hermes` config set x y',
-    'X=$(which hermes); "$X" plugins disable clearance',
+    'X=$(which hermes); "$X" plugins disable tenure',
     'h=hermes; $h config set x y',
     'alias h=hermes; h config set a b',
     'command hermes config set x y',
@@ -155,7 +155,7 @@ P6_P7 = [
     "python3 -c 'from hermes_cli.main import main; main()' config set a b",
     'python -m hermes_cli.main config set a b',
     'hermes config get x --raw',
-    'hermes config set clearance x',
+    'hermes config set tenure x',
 ]
 
 
@@ -167,9 +167,9 @@ def test_p6_p7_wrapped_hermes_is_capped(cmd):
 
 def test_p6_wrapped_hermes_never_runs_unasked(plugin):
     mod, ctx = plugin({"preset": "fast"})
-    for warm, attack in [('busybox sh -c "ls -la"', 'busybox sh -c "hermes plugins disable clearance"'),
-                         ("$(which python3) --version", "$(which hermes) plugins disable clearance"),
-                         ('X=$(pwd); "$X"/run.sh', 'X=$(which hermes); "$X" plugins disable clearance')]:
+    for warm, attack in [('busybox sh -c "ls -la"', 'busybox sh -c "hermes plugins disable tenure"'),
+                         ("$(which python3) --version", "$(which hermes) plugins disable tenure"),
+                         ('X=$(pwd); "$X"/run.sh', 'X=$(which hermes); "$X" plugins disable tenure')]:
         for session in ("sA", "sB"):
             for _ in range(40):
                 ctx.call("terminal", {"command": warm}, session=session, result='{"output": "", "exit_code": 0}')
@@ -203,13 +203,13 @@ def test_ordinary_code_is_not_capped(code):
 
 @pytest.mark.parametrize("code", ["import hermes_cli", "from hermes_constants import get_hermes_home",
                                   "subprocess.run(['hermes', 'config', 'set', 'a', 'b'])",
-                                  "os.system('hermes plugins disable clearance')"])
+                                  "os.system('hermes plugins disable tenure')"])
 def test_code_running_hermes_is_capped(code):
     assert kind("execute_code", {"code": code}, "/home/u/proj") == ("self:hermes", c.CAP)
 
 
 def test_reads_stay_free():
-    assert sh("hermes clearance anchor") == ("shell:hermes:clearance", c.FREE)
+    assert sh("hermes tenure anchor") == ("shell:hermes:tenure", c.FREE)
     assert sh("hermes status --deep") == ("shell:hermes:status", c.FREE)
 
 

@@ -6,7 +6,7 @@ only when its literal part names Hermes or an entry; HERMES_HOME read from the e
 code is a level; tar -P is high."""
 import pytest
 
-from clearance import classify as c
+from tenure import classify as c
 from test_r35 import code, env, sh  # noqa: F401 (fixture)
 
 

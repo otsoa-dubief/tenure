@@ -1,4 +1,4 @@
-"""``hermes clearance`` and ``/clearance``: one test per subcommand, and the commands that must target the right agent.
+"""``hermes tenure`` and ``/tenure``: one test per subcommand, and the commands that must target the right agent.
 The fixtures are those of test_plugin (a fake Hermes plugin context)."""
 import json
 import os
@@ -66,14 +66,14 @@ def test_status_model_and_all(plugin):
 
 def test_status_profile_reads_another_profile_read_only(plugin, tmp_path):
     mod, ctx = plugin(FAST)
-    other = tmp_path / "hermes" / "profiles" / "work" / "plugin-data" / "clearance" / "clearance.db"
+    other = tmp_path / "hermes" / "profiles" / "work" / "plugin-data" / "tenure" / "tenure.db"
     st = mod.store.Store(str(other))
     with st.transaction():
         st.put_state("model-z@nous", mod.rule.TypeState(key="shell:make", stakes="medium", reversible=False))
         st.set_meta("agent:last", "model-z@nous")
     out = mod.cli.slash("status --profile work")
     assert "profile work" in out and "model-z@nous" in out and "shell:make" in out
-    assert mod.cli.slash("status --profile nope").startswith("No clearance record for profile 'nope'")
+    assert mod.cli.slash("status --profile nope").startswith("No tenure record for profile 'nope'")
 
 
 # ----------------------------------------------------------------------------------------------- setup, strict
@@ -105,7 +105,7 @@ def test_strict_on_and_off(plugin):
     assert ctx.settings["strict"] is True and ledger(mod, "settings")[-1]["strict"] is True
     assert "Strict mode off" in mod.cli.slash("strict off")
     assert ctx.settings["strict"] is False and ledger(mod, "settings")[-1]["strict"] is False
-    assert mod.cli.slash("strict maybe").startswith("clearance:")
+    assert mod.cli.slash("strict maybe").startswith("tenure:")
 
 
 def test_explain_uses_the_params_numbers(plugin):
@@ -201,7 +201,7 @@ def test_undo_of_a_failed_check_restores_without_a_second_fault(plugin):
     with open(target, "w") as f:
         f.write("good = 1\n")
     assert ctx.call("write_file", {"path": "src/w.py", "content": "def broken(:\n"}) == "ran"
-    uid = int(re.search(r"/clearance undo (\d+)$", next(p for p in ctx.posted if "check failed" in p))[1])
+    uid = int(re.search(r"/tenure undo (\d+)$", next(p for p in ctx.posted if "check failed" in p))[1])
     faults, n = state(mod, "file:write").faults, len(outcomes(mod))
     out = mod.cli.slash(f"undo {uid}")
     assert "no second fault is recorded" in out
@@ -221,7 +221,7 @@ def test_undo_refuses_old_and_unknown_entries(plugin):
     n = len(ledger(mod))
     assert "older than 24 h" in mod.cli.slash(f"undo {uid}")
     assert "No undo entry 999" in mod.cli.slash("undo 999")
-    assert mod.cli.slash("undo x").startswith("clearance:")
+    assert mod.cli.slash("undo x").startswith("tenure:")
     assert len(ledger(mod)) == n and mod.store_().get_undo(uid)["undone"] is False
 
 
@@ -291,7 +291,7 @@ def test_anchor_prints_the_ledger_head(plugin):
     mod, ctx = earned(plugin)
     line = mod.cli.slash("anchor")
     head = mod.store_().ledger()[-1]["hash"]
-    assert line.startswith(f"clearance ledger head {head} at ") and f"({len(mod.store_().ledger())} events)" in line
+    assert line.startswith(f"tenure ledger head {head} at ") and f"({len(mod.store_().ledger())} events)" in line
 
 
 def test_export_writes_a_verifiable_ledger(plugin, tmp_path):
@@ -305,17 +305,17 @@ def test_export_writes_a_verifiable_ledger(plugin, tmp_path):
 # ------------------------------------------------------------------------------------------------------ cleanup
 def test_cleanup_lists_dead_keys_and_never_edits_config(plugin, monkeypatch):
     mod, ctx = plugin()
-    config = {"command_allowlist": ["recursive delete", "plugin_rule:clearance:ask:file:write:" + "a" * 32,
-                                    "clearance:spot:shell:npm:" + "b" * 32]}
+    config = {"command_allowlist": ["recursive delete", "plugin_rule:tenure:ask:file:write:" + "a" * 32,
+                                    "tenure:spot:shell:npm:" + "b" * 32]}
     fake_hermes_config(monkeypatch, config)
     out = mod.cli.slash("cleanup")
-    assert "2 dead clearance key(s)" in out and "clearance:spot:shell:npm:" + "b" * 32 in out
+    assert "2 dead tenure key(s)" in out and "tenure:spot:shell:npm:" + "b" * 32 in out
     assert """hermes config set command_allowlist '["recursive delete"]'""" in out
     assert len(config["command_allowlist"]) == 3
     fake_hermes_config(monkeypatch, {"command_allowlist": ["recursive delete"]})
-    assert mod.cli.slash("cleanup").startswith("No clearance key")
+    assert mod.cli.slash("cleanup").startswith("No tenure key")
     fake_hermes_config(monkeypatch, {})
-    assert mod.cli.slash("cleanup").startswith("No clearance key")
+    assert mod.cli.slash("cleanup").startswith("No tenure key")
 
 
 def test_cleanup_without_hermes_config(plugin, monkeypatch):
@@ -328,7 +328,7 @@ def test_cleanup_without_hermes_config(plugin, monkeypatch):
 def test_unknown_command_shows_the_usage_and_run_sets_the_exit_code(plugin, capsys):
     mod, ctx = plugin()
     assert "verify PASSPORT [LEDGER]" in mod.cli.slash("frobnicate")
-    setup_fn, handler = ctx.cli["clearance"]
+    setup_fn, handler = ctx.cli["tenure"]
     import argparse
     parser = argparse.ArgumentParser()
     setup_fn(parser)
@@ -414,7 +414,7 @@ def test_settings_come_from_hermes_config_without_a_plugin_context(plugin, monke
     mod.ST.ctx = None
     assert mod.settings()["risks"]["low"] == mod.params.PRESETS["balanced"]["low"]      # nothing to read: defaults
     fake = types.ModuleType("hermes_cli.config")
-    fake.load_config = lambda: {"plugins": {"entries": {"clearance": {"settings": {
+    fake.load_config = lambda: {"plugins": {"entries": {"tenure": {"settings": {
         "preset": "fast", "strict": True, "spot_check": 0.2}}}}}
     pkg = types.ModuleType("hermes_cli")
     pkg.config = fake

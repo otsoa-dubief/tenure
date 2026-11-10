@@ -1,6 +1,6 @@
 # Copyright 2026 Otsoa Dubief
 # SPDX-License-Identifier: Apache-2.0
-"""Dashboard API of clearance, mounted by Hermes at ``/api/plugins/clearance/``.
+"""Dashboard API of tenure, mounted by Hermes at ``/api/plugins/tenure/``.
 
 Every route sits under ``/api/``, so Hermes' dashboard auth middleware (session token, or the OAuth gate) covers it:
 ``/api/plugins/...`` is not in the public path list. This file adds no authentication of its own.
@@ -39,8 +39,8 @@ router = APIRouter()
 TIMELINE_LIMIT = 200          # ledger events per agent in /timeline
 UNDOABLE_LIMIT = 200          # undoable actions per profile in /activity
 DAY = 24 * 3600
-_FOLDER = ("plugin-data", "clearance")
-_DB = "clearance.db"
+_FOLDER = ("plugin-data", "tenure")
+_DB = "tenure.db"
 
 
 _CORE = None
@@ -54,17 +54,17 @@ def _core():
     if _CORE is None:
         with _CORE_LOCK:
             if _CORE is None:
-                for name in ("hermes_plugins.clearance", "clearance"):
+                for name in ("hermes_plugins.tenure", "tenure"):
                     mod = sys.modules.get(name)
                     if mod is not None and hasattr(mod, "ST"):
                         _CORE = mod
                         break
                 else:
                     root = Path(__file__).resolve().parents[1]
-                    spec = importlib.util.spec_from_file_location("clearance", root / "__init__.py",
+                    spec = importlib.util.spec_from_file_location("tenure", root / "__init__.py",
                                                                   submodule_search_locations=[str(root)])
                     mod = importlib.util.module_from_spec(spec)
-                    sys.modules["clearance"] = mod
+                    sys.modules["tenure"] = mod
                     spec.loader.exec_module(mod)
                     _CORE = mod
     return _CORE
@@ -276,7 +276,7 @@ def _preview(agent: str, to: str, profile: str | None, raw: bool) -> dict:
     old_model, new_model = core.personal.split_agent(agent)[0], core.personal.split_agent(to)[0]
     with _open(core, p) as st:
         if st is None:
-            raise HTTPException(404, f"profile {p['name']} has no clearance database yet")
+            raise HTTPException(404, f"profile {p['name']} has no tenure database yet")
         cfg = _settings(core, st)
         old = {s.key: s for _, s in st.states(agent)}
         if not old:
@@ -351,7 +351,7 @@ def _timeline(agent: str, profile: str | None, raw: bool) -> dict:
     needle = json.dumps(agent, ensure_ascii=False)[1:-1].replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     with _open(core, p) as st:
         if st is None:
-            raise HTTPException(404, f"profile {p['name']} has no clearance database yet")
+            raise HTTPException(404, f"profile {p['name']} has no tenure database yet")
         rows = st.db.execute("SELECT seq, at, event FROM ledger WHERE event LIKE ? ESCAPE '\\' "
                              "ORDER BY seq DESC LIMIT ?", (f'%"agent":"{needle}"%', TIMELINE_LIMIT)).fetchall()
     events = []
@@ -368,9 +368,9 @@ def _get(fn, *args):
     try:
         return fn(*args)
     except _Unreadable as e:
-        raise HTTPException(503, f"profile {e} has a clearance database that cannot be read")
+        raise HTTPException(503, f"profile {e} has a tenure database that cannot be read")
     except sqlite3.Error:
-        raise HTTPException(503, "the clearance database could not be read, try again")
+        raise HTTPException(503, "the tenure database could not be read, try again")
 
 
 _RAW = Query(False, description="1 shows raw action type names (default: redacted like the passport)")
@@ -518,7 +518,7 @@ def _set_settings(body: SettingsBody, raw: bool) -> dict:
     ctx = core.ST.ctx
     if ctx is None or not callable(getattr(ctx, "set_config", None)):
         raise HTTPException(501, "this process cannot write settings (Hermes offers plugins no other public writer): "
-                                 "run `hermes clearance setup`, or set plugins.entries.clearance.settings in "
+                                 "run `hermes tenure setup`, or set plugins.entries.tenure.settings in "
                                  "config.yaml")
     changes = {}
     if body.preset is not None:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2026 Otsoa Dubief
 # SPDX-License-Identifier: Apache-2.0
-"""Build clearance/data/benchmarks.json from the Epoch AI Benchmarking Hub CSV bundle (CC BY 4.0).
+"""Build tenure/data/benchmarks.json from the Epoch AI Benchmarking Hub CSV bundle (CC BY 4.0).
 
 This is the only place that touches the network, once per release, never at runtime.
 
@@ -26,11 +26,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from clearance.benchmarks import normalise  # noqa: E402
+from tenure.benchmarks import normalise  # noqa: E402
 
 BUNDLE_URL = "https://epoch.ai/data/benchmark_data.zip"
 PAGE_URL = "https://epoch.ai/benchmarks"
-OUT = ROOT / "clearance" / "data" / "benchmarks.json"
+OUT = ROOT / "tenure" / "data" / "benchmarks.json"
 
 # name -> (csv file, model column, score column, factor to percent, version)
 SOURCES = {

@@ -1,11 +1,11 @@
 """The README's guarantee numbers come from params; forbidden wording stays out; the manifest declares what it reads."""
 import pathlib
 
-from clearance import params
+from tenure import params
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 README = (ROOT / "README.md").read_text(encoding="utf-8")
-MANIFEST = (ROOT / "clearance" / "plugin.yaml").read_text(encoding="utf-8")
+MANIFEST = (ROOT / "tenure" / "plugin.yaml").read_text(encoding="utf-8")
 CLAIM = "the same rule as a preregistered study, replayed on 6,000+ simulated agents"
 
 
@@ -41,26 +41,26 @@ def test_allowed_study_claim_verbatim_with_layers():
 
 
 def test_readme_references_real_files_and_commands():
-    for ref in ("docs/protocol.md", "docs/the-study.md", "clearance/NOTICE"):
+    for ref in ("docs/protocol.md", "docs/the-study.md", "tenure/NOTICE"):
         assert (ROOT / ref).exists()
         assert ref in README
     for img in ("models", "map", "passport", "mobile"):
         assert f"docs/images/dashboard-{img}.png" in README
-    from clearance import cli
+    from tenure import cli
     import re
     subs = set(re.findall(r'subs\.add_parser\("(\w+)"', pathlib.Path(cli.__file__).read_text()))
     for s in subs:
-        assert f"hermes clearance {s}" in README, s
+        assert f"hermes tenure {s}" in README, s
 
 
 def test_manifest():
     assert "\nversion: 1.0.0\n" in MANIFEST
     assert '\nrequires_hermes: ">=0.23.0"\n' in MANIFEST
     assert "tamper-proof" not in MANIFEST.lower()
-    assert (ROOT / "clearance" / "dashboard" / "manifest.json").exists()      # the dashboard is declared there
+    assert (ROOT / "tenure" / "dashboard" / "manifest.json").exists()      # the dashboard is declared there
     assert "profiles/*" in README and "snapshot" in README                    # the reads disclosure
 
 
 def test_notice_attributes_epoch_ai():
-    n = (ROOT / "clearance" / "NOTICE").read_text(encoding="utf-8")
+    n = (ROOT / "tenure" / "NOTICE").read_text(encoding="utf-8")
     assert "Epoch AI" in n and "CC BY 4.0" in n

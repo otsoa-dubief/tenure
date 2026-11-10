@@ -73,10 +73,10 @@ def frames(cast, cap=1.2, step=0.1, holds=(), start=None):
 
 if __name__ == "__main__":
     # Holds: how long a screen that shows the pattern stays (s). Patterns are the real texts of the demo cast
-    # (Hermes 0.23.0 + clearance v2): the preset command, the spot check panel, the tiers announced at the end of a
+    # (Hermes 0.23.0 + tenure v2): the preset command, the spot check panel, the tiers announced at the end of a
     # turn, the undo answer, the model switch, the carry-over. `start` (optional 3rd argument, e.g. '\\$ hermes' for the passport recording) skips the first drawing.
     holds = [(r"Preset fast in force", 3.0), (r"now acts, then notifies you", 3.5), (r"Undo 1: files restored", 3.5),
-             (r"clearance spot check —", 4.5), (r"now acts alone", 4.0), (r"Model switched", 3.0),
+             (r"tenure spot check —", 4.5), (r"now acts alone", 4.0), (r"Model switched", 3.0),
              (r"carried over on trial", 3.5), (r"Verified record per model", 6.0), (r"OK: signature valid", 4.5)]
     head, fr = frames(sys.argv[1], holds=holds, start=sys.argv[3] if len(sys.argv) > 3 else r"Welcome to Hermes Agent")
     os.umask(0o077)  # frames contain everything on screen

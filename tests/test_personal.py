@@ -1,11 +1,11 @@
 import pytest
 
-from clearance import personal, store
+from tenure import personal, store
 
 
 @pytest.fixture
 def st(tmp_path):
-    return store.Store(str(tmp_path / "clearance.db"))
+    return store.Store(str(tmp_path / "tenure.db"))
 
 
 def _put(st, agent, key, successes, faults, sessions=("s1",)):

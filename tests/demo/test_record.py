@@ -17,7 +17,7 @@ FAKE = textwrap.dedent('''
             keys += sys.stdin.read(1)
         sys.stdout.write("\\x1b[2J\\x1b[Hanswer %d: working\\r\\n" % n); sys.stdout.flush(); time.sleep(0.4)
     ask(1); ask(2)
-    sys.stdout.write("clearance spot check - done\\r\\n"); sys.stdout.flush()
+    sys.stdout.write("tenure spot check - done\\r\\n"); sys.stdout.flush()
     time.sleep(0.6)
     termios.tcsetattr(fd, termios.TCSADRAIN, old)
 ''')

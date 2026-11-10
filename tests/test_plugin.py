@@ -12,7 +12,7 @@ import time
 
 import pytest
 
-PKG = "clearance"
+PKG = "tenure"
 A, B, C = "model-a@nous", "model-b@nous", "model-c@nous"
 FAST = {"risks": {"low": 0.25, "medium": 0.2}}       # series length 4 at low stakes, 5 at medium; high capped
 UUID = r"[0-9a-f]{32}"
@@ -199,7 +199,7 @@ def test_registers_the_hooks_and_commands(plugin):
     mod, ctx = plugin()
     assert set(ctx.hooks) == {"pre_api_request", "pre_tool_call", "post_approval_response", "post_tool_call",
                               "subagent_start", "subagent_stop"}
-    assert "clearance" in ctx.commands and "clearance" in ctx.cli
+    assert "tenure" in ctx.commands and "tenure" in ctx.cli
 
 
 def test_settings_validate_spot_and_add_strict_and_preset(plugin):
@@ -217,7 +217,7 @@ def test_settings_validate_spot_and_add_strict_and_preset(plugin):
 
 def test_data_dir_agent_of_and_anonymous_sessions(plugin):
     mod, ctx = plugin()
-    assert mod.data_dir().endswith(os.path.join("plugin-data", "clearance"))
+    assert mod.data_dir().endswith(os.path.join("plugin-data", "tenure"))
     assert mod.agent_of("s1") == A
     mod.pre_api_request(model="local:8b-q4", provider="", session_id="s9")
     assert mod.agent_of("s9") == "local:8b-q4@unknown"
@@ -317,7 +317,7 @@ def test_free_actions_never_ask_and_leave_no_record(plugin):
 def test_cap_asks_with_a_one_off_cap_key(plugin):
     mod, _ = plugin()
     d1, d2 = pre(mod, "write_file", {"path": ".env"}, "c1"), pre(mod, "write_file", {"path": ".env"}, "c2")
-    assert d1["action"] == "approve" and re.fullmatch(rf"clearance:cap:file:sensitive:{UUID}", d1["rule_key"])
+    assert d1["action"] == "approve" and re.fullmatch(rf"tenure:cap:file:sensitive:{UUID}", d1["rule_key"])
     assert d1["rule_key"] != d2["rule_key"] and "always asked" in d1["message"]
     assert row(mod, "c1") is None and mod.store_().states() == []
 
@@ -326,7 +326,7 @@ def test_ask_adds_a_pending_row_in_phase_asked(plugin):
     mod, _ = plugin(FAST)
     d = pre(mod, "write_file", write(), "c1")
     assert d == {"action": "approve", "rule_key": d["rule_key"], "message": d["message"]}
-    assert re.fullmatch(rf"clearance:ask:file:write:{UUID}", d["rule_key"])
+    assert re.fullmatch(rf"tenure:ask:file:write:{UUID}", d["rule_key"])
     assert "0/4" in d["message"] and "src/a.py" in d["message"]
     p = row(mod, "c1")
     assert (p["phase"], p["decision"], p["agent"], p["type"], p["stakes"], p["reversible"], p["session"],
@@ -341,7 +341,7 @@ def test_spot_check_asks_with_a_spot_key(plugin):
     mod.ST.rng = Picks([0.0])
     assert ctx.call("write_file", write("spot1")) == "approved"
     d = ctx.prompts[-1]
-    assert d["rule_key"].startswith("clearance:spot:file:write:") and "spot check" in d["message"]
+    assert d["rule_key"].startswith("tenure:spot:file:write:") and "spot check" in d["message"]
     assert outcomes(mod)[-1]["result"] == "success" and outcomes(mod)[-1]["source"] == "spot"
     assert state(mod, "file:write").spot_checks == 1
     mod.ST.rng = Picks([0.0])
@@ -377,7 +377,7 @@ def test_notify_falls_back_to_ask_when_the_file_cannot_be_saved(plugin, monkeypa
         f.write(b"#" * 5_000_001)
     for i, name in enumerate(("blob", "huge")):
         d = pre(mod, "write_file", {"path": f"src/{name}.py", "content": "x = 1\n"}, f"f{i}")
-        assert d["action"] == "approve" and re.fullmatch(rf"clearance:ask:file:write:{UUID}", d["rule_key"])
+        assert d["action"] == "approve" and re.fullmatch(rf"tenure:ask:file:write:{UUID}", d["rule_key"])
         assert "undo" in d["message"]
         p = row(mod, f"f{i}")
         assert (p["phase"], p["decision"], p["snap_id"]) == ("asked", "ask", None)
@@ -399,14 +399,14 @@ def test_nobody_answers_earned_tiers_run_and_the_rest_falls_to_hermes(plugin):
     to_t3(ctx, tool="memory")                                # memory:write at T3
     ctx.cron = True
     d = pre(mod, "terminal", NPM, "n1")
-    assert d["action"] == "approve" and re.fullmatch(rf"clearance:ask:shell:npm:{UUID}", d["rule_key"])
+    assert d["action"] == "approve" and re.fullmatch(rf"tenure:ask:shell:npm:{UUID}", d["rule_key"])
     assert row(mod, "n1")["phase"] == "nobody"
     assert ctx.call("terminal", NPM) == "blocked"            # cron_mode denied it; nobody's answer teaches nothing
     s = state(mod, "shell:npm")
     assert (s.successes, s.faults, s.neutrals) == (0, 0, 1)
     assert outcomes(mod, type="shell:npm")[-1]["source"] == "nobody"
     assert ctx.call("write_file", write("cron")) == "ran"   # T2 still acts, with its snapshot and undo
-    assert outcomes(mod)[-1]["source"] == "notify" and "/clearance undo" in ctx.posted[-1]
+    assert outcomes(mod)[-1]["source"] == "notify" and "/tenure undo" in ctx.posted[-1]
     mod.ST.rng = Picks([0.0])                                # a spot check would have been drawn: nobody answers
     assert pre(mod, "memory", {"action": "add", "content": "c"}, "m1") is None
     assert row(mod, "m1")["phase"] == "alone"
@@ -427,8 +427,8 @@ def test_internal_error_asks_unless_the_action_is_free(plugin, monkeypatch):
         raise RuntimeError("disk on fire")
     monkeypatch.setattr(mod, "store_", boom)
     d = pre(mod, "write_file", write(), "c1")
-    assert d["action"] == "approve" and d["rule_key"].startswith("clearance:ask:file:write:")
-    assert d["message"].startswith("clearance: internal error (RuntimeError); asking you instead")
+    assert d["action"] == "approve" and d["rule_key"].startswith("tenure:ask:file:write:")
+    assert d["message"].startswith("tenure: internal error (RuntimeError); asking you instead")
     assert pre(mod, "read_file", {"path": "a.py"}, "c2") is None              # classified free before any error
     monkeypatch.setattr(mod.classify, "classify", boom)
     d = pre(mod, "read_file", {"path": "a.py"}, "c3")                         # not classified: ask
@@ -440,7 +440,7 @@ def test_high_stakes_capped_by_the_preset_count_successes_but_never_climb(plugin
     for _ in range(5):
         assert ctx.call("terminal", {"command": "git push origin main"}) == "approved"
     keys = [d["rule_key"] for d in ctx.prompts]
-    assert all(k.startswith("clearance:capped:shell:git:push:") for k in keys) and len(set(keys)) == 5
+    assert all(k.startswith("tenure:capped:shell:git:push:") for k in keys) and len(set(keys)) == 5
     assert "capped by your settings" in ctx.prompts[0]["message"]
     s = state(mod, "shell:git:push")
     assert (s.successes, s.series, s.tier) == (5, 0, mod.rule.T1)
@@ -489,7 +489,7 @@ def test_expired_pending_rows_are_neutral(plugin):
 def test_answers_match_by_one_off_key_or_session_and_call(plugin):
     mod, _ = plugin(FAST)
     d = pre(mod, "write_file", write(), "")                   # no tool call id: found by its key
-    assert re.fullmatch(rf"clearance:ask:file:write:{UUID}", d["rule_key"])
+    assert re.fullmatch(rf"tenure:ask:file:write:{UUID}", d["rule_key"])
     mod.post_approval_response(pattern_key=f"plugin_rule:{d['rule_key']}", tool_call_id="", choice="once")
     assert mod.store_().get_pending(d["rule_key"].rsplit(":", 1)[1])["phase"] == "approved"
     d = pre(mod, "write_file", write(), "call:7:x")           # the key ends with a uuid, whatever the call id
@@ -604,7 +604,7 @@ def test_notify_success_adds_an_undo_and_posts(plugin):
     assert pre(mod, "write_file", write("n"), "n1") is None
     snap = row(mod, "n1")["snap_id"]
     post(mod, "write_file", write("n"), "n1")
-    uid = int(re.fullmatch(r"clearance: file:write acted on its own · /clearance undo (\d+)", ctx.posted[-1])[1])
+    uid = int(re.fullmatch(r"tenure: file:write acted on its own · /tenure undo (\d+)", ctx.posted[-1])[1])
     assert mod.store_().get_undo(uid) == {"id": uid, "agent": A, "type": "file:write", "snap_id": snap,
                                           "at": mod.store_().get_undo(uid)["at"], "undone": False, "fault": False}
     assert outcomes(mod)[-1]["source"] == "notify" and state(mod, "file:write").successes == 13
@@ -726,7 +726,7 @@ def test_one_off_keys_everywhere(plugin):
     for i in range(2):
         assert ctx.call("memory", {"action": "add", "content": f"m{i}"}, answer="always") == "approved"
     keys = [d["rule_key"] for d in ctx.prompts]
-    kinds = [re.fullmatch(rf"clearance:(ask|spot|cap|capped|trial):(.+):({UUID})", k)[1] for k in keys]
+    kinds = [re.fullmatch(rf"tenure:(ask|spot|cap|capped|trial):(.+):({UUID})", k)[1] for k in keys]
     assert {"ask", "spot", "cap", "capped", "trial"} <= set(kinds)
     assert len(set(keys)) == len(keys) == len(ctx.prompts) == ctx.calls          # every call reached the owner
 
@@ -747,7 +747,7 @@ def test_full_climb_low_reversible_type(plugin):
     s = state(mod, "file:write")
     assert (s.tier, s.series, len(s.sessions)) == (mod.rule.T3, 52, 2)
     assert len(os.listdir(os.path.join(mod.data_dir(), "undo"))) == 40       # one snapshot per act-then-notify
-    assert sum("/clearance undo" in p for p in ctx.posted) == 40
+    assert sum("/tenure undo" in p for p in ctx.posted) == 40
     assert any("now acts alone" in p for p in ctx.posted)
     assert pre(mod, "write_file", write("next"), "next") is None
     assert row(mod, "next")["decision"] in (mod.rule.ALLOW, mod.rule.SPOT)
@@ -784,7 +784,7 @@ def test_tainted_session_asks_even_cleared_types(plugin):
     assert ctx.call("write_file", write("x"), session="s1") == "ran"
     ctx.call("web_extract", {"urls": ["https://example.com/page"]}, session="s1")
     assert ctx.call("write_file", write("y"), session="s1") == "approved"
-    assert ctx.prompts[-1]["rule_key"].startswith("clearance:ask:file:write:")
+    assert ctx.prompts[-1]["rule_key"].startswith("tenure:ask:file:write:")
     assert "suspended: external content read" in ctx.prompts[-1]["message"]
     assert ctx.call("write_file", write("z"), session="s2") == "ran"        # other sessions keep the tier
 
@@ -823,7 +823,7 @@ def test_parallel_tool_calls_share_one_connection_safely(plugin, caplog):
                 post(mod, "terminal", NPM, cid, result='{"exit_code": 0}')
         except Exception as e:                                  # reported below
             errors.append(e)
-    with caplog.at_level(logging.ERROR, logger="clearance"):
+    with caplog.at_level(logging.ERROR, logger="tenure"):
         threads = [threading.Thread(target=worker, args=(t,)) for t in range(6)]
         for t in threads:
             t.start()
@@ -894,7 +894,7 @@ def test_a_reused_call_id_answered_always_still_asks_in_the_next_session(plugin)
     assert ctx.call("write_file", sensitive, answer="deny", session="s4", call_id=call) == "refused"
     keys = [d["rule_key"] for d in ctx.prompts]
     assert len(keys) == len(set(keys)) == 4
-    assert all(re.fullmatch(rf"clearance:(ask|cap):[a-z:.-]+:{UUID}", k) for k in keys)
+    assert all(re.fullmatch(rf"tenure:(ask|cap):[a-z:.-]+:{UUID}", k) for k in keys)
     assert [(e["type"], e["result"], e["source"]) for e in outcomes(mod)] == [
         ("shell:npm", "success", "approval"), ("shell:npm", "fault", "refusal")]
 
@@ -1006,7 +1006,7 @@ def test_a_held_lock_makes_pre_tool_call_ask_within_the_timeout(plugin, monkeypa
         start = time.monotonic()
         d = pre(mod, "write_file", write(), "c1")
         assert d["action"] == "approve"
-        assert d["message"].startswith("clearance: internal error (LockTimeout); asking you instead")
+        assert d["message"].startswith("tenure: internal error (LockTimeout); asking you instead")
         assert pre(mod, "read_file", {"path": "a.py"}, "c2") is None              # free calls need no lock
         post(mod, "write_file", write(), "c1")                                     # the other hooks skip
         mod.post_approval_response(pattern_key=f"plugin_rule:{d['rule_key']}", tool_call_id="c1", choice="deny")
@@ -1080,8 +1080,8 @@ def test_a_t2_write_failing_its_check_keeps_an_undo(plugin):
     assert ctx.call("write_file", {"path": "src/w.py", "content": "def broken(:\n"}) == "ran"
     assert (outcomes(mod)[-1]["result"], outcomes(mod)[-1]["source"]) == ("fault", "check")
     note = next(p for p in ctx.posted if "automatic check failed" in p)
-    assert note.startswith("clearance: file:write acted on its own, but the automatic check failed")
-    uid = int(re.search(r"/clearance undo (\d+)$", note)[1])
+    assert note.startswith("tenure: file:write acted on its own, but the automatic check failed")
+    uid = int(re.search(r"/tenure undo (\d+)$", note)[1])
     entry = mod.store_().get_undo(uid)
     assert entry["fault"] is True and entry["snap_id"]
     assert mod.undo.restore(entry["snap_id"], mod.data_dir(), key=mod.undo_key()) == (1, 0)

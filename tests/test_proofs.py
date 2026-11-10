@@ -3,7 +3,7 @@ import threading
 
 import pytest
 
-from clearance import proofs
+from tenure import proofs
 
 
 def test_status_ok_is_ok():

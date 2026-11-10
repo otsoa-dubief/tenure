@@ -279,7 +279,7 @@ def test_anchor_line(plugin):
     to_t3(ctx)
     rows = mod.store_().ledger()
     line = mod.passport.anchor_line(mod.store_())
-    m = re.fullmatch(r"clearance ledger head ([0-9a-f]{64}) at (\S+) \((\d+) events\)", line)
+    m = re.fullmatch(r"tenure ledger head ([0-9a-f]{64}) at (\S+) \((\d+) events\)", line)
     assert m and m.group(1) == rows[-1]["hash"] and int(m.group(3)) == len(rows)
     assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", m.group(2))
 
@@ -489,7 +489,7 @@ def test_an_older_passport_reports_what_changed_since(plugin):
 
 
 def test_verify_command_notes_a_stale_passport_and_pins_a_key(plugin, tmp_path):
-    from clearance import cli
+    from tenure import cli
     mod, ctx = plugin(FAST)
     to_t3(ctx)
     p = make_passport(mod)

@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from clearance import undo
+from tenure import undo
 
 KEY = b"k" * 32
 

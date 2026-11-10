@@ -23,7 +23,7 @@ import math
 from fractions import Fraction
 from functools import lru_cache
 
-# Recommendations shown by `/clearance setup`: accepted share of errors that run without approval, per stakes level.
+# Recommendations shown by `/tenure setup`: accepted share of errors that run without approval, per stakes level.
 # None = capped: the type always asks, whatever its record.
 PRESETS = {
     "careful": {"low": 1 / 100, "medium": 1 / 200, "high": 1 / 1000},

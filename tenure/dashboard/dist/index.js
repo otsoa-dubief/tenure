@@ -1,12 +1,12 @@
 /*
- * clearance: the live map. Dashboard tab of the clearance plugin.
+ * tenure: the live map. Dashboard tab of the tenure plugin.
  *
  * What each agent has earned, per action type: discrete tiers with their evidence, the personal benchmark per model,
  * the model-switch preview, the passport and its verification, the undo list and the risk dial.
  *
  * Plain IIFE, no build step. React, fetchJSON (the dashboard's auth: session token header, or the gated cookie) and
  * the theme come from window.__HERMES_PLUGIN_SDK__. Every number shown comes from the plugin API
- * (/api/plugins/clearance/); the only arithmetic done here is the series length N of the risk dial's live preview
+ * (/api/plugins/tenure/); the only arithmetic done here is the series length N of the risk dial's live preview
  * (the study's formula, in exact integers) and the successes still missing before the middle tier (Wald steps).
  */
 (function () {
@@ -25,13 +25,13 @@
   var useMemo = SDK.hooks.useMemo;
   var useCallback = SDK.hooks.useCallback;
 
-  var BASE = "/api/plugins/clearance";
+  var BASE = "/api/plugins/tenure";
   var POLL_MS = 2000;
   var WEEK = 7 * 86400;
   var PASSPORT_MS = 30000;  // a passport replays the ledger: fetched on open, after an action, else every 30 s
 
   // ----------------------------------------------------------------------------------------- pinned rule values
-  // Mirrors of clearance/params.py and rule.py, used only to say what evidence is still missing and to preview N.
+  // Mirrors of tenure/params.py and rule.py, used only to say what evidence is still missing and to preview N.
   var TIER = { ask: "T1", notify: "T2", alone: "T3" };
   var TIER_NAME = { ask: "asks first", notify: "acts, then notifies", alone: "acts alone" };
   var STAKES = ["low", "medium", "high"];
@@ -293,7 +293,7 @@
   function guaranteeText(g) {
     if (!g || g.capped) return "Capped: every action asks.";
     var s = "Unchecked errors stay under " + pct(g.aoql) + " of its actions of this type; for an agent that turns bad " +
-      "after clearance, at most " + pct(g.worst_case) + " until the first caught error.";
+      "after tenure, at most " + pct(g.worst_case) + " until the first caught error.";
     if (g.conditional) s += " Conditional on the previous model's evidence still holding.";
     return s;
   }
@@ -405,7 +405,7 @@
     var rows = props.rows;
     if (!rows.length) {
       return h(Empty, { title: "No evidence yet" },
-        "clearance starts counting at the first action an agent asks to run. Reads never ask. Every action type starts at ",
+        "tenure starts counting at the first action an agent asks to run. Reads never ask. Every action type starts at ",
         h("b", null, "T1, asks first"), ", and climbs only on verified successes: ",
         "reversible types reach the middle tier after a run of verified successes without a fault, and T3 after a full series of N from two sessions.");
     }
@@ -699,7 +699,7 @@
               }
             }, "Revoke all"),
             h("span", { className: "clr-dim clr-small" }, mine ? "Takes effect at the next action. Every revocation is a ledger event." :
-              "Flag and revoke act on the dashboard's own profile. Use: hermes -p " + row.profile + " clearance revoke")),
+              "Flag and revoke act on the dashboard's own profile. Use: hermes -p " + row.profile + " tenure revoke")),
           h("div", { className: "clr-section-title clr-tl-head" },
             h("span", null, "Evidence timeline"),
             h("select", { className: "clr-select", value: filter, onChange: function (e) { setFilter(e.target.value); }, "aria-label": "Filter by type" },
@@ -732,7 +732,7 @@
     if (res.error && !res.data) return h("div", { className: "clr-error" }, errText(res.error));
     if (!res.data) return h("div", { className: "clr-dim clr-pad" }, "Loading…");
     var rows = res.data.rows;
-    if (!rows.length) return h(Empty, { title: "No record yet" }, "Each verified action adds to the model's record on that type, here and in hermes clearance models.");
+    if (!rows.length) return h(Empty, { title: "No record yet" }, "Each verified action adds to the model's record on that type, here and in hermes tenure models.");
     var byType = [];
     rows.forEach(function (r) {
       var g = byType[byType.length - 1];
@@ -885,7 +885,7 @@
     if (!verify.length) return { tone: "ok", title: "Verified", lines: ["Signature valid (Ed25519)", "Hash chain intact", "Replaying the ledger with the rule gives the same tiers"] };
     if (verify.length === 1 && verify[0] === "unsigned") {
       return { tone: "warn", title: "Unsigned, otherwise verified", lines: ["Hash chain intact", "Replay gives the same tiers",
-        "No signing key yet: hermes clearance passport creates one"] };
+        "No signing key yet: hermes tenure passport creates one"] };
     }
     return { tone: "fault", title: verify.length + " problem" + (verify.length === 1 ? "" : "s") + " found", lines: verify };
   }
@@ -922,7 +922,7 @@
           h("div", { className: "clr-verdict-title" }, v.title),
           h("ul", null, v.lines.map(function (l, i) { return h("li", { key: i }, l); })),
           h("div", { className: "clr-small clr-dim" }, "Checked by the dashboard against this profile's ledger. Anyone can re-check it:"),
-          h(CopyCmd, { cmd: "hermes clearance verify " + "passport-" + row.agent.model.replace(/[^A-Za-z0-9._-]+/g, "_") + ".json" })),
+          h(CopyCmd, { cmd: "hermes tenure verify " + "passport-" + row.agent.model.replace(/[^A-Za-z0-9._-]+/g, "_") + ".json" })),
         h("section", { className: "clr-passport-fields" },
           h("dl", null,
             [["Protocol", d.protocol], ["Agent", d.agent.model + "@" + d.agent.provider],
@@ -1009,12 +1009,12 @@
     function cmds() {
       var out = [];
       if (pr !== cur.preset || (custom && dirty)) {
-        if (!custom) out.push("hermes clearance setup " + pr);
+        if (!custom) out.push("hermes tenure setup " + pr);
         else STAKES.forEach(function (s) {
-          if (rk[s] !== cur.risks[s]) out.push("hermes config set plugins.entries.clearance.settings.risks." + s + " " + (rk[s] == null ? "cap" : "1/" + Math.round(1 / rk[s])));
+          if (rk[s] !== cur.risks[s]) out.push("hermes config set plugins.entries.tenure.settings.risks." + s + " " + (rk[s] == null ? "cap" : "1/" + Math.round(1 / rk[s])));
         });
       }
-      if (sx !== cur.strict) out.push("hermes clearance strict " + (sx ? "on" : "off"));
+      if (sx !== cur.strict) out.push("hermes tenure strict " + (sx ? "on" : "off"));
       return out;
     }
     function apply() {
@@ -1032,7 +1032,7 @@
       });
     }
     var commands = cmds();
-    var shownCmds = commands.length ? commands : ["hermes clearance setup " + (cur.preset === "custom" ? "balanced" : cur.preset)];
+    var shownCmds = commands.length ? commands : ["hermes tenure setup " + (cur.preset === "custom" ? "balanced" : cur.preset)];
     return h("div", { className: "clr-settings" },
       h("section", { className: "clr-dial" },
         h("div", { className: "clr-dial-head" },
@@ -1072,7 +1072,7 @@
             h("span", null, sx ? "On: a new model starts with an empty record (the study's rule)" : "Off: a new model inherits part of the previous record, provisionally")),
           h("div", { className: "clr-dial-n clr-dim clr-small" }, "spot checks " + oneIn(cur.spot))),
         readOnly ? h("div", { className: "clr-readonly" },
-          h("div", null, h("b", null, "Read-only here."), " This dashboard process cannot write clearance's settings (Hermes gives plugins no other public writer). Run:"),
+          h("div", null, h("b", null, "Read-only here."), " This dashboard process cannot write tenure's settings (Hermes gives plugins no other public writer). Run:"),
           shownCmds.map(function (c) { return h(CopyCmd, { key: c, cmd: c }); }))
           : h("div", { className: "clr-dial-foot" },
             h(Btn, { kind: "primary", disabled: !dirty, onClick: apply }, "Apply"),
@@ -1101,7 +1101,7 @@
   }
 
   // ------------------------------------------------------------------------------------------------------ page
-  function ClearancePage() {
+  function TenurePage() {
     var viewS = useState("map"), view = viewS[0], setView = viewS[1];
     var rawS = useState(false), raw = rawS[0], setRaw = rawS[1];
     var focusS = useState(0), focus = focusS[0], setFocus = focusS[1];
@@ -1209,7 +1209,7 @@
 
     var body;
     if (!data && !err) body = h("div", { className: "clr-dim clr-pad" }, "Loading the record…");
-    else if (!data && err) body = h("div", { className: "clr-error" }, "Could not read clearance: " + errText(err));
+    else if (!data && err) body = h("div", { className: "clr-error" }, "Could not read tenure: " + errText(err));
     else if (view === "map") {
       body = h(MapView, { profiles: profiles, rows: rows, settings: current && current.settings, focus: focus, onFocus: setFocus,
         onOpen: function (r) { setDrawer(r.key); }, transitions: transitions });
@@ -1223,7 +1223,7 @@
     return h("div", { className: "clr", "data-tone": tone },
       h("header", { className: "clr-head" },
         h("div", { className: "clr-title-row" },
-          h("h1", { className: "clr-title" }, "Clearance"),
+          h("h1", { className: "clr-title" }, "Tenure"),
           h("span", { className: "clr-subtitle" }, "Autonomy earned per action type, on verified evidence"),
           h("div", { className: "clr-head-right" },
             h("span", { className: cx("clr-live", err && "is-stale"), title: err ? errText(err) : "Polling every 2 s" },
@@ -1243,5 +1243,5 @@
       toast ? h("div", { className: "clr-toast clr-toast--" + toast.type, role: "status" }, toast.text) : null);
   }
 
-  REG.register("clearance", ClearancePage);
+  REG.register("tenure", TenurePage);
 })();

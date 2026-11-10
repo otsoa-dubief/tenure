@@ -7,19 +7,19 @@ import time
 
 import pytest
 
-from clearance import rule, store
+from tenure import rule, store
 
 A = "claude-sonnet@anthropic"
 
 
 @pytest.fixture
 def st(tmp_path):
-    return store.Store(str(tmp_path / "clearance.db"))
+    return store.Store(str(tmp_path / "tenure.db"))
 
 
 def _pending(st, pid, **kw):
     args = dict(call=f"call-of-{pid}", agent=A, type="file:write", stakes="low", reversible=True, decision="ask",
-                phase="asked", rule_key=f"clearance:ask:file:write:{pid}", session="abc123def456")
+                phase="asked", rule_key=f"tenure:ask:file:write:{pid}", session="abc123def456")
     args.update(kw)
     st.add_pending(pid, **args)
 
@@ -163,7 +163,7 @@ def _worker(path, n):
 
 
 def test_two_processes_do_not_lose_updates(tmp_path):
-    path = str(tmp_path / "clearance.db")
+    path = str(tmp_path / "tenure.db")
     store.Store(path)
     ctx = mp.get_context("spawn")
     procs = [ctx.Process(target=_worker, args=(path, 100)) for _ in range(2)]
@@ -177,7 +177,7 @@ def test_two_processes_do_not_lose_updates(tmp_path):
 
 
 def test_two_stores_interleaved(tmp_path):
-    path = str(tmp_path / "clearance.db")
+    path = str(tmp_path / "tenure.db")
     s1, s2 = store.Store(path), store.Store(path)
     for i in range(200):
         with (s1 if i % 2 else s2).transaction() as t:
@@ -194,7 +194,7 @@ def test_meta_and_schema(st):
 
 
 def test_v1_database_is_recreated(tmp_path):
-    path = tmp_path / "clearance.db"
+    path = tmp_path / "tenure.db"
     db = sqlite3.connect(path)
     db.execute("CREATE TABLE types (model TEXT, key TEXT, state TEXT)")
     db.execute("INSERT INTO types VALUES ('m', 'k', '{}')")
@@ -209,7 +209,7 @@ def test_v1_database_is_recreated(tmp_path):
 
 def test_schema_2_database_is_recreated(tmp_path):
     """Schema 2 keyed pending rows by the provider's tool call id; it is recreated (no release used it)."""
-    path = str(tmp_path / "clearance.db")
+    path = str(tmp_path / "tenure.db")
     w = store.Store(path)
     with w.transaction():
         w.set_meta("schema", "2")
@@ -222,14 +222,14 @@ def test_schema_2_database_is_recreated(tmp_path):
 
 
 def test_database_is_private(tmp_path):
-    path = tmp_path / "sub" / "clearance.db"
+    path = tmp_path / "sub" / "tenure.db"
     store.Store(str(path))
     if os.name == "posix":
         assert oct(os.stat(path).st_mode & 0o777) == "0o600"
 
 
 def test_open_readonly(tmp_path):
-    path = str(tmp_path / "clearance.db")
+    path = str(tmp_path / "tenure.db")
     with pytest.raises(FileNotFoundError):
         store.Store.open_readonly(path)
     assert not os.path.exists(path)
@@ -273,7 +273,7 @@ def _popper(path, tcid, q):
 
 
 def test_two_processes_pop_the_same_pending_once(tmp_path):
-    path = str(tmp_path / "clearance.db")
+    path = str(tmp_path / "tenure.db")
     s = store.Store(path)
     ctx = mp.get_context("spawn")
     for n in range(10):
@@ -293,7 +293,7 @@ def test_two_processes_pop_the_same_pending_once(tmp_path):
 
 
 def test_reopen_keeps_data(tmp_path):
-    path = str(tmp_path / "clearance.db")
+    path = str(tmp_path / "tenure.db")
     w = store.Store(path)
     with w.transaction():
         st_ = w.get_state(A, "file:write", "low", True)
@@ -313,7 +313,7 @@ def _opener(path, start):
 
 
 def test_concurrent_first_open(tmp_path):
-    path = str(tmp_path / "clearance.db")
+    path = str(tmp_path / "tenure.db")
     ctx = mp.get_context("spawn")
     start = ctx.Event()
     procs = [ctx.Process(target=_opener, args=(path, start)) for _ in range(5)]
@@ -330,7 +330,7 @@ def test_concurrent_first_open(tmp_path):
 
 
 def test_downgrade_raises_and_keeps_data(tmp_path):
-    path = str(tmp_path / "clearance.db")
+    path = str(tmp_path / "tenure.db")
     w = store.Store(path)
     with w.transaction():
         w.bump("a", "actions")

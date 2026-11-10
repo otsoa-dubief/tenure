@@ -1,7 +1,7 @@
 # Earned Autonomy Protocol v0.1
 
-Protocol identifier: `earned-autonomy/0.1`. Reference implementation: `clearance/passport.py` (replay, passport,
-verification) and `clearance/store.py` (ledger).
+Protocol identifier: `earned-autonomy/0.1`. Reference implementation: `tenure/passport.py` (replay, passport,
+verification) and `tenure/store.py` (ledger).
 
 An agent earns autonomy per action type from verified outcomes. Everything it earned is derived from a hash-chained
 ledger of input events. An **autonomy passport** summarises one agent's record. It is signed and tamper-evident:
@@ -64,7 +64,7 @@ A replay ignores them: the input events alone determine the states.
  "ALPHA": a, "BETA": b, "lengthen": l, "trial": t, "wait": w, "sessions": s, "carry": c, "veto": v}
 ```
 
-with the values of `clearance/params.py`, `clearance/rule.py` and `clearance/benchmarks.py`
+with the values of `tenure/params.py`, `tenure/rule.py` and `tenure/benchmarks.py`
 (`passport.rule_spec()` prints them). Two implementations with the same fingerprint apply the same numbers. A
 different fingerprint means the replay of this implementation may not apply to that passport.
 
@@ -157,7 +157,7 @@ otherwise right returns `["unsigned"]`. Steps, in order:
 Without the ledger, only steps 0 to 2 run and the list ends with `ledger not provided: types not checked`: it is
 never empty, since a valid signature alone says nothing about the types (anyone can sign anything with a fresh key).
 
-To anchor a ledger in time, publish the line `clearance ledger head <hash> at <ISO date> (<n> events)` anywhere (a
+To anchor a ledger in time, publish the line `tenure ledger head <hash> at <ISO date> (<n> events)` anywhere (a
 post, a gist). The plugin makes no network call.
 
 ## 5. What it proves, and what it does not

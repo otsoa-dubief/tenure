@@ -1,5 +1,5 @@
 /*
- * clearance: the live map. Every color comes from the dashboard theme's variables, so the tab follows the active
+ * tenure: the live map. Every color comes from the dashboard theme's variables, so the tab follows the active
  * theme, light or dark. Tiers are discrete: outline (T1), tint (T2), solid (T3), hatched (capped). No gauges.
  */
 

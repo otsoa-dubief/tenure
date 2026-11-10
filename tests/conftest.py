@@ -1,4 +1,4 @@
-"""Test setup: clearance is imported as a package from the repository's clearance/ directory."""
+"""Test setup: tenure is imported as a package from the repository's tenure/ directory."""
 import os
 import sys
 

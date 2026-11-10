@@ -1,11 +1,11 @@
 {
-  "name": "clearance",
-  "label": "Clearance",
+  "name": "tenure",
+  "label": "Tenure",
   "description": "What each agent has earned, per action type: tiers, personal benchmark per model, model-switch preview, passport",
   "icon": "Shield",
   "version": "1.0.0",
   "tab": {
-    "path": "/clearance",
+    "path": "/tenure",
     "position": "after:skills"
   },
   "entry": "dist/index.js",

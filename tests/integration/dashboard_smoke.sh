@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke test of the clearance dashboard tab, in a real Hermes dashboard, with screenshots.
+# Smoke test of the tenure dashboard tab, in a real Hermes dashboard, with screenshots.
 #
 # Usage: tests/integration/dashboard_smoke.sh SCRATCH_DIR HERMES_SOURCE_DIR HERMES_PYTHON [SHOTS_DIR]
 #   SCRATCH_DIR  a throwaway directory: the Hermes root, a demo project and the screenshots go under SCRATCH_DIR/dash13
@@ -11,7 +11,7 @@
 #   2. realistic evidence, driven through Hermes' own hooks and approval gate (tests/integration/dashboard_seed.py);
 #   3. `hermes dashboard --isolated --port 9219 --host 127.0.0.1 --no-open`, with HERMES_GATEWAY_LOCK_DIR in the
 #      scratch directory (never port 9119, never --stop);
-#   4. scripts/dashboard_shots.cjs loads /clearance, asserts "Clearance", the map grid and "Models", and takes the
+#   4. scripts/dashboard_shots.cjs loads /tenure, asserts "Tenure", the map grid and "Models", and takes the
 #      screenshots of every view at 1440x900 and 390x844, light and dark;
 #   5. stops only the server it started (its own PID, checked against port 9219).
 set -euo pipefail
@@ -25,7 +25,7 @@ PORT=9219
 HH="$BASE/home"
 
 case "$(cd "$SCRATCH" && pwd -P)" in "$HOME/.hermes"*) echo "refusing: scratch dir inside ~/.hermes" >&2; exit 1;; esac
-[ -f "$ROOT/clearance/dashboard/dist/index.js" ] || { echo "FAIL: clearance/dashboard/dist/index.js is missing" >&2; exit 1; }
+[ -f "$ROOT/tenure/dashboard/dist/index.js" ] || { echo "FAIL: tenure/dashboard/dist/index.js is missing" >&2; exit 1; }
 if lsof -nP -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1; then
   echo "FAIL: port $PORT is already in use; not touching it" >&2; exit 1
 fi
@@ -33,8 +33,8 @@ fi
 rm -rf "$BASE"
 mkdir -p "$HH/plugins" "$HH/profiles/ops/plugins" "$BASE/locks" "$SHOTS"
 for h in "$HH" "$HH/profiles/ops"; do
-  rsync -a --exclude __pycache__ "$ROOT/clearance/" "$h/plugins/clearance/"
-  printf 'plugins:\n  enabled: [clearance]\n' > "$h/config.yaml"
+  rsync -a --exclude __pycache__ "$ROOT/tenure/" "$h/plugins/tenure/"
+  printf 'plugins:\n  enabled: [tenure]\n' > "$h/config.yaml"
 done
 
 echo "== seeding evidence through the hooks"
@@ -63,7 +63,7 @@ stop() {
 trap stop EXIT
 
 for _ in $(seq 1 120); do
-  if curl -fsS "http://127.0.0.1:$PORT/clearance" >/dev/null 2>&1; then break; fi
+  if curl -fsS "http://127.0.0.1:$PORT/tenure" >/dev/null 2>&1; then break; fi
   kill -0 "$PID" 2>/dev/null || { echo "FAIL: the dashboard exited"; tail -40 "$BASE/dashboard.log"; exit 1; }
   sleep 0.5
 done

@@ -10,7 +10,7 @@ import types
 
 import pytest
 
-from clearance import classify as c
+from tenure import classify as c
 from test_plugin import plugin  # noqa: F401 (fixture)
 from test_r35 import ENTRY, code, env, sh  # noqa: F401 (fixture)
 
@@ -20,7 +20,7 @@ def cap(result):
 
 
 # ---------------------------------------------------------------------- 1. cd alone, and the cwd between calls
-@pytest.mark.parametrize("cmd", ["cd ~/.hermes/plugins", "cd ~/.hermes/plugins/clearance", "pushd ~/.hermes",
+@pytest.mark.parametrize("cmd", ["cd ~/.hermes/plugins", "cd ~/.hermes/plugins/tenure", "pushd ~/.hermes",
                                  "cd ~/.hermes/plugins > /dev/null", "cd ~/.hermes", "cd {H}", "cd {R}/profiles",
                                  "cd {R}/profiles/other", "cd $HERMES_HOME", "cd ${{HERMES_HOME}}/..",
                                  'cd "$(dirname ~/.hermes/config.yaml)"', "cd ~/.herm?s"])
@@ -149,15 +149,15 @@ def test_env_chdir_elsewhere_runs_there(env):
 def test_path_names_are_looked_up_at_each_call(env):
     V, U, P = env["V"], env["U"], env["P"]
     os.makedirs(f"{U}/bin")
-    assert sh("hh plugins disable clearance", P)[1] != c.CAP          # nothing named hh yet
+    assert sh("hh plugins disable tenure", P)[1] != c.CAP          # nothing named hh yet
     os.symlink(f"{V}/bin/hermes", f"{U}/bin/hh")                       # made out of band, no reset
-    assert sh("hh plugins disable clearance", P) == ("self:hermes", c.CAP)
+    assert sh("hh plugins disable tenure", P) == ("self:hermes", c.CAP)
     with open(f"{V}/bin/hermes") as src, open(f"{U}/bin/hc", "w") as dst:
         dst.write(src.read())
     os.chmod(f"{U}/bin/hc", 0o755)
-    assert sh("hc plugins disable clearance", P) == ("self:hermes", c.CAP)
+    assert sh("hc plugins disable tenure", P) == ("self:hermes", c.CAP)
     os.link(f"{V}/bin/hermes", f"{U}/bin/hl")
-    assert sh("hl plugins disable clearance", P) == ("self:hermes", c.CAP)
+    assert sh("hl plugins disable tenure", P) == ("self:hermes", c.CAP)
     assert sh("hl status", P) == ("shell:hermes:status", c.FREE)
 
 
@@ -170,7 +170,7 @@ def test_a_hard_link_to_a_binary_hermes_is_hermes(env, monkeypatch):
     os.chmod(blob, 0o755)
     os.link(blob, f"{U}/bin/hb")
     monkeypatch.setattr(c, "_hermes_targets", lambda: ({os.path.realpath(blob).lower()}, []))
-    assert sh("hb plugins disable clearance", P) == ("self:hermes", c.CAP)
+    assert sh("hb plugins disable tenure", P) == ("self:hermes", c.CAP)
 
 
 # ------------------------------------------------------------------------------- 7. code literals (execute_code)
@@ -192,7 +192,7 @@ def test_code_without_hermes_paths_stays_medium(env):
 def test_globs_that_may_reach_a_level_an_entry_or_the_program_are_capped(env):
     V, P = env["V"], env["P"]
     for cmd in ["tar xf /tmp/e.tar -C ~/.herm?s", "tar xf /tmp/e.tar -C ~/.herm[e]s/plugins",
-                f"cp {V}/bin/her?es ./h && ./h plugins disable clearance", f"cp {V}/bin/h* ./b",
+                f"cp {V}/bin/her?es ./h && ./h plugins disable tenure", f"cp {V}/bin/h* ./b",
                 "tar xf /tmp/e.tar -C ~/.hermes/plug*", f"unzip /tmp/e.zip -d {env['R']}/profiles/c*"]:
         t = sh(cmd, P)
         assert t[1] == c.CAP, (cmd, t)

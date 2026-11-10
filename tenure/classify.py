@@ -170,10 +170,10 @@ def _real(full: str) -> str:
 SENSITIVE_FRAGMENTS = ("authorized_keys", "known_hosts", "id_ed25519", "id_ecdsa", ".netrc")
 
 # ------------------------------------------------------------------------------------ the agent's own guardrails
-# clearance's own data: the database, its data folder (undo snapshots), the passport signing key. Whatever names
-# them, wherever the Hermes home is, is self:clearance (capped; no override lowers it).
-CLEARANCE_NAMES = re.compile(r"clearance\.db|plugin-data/clearance(?![\w.-])|passport-ed25519\.pem"
-                             r"|api/plugins/clearance(?![\w.-])")      # the dashboard's settings, revoke and undo API
+# tenure's own data: the database, its data folder (undo snapshots), the passport signing key. Whatever names
+# them, wherever the Hermes home is, is self:tenure (capped; no override lowers it).
+TENURE_NAMES = re.compile(r"tenure\.db|plugin-data/tenure(?![\w.-])|passport-ed25519\.pem"
+                             r"|api/plugins/tenure(?![\w.-])")      # the dashboard's settings, revoke and undo API
 # What Hermes keeps at the top of each home level (a home, a root, and each profiles/<name> under them). Only these are
 # protected: a project or a workspace under a home (kanban/workspaces/..., workspace/, home/) is ordinary.
 HERMES_ENTRIES = frozenset({
@@ -395,17 +395,17 @@ def _self_hit(text: str, anywhere: bool = False) -> bool:
 
 
 # Hermes named in plain words by text that is not read word by word (the part of a command or of a piece of code
-# beyond what is lexed): its CLI run or looked up, its modules, a home level, one of its entries, clearance's data.
+# beyond what is lexed): its CLI run or looked up, its modules, a home level, one of its entries, tenure's data.
 def _plain_hermes(text: str) -> tuple[str, str] | None:
     low = text.casefold().replace("\\", "/")
-    if CLEARANCE_NAMES.search(low):
-        return "self:clearance", CAP
+    if TENURE_NAMES.search(low):
+        return "self:tenure", CAP
     if HERMES_RUN.search(text) or HERMES_ALIAS.search(text) or HERMES_CODE.search(text):
         return SELF_HERMES
     if _self_hit(low, anywhere=True):
         return "file:sensitive", CAP
     if HOME_MARKERS.search(low) or any(True for _ in _root_spans(low)):
-        return "self:clearance", CAP                         # a home level, whatever is done to it
+        return "self:tenure", CAP                         # a home level, whatever is done to it
     return None
 
 
@@ -641,17 +641,17 @@ def _home_level(path: str) -> bool:
 
 
 def _protected_dir(path: str) -> bool:
-    """A working directory that is a home level, or lies in one of Hermes' entries (or clearance's data)."""
+    """A working directory that is a home level, or lies in one of Hermes' entries (or tenure's data)."""
     full = _norm(os.path.normpath(path))
     for p in (full, _resolved(full)):
         low = p.casefold()
-        if _home_level(p) or _self_hit(low) or CLEARANCE_NAMES.search(low + "/"):
+        if _home_level(p) or _self_hit(low) or TENURE_NAMES.search(low + "/"):
             return True
     return False
 
 
 def _entry_inodes() -> set:
-    """(device, inode) of the files Hermes keeps at the top of each home and profile, and of clearance's own data:
+    """(device, inode) of the files Hermes keeps at the top of each home and profile, and of tenure's own data:
     a hard link to one of them is the same file under another name. Listed once per classify call."""
     memo = getattr(_CACHE, "memo", None)
     if memo is not None and "inodes" in memo:
@@ -659,13 +659,13 @@ def _entry_inodes() -> set:
     found: set = set()
     folders: list[str] = []
     for h in dict.fromkeys(hermes_homes()):
-        folders += [h, os.path.join(h, "plugin-data", "clearance")]
+        folders += [h, os.path.join(h, "plugin-data", "tenure")]
         try:
             folders += [os.path.join(h, "profiles", n) for n in sorted(os.listdir(os.path.join(h, "profiles")))[:64]]
         except (OSError, ValueError, AttributeError):
             pass
     for d in folders:
-        own = d.replace("\\", "/").endswith("plugin-data/clearance")
+        own = d.replace("\\", "/").endswith("plugin-data/tenure")
         try:
             names = sorted(os.listdir(d))[:512]
         except (OSError, ValueError, AttributeError):
@@ -685,7 +685,7 @@ def _entry_inodes() -> set:
 
 
 def _linked_entry(real: str) -> bool:
-    """``real`` is a hard link to one of Hermes' own files or to clearance's data."""
+    """``real`` is a hard link to one of Hermes' own files or to tenure's data."""
     try:
         st = os.stat(real)
     except (OSError, ValueError, AttributeError):
@@ -699,7 +699,7 @@ def _user_homes() -> set:
 
 
 def _path_hit(full: str, home: str, above: bool = True) -> tuple[str, str] | None:
-    """The one check on a path (absolute and normalised; its links are resolved here): it is clearance's own data, a
+    """The one check on a path (absolute and normalised; its links are resolved here): it is tenure's own data, a
     Hermes home level, one of Hermes' entries, a hard link to one, the Hermes program or a file of its package, or
     (``above``) a folder above a Hermes home, the user's own home excepted. Whoever names it, whatever the spelling
     was: `/./`, `..`, a relative path, a link."""
@@ -711,8 +711,8 @@ def _path_hit(full: str, home: str, above: bool = True) -> tuple[str, str] | Non
     real = _resolved(full)
     for p in dict.fromkeys((full, _lexical(full), real)):
         low = p.rstrip("/").casefold()
-        if CLEARANCE_NAMES.search(low + "/") or _home_level(p):
-            hit = ("self:clearance", CAP)
+        if TENURE_NAMES.search(low + "/") or _home_level(p):
+            hit = ("self:tenure", CAP)
         elif _self_hit(low):
             hit = ("file:sensitive", CAP)
         elif above and _above_home(p) and low not in _user_homes():
@@ -860,7 +860,7 @@ def _glob_hit(pattern: str, home: str, word: str | None = None, named: bool = Tr
                 return hit
             continue
         if _protected_dir(name):
-            return "self:clearance", CAP
+            return "self:tenure", CAP
         if _hermes_path(name, "/", home):
             return SELF_HERMES
     patterns = [pattern]
@@ -876,10 +876,10 @@ def _glob_hit(pattern: str, home: str, word: str | None = None, named: bool = Tr
             top = pattern[:star]
             if _protected_dir(top) or (above and any(
                     _above_home(q) and q.rstrip("/").casefold() not in _user_homes() for q in (top, _resolved(top)))):
-                return "self:clearance", CAP
+                return "self:tenure", CAP
     for pat in patterns:
         if _glob_may_reach(pat.casefold()) or (not named and above and _glob_above(pat.casefold())):
-            return "self:clearance", CAP
+            return "self:tenure", CAP
     head, base = os.path.split(pattern.rstrip("/"))
     if (_hermes_hint(base) and any(_part_may(p, base) for p in HERMES_PROGS)
             and _part_may("bin", os.path.basename(head))):
@@ -926,7 +926,7 @@ def _names_hermes(word: str, cwd, home: str) -> bool:
     for alt in _braces(word):
         e = _expand(alt, home)
         low = _norm(e).casefold()
-        if HERMES_PART.search(low) or _self_hit(low, anywhere=True) or CLEARANCE_NAMES.search(low):
+        if HERMES_PART.search(low) or _self_hit(low, anywhere=True) or TENURE_NAMES.search(low):
             return True
         if not _unresolved(e) and not GLOB.search(e) and (cwd != UNKNOWN or os.path.isabs(e)):
             if _protected_dir(_abs(e, "/" if cwd == UNKNOWN else cwd, home)):
@@ -977,7 +977,7 @@ def _unresolved_floor(tokens: list[str], cwd, home: str) -> tuple[str, str] | No
                 if _names_hermes(cand, cwd, home):
                     program = re.search(r"(?<![.\w-])hermes(?:-agent|-acp)?(?![\w.-])", cand.casefold())
                     dotted = any(".hermes" in alt.casefold() for alt in _braces(cand))
-                    return SELF_HERMES if program and not dotted else ("self:clearance", CAP)
+                    return SELF_HERMES if program and not dotted else ("self:tenure", CAP)
                 found = True
     return ("file:unknown", HIGH) if found else None
 
@@ -1007,29 +1007,29 @@ def _chdir_hit(d: str, cwd, home: str) -> tuple[str, str] | None:
     if d == "-" or not d:
         return None
     if HERMES_VAR.fullmatch(d):
-        return "self:clearance", CAP
+        return "self:tenure", CAP
     d = _pwd(d, cwd)
     e = _expand(d, home)
     if _unresolved(e) or "$" in e:
-        return ("self:clearance", CAP) if _names_hermes(e, cwd, home) else ("file:unknown", HIGH)
+        return ("self:tenure", CAP) if _names_hermes(e, cwd, home) else ("file:unknown", HIGH)
     if e.startswith("~") or "{" in e or (cwd == UNKNOWN and not os.path.isabs(e)):
         return None
     full = _abs(e, "/" if cwd == UNKNOWN else cwd, home)
     if GLOB.search(e):
         return _glob_hit(full, home, d)
     # `cd link/..` stays next to the link (the shell normalises the text), `cd -P link/..` goes next to its target
-    return ("self:clearance", CAP) if _protected_dir(full) or _protected_dir(_lexical(full)) else None
+    return ("self:tenure", CAP) if _protected_dir(full) or _protected_dir(_lexical(full)) else None
 
 
 def _r35(tokens: list[str], cwd, home: str, reads: bool = False) -> tuple[str, str] | None:
     """The fail-safe principle for one command that writes: a Hermes home level or entry as an argument (a glob that
-    may reach one included) or as the working directory (self:clearance), the Hermes program named as an argument
+    may reach one included) or as the working directory (self:tenure), the Hermes program named as an argument
     (self:hermes)."""
     toks = _unwrap(tokens)
     if not toks or _seg_pure(tokens) or _cd_kind(tokens) or _hermes_read(tokens):
         return None
     if cwd != UNKNOWN and _protected_dir(cwd):
-        return "self:clearance", CAP
+        return "self:tenure", CAP
     if cwd != UNKNOWN and _extracts(toks):                   # an archive unpacked above a home lands in it
         here = _norm(os.path.normpath(cwd))
         if any(_above_home(p) and p.rstrip("/").casefold() not in _user_homes() for p in (here, _resolved(here))):
@@ -1096,7 +1096,7 @@ def _computed_hit(cand: str, base: str, home: str, above: bool = True) -> tuple[
         return None
     full = _abs(cand[:cut], base, home)
     if _protected_dir(full):
-        return "self:clearance", CAP
+        return "self:tenure", CAP
     if above and any(_above_home(p) and p.rstrip("/").casefold() not in _user_homes()
                      for p in (full, _resolved(full))):
         return "file:sensitive", CAP                     # computed below a folder that holds a home
@@ -1110,11 +1110,11 @@ def _word_hit(word: str, base: str, cwd, home: str, text_tool: bool = False,
     ``_path_hit``. For a command that only reads (``reads``: `find / -name x`, `git -C .. status`), a folder above
     a home is not a target."""
     if ENV_LOOKUP.search(word):
-        return "self:clearance", CAP                         # Hermes' home read from the environment by a program
+        return "self:tenure", CAP                         # Hermes' home read from the environment by a program
     for cand, above in _word_cands(word):
         above = above and not reads
         if HERMES_VAR.fullmatch(cand):
-            return "self:clearance", CAP
+            return "self:tenure", CAP
         view = _view(cand)
         alts = [cand]
         if BRACE_LIST.search(view) and not re.search(r"[$`]", view):
@@ -1288,8 +1288,8 @@ def _file(path: str, cwd: str | None, home: str) -> tuple[str, str, bool]:
     full = _abs(path, base, home)
     real = _real(full)
     lexical = _lexical(full)                             # `link/../x` as a program that normalises by itself reads it
-    if any(CLEARANCE_NAMES.search(p.casefold()) for p in (full, real, lexical)):
-        return "self:clearance", CAP, False
+    if any(TENURE_NAMES.search(p.casefold()) for p in (full, real, lexical)):
+        return "self:tenure", CAP, False
     if not _computed(_norm(_expand(path, home))) and (HERMES_BIN.search(full.rstrip("/"))
                                                      or _hermes_path(full, "/", home)
                                                      or (lexical != full and _hermes_path(lexical, "/", home))):
@@ -2461,15 +2461,15 @@ def _find(toks: list[str], cwd, home: str, depth: int, writes: bool) -> tuple[st
 
 
 FIND_NAMES = {"-name", "-iname", "-path", "-ipath", "-wholename", "-iwholename", "-regex", "-iregex"}
-CLEARANCE_FILES = ("plugin-data/clearance/clearance.db", "plugin-data/clearance/passport-ed25519.pem",
-                   "plugin-data/clearance/undo/0/manifest.json")
-HERMES_FILES = ("config.yaml", ".env", "auth.json", "state.db", "plugins/clearance/__init__.py")
+TENURE_FILES = ("plugin-data/tenure/tenure.db", "plugin-data/tenure/passport-ed25519.pem",
+                   "plugin-data/tenure/undo/0/manifest.json")
+HERMES_FILES = ("config.yaml", ".env", "auth.json", "state.db", "plugins/tenure/__init__.py")
 
 
 def _find_home(args: list[str], cwd, home: str) -> str | None:
     """A find that deletes or runs something, from a starting point inside, at or above a Hermes home (or one that
-    cannot be resolved), and whose name tests may select clearance's data or Hermes' files (no test, a regex, or a
-    pattern that matches them): self:clearance or file:sensitive."""
+    cannot be resolved), and whose name tests may select tenure's data or Hermes' files (no test, a regex, or a
+    pattern that matches them): self:tenure or file:sensitive."""
     starts = []
     for a in args:
         if a.startswith("-") or a in ("(", "!", ","):
@@ -2504,8 +2504,8 @@ def _find_home(args: list[str], cwd, home: str) -> str | None:
                 if fnmatch.fnmatchcase(name.lower() if fold else name, pat.lower() if fold else pat):
                     return True
         return False
-    if selects(CLEARANCE_FILES):
-        return "self:clearance"
+    if selects(TENURE_FILES):
+        return "self:tenure"
     return "file:sensitive" if selects(HERMES_FILES) else None
 
 
@@ -2736,7 +2736,7 @@ def _segment_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, st
     target = chdir if chdir is not None else (cd[1][0] if cd and cd[0] != "popd" and cd[1] else None)
     if target is not None:
         if _substituted(tokens):
-            return ("self:clearance", CAP) if _names_hermes(" ".join(tokens), cwd, home) else ("file:unknown", HIGH)
+            return ("self:tenure", CAP) if _names_hermes(" ".join(tokens), cwd, home) else ("file:unknown", HIGH)
         hit = _chdir_hit(target, cwd, home)
         if hit:
             return hit
@@ -2838,7 +2838,7 @@ def _stdin_code(args: list[str], script: str) -> bool:
 FILE_PROGS = {"tee", "cp", "mv", "install", "ln", "rsync", "touch", "truncate", "rm", "chmod", "chown", "shred",
               "mkdir", "rmdir", "tar", "gtar", "bsdtar", "unzip", "zip", "ditto", "gcp"}
 SUBCOMMAND = re.compile(r"-.*|[a-z][a-z0-9_-]*")
-HERMES_ONLY_SUBS = {"plugins", "clearance", "gateway", "profile", "profiles", "approvals", "skills", "hooks"}
+HERMES_ONLY_SUBS = {"plugins", "tenure", "gateway", "profile", "profiles", "approvals", "skills", "hooks"}
 
 
 # The hermes-agent distribution, as a package manager names it (`hermes-agent`, `hermes_agent`, a wheel, a checkout).
@@ -2953,7 +2953,7 @@ def _may_be_hermes(word: str, args: list[str]) -> bool:
     literal = re.sub(r"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|[$`(){}]", " ", base)
     if re.search(r"[$`]", view) and _hermes_hint(literal):
         return True
-    return bool(args) and (args[0] in HERMES_ONLY_SUBS or any("clearance" in a.casefold() for a in args[:8]))
+    return bool(args) and (args[0] in HERMES_ONLY_SUBS or any("tenure" in a.casefold() for a in args[:8]))
 
 
 def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
@@ -3201,7 +3201,7 @@ SSH_SAFE_OPTIONS = {"identitiesonly", "stricthostkeychecking", "batchmode", "con
 
 
 def _ssh_args_safe(args: list[str]) -> bool:
-    """ssh's arguments: -i a key (not one of Hermes' or clearance's own files), -p a port, -v, -q, -T, -4, -6,
+    """ssh's arguments: -i a key (not one of Hermes' or tenure's own files), -p a port, -v, -q, -T, -4, -6,
     -F /dev/null, and -o options from SSH_SAFE_OPTIONS (UserKnownHostsFile only to /dev/null)."""
     n = 0
     while n < len(args):
@@ -3217,7 +3217,7 @@ def _ssh_args_safe(args: list[str]) -> bool:
             n += 1
         if a.startswith("-i") and len(a) > 2:
             low = a[2:].casefold()
-            if _self_hit(low) or CLEARANCE_NAMES.search(low) or "$" in low:
+            if _self_hit(low) or TENURE_NAMES.search(low) or "$" in low:
                 return False
         elif a.startswith("-p") and a[2:].isdigit():
             pass
@@ -3415,7 +3415,7 @@ HERMES_CODE = re.compile(r"\bhermes_(?:cli|constants)\b|['\"](?:[^'\"\s]*/)?herm
                          r"|runpy\.\w+\([^)]*hermes")
 # Text that runs Hermes' CLI: the program followed by one of its subcommands that change things, or a lookup of the
 # program (`$(which hermes)`). Checked in the raw text of any command that is not purely read-only.
-HERMES_SUBS = ("config|plugins|clearance|profile|profiles|gateway|update|auth|setup|model|login|logout|uninstall|"
+HERMES_SUBS = ("config|plugins|tenure|profile|profiles|gateway|update|auth|setup|model|login|logout|uninstall|"
                "install|skills|hooks|cron|mcp|tools|memory|secrets|vault|approvals|security|backup|migrate")
 # Between the program and its subcommand, Hermes' own options and their values (`hermes -p work config set`).
 HERMES_RUN = re.compile(
@@ -3542,7 +3542,7 @@ def _only_opts(args: list[str], flags: set[str], values: set[str]) -> bool:
 
 def _hermes(args: list[str], cwd, home) -> tuple[str, str]:
     """Hermes' CLI. Only invocations that read are not capped: ``--version``, ``status``, ``config get|show|path|
-    env-path`` and ``clearance status|models|explain|verify|anchor`` (``export`` writes a file: a low or medium write,
+    env-path`` and ``tenure status|models|explain|verify|anchor`` (``export`` writes a file: a low or medium write,
     or a cap at a sensitive path). Every other subcommand, an unknown one, a flag we do not know, or a top-level
     flag before the subcommand is self:hermes: capped, and no override lowers it."""
     if args in (["--version"], ["-V"]):
@@ -3554,24 +3554,24 @@ def _hermes(args: list[str], cwd, home) -> tuple[str, str]:
             len(rest) >= 2 and rest[0] == "get" and not rest[1].startswith("-")
             and _only_opts(rest[2:], {"--json"}, set()))):
         return "shell:hermes:config", FREE
-    if sub != "clearance":
+    if sub != "tenure":
         return SELF_HERMES
     what, more = (rest[0], rest[1:]) if rest else ("status", [])
     if ((what == "status" and _only_opts(more, {"--all"}, {"--profile", "--model"}))
             or (what == "models" and _only_opts(more, set(), {"--type"}))
             or (what in ("explain", "anchor") and not more)
             or (what == "verify" and 1 <= len(more) <= 2 and not any(m.startswith("-") for m in more))):
-        return "shell:hermes:clearance", FREE
+        return "shell:hermes:tenure", FREE
     if what == "export" and len(more) <= 1 and not any(m.startswith("-") for m in more):
         if not more:
-            return "shell:hermes:clearance:export", LOW       # into clearance's own folder
+            return "shell:hermes:tenure:export", LOW       # into tenure's own folder
         target = _expand(more[0], home)
         if any(c in target for c in UNRESOLVED) or (cwd == UNKNOWN and not os.path.isabs(target)):
             return "file:unknown", HIGH
         t, stakes, _ = _file(target, "/" if cwd == UNKNOWN else cwd, home)
         if stakes == CAP:
             return t, CAP
-        return "shell:hermes:clearance:export", stakes if RANK[stakes] > RANK[LOW] else LOW
+        return "shell:hermes:tenure:export", stakes if RANK[stakes] > RANK[LOW] else LOW
     return SELF_HERMES
 
 
@@ -3819,7 +3819,7 @@ def _run(segs: list[Seg], start: str, home: str, depth: int) -> tuple[str, str]:
             if fed:
                 top = fed
         if any(t.startswith("CDPATH=") for t in seg.tokens) or (_cd_kind(seg.tokens) and "CDPATH" in known):
-            top = ("self:clearance", CAP)                    # where the cd lands cannot be worked out
+            top = ("self:tenure", CAP)                    # where the cd lands cannot be worked out
         if (first or RANK[top[1]] > RANK[best[1]]
                 or (RANK[top[1]] == RANK[best[1]] and top[0] in FLOORS and best[0] not in FLOORS)):
             best, first = top, False
@@ -3890,10 +3890,10 @@ def _frag(word: str) -> bool:
 
 
 def _text_floor(text: str) -> str | None:
-    """The protected type that a word or a piece of code names, or None: clearance's own data (self:clearance),
+    """The protected type that a word or a piece of code names, or None: tenure's own data (self:tenure),
     else a sensitive file or a Hermes home (file:sensitive)."""
-    if CLEARANCE_NAMES.search(text.casefold().replace("\\", "/")):
-        return "self:clearance"
+    if TENURE_NAMES.search(text.casefold().replace("\\", "/")):
+        return "self:tenure"
     return "file:sensitive" if _frag(text) else None
 
 
@@ -4015,7 +4015,7 @@ def _sensitive_floor(command: str) -> str | None:
             words = [w for w in words if not _validated_setting(w)]
             found = {_text_floor(w) for w in words} - {None}
             if found:
-                return "self:clearance" if "self:clearance" in found else "file:sensitive"
+                return "self:tenure" if "self:tenure" in found else "file:sensitive"
     return None
 
 
@@ -4089,13 +4089,13 @@ def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str,
         return "self:hermes", CAP, False
     if _complex_floor(command):
         low = command.casefold()          # quotes cannot be trusted here: look at the raw text
-        if CLEARANCE_NAMES.search(low):
-            return "self:clearance", CAP, False
+        if TENURE_NAMES.search(low):
+            return "self:tenure", CAP, False
         if (any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.casefold() in low for d in SENSITIVE_DIRS)
                 or _self_hit(low, anywhere=True)):
             return "file:sensitive", CAP, False
         return "shell:complex", HIGH, False
-    return best[0], best[1], False                  # a command is never reversible by Clearance
+    return best[0], best[1], False                  # a command is never reversible by Tenure
 
 
 # Programs that bring in content from another host (HTTP clients, text browsers, downloaders, raw sockets), and the
@@ -4283,10 +4283,10 @@ CODE_MOVES = re.compile(r"chdir|cwd\s*=|\bcd\b|pushd")       # code that changes
 def _code_levels(code: str, cwd, home: str) -> tuple[str, str] | None:
     """R35 for code (execute_code, python -c): a string literal that names a Hermes home level (expanduser's `~` and
     $HOME read as the shell reads them, a relative literal against the working directory), `$HERMES_HOME`, or a
-    `.hermes` literal joined to the user's home: self:clearance, capped."""
+    `.hermes` literal joined to the user's home: self:tenure, capped."""
     code = re.sub(r"'\s*\+\s*'|\"\s*\+\s*\"", "", code or "")      # 'a' + 'b' is 'ab'
     if CODE_ENV_HOME.search(code) and CODE_WRITES.search(code):
-        return "self:clearance", CAP                     # R37: Hermes' home read from the environment, written to
+        return "self:tenure", CAP                     # R37: Hermes' home read from the environment, written to
     homeward = bool(CODE_HOME.search(code))
     writes = bool(CODE_WRITES.search(code))
     known = cwd is not None and cwd != UNKNOWN
@@ -4304,9 +4304,9 @@ def _code_levels(code: str, cwd, home: str) -> tuple[str, str] | None:
         if not lit or len(lit) > 4096 or "\n" in lit:
             continue
         if HERMES_VAR.fullmatch(lit):
-            return "self:clearance", CAP
+            return "self:tenure", CAP
         if homeward and lit.strip("/") == ".hermes":
-            return "self:clearance", CAP
+            return "self:tenure", CAP
         pieces = [lit]
         if any(ch.isspace() for ch in lit):              # a command line or a statement held in a string
             pieces = [x for x in STRING_PIECES.split(lit) if "/" in x or x.startswith(("~", ".."))][:32]
@@ -4379,13 +4379,13 @@ CODE_GIT_CONFIG = re.compile(r"\.git/(?:(?:modules|worktrees)/\S*?)?(?:config\b|
 
 def _code(code: str, cwd=None, home: str | None = None) -> tuple[str, str, bool]:
     """execute_code: the same floors as ``python -c``. Code that calls Hermes' CLI or imports its modules is
-    self:hermes; code naming clearance's data is self:clearance; a sensitive file or a Hermes home, file:sensitive;
-    a literal naming a Hermes home level (R36), self:clearance."""
+    self:hermes; code naming tenure's data is self:tenure; a sensitive file or a Hermes home, file:sensitive;
+    a literal naming a Hermes home level (R36), self:tenure."""
     if _runs_hermes_code(code):
         return "self:hermes", CAP, False
     low = code.casefold().replace("\\\\", "/").replace("\\", "/")
-    if CLEARANCE_NAMES.search(low):
-        return "self:clearance", CAP, False
+    if TENURE_NAMES.search(low):
+        return "self:tenure", CAP, False
     if (any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.casefold() in low for d in SENSITIVE_DIRS)
             or _self_hit(low) or CODE_PREFIX.search(code) or CODE_GIT_CONFIG.search(low)):
         return "file:sensitive", CAP, False
@@ -4396,7 +4396,7 @@ def _code(code: str, cwd=None, home: str | None = None) -> tuple[str, str, bool]
 
 
 def sensitive_path(path: str, cwd: str | None = None, home: str | None = None) -> bool:
-    """A path classify caps as a write target (a sensitive file, a Hermes entry, clearance's data), judged from the
+    """A path classify caps as a write target (a sensitive file, a Hermes entry, tenure's data), judged from the
     session's ``cwd`` and user ``home``. For callers outside ``classify`` (undo checks a restore target with it)."""
     home = home or os.path.expanduser("~")
     _CACHE.memo, _CACHE.roots, _CACHE.cwd, _CACHE.home = {}, None, cwd, home
@@ -4558,7 +4558,7 @@ def _exec_hit(args: dict, cwd, home: str) -> tuple[str, str] | None:
 
 def _args_hit(args: dict, cwd, home: str, reading: bool = False, commands: bool = False,
               anywhere: bool = True) -> tuple[str, str] | None:
-    """An MCP or other plugin tool whose arguments name clearance's data, a sensitive file, one of Hermes' own
+    """An MCP or other plugin tool whose arguments name tenure's data, a sensitive file, one of Hermes' own
     entries or a Hermes home level (audit 10/11): the tool name alone cannot say where it writes, so a protected
     path in the arguments caps it, percent-encoded, as a file:// URL, split into a folder and a name, or given as a
     key. Arguments nested too deep to read make it high stakes. Words without a path (a search query) are left
@@ -4572,8 +4572,8 @@ def _args_hit(args: dict, cwd, home: str, reading: bool = False, commands: bool 
             continue
         for variant in dict.fromkeys((s, unquote(s), unquote(unquote(s)))):
             low = _norm(variant).casefold()
-            if CLEARANCE_NAMES.search(low):
-                return "self:clearance", CAP
+            if TENURE_NAMES.search(low):
+                return "self:tenure", CAP
             if _self_hit(low, anywhere=anywhere):
                 return "file:sensitive", CAP             # one of Hermes' own entries, under any .hermes folder
             if commands and _runs_hermes_text(variant):

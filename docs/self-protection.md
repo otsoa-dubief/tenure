@@ -26,14 +26,14 @@ starts suspended, and a child agent that read external content suspends its pare
 An agent that can switch off its own supervision is not supervised. Self-protection comes in two tiers, both capped
 at **Ask**, and no type override lowers them (`self:*`, `secrets:*`, `file:sensitive`).
 
-**Checked on the path: Hermes' own files, clearance's data and Hermes' CLI.** The check is on the path once it is
+**Checked on the path: Hermes' own files, tenure's data and Hermes' CLI.** The check is on the path once it is
 normalised and resolved, whatever program is given it. It covers what a command, a tool call or a piece of code
 names in a way that can be read before it runs; what can still get through is listed after the rules:
 
 - Hermes' own CLI, when the program run is `hermes` (also through `sh -c`, `script -c`, `su -c`, `tmux`, `screen`,
   `expect`, `ssh`, `uvx`, `uv run`, `pipx run`, a git alias, `$(which hermes)`), or Python code that imports or runs
   `hermes_cli` or `hermes_constants`. Only these reads are not capped: `hermes status`, `hermes --version`,
-  `hermes config get|show|path|env-path` and `hermes clearance status|models|explain|verify|anchor`.
+  `hermes config get|show|path|env-path` and `hermes tenure status|models|explain|verify|anchor`.
 - Hermes' own entries in each Hermes home (wherever `HERMES_HOME` points, its root, and `~/.hermes`), and the same
   entries in each `profiles/<name>/`: `config.yaml`, `.env`, `auth.json` and `auth.lock`, `SOUL.md`, `profile.yaml`,
   `state.db` and its journal files, and the folders `plugins/`, `plugin-data/`, `skills/`, `optional-skills/`,
@@ -61,7 +61,7 @@ names in a way that can be read before it runs; what can still get through is li
   but PyPI (`git+...`, a URL, a local folder or wheel, another index); and `rm`, `rmdir`, `shred` or `mv` on a
   folder that holds the Hermes program or its package (its `bin`, its `site-packages`, the environment above
   them). `pip install -U hermes-agent` and `pip install hermes-agent==<version>` from PyPI are ordinary installs.
-- Anything naming clearance's own data: `clearance.db`, `plugin-data/clearance`, the passport key.
+- Anything naming tenure's own data: `tenure.db`, `plugin-data/tenure`, the passport key.
 - Hermes' CLI is recognised from any word of a command that is not a pure read, whatever stands in front of it
   (`caffeinate`, `arch`, `flock`, `script -q /dev/null hermes ...`, a launcher nobody listed): a word whose base
   name is `hermes`, `hermes-agent` or `hermes-acp` starts an invocation, and the reads above stay allowed; a word
@@ -78,7 +78,7 @@ names in a way that can be read before it runs; what can still get through is li
   target, as the system does, and the spelling normalised as text is judged too), then resolved (symlinks, `$HERMES_HOME`, variables set earlier on the
   line, each alternative of a brace list, a glob expanded on disk). The command is capped when the result is a
   Hermes home level (a home, its root, the `.hermes` folder at the top of a home, a `profiles/<name>` folder), one
-  of the entries above, a hard link to one, clearance's data, the Hermes program (a path to `bin/hermes`, a link,
+  of the entries above, a hard link to one, tenure's data, the Hermes program (a path to `bin/hermes`, a link,
   hard link or copy of it), any file of the installed `hermes-agent` distribution (`hermes_cli`, `agent`, `tools`,
   `gateway`... as its own record lists them), or a folder above a Hermes home; and when it runs inside a home level
   or an entry. `write_file` and `patch` get the same check, and so do the arguments of Hermes' own tools that say
@@ -123,7 +123,7 @@ each:
   (`foo --json='{"path":"link"}'`, `awk 'END{close("link")}'`), a file named by the server (`curl -O`).
 - Expansions only one shell has (zsh's `~/.herme(s)`, `$HOME:h`), which are read as plain text; ANSI-C quoting
   (`$'...'`) asks at high stakes.
-- An argument of a tool under a name clearance does not read as a path: the `workdir` of a terminal call, a glob
+- An argument of a tool under a name tenure does not read as a path: the `workdir` of a terminal call, a glob
   given to an MCP tool apart from its folder (`{"dir": "~", "glob": ".hermes/*.yaml"}` asks at high stakes).
 - A git command that rewrites the work tree, run in your home or in a workspace (`git clean -fdx`).
 
@@ -132,7 +132,7 @@ not a wall against an agent that hides what it does: **if the agent is not trust
 with only the project mounted, and keep code-running types at `cap`.
 
 **Watched, best effort: code that would run later without asking.** These are recognised command by command, so a
-spelling clearance does not know can slip through (see Limits). Every case found so far is capped and tested:
+spelling tenure does not know can slip through (see Limits). Every case found so far is capped and tested:
 
 - Code an ordinary command would run without asking: assigning `PATH` with a relative or computed folder before
   the system (adding after `$PATH`, or putting only system folders and `~/.local/bin` first, is ordinary; another
@@ -152,7 +152,7 @@ spelling clearance does not know can slip through (see Limits). Every case found
   through `git log --output`, `curl -o` or `sed -i`. Editor
   commands given to vim (`+cmd`, `-c`, `-S`) ask at high stakes, and a `!command` inside them is classified too. A program given by a path outside the system's
   folders (`./bin/ls`) is never a free read. Any other assignment in front of a read-only command asks.
-- The dashboard's own API (`/api/plugins/clearance/...`, where settings, revoke and undo live) is capped when a
+- The dashboard's own API (`/api/plugins/tenure/...`, where settings, revoke and undo live) is capped when a
   command or code names it.
 - A recursive copy (`cp -r`, `ditto`, `rsync`) or a git work tree into your home asks at high stakes, and is
   capped when it names a `.hermes` folder or lands in a folder above a Hermes home. Code piped into a shell or an

@@ -21,11 +21,11 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message="Using `httpx` with `starlette.testclient` is deprecated")
     from fastapi.testclient import TestClient    # noqa: E402
 
-PKG = "clearance"
+PKG = "tenure"
 A, B = "model-a@nous", "model-b@nous"
 FAST = {"preset": "fast", "risks": {"low": 0.25, "medium": 0.2, "high": None}, "spot": 0.1, "strict": False,
         "overrides": {}, "enabled": True}
-API = Path(__file__).resolve().parents[1] / "clearance" / "dashboard" / "plugin_api.py"
+API = Path(__file__).resolve().parents[1] / "tenure" / "dashboard" / "plugin_api.py"
 
 
 class Ctx:
@@ -40,16 +40,16 @@ class Ctx:
 
 
 def load_api():
-    spec = importlib.util.spec_from_file_location("hermes_dashboard_plugin_clearance", API)
+    spec = importlib.util.spec_from_file_location("hermes_dashboard_plugin_tenure", API)
     mod = importlib.util.module_from_spec(spec)
-    sys.modules["hermes_dashboard_plugin_clearance"] = mod
+    sys.modules["hermes_dashboard_plugin_tenure"] = mod
     spec.loader.exec_module(mod)
     return mod
 
 
 def seed(core, home, agent=A, n=5, key="file:write", stakes="low"):
     """n verified successes of one type in a profile's own database, as the hooks would record them."""
-    st = core.store.Store(os.path.join(str(home), "plugin-data", "clearance", "clearance.db"))
+    st = core.store.Store(os.path.join(str(home), "plugin-data", "tenure", "tenure.db"))
     with st.transaction():
         core.sync_settings(st, FAST)
         for i in range(n):
@@ -70,9 +70,9 @@ def env(tmp_path, monkeypatch):
     seed(core, root / "profiles" / "work", B, 3, key="shell:git:push", stakes="high")
     api = load_api()
     app = FastAPI()
-    app.include_router(api.router, prefix="/api/plugins/clearance")
+    app.include_router(api.router, prefix="/api/plugins/tenure")
     client = TestClient(app)
-    client.base = "/api/plugins/clearance"
+    client.base = "/api/plugins/tenure"
     return core, api, client, root
 
 
@@ -109,7 +109,7 @@ def test_agents_across_profiles(env):
 
 def test_effective_tier_differs_from_stored_tier_when_settings_tighten(env):
     core, api, client, root = env
-    st = core.store.Store(os.path.join(str(root), "plugin-data", "clearance", "clearance.db"))
+    st = core.store.Store(os.path.join(str(root), "plugin-data", "tenure", "tenure.db"))
     with st.transaction():
         s = st.recorded(A, "file:write")
         s.tier, s.series, s.sessions = core.rule.T3, 4, ["a", "b"]
@@ -122,7 +122,7 @@ def test_effective_tier_differs_from_stored_tier_when_settings_tighten(env):
 
 def test_agent_flags_fault_on_record_and_states(env):
     core, api, client, root = env
-    st = core.store.Store(os.path.join(str(root), "plugin-data", "clearance", "clearance.db"))
+    st = core.store.Store(os.path.join(str(root), "plugin-data", "tenure", "tenure.db"))
     with st.transaction():
         s = st.recorded(A, "file:write")
         s.unresolved_fault, s.provisional, s.trial_left = True, 2, 3
@@ -134,7 +134,7 @@ def test_agent_flags_fault_on_record_and_states(env):
 
 def test_activity_totals_and_undoable(env):
     core, api, client, root = env
-    st = core.store.Store(os.path.join(str(root), "plugin-data", "clearance", "clearance.db"))
+    st = core.store.Store(os.path.join(str(root), "plugin-data", "tenure", "tenure.db"))
     with st.transaction():
         uid = st.add_undo(A, "file:write", "a" * 32)
         st.add_undo(A, "file:write", "b" * 32, at=time.time() - 3 * 86400)      # past the window
@@ -221,8 +221,8 @@ def test_reads_never_write(env):
                     ("/passport", {"agent": A}), ("/timeline", {"agent": A})):
         assert get(client, path, **q).status_code == 200, path
     assert files(root) == before
-    assert not (root / "profiles" / "work" / "plugin-data" / "clearance" / "passport-ed25519.pem").exists()
-    db = sqlite3.connect(f"file:{root}/plugin-data/clearance/clearance.db?mode=ro", uri=True)
+    assert not (root / "profiles" / "work" / "plugin-data" / "tenure" / "passport-ed25519.pem").exists()
+    db = sqlite3.connect(f"file:{root}/plugin-data/tenure/tenure.db?mode=ro", uri=True)
     assert db.execute("SELECT COUNT(*) FROM ledger").fetchone()[0] > 0
 
 
@@ -347,7 +347,7 @@ def test_post_settings_is_501_without_set_config(env):
 def fake_hermes_config(monkeypatch, settings):
     import types
     fake = types.ModuleType("hermes_cli.config")
-    fake.load_config = lambda: {"plugins": {"entries": {"clearance": {"settings": settings}}}}
+    fake.load_config = lambda: {"plugins": {"entries": {"tenure": {"settings": settings}}}}
     pkg = types.ModuleType("hermes_cli")
     pkg.config = fake
     monkeypatch.setitem(sys.modules, "hermes_cli", pkg)
@@ -367,11 +367,11 @@ def test_post_flag_without_plugin_context_reads_hermes_config_and_syncs(env, mon
     assert len([e for e in core.store_().ledger() if e["event"]["event"] == "settings"]) == n   # synced once
 
 
-def test_settings_501_message_points_to_hermes_clearance_setup(env):
+def test_settings_501_message_points_to_hermes_tenure_setup(env):
     core, api, client, root = env
     core.ST.ctx = None
     r = client.post(client.base + "/settings", json={"preset": "fast"})
-    assert r.status_code == 501 and "hermes clearance setup" in r.text
+    assert r.status_code == 501 and "hermes tenure setup" in r.text
 
 
 def test_core_is_one_module_object(env):
@@ -394,9 +394,9 @@ def test_selector_is_of_never_profile(env):
 
 def test_unreadable_profile_is_reported_not_dropped(env):
     core, api, client, root = env
-    bad = root / "profiles" / "broken" / "plugin-data" / "clearance"
+    bad = root / "profiles" / "broken" / "plugin-data" / "tenure"
     bad.mkdir(parents=True)
-    (bad / "clearance.db").write_bytes(b"this is not a database" * 50)
+    (bad / "tenure.db").write_bytes(b"this is not a database" * 50)
     d = get(client, "/agents").json()
     by = {p["profile"]: p for p in d["profiles"]}
     assert by["broken"]["error"] == "unreadable" and "agents" not in by["broken"]
@@ -470,7 +470,7 @@ def test_preset_name_reported_when_risks_match_a_preset(env):
     first = get(client, "/agents").json()["profiles"][0]["settings"]
     assert first["preset"] == "custom"                       # the seeded settings (FAST risks) are no preset
     for name in ("fast", "careful", "balanced"):
-        st = core.store.Store(os.path.join(str(root), "plugin-data", "clearance", "clearance.db"))
+        st = core.store.Store(os.path.join(str(root), "plugin-data", "tenure", "tenure.db"))
         with st.transaction():
             st.log(core.settings_event({**FAST, "risks": dict(core.params.PRESETS[name])}))
         st.db.close()
@@ -488,7 +488,7 @@ def test_large_ledger_is_fast(tmp_path, monkeypatch, layout):
     agent_names = [f"model-{i % 4}@prov" for i in range(20)]
     for i, name in enumerate(names):
         home = root if name is None else root / "profiles" / name
-        st = core.store.Store(os.path.join(str(home), "plugin-data", "clearance", "clearance.db"))
+        st = core.store.Store(os.path.join(str(home), "plugin-data", "tenure", "tenure.db"))
         with st.transaction():
             core.sync_settings(st, FAST)
             for k in range(8):
@@ -509,9 +509,9 @@ def test_large_ledger_is_fast(tmp_path, monkeypatch, layout):
         st.db.close()
     api = load_api()
     app = FastAPI()
-    app.include_router(api.router, prefix="/api/plugins/clearance")
+    app.include_router(api.router, prefix="/api/plugins/tenure")
     client = TestClient(app)
-    base = "/api/plugins/clearance"
+    base = "/api/plugins/tenure"
     calls = [("/agents", {}), ("/activity", {}), ("/models", {}), ("/preview", {"agent": agent_names[0], "to": "x@y"}),
              ("/passport", {"agent": agent_names[0]}), ("/timeline", {"agent": agent_names[0]})]
     timings = {}
@@ -533,26 +533,26 @@ def test_large_ledger_is_fast(tmp_path, monkeypatch, layout):
 
 
 def perf_slack() -> float:
-    """CLEARANCE_PERF_SLACK multiplies the cold-passport budget on slow shared runners (CI sets 3); 1 by default, and
+    """TENURE_PERF_SLACK multiplies the cold-passport budget on slow shared runners (CI sets 3); 1 by default, and
     for anything that is not a number of at least 1."""
     try:
-        return max(1.0, float(os.environ.get("CLEARANCE_PERF_SLACK", "1")))
+        return max(1.0, float(os.environ.get("TENURE_PERF_SLACK", "1")))
     except ValueError:
         return 1.0
 
 
 def test_perf_slack_reads_the_environment(monkeypatch):
-    monkeypatch.delenv("CLEARANCE_PERF_SLACK", raising=False)
+    monkeypatch.delenv("TENURE_PERF_SLACK", raising=False)
     assert perf_slack() == 1
     for value, want in (("3", 3), ("2.5", 2.5), ("0.1", 1), ("lots", 1)):
-        monkeypatch.setenv("CLEARANCE_PERF_SLACK", value)
+        monkeypatch.setenv("TENURE_PERF_SLACK", value)
         assert perf_slack() == want
 
 
 def test_passport_is_signed_when_the_key_already_exists(env):
     pytest.importorskip("cryptography")
     core, api, client, root = env
-    core.passport.keypair(os.path.join(str(root), "plugin-data", "clearance"))
+    core.passport.keypair(os.path.join(str(root), "plugin-data", "tenure"))
     before = files(root)
     d = get(client, "/passport", agent=A).json()
     assert d["passport"]["signature"] and "unsigned" not in d["verify"]

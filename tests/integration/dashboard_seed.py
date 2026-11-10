@@ -1,4 +1,4 @@
-"""Seeds a throwaway Hermes root with realistic clearance evidence, for the dashboard smoke test and its screenshots.
+"""Seeds a throwaway Hermes root with realistic tenure evidence, for the dashboard smoke test and its screenshots.
 
 Every outcome goes through Hermes' own hook dispatch and approval gate, as in run_in_hermes.py: a scripted owner
 answers the prompts, and post_tool_call fires after each call the way model_tools.py fires it. A simulated clock
@@ -59,10 +59,10 @@ def owner(command, description, **kwargs):
 
 approval.prompt_dangerous_approval = owner
 plugins.discover_plugins(force=True)
-core = next((m for m in list(sys.modules.values()) if getattr(m, "PREFIX", None) == "clearance"
+core = next((m for m in list(sys.modules.values()) if getattr(m, "PREFIX", None) == "tenure"
              and hasattr(m, "pre_tool_call")), None)
 if core is None:
-    sys.exit("clearance was not loaded by Hermes")
+    sys.exit("tenure was not loaded by Hermes")
 
 
 class Picks:
@@ -153,7 +153,7 @@ if mode == "main":
     model(*A, "sat")
     tick(1200)
     write(300, "sat", step=600)                            # the last act-then-notify write: still undoable
-    # A signing key, as `hermes clearance setup` creates it: the dashboard's passport is then signed.
+    # A signing key, as `hermes tenure setup` creates it: the dashboard's passport is then signed.
     core.passport.keypair(core.data_dir())
 elif mode == "ops":
     C = ("qwen3:8b-q4_K_M", "ollama")

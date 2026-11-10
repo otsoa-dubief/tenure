@@ -11,7 +11,7 @@ HH=$ROOT/.hermes
 SHOP=$ROOT/shop
 REMOTE=$ROOT/remote.git
 HERE="$(cd "$(dirname "$0")" && pwd)"
-SRC="$(cd "$HERE/../.." && pwd)/clearance"
+SRC="$(cd "$HERE/../.." && pwd)/tenure"
 HERMES="${HERMES_BIN:-hermes}"
 
 [ -d "$SRC" ] || { echo "plugin source not found: $SRC" >&2; exit 1; }
@@ -32,17 +32,17 @@ else echo "  no config.yaml yet: the owner logs in with his own subscription (he
 
 say "plugin"
 # copy to a temp name inside plugins/, then swap it in; only a real directory under plugins/ is ever removed
-TMP="$HH/plugins/.clearance.new"
+TMP="$HH/plugins/.tenure.new"
 run rm -rf "$TMP"
 run cp -R "$SRC" "$TMP"
-if [ -d "$HH/plugins/clearance" ] && [ ! -L "$HH/plugins/clearance" ]; then
+if [ -d "$HH/plugins/tenure" ] && [ ! -L "$HH/plugins/tenure" ]; then
   echo "  replacing the previous copy of the plugin directory only"
-  run rm -rf "$HH/plugins/clearance"
-elif [ -L "$HH/plugins/clearance" ]; then echo "refusing: $HH/plugins/clearance is a symlink" >&2; exit 1; fi
-run mv "$TMP" "$HH/plugins/clearance"
-run env HERMES_HOME="$HH" "$HERMES" plugins enable clearance
+  run rm -rf "$HH/plugins/tenure"
+elif [ -L "$HH/plugins/tenure" ]; then echo "refusing: $HH/plugins/tenure is a symlink" >&2; exit 1; fi
+run mv "$TMP" "$HH/plugins/tenure"
+run env HERMES_HOME="$HH" "$HERMES" plugins enable tenure
 echo "  settings stay at their defaults (no config edit); change one with:"
-echo "    HERMES_HOME=$HH $HERMES config set plugins.clearance.<key> <value>"
+echo "    HERMES_HOME=$HH $HERMES config set plugins.tenure.<key> <value>"
 
 say "demo project"
 if [ -d "$SHOP/.git" ]; then echo "  $SHOP already exists: kept"; else
@@ -70,7 +70,7 @@ def test_total():
 def test_discount():
     assert discount(200, 10) == 180  # 10 % off
 PY
-    printf '# acme shop\n\nA small project for the clearance demo.\n' > "$SHOP/README.md"
+    printf '# acme shop\n\nA small project for the tenure demo.\n' > "$SHOP/README.md"
     git init -q -b main "$SHOP"
     git -C "$SHOP" -c user.name=Acme -c user.email=dev@acme.test add -A
     git -C "$SHOP" -c user.name=Acme -c user.email=dev@acme.test commit -q -m "Initial shop"

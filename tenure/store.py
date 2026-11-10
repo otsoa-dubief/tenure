@@ -133,7 +133,7 @@ class Store:
             version = None
         if version != SCHEMA_VERSION:
             self.db.close()
-            raise RuntimeError(f"clearance store: {path} is not a schema {SCHEMA_VERSION} database "
+            raise RuntimeError(f"tenure store: {path} is not a schema {SCHEMA_VERSION} database "
                                f"(found {version!r}); open it once with the plugin first")
         return self
 
@@ -151,7 +151,7 @@ class Store:
         def current() -> bool:
             v = stored()
             if v is not None and v.isdigit() and int(v) > int(SCHEMA_VERSION):
-                raise RuntimeError(f"clearance store: database schema {v} is newer than this plugin's "
+                raise RuntimeError(f"tenure store: database schema {v} is newer than this plugin's "
                                    f"{SCHEMA_VERSION}; refusing to downgrade it")
             return v == SCHEMA_VERSION
         if current():
@@ -185,7 +185,7 @@ class Store:
 
     def _write(self) -> None:
         if not self.db.in_transaction:
-            raise RuntimeError("clearance store: write outside a transaction")
+            raise RuntimeError("tenure store: write outside a transaction")
 
     @contextmanager
     def transaction(self):
@@ -342,7 +342,7 @@ class Store:
         self._write()
         kind = event.get("event")
         if kind not in INPUT_KINDS and kind not in DERIVED_KINDS:
-            raise ValueError(f"clearance store: unknown ledger event kind {kind!r}")
+            raise ValueError(f"tenure store: unknown ledger event kind {kind!r}")
         last = self.db.execute("SELECT seq, hash FROM ledger ORDER BY seq DESC LIMIT 1").fetchone()
         seq, prev = (last[0] + 1, last[1]) if last else (1, GENESIS)
         at = float(event.get("at") or time.time())

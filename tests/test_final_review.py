@@ -1,4 +1,4 @@
-"""The final review's probes, through the hooks: a cleared type never reaches clearance's own switches, a suspended
+"""The final review's probes, through the hooks: a cleared type never reaches tenure's own switches, a suspended
 parent taints its children, a background launch teaches nothing, the passport says which tier runs today, and the
 copy promises no more than the code does."""
 import json
@@ -23,18 +23,18 @@ def test_a_cleared_hermes_status_never_lets_config_set_run(plugin):
     runs = 0
     for _ in range(20):
         before = len(ctx.prompts)
-        ctx.call("terminal", {"command": "hermes config set plugins.entries.clearance.settings.enabled false"},
+        ctx.call("terminal", {"command": "hermes config set plugins.entries.tenure.settings.enabled false"},
                  session="sC", answer="deny", result='{"exit_code": 0}')
         runs += len(ctx.prompts) == before
     assert runs == 0
-    assert all(p["rule_key"].startswith("clearance:cap:self:hermes:") for p in ctx.prompts)
+    assert all(p["rule_key"].startswith("tenure:cap:self:hermes:") for p in ctx.prompts)
 
 
 def test_self_types_stay_capped_even_with_an_override(plugin):
     mod, ctx = plugin({"types": {"self:*": "free", "*": "free"}})
-    for cmd in ("hermes plugins disable clearance", "find ~ -name clearance.db -delete"):
+    for cmd in ("hermes plugins disable tenure", "find ~ -name tenure.db -delete"):
         d = pre(mod, "terminal", {"command": cmd}, "c-" + cmd[:5])
-        assert d and d["rule_key"].startswith("clearance:cap:self:"), cmd
+        assert d and d["rule_key"].startswith("tenure:cap:self:"), cmd
 
 
 # ---------------------------------------------------------------------------------------------------------- I1
@@ -85,7 +85,7 @@ def test_a_foreground_run_still_counts(plugin):
 
 
 def test_background_is_a_known_neutral_source():
-    from clearance import store
+    from tenure import store
     assert "background" in store.OUTCOME_SOURCES["neutral"]
     assert ("neutral", "background") not in store.COUNTED
     proto = (ROOT / "docs" / "protocol.md").read_text(encoding="utf-8")
@@ -146,14 +146,14 @@ def test_readme_suspension_names_the_exact_list():
 
 
 def test_dashboard_never_promises_any_change_shows():
-    js = (ROOT / "clearance" / "dashboard" / "dist" / "index.js").read_text(encoding="utf-8")
+    js = (ROOT / "tenure" / "dashboard" / "dist" / "index.js").read_text(encoding="utf-8")
     assert "any change" not in js.lower()
     assert "a change after it is signed or anchored shows on verification" in js.lower()
 
 
 def test_manifest_declares_every_registered_hook(plugin):
     mod, ctx = plugin()
-    manifest = (ROOT / "clearance" / "plugin.yaml").read_text(encoding="utf-8")
+    manifest = (ROOT / "tenure" / "plugin.yaml").read_text(encoding="utf-8")
     block = manifest.split("provides_hooks:\n", 1)[1].split("\n", len(ctx.hooks) + 1)
     declared = {line.strip()[2:] for line in block if line.startswith("  - ")}
     assert declared == set(ctx.hooks)

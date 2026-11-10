@@ -1,4 +1,4 @@
-"""Self-protection: an agent can never clear its way to turning clearance off, editing Hermes' configuration or the
+"""Self-protection: an agent can never clear its way to turning tenure off, editing Hermes' configuration or the
 plugin's own data, wherever the Hermes home lives. Also the suspension list and execute_code's sensitive floor."""
 import os
 import sys
@@ -6,7 +6,7 @@ import types
 
 import pytest
 
-from clearance import classify as c
+from tenure import classify as c
 
 PROJ = "/home/u/proj"
 
@@ -24,7 +24,7 @@ def sh(cmd, cwd=PROJ, **kw):
 def home(tmp_path, monkeypatch):
     """A custom Hermes home outside the default ~/.hermes, as in Docker (/opt/data) or with HERMES_HOME set."""
     h = tmp_path / "custom-data"
-    (h / "plugin-data" / "clearance" / "undo" / "x").mkdir(parents=True)
+    (h / "plugin-data" / "tenure" / "undo" / "x").mkdir(parents=True)
     monkeypatch.setenv("HERMES_HOME", str(h))
     monkeypatch.delitem(sys.modules, "hermes_constants", raising=False)
     return h
@@ -32,21 +32,21 @@ def home(tmp_path, monkeypatch):
 
 # ------------------------------------------------------------------------------------------------- C1: hermes CLI
 WRITES = [
-    "hermes config set plugins.entries.clearance.settings.enabled false",
+    "hermes config set plugins.entries.tenure.settings.enabled false",
     "hermes config set approvals.mode off",
     "hermes config edit",
-    "hermes config unset plugins.entries.clearance",
+    "hermes config unset plugins.entries.tenure",
     "hermes config migrate",
-    "hermes plugins disable clearance",
-    "hermes plugins uninstall clearance",
+    "hermes plugins disable tenure",
+    "hermes plugins uninstall tenure",
     "hermes plugins install ./evil",
-    "hermes clearance strict off",
-    "hermes clearance setup fast",
-    "hermes clearance revoke all",
-    "hermes clearance flag shell:npm:test",
-    "hermes clearance undo 3",
-    "hermes clearance cleanup",
-    "hermes clearance passport --out x.json",
+    "hermes tenure strict off",
+    "hermes tenure setup fast",
+    "hermes tenure revoke all",
+    "hermes tenure flag shell:npm:test",
+    "hermes tenure undo 3",
+    "hermes tenure cleanup",
+    "hermes tenure passport --out x.json",
     "hermes profile create x",
     "hermes profiles list",
     "hermes gateway restart",
@@ -59,7 +59,7 @@ WRITES = [
     "hermes uninstall",
     "hermes install",
     "hermes",
-    "hermes -z 'disable clearance'",
+    "hermes -z 'disable tenure'",
     "hermes --yolo status",
     "hermes chat -q hi",
     "hermes some-future-subcommand",
@@ -68,14 +68,14 @@ WRITES = [
     "hermes config check",
     "hermes status --set x",
     "/usr/local/bin/hermes config set a b",
-    "sudo hermes plugins disable clearance",
+    "sudo hermes plugins disable tenure",
     "HERMES_HOME=/x hermes config set a b",
     "python -m hermes_cli config set a b",
-    "python3 -m hermes_cli.main plugins disable clearance",
+    "python3 -m hermes_cli.main plugins disable tenure",
     "python3 -m hermes_cli status",
     "uv run hermes config set a b",
-    "bash -c 'hermes plugins disable clearance'",
-    "echo y | hermes plugins uninstall clearance",
+    "bash -c 'hermes plugins disable tenure'",
+    "echo y | hermes plugins uninstall tenure",
     "find . -name x -exec hermes config set a b \\;",
     "hermes-agent",
 ]
@@ -88,15 +88,15 @@ READS = [
     ("hermes config show", "shell:hermes:config"),
     ("hermes config path", "shell:hermes:config"),
     ("hermes config get model --json", "shell:hermes:config"),
-    ("hermes clearance", "shell:hermes:clearance"),
-    ("hermes clearance status", "shell:hermes:clearance"),
-    ("hermes clearance status --all --model gpt-5", "shell:hermes:clearance"),
-    ("hermes clearance models", "shell:hermes:clearance"),
-    ("hermes clearance models --type file:write", "shell:hermes:clearance"),
-    ("hermes clearance explain", "shell:hermes:clearance"),
-    ("hermes clearance verify p.json", "shell:hermes:clearance"),
-    ("hermes clearance verify p.json ledger.jsonl", "shell:hermes:clearance"),
-    ("hermes clearance anchor", "shell:hermes:clearance"),
+    ("hermes tenure", "shell:hermes:tenure"),
+    ("hermes tenure status", "shell:hermes:tenure"),
+    ("hermes tenure status --all --model gpt-5", "shell:hermes:tenure"),
+    ("hermes tenure models", "shell:hermes:tenure"),
+    ("hermes tenure models --type file:write", "shell:hermes:tenure"),
+    ("hermes tenure explain", "shell:hermes:tenure"),
+    ("hermes tenure verify p.json", "shell:hermes:tenure"),
+    ("hermes tenure verify p.json ledger.jsonl", "shell:hermes:tenure"),
+    ("hermes tenure anchor", "shell:hermes:tenure"),
 ]
 
 
@@ -110,11 +110,11 @@ def test_read_only_hermes_invocations_stay_free(cmd, typ):
     assert sh(cmd) == (typ, c.FREE), cmd
 
 
-def test_clearance_export_is_a_file_write():
-    assert sh("hermes clearance export") == ("shell:hermes:clearance:export", c.LOW)
-    assert sh("hermes clearance export out.jsonl") == ("shell:hermes:clearance:export", c.LOW)
-    assert sh("hermes clearance export /tmp/out.jsonl") == ("shell:hermes:clearance:export", c.MEDIUM)
-    assert sh("hermes clearance export ~/.ssh/authorized_keys")[1] == c.CAP
+def test_tenure_export_is_a_file_write():
+    assert sh("hermes tenure export") == ("shell:hermes:tenure:export", c.LOW)
+    assert sh("hermes tenure export out.jsonl") == ("shell:hermes:tenure:export", c.LOW)
+    assert sh("hermes tenure export /tmp/out.jsonl") == ("shell:hermes:tenure:export", c.MEDIUM)
+    assert sh("hermes tenure export ~/.ssh/authorized_keys")[1] == c.CAP
 
 
 def test_self_hermes_cannot_be_lowered_by_an_override():
@@ -125,17 +125,17 @@ def test_self_hermes_cannot_be_lowered_by_an_override():
 
 # --------------------------------------------------------------------------------------- C2: wherever home lives
 def test_custom_home_writes_are_capped(home):
-    data = home / "plugin-data" / "clearance"
+    data = home / "plugin-data" / "tenure"
     cases = [
-        ("terminal", {"command": "find ~ -name clearance.db -delete"}),
-        ("terminal", {"command": 'find ~ -name "*.db" -path "*clearance*" -delete'}),
-        ("terminal", {"command": f'sqlite3 {data}/clearance.db "delete from ledger"'}),
+        ("terminal", {"command": "find ~ -name tenure.db -delete"}),
+        ("terminal", {"command": 'find ~ -name "*.db" -path "*tenure*" -delete'}),
+        ("terminal", {"command": f'sqlite3 {data}/tenure.db "delete from ledger"'}),
         ("terminal", {"command": f"rm -rf {data}/undo"}),
         ("terminal", {"command": f"rm {data}/passport-ed25519.pem"}),
         ("write_file", {"path": f"{home}/config.yaml", "content": "x"}),
         ("write_file", {"path": f"{data}/undo/x/manifest.json", "content": "{}"}),
         ("terminal", {"command": f'echo "  enabled: false" >> {home}/config.yaml'}),
-        ("terminal", {"command": f"rm -rf {home}/plugins/clearance"}),
+        ("terminal", {"command": f"rm -rf {home}/plugins/tenure"}),
         ("patch", {"patch": f"*** Begin Patch\n*** Update File: {home}/config.yaml\n@@\n-a\n+b\n*** End Patch"}),
         ("terminal", {"command": f"cd {home} && rm config.yaml"}),
         ("terminal", {"command": f"cp evil.yaml {home}/profiles/work/config.yaml"}),
@@ -143,7 +143,7 @@ def test_custom_home_writes_are_capped(home):
         ("terminal", {"command": f"mv {home} /tmp/gone"}),
         ("terminal", {"command": f"rm -rf {home.parent}"}),
         ("terminal", {"command": f"sqlite3 {home}/state.db .dump"}),
-        ("terminal", {"command": "truncate -s0 $(find ~ -name clearance.db)"}),
+        ("terminal", {"command": "truncate -s0 $(find ~ -name tenure.db)"}),
         ("terminal", {"command": "rm $HERMES_HOME/config.yaml"}),
     ]
     for tool, args in cases:
@@ -152,16 +152,16 @@ def test_custom_home_writes_are_capped(home):
         assert t.startswith(c.PROTECTED), (tool, args, t)
 
 
-def test_clearance_data_names_are_self_clearance(home):
-    data = home / "plugin-data" / "clearance"
-    assert sh("find ~ -name clearance.db -delete") == ("self:clearance", c.CAP)
-    assert sh(f'sqlite3 {data}/clearance.db "delete from ledger"') == ("self:clearance", c.CAP)
-    assert sh(f"rm -rf {data}/undo") == ("self:clearance", c.CAP)
-    assert kind("write_file", {"path": f"{data}/undo/x/manifest.json"}) == ("self:clearance", c.CAP)
-    assert sh("rm -f passport-ed25519.pem") == ("self:clearance", c.CAP)
-    assert sh("cp x /srv/plugin-data/clearance/clearance.db") == ("self:clearance", c.CAP)
-    over = {"self:clearance": "free", "*": "free"}
-    assert sh("find ~ -name clearance.db -delete", overrides=over) == ("self:clearance", c.CAP)
+def test_tenure_data_names_are_self_tenure(home):
+    data = home / "plugin-data" / "tenure"
+    assert sh("find ~ -name tenure.db -delete") == ("self:tenure", c.CAP)
+    assert sh(f'sqlite3 {data}/tenure.db "delete from ledger"') == ("self:tenure", c.CAP)
+    assert sh(f"rm -rf {data}/undo") == ("self:tenure", c.CAP)
+    assert kind("write_file", {"path": f"{data}/undo/x/manifest.json"}) == ("self:tenure", c.CAP)
+    assert sh("rm -f passport-ed25519.pem") == ("self:tenure", c.CAP)
+    assert sh("cp x /srv/plugin-data/tenure/tenure.db") == ("self:tenure", c.CAP)
+    over = {"self:tenure": "free", "*": "free"}
+    assert sh("find ~ -name tenure.db -delete", overrides=over) == ("self:tenure", c.CAP)
 
 
 def test_symlinked_home_is_resolved(tmp_path, monkeypatch):
@@ -219,7 +219,7 @@ def test_docker_home_is_the_user_home_and_the_working_directory(tmp_path, monkey
     assert kind("write_file", {"path": "config.yaml"}, cwd=cwd)[1] == c.CAP
     assert sh("rm -rf ~", cwd=cwd)[1] == c.CAP
     assert sh(f"mv {data} /tmp/x", cwd=cwd)[1] == c.CAP
-    assert sh("rm -rf plugins/clearance", cwd=cwd)[1] == c.CAP
+    assert sh("rm -rf plugins/tenure", cwd=cwd)[1] == c.CAP
 
 
 def test_windows_default_home():
@@ -227,7 +227,7 @@ def test_windows_default_home():
 
 
 def test_reads_of_the_home_stay_free(home):
-    assert sh(f"cat {home}/plugin-data/clearance/x.txt") == ("shell:cat", c.FREE)
+    assert sh(f"cat {home}/plugin-data/tenure/x.txt") == ("shell:cat", c.FREE)
     assert sh(f"ls {home}") == ("shell:ls", c.FREE)
 
 
@@ -237,7 +237,7 @@ def test_execute_code_scans_its_code(home):
     assert kind("execute_code", {"code": 'open("/Users/u/.hermes/config.yaml","w")'}) == ("file:sensitive", c.CAP)
     assert kind("execute_code", {"code": 'open("/root/.ssh/authorized_keys","a")'}) == ("file:sensitive", c.CAP)
     assert kind("execute_code", {"code": f'open("{home}/config.yaml","w")'})[1] == c.CAP
-    assert kind("execute_code", {"code": "os.remove(db_dir + '/clearance.db')"}) == ("self:clearance", c.CAP)
+    assert kind("execute_code", {"code": "os.remove(db_dir + '/tenure.db')"}) == ("self:tenure", c.CAP)
     assert kind("execute_code", {"code": "subprocess.run(['hermes', 'plugins', 'disable', 'x'])"}) == \
         ("self:hermes", c.CAP)
     assert kind("execute_code", {"code": "import hermes_cli.config as h; h.save_config({})"}) == \
@@ -246,7 +246,7 @@ def test_execute_code_scans_its_code(home):
 
 def test_python_inline_code_gets_the_same_floor(home):
     assert sh(f"python3 -c \"open('{home}/config.yaml','w')\"")[1] == c.CAP
-    assert sh("python3 -c \"import subprocess; subprocess.run(['hermes','plugins','disable','clearance'])\"") == \
+    assert sh("python3 -c \"import subprocess; subprocess.run(['hermes','plugins','disable','tenure'])\"") == \
         ("self:hermes", c.CAP)
 
 

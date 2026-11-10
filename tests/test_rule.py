@@ -6,7 +6,7 @@ import random
 
 import pytest
 
-from clearance import params, rule
+from tenure import params, rule
 
 LOW, MEDIUM, HIGH = 52, 105, 1052       # series lengths: balanced low and medium, careful high (params.required_n)
 

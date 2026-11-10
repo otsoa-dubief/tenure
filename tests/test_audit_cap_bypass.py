@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-from clearance import classify as c
+from tenure import classify as c
 
 PROJ = "/home/u/proj"
 FREE, LOW, MEDIUM, HIGH, CAP = c.FREE, c.LOW, c.MEDIUM, c.HIGH, c.CAP
@@ -29,7 +29,7 @@ def at_least(stakes, floor):
 @pytest.fixture
 def home(tmp_path, monkeypatch):
     h = tmp_path / "custom-data"
-    (h / "plugin-data" / "clearance").mkdir(parents=True)
+    (h / "plugin-data" / "tenure").mkdir(parents=True)
     (h / "config.yaml").write_text("x: 1\n")
     monkeypatch.setenv("HERMES_HOME", str(h))
     monkeypatch.delitem(sys.modules, "hermes_constants", raising=False)
@@ -137,7 +137,7 @@ def test_e_mcp_arguments_naming_hermes_files_are_capped(home):
     assert kind("mcp__fs__download_file", {"url": "x", "path": f"{home}/config.yaml"})[1] == CAP
     assert kind("mcp__filesystem__write_file", {"path": f"{home}/config.yaml", "content": "x"})[1] == CAP
     assert kind("mcp__filesystem__edit_file", {"path": "~/.hermes/config.yaml", "edits": []})[1] == CAP
-    assert kind("mcp__filesystem__write_file", {"path": "x/clearance.db", "content": "x"})[0] == "self:clearance"
+    assert kind("mcp__filesystem__write_file", {"path": "x/tenure.db", "content": "x"})[0] == "self:tenure"
     assert kind("mcp__filesystem__write_file", {"path": "~/.ssh/authorized_keys", "content": "x"})[1] == CAP
     nested = {"options": {"targets": [f"{home}/plugins/evil.py"]}}
     assert kind("mcp__fs__move", nested)[1] == CAP
@@ -244,8 +244,8 @@ def test_p1_shell_start_up_and_persistence_files_are_capped(path):
     assert kind("write_file", {"path": path, "content": "x"})[1] == CAP, path
 
 
-@pytest.mark.parametrize("cmd", ["curl -X POST http://127.0.0.1:9119/api/plugins/clearance/settings -d x",
-                                 "python3 -c \"import urllib.request as u; u.urlopen('http://localhost:9119/api/plugins/clearance/revoke')\""])
+@pytest.mark.parametrize("cmd", ["curl -X POST http://127.0.0.1:9119/api/plugins/tenure/settings -d x",
+                                 "python3 -c \"import urllib.request as u; u.urlopen('http://localhost:9119/api/plugins/tenure/revoke')\""])
 def test_p2_the_dashboard_api_is_capped(cmd):
     assert sh(cmd)[1] == CAP, cmd
 
@@ -632,9 +632,9 @@ def world(tmp_path, monkeypatch):
     env = tmp_path
     h, hh, fb = env / "home" / "u", env / "data" / "hh", env / "fb"
     for root in (h / ".hermes", hh):
-        for d in ("plugins/clearance", "plugin-data/clearance", "skills", "profiles/work", "workspace", "bin"):
+        for d in ("plugins/tenure", "plugin-data/tenure", "skills", "profiles/work", "workspace", "bin"):
             (root / d).mkdir(parents=True)
-        for f in ("config.yaml", ".env", "state.db", "plugin-data/clearance/clearance.db", "profiles/work/config.yaml"):
+        for f in ("config.yaml", ".env", "state.db", "plugin-data/tenure/tenure.db", "profiles/work/config.yaml"):
             (root / f).write_text("x: 1\n")
     fb.mkdir()
     (fb / "hermes").write_text("#!/usr/bin/env python3\nfrom hermes_cli.main import main\nmain()\n")
@@ -698,7 +698,7 @@ T1_COMMANDS = [
     "vim ~/.hermes/{config.yaml,}", "sqlite3 ~/.hermes/{state.db,} x", "python3 e.py @ENV@/data/h{h,x}/config.yaml",
     "vim ~/.hermes/$(echo config.yaml)", "vim ~/.hermes/$X",
     "sqlite3 lnk/state.db x", "vim lnkcfg", "python3 e.py lnkcfg", "yt-dlp -o lnkcfg https://x", "unlink lnkcfg",
-    "git -C lnkplug/clearance checkout HEAD~9 -- .", "git mv src/a lnkcfg", "black up/hh/plugins/clearance",
+    "git -C lnkplug/tenure checkout HEAD~9 -- .", "git mv src/a lnkcfg", "black up/hh/plugins/tenure",
     "truncate -s 0 hl", "echo x > hl",
 ]
 
@@ -724,7 +724,7 @@ def test_t1_a_folder_above_a_hermes_home_is_capped(world, cmd):
 
 
 @pytest.mark.parametrize("cmd", ["vim @HH@/*", "sqlite3 @HH@/s*.db x", "vim @ENV@/data/hh/config.y?ml",
-                                 "python3 e.py @ENV@/*/*/*", "python3 e.py @ENV@/data/hh/pl*/clearance/__init__.py",
+                                 "python3 e.py @ENV@/*/*/*", "python3 e.py @ENV@/data/hh/pl*/tenure/__init__.py",
                                  "rm -rf @ENV@/data/*", "rm -rf @ENV@/d*", "rm -rf lnk/*", "rm -rf up/h*",
                                  "rm -rf lnkplug/*", "chmod -R 000 up/*", "rm -rf ~/.h*", "rm -rf ../.[a-z]*",
                                  "echo x > lnk/c*"])
@@ -735,7 +735,7 @@ def test_t6_t7_globs_and_links_that_reach_hermes_are_capped(world, cmd):
 T2_CODE = [
     "open('../../../data/hh/config.yaml','w')", "import shutil; shutil.rmtree('../../../data')",
     "import os; os.rename('../../../data', '../../../d2')", "open('lnkcfg','w')", "open('lnk/config.yaml','w')",
-    "import shutil; shutil.rmtree('lnkplug/clearance')", "import os; os.symlink('../../../data/hh','x')",
+    "import shutil; shutil.rmtree('lnkplug/tenure')", "import os; os.symlink('../../../data/hh','x')",
     "import os; os.remove(os.path.expanduser('~/.hermes/./config.yaml'))",
     "import os; os.remove(os.path.join('@ENV@','data','hh','config.yaml'))",
     "import os; os.remove('@ENV@/data' + '/hh/config.yaml')", "import os; os.remove('@ENV@/data/' 'hh/config.yaml')",
@@ -752,17 +752,17 @@ def test_t2_paths_written_in_code_are_resolved(world, code):
 
 def test_t2_relative_code_paths_from_a_workspace(world):
     assert wcode(world, "open('../config.yaml','w').write('')", cwd="@HH@/workspace")[1] == CAP
-    assert wcode(world, "import shutil; shutil.rmtree('../plugins/clearance')", cwd="@HH@/workspace")[1] == CAP
+    assert wcode(world, "import shutil; shutil.rmtree('../plugins/tenure')", cwd="@HH@/workspace")[1] == CAP
 
 
 @pytest.mark.parametrize("cmd", [
-    "caffeinate hermes -p default config set a b", "caffeinate -i hermes plugins disable clearance",
-    "arch -arm64 hermes config set a b", "flock /tmp/l hermes plugins disable clearance",
+    "caffeinate hermes -p default config set a b", "caffeinate -i hermes plugins disable tenure",
+    "arch -arm64 hermes config set a b", "flock /tmp/l hermes plugins disable tenure",
     "script -q /dev/null hermes config set a b", "ionice -c3 hermes gateway stop", "chrt 1 hermes update",
-    "python3 -mhermes_cli.main config set plugins.enabled []", "python3 -m hermes_cli.main plugins disable clearance",
+    "python3 -mhermes_cli.main config set plugins.enabled []", "python3 -m hermes_cli.main plugins disable tenure",
     "python3 -c \"import runpy; runpy.run_module('hermes_cli.main')\"", "caffeinate @FB@/hermes config set a b",
-    "caffeinate ./h2 config set a b", "${H}ermes config set a b", "h=herm; ${h}es plugins disable clearance",
-    "$(echo hermes) config set a b", "$X plugins disable clearance", "herm?s config set a b",
+    "caffeinate ./h2 config set a b", "${H}ermes config set a b", "h=herm; ${h}es plugins disable tenure",
+    "$(echo hermes) config set a b", "$X plugins disable tenure", "herm?s config set a b",
     "{hermes,x} config set a b", "caffeinate hermes-agent run", "watchexec -- hermes config set a b",
 ])
 def test_t3_hermes_cli_behind_any_launcher_is_capped(world, cmd):
@@ -771,16 +771,16 @@ def test_t3_hermes_cli_behind_any_launcher_is_capped(world, cmd):
 
 @pytest.mark.parametrize("code", [
     'import subprocess; subprocess.run("hermes -p default config set a b".split())',
-    'import subprocess; h = "hermes"; subprocess.run([h, "plugins", "disable", "clearance"])',
-    'import os; os.system("caffeinate hermes --profile x plugins disable clearance")',
+    'import subprocess; h = "hermes"; subprocess.run([h, "plugins", "disable", "tenure"])',
+    'import os; os.system("caffeinate hermes --profile x plugins disable tenure")',
 ])
 def test_t3_hermes_cli_run_from_code_is_capped(world, code):
     assert wcode(world, code) == ("self:hermes", CAP), code
 
 
 @pytest.mark.parametrize("cmd", ["caffeinate hermes status", "caffeinate hermes --version",
-                                 "nice hermes config get model", "caffeinate hermes clearance status",
-                                 "hermes clearance explain", "hermes config path"])
+                                 "nice hermes config get model", "caffeinate hermes tenure status",
+                                 "hermes tenure explain", "hermes config path"])
 def test_t3_the_reads_of_hermes_stay_allowed(world, cmd):
     assert wsh(world, cmd)[1] != CAP, cmd
 
@@ -815,17 +815,17 @@ def test_t4_other_packages_and_hard_links(world):
 
 @pytest.mark.parametrize("tool,args", [
     ("text_to_speech", {"text": "x", "output_path": "@HH@/config.yaml"}),
-    ("text_to_speech", {"text": "x", "output_path": "~/.hermes/plugins/clearance/__init__.py"}),
+    ("text_to_speech", {"text": "x", "output_path": "~/.hermes/plugins/tenure/__init__.py"}),
     ("image_generate", {"prompt": "x", "output_path": "@ENV@/data/./hh/config.yaml"}),
     ("xai_video_edit", {"video": "x", "output_path": "lnkcfg"}),
     ("kanban_create", {"title": "x", "workspace": "dir:@HH@"}),
     ("kanban_complete", {"summary": "x", "artifacts": ["@HH@/config.yaml"]}),
     ("cronjob_manage", {"action": "create", "script": "@HH@/plugins/x.py"}),
-    ("delegate_task", {"goal": "run hermes plugins disable clearance", "toolsets": ["terminal"]}),
-    ("computer_use", {"action": "type", "text": "hermes plugins disable clearance\n"}),
+    ("delegate_task", {"goal": "run hermes plugins disable tenure", "toolsets": ["terminal"]}),
+    ("computer_use", {"action": "type", "text": "hermes plugins disable tenure\n"}),
     ("browser_download", {"url": "http://x", "path": "lnkcfg"}),
     ("some_plugin_tool", {"file": "lnkcfg"}),
-    ("some_plugin_tool", {"cmd": "hermes plugins disable clearance"}),
+    ("some_plugin_tool", {"cmd": "hermes plugins disable tenure"}),
     ("mcp_fs_write_file", {"path": "../../../data/hh/config.yaml", "content": "x"}),
     ("mcp_fs_write_file", {"path": "lnkcfg", "content": "x"}),
     ("mcp_fs_edit_file", {"dir": "lnk", "name": "config.yaml"}),
@@ -936,11 +936,11 @@ def wkind(w, tool, args, cwd=None):
     "tar -cf@HH@/config.yaml a", "tar -czf@HH@/state.db a", "tar -cfhl a", "tar -cf./lnkcfg a",
     "bsdtar -xC@HH@/plugins -f a.tar", "unzip -od@HH@/plugins a.zip", "unzip -qod@HH@ a.zip", "unzip -oqdlnk a.zip",
     "cp -rt@HH@/plugins src", "cp -vt@H@/.hermes a", "cp -rtlnk src", "mv -ft@HH@/plugins a", "mv -vtlnk a",
-    "ln -sft@HH@/plugins /tmp/e", "ln -sftlnk /tmp/e", "install -Ct@HH@/bin a", "patch -sd@HH@/plugins/clearance",
+    "ln -sft@HH@/plugins /tmp/e", "ln -sftlnk /tmp/e", "install -Ct@HH@/bin a", "patch -sd@HH@/plugins/tenure",
     "ssh-keygen -qf@HH@/config.yaml -N ''", "ssh-keygen -qflnkcfg", "gcc -co@HH@/bin/x a.c",
-    "make -sC@HH@/plugins/clearance", "zip -rb@HH@ a.zip a", "foo -abcolnkcfg",
+    "make -sC@HH@/plugins/tenure", "zip -rb@HH@ a.zip a", "foo -abcolnkcfg",
     "tar -xC$HOME/.hermes -f a.tar", "tar -xzC$HERMES_HOME -f a.tgz", "tar -xC$HERMES_HOME/plugins -f a.tar",
-    "unzip -qod$HERMES_HOME a.zip", "cp -rt$HOME/.hermes src", "patch -sd$HERMES_HOME/plugins/clearance",
+    "unzip -qod$HERMES_HOME a.zip", "cp -rt$HOME/.hermes src", "patch -sd$HERMES_HOME/plugins/tenure",
     "tar -xC~/.local/bin -f a.tar", "cp -rt~/.local/bin src",
     "sed -n 'w@HH@/config.yaml' a", "sed 's/a/b/w@HH@/config.yaml' a", "sed 's/a/b/wlnkcfg' a", "sed 's/a/b/whl' a",
     "sed -n 'w lnkcfg' a", "sed -e '1w lnkcfg' a", 'sed -n "w$HERMES_HOME/config.yaml" a',
@@ -1089,7 +1089,7 @@ def test_9_6_code_beyond_the_literals_that_are_read(w9):
     distinct = "".join("a%d='v%d';" % (i, i) for i in range(3000))     # more distinct literals than are read
     assert wcode(w9, distinct + " import shutil; shutil.rmtree('@HH@')")[1] == CAP
     assert wcode(w9, distinct + " import os, shutil; shutil.rmtree(os.path.expanduser('~/.hermes'))")[1] == CAP
-    assert wcode(w9, distinct + " import subprocess; subprocess.run(['hermes','plugins','disable','clearance'])")[1] == CAP
+    assert wcode(w9, distinct + " import subprocess; subprocess.run(['hermes','plugins','disable','tenure'])")[1] == CAP
     assert wcode(w9, distinct + " open('src/a.txt','w')")[1] == MEDIUM
     assert wcode(w9, "open('lnkcfg','w');" + distinct)[1] == CAP    # never less than its beginning
 
@@ -1097,7 +1097,7 @@ def test_9_6_code_beyond_the_literals_that_are_read(w9):
 def test_9_6_a_command_beyond_the_length_that_is_lexed(w9):
     pad = "x" * (c.MAX_COMMAND + 10)
     for cmd in ("rm lnkcfg # " + pad, "rm @HH@/config.yaml # " + pad, "rm -rf ~/.hermes # " + pad,
-                "echo " + pad + "; hermes plugins disable clearance", "echo " + pad + "; rm @HH@/config.yaml",
+                "echo " + pad + "; hermes plugins disable tenure", "echo " + pad + "; rm @HH@/config.yaml",
                 "echo " + pad + "; rm -rf @HH@", "echo " + pad + "; rm @SP@/hermes_cli/main.py",
                 "echo " + pad + "; rm @FB@/../fb/bin/hermes", "echo " + pad + "; python3 -m hermes_cli.main x"):
         assert wsh(w9, cmd)[1] == CAP, cmd[:40]
@@ -1106,11 +1106,11 @@ def test_9_6_a_command_beyond_the_length_that_is_lexed(w9):
 
 
 LISTS = [
-    {"cmd": ["hermes", "plugins", "disable", "clearance"]}, {"argv": ["hermes", "config", "set", "a", "b"]},
-    {"command": ["hermes", "plugins", "disable", "clearance"]}, {"cmd": ["rm", "lnkcfg"]},
+    {"cmd": ["hermes", "plugins", "disable", "tenure"]}, {"argv": ["hermes", "config", "set", "a", "b"]},
+    {"command": ["hermes", "plugins", "disable", "tenure"]}, {"cmd": ["rm", "lnkcfg"]},
     {"cmd": ["pip", "uninstall", "-y", "hermes-agent"]}, {"cmd": ["rm", "-rf", "@ENV@/data"]},
-    {"args": ["python3", "-m", "hermes_cli.main", "plugins", "disable", "clearance"]},
-    {"cmd": ["sh", "-c", "hermes plugins disable clearance"]}, {"cmd": ["hermes", "--yolo"]},
+    {"args": ["python3", "-m", "hermes_cli.main", "plugins", "disable", "tenure"]},
+    {"cmd": ["sh", "-c", "hermes plugins disable tenure"]}, {"cmd": ["hermes", "--yolo"]},
 ]
 
 
@@ -1125,8 +1125,8 @@ def test_9_7_a_command_given_as_a_list_is_the_same_command_in_one_string(w9, arg
 
 def test_9_7_a_program_and_its_arguments_a_folder_a_volume_a_file_url(w9):
     k = lambda tool, args: wkind(w9, tool, args)[1]
-    assert k("mcp__shell__exec", {"program": "hermes", "args": ["plugins", "disable", "clearance"]}) == CAP
-    assert k("mcp__shell__exec", {"command": "hermes", "args": "plugins disable clearance"}) == CAP
+    assert k("mcp__shell__exec", {"program": "hermes", "args": ["plugins", "disable", "tenure"]}) == CAP
+    assert k("mcp__shell__exec", {"command": "hermes", "args": "plugins disable tenure"}) == CAP
     assert k("mcp__fs__exec", {"command": "python3", "args": ["-m", "hermes_cli.main", "plugins", "disable"]}) == CAP
     assert k("mcp__shell__exec", {"command": "rm -rf .hermes", "cwd": "@H@"}) == CAP
     assert k("mcp__shell__exec", {"command": "rm -rf hh", "cwd": "@ENV@/data"}) == CAP
@@ -1198,7 +1198,7 @@ def test_9_9_the_hermes_folder_at_the_top_of_a_home_is_still_capped(w9):
 @pytest.mark.parametrize("cmd", [
     'git grep "hermes plugins"', 'git log --grep="hermes config set"', 'git log --grep "hermes plugins disable"',
     'git log -S "hermes config set" --oneline', 'gh issue create --title "hermes plugins list fails" --body "hermes config set x"',
-    'echo "hermes plugins disable clearance" >> README.md', "echo hermes config set a b >> notes.txt",
+    'echo "hermes plugins disable tenure" >> README.md', "echo hermes config set a b >> notes.txt",
     "printf 'hermes update\\n' >> docs/usage.md", 'grep -rn "hermes config set" . > out.txt',
     'rg "hermes plugins disable" docs > hits.txt', 'git commit -m "doc: hermes config set"',
     'git tag -a v1 -m "hermes plugins rework"', 'git commit -am "hermes gateway restart notes"',
@@ -1208,12 +1208,12 @@ def test_9_9_a_mention_of_hermes_in_text_nobody_runs_is_not_capped(w9, cmd):
 
 
 @pytest.mark.parametrize("cmd", [
-    'sh -c "hermes plugins disable clearance"', 'eval "hermes plugins disable clearance"',
-    'echo "hermes plugins disable clearance" | sh', "echo hermes plugins disable clearance | bash",
-    'bash <<< "hermes config set a b"', 'echo "$(hermes plugins disable clearance)" >> README.md',
-    "echo x >> README.md; hermes config set a b", 'foo --run "hermes plugins disable clearance"',
+    'sh -c "hermes plugins disable tenure"', 'eval "hermes plugins disable tenure"',
+    'echo "hermes plugins disable tenure" | sh', "echo hermes plugins disable tenure | bash",
+    'bash <<< "hermes config set a b"', 'echo "$(hermes plugins disable tenure)" >> README.md',
+    "echo x >> README.md; hermes config set a b", 'foo --run "hermes plugins disable tenure"',
     'git log --grep=x; eval "hermes config set x y"', 'echo "hermes config set x y" >> n; eval "hermes config set x y"',
-    'watch "hermes config set a b"', "alias h=hermes", 'git -c alias.x="!hermes plugins disable clearance" x',
+    'watch "hermes config set a b"', "alias h=hermes", 'git -c alias.x="!hermes plugins disable tenure" x',
     'printf "hermes update" | xargs -I{} sh -c {}',
 ])
 def test_9_9_a_string_that_is_run_as_a_command_is_still_capped(w9, cmd):

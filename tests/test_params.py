@@ -4,8 +4,8 @@ from fractions import Fraction
 
 import pytest
 
-from clearance import params
-from clearance.params import ALPHA, BETA, PRESETS, required_n, study_n, wald_steps
+from tenure import params
+from tenure.params import ALPHA, BETA, PRESETS, required_n, study_n, wald_steps
 
 
 def _aoql_grid(i, spot, step=1e-5, top=0.5):
@@ -51,7 +51,7 @@ def test_wald_steps_reach_t2_after_12_and_18_successes():
     assert (ALPHA, BETA) == (0.05, 0.05)
 
 
-def test_worst_case_when_the_agent_changes_after_clearance():
+def test_worst_case_when_the_agent_changes_after_tenure():
     """An agent that errs only on unchecked actions once cleared: (1 - f) / (f i + 1) of its actions."""
     assert params.worst_case(54, 0.1) == pytest.approx(0.9 / 6.4)
     assert params.worst_case(54, 1.0) == 0.0
@@ -74,9 +74,9 @@ def test_describe_shows_the_guarantee_for_the_study_n():
     assert table["high"]["capped"] and table["high"]["n"] is None and table["high"]["aoql"] is None
 
 
-def test_the_old_clearance_number_is_gone():
+def test_the_old_tenure_number_is_gone():
     """Series lengths come from the study's formula only (``study_n``); the CSP-1 search for i is removed."""
-    assert not hasattr(params, "clearance_number")
+    assert not hasattr(params, "tenure_number")
 
 
 def test_describe_has_no_alias_keys():

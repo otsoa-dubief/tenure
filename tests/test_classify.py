@@ -1,7 +1,7 @@
 """Action types and stakes: what each Hermes tool call is, so that its record stays in its own type."""
 import pytest
 
-from clearance import classify as C
+from tenure import classify as C
 
 CWD = "/home/me/project"
 
@@ -465,7 +465,7 @@ def test_unresolved_write_targets_are_file_unknown(command):
 
 @pytest.mark.parametrize("command", ["cd $X && echo k >> .env", "cd $X; echo k > .ssh/authorized_keys"])
 def test_sensitive_fragments_after_an_unresolved_cd_are_capped(command):
-    t, stakes = cmd(command)                     # R36: the `cd $X` itself is capped (self:clearance)
+    t, stakes = cmd(command)                     # R36: the `cd $X` itself is capped (self:tenure)
     assert stakes == C.CAP and t.startswith(C.PROTECTED)
 
 

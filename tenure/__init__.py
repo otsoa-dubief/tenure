@@ -1,6 +1,6 @@
 # Copyright 2026 Otsoa Dubief
 # SPDX-License-Identifier: Apache-2.0
-"""clearance: earned autonomy for Hermes, per action type, from verified evidence.
+"""tenure: earned autonomy for Hermes, per action type, from verified evidence.
 
 Each action type (``classify``) of each agent (``model@provider``) has a tier (``rule``): T1 asks the owner first;
 T2 acts, then notifies the owner with an undo (reversible types only); T3 acts alone, with random spot checks. A type
@@ -29,7 +29,7 @@ call id and type, and an external read suspends them in this process only, for a
 
 Every outcome, settings change, agent change and revocation is written to the hash-chained ledger as an input event
 (``store``), in the transaction that applies it, so that replaying the ledger recomputes the same tiers. CLI:
-``hermes clearance``. Slash command: ``/clearance``. Local only: no network, no LLM call.
+``hermes tenure``. Slash command: ``/tenure``. Local only: no network, no LLM call.
 """
 from __future__ import annotations
 
@@ -47,8 +47,8 @@ from contextlib import contextmanager
 
 from . import benchmarks, classify, params, passport, personal, proofs, rule, store, undo
 
-log = logging.getLogger("clearance")
-PREFIX = "clearance"
+log = logging.getLogger("tenure")
+PREFIX = "tenure"
 RULE = rule.VERSION              # the rule named in settings events; the passport computes its fingerprint
 PURGE_EVERY = 3600               # seconds between two clean-ups of undo snapshots past their window, per process
 MAX_SESSIONS = 4096              # sessions whose agent, or suspension, this process remembers
@@ -100,7 +100,7 @@ def _hermes_home() -> str:
 
 
 def data_dir() -> str:
-    """``<hermes home>/plugin-data/clearance``, from Hermes' ``plugin_data_dir`` when it can be imported."""
+    """``<hermes home>/plugin-data/tenure``, from Hermes' ``plugin_data_dir`` when it can be imported."""
     try:
         from plugins.plugin_storage import plugin_data_dir
         return str(plugin_data_dir(PREFIX))
@@ -109,7 +109,7 @@ def data_dir() -> str:
 
 
 def store_() -> store.Store:
-    path = os.path.join(data_dir(), "clearance.db")
+    path = os.path.join(data_dir(), "tenure.db")
     with ST.opening:
         if ST.store is None or ST.store_path != path:
             ST.store, ST.store_path = store.Store(path), path
@@ -120,7 +120,7 @@ UNDO_KEY = "undo:hmac-key"
 
 
 def undo_key(deadline: float | None = None) -> bytes:
-    """The secret that signs undo snapshots (``undo``), kept in the clearance database's meta table: created once,
+    """The secret that signs undo snapshots (``undo``), kept in the tenure database's meta table: created once,
     never logged, never exported."""
     with _locked(deadline):
         st = store_()
@@ -142,7 +142,7 @@ def _locked(deadline: float | None = None):
     time.monotonic() value), else LockTimeout."""
     wait = LOCK_TIMEOUT if deadline is None else min(LOCK_TIMEOUT, deadline - time.monotonic())
     if wait <= 0 or not ST.lock.acquire(timeout=wait):
-        raise LockTimeout("clearance: the store stayed busy")
+        raise LockTimeout("tenure: the store stayed busy")
     try:
         yield
     finally:
@@ -159,7 +159,7 @@ def txn(deadline: float | None = None):
 
 
 def _config_setting(key, default=None):
-    """One of this plugin's settings read from Hermes' config (``plugins.entries.clearance.settings``), for a process
+    """One of this plugin's settings read from Hermes' config (``plugins.entries.tenure.settings``), for a process
     without the plugin context (the dashboard). Hermes' public ``hermes_cli.config``; the defaults when unreadable."""
     try:
         from hermes_cli import config as hermes_config
@@ -375,7 +375,7 @@ def _taint(session: str) -> None:
         with txn() as st:
             st.taint(session)
     except Exception:
-        log.warning("clearance: a suspension could not be stored; it holds in this process", exc_info=True)
+        log.warning("tenure: a suspension could not be stored; it holds in this process", exc_info=True)
 
 
 def nobody_answers(session_id: str = "") -> str | None:
@@ -400,7 +400,7 @@ def _announce(text: str) -> None:
         if ST.ctx is not None and hasattr(ST.ctx, "post_message"):
             ST.ctx.post_message(text)
     except Exception:
-        log.debug("clearance: post_message failed", exc_info=True)
+        log.debug("tenure: post_message failed", exc_info=True)
 
 
 def _purge() -> None:
@@ -412,7 +412,7 @@ def _purge() -> None:
     try:
         undo.purge(data_dir())
     except Exception:
-        log.debug("clearance: undo purge failed", exc_info=True)
+        log.debug("tenure: undo purge failed", exc_info=True)
 
 
 def _say(events: list[dict], spot: float) -> list[str]:
@@ -421,28 +421,28 @@ def _say(events: list[dict], spot: float) -> list[str]:
     for ev in events:
         t, kind, reason = ev.get("type"), ev.get("event"), ev.get("reason")
         if kind == "tier" and reason == "stakes":
-            out.append(f"clearance: {t} now has {ev.get('stakes')} stakes: its record starts over at these stakes "
+            out.append(f"tenure: {t} now has {ev.get('stakes')} stakes: its record starts over at these stakes "
                        f"(a trial and the faults on record stay).")
         elif kind == "tier" and reason == "series":
-            out.append(f"clearance: {t} now acts alone, after {ev.get('required')} verified successes in a row from "
+            out.append(f"tenure: {t} now acts alone, after {ev.get('required')} verified successes in a row from "
                        f"{ev.get('sessions')} sessions. 1 action in {round(1 / spot)} is still spot-checked, and a "
                        f"fault sends it back down.")
         elif kind == "tier" and reason == "wald":
-            out.append(f"clearance: {t} now acts, then notifies you with an undo, after a run of verified successes.")
+            out.append(f"tenure: {t} now acts, then notifies you with an undo, after a run of verified successes.")
         elif kind == "tier" and reason in ("fault", "settings"):
             why = "after a fault" if reason == "fault" else "under your new settings"
-            out.append(f"clearance: {t} is back at {_TIER.get(ev.get('to'), ev.get('to'))}, {why}.")
+            out.append(f"tenure: {t} is back at {_TIER.get(ev.get('to'), ev.get('to'))}, {why}.")
         elif kind == "trial" and reason == "fault":
-            out.append(f"clearance: {t} is on trial: its next {ev.get('left')} actions ask, and all must succeed.")
+            out.append(f"tenure: {t} is on trial: its next {ev.get('left')} actions ask, and all must succeed.")
         elif kind == "trial" and reason == "passed":
-            out.append(f"clearance: {t} passed its trial.")
+            out.append(f"tenure: {t} passed its trial.")
         elif kind == "trial" and reason == "failed":
-            out.append(f"clearance: {t} failed its trial: every action asks, and a new trial opens after "
+            out.append(f"tenure: {t} failed its trial: every action asks, and a new trial opens after "
                        f"{ev.get('wait')} more actions of this type.")
         elif kind == "trial" and reason == "wait over":
-            out.append(f"clearance: {t} gets a new trial: its next {ev.get('left')} actions ask.")
+            out.append(f"tenure: {t} gets a new trial: its next {ev.get('left')} actions ask.")
         elif kind == "confirmed":
-            out.append(f"clearance: {t}: the record carried over from the previous agent is now confirmed by this "
+            out.append(f"tenure: {t}: the record carried over from the previous agent is now confirmed by this "
                        f"agent's own successes.")
     return out
 
@@ -470,7 +470,7 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
     dashboard). After the outcome of an action that ran, the wait after a failed trial counts it (``store.COUNTED``),
     except for the fault that failed the trial. Returns the derived events."""
     if source not in store.OUTCOME_SOURCES.get(result, ()):
-        raise ValueError(f"clearance: unknown outcome {result!r} from {source!r}")
+        raise ValueError(f"tenure: unknown outcome {result!r} from {source!r}")
     recorded = st.recorded(agent, type_key)
     s = st.get_state(agent, type_key, stakes, reversible)
     n = params.required_n(cfg["risks"], stakes)
@@ -603,7 +603,7 @@ def _carry(st: store.Store, cfg: dict, old: str, new: str) -> str:
         else:
             reset += 1
     st.log({"event": "agent", "old": old, "new": new, "mode": "strict" if strict else "carry", "vetoed": vetoed})
-    text = (f"clearance: new agent {new} (was {old}). Action types: {carried} carried over on trial, {reset} reset, "
+    text = (f"tenure: new agent {new} (was {old}). Action types: {carried} carried over on trial, {reset} reset, "
             f"{len(vetoed)} vetoed by a public benchmark.")
     if kept:
         text += f" {kept} kept this agent's own record."
@@ -645,7 +645,7 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
 def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool,
                  earned_at: str | None) -> str:
     if decision == rule.SPOT:
-        return (f"clearance spot check — {act.summary}\n{act.type} acts alone; 1 action in {round(1 / spot)} is "
+        return (f"tenure spot check — {act.summary}\n{act.type} acts alone; 1 action in {round(1 / spot)} is "
                 f"still checked at random. Deny if the action is wrong: the type goes back down.")
     if n is None:
         why = (f"{act.type} ({act.stakes} stakes) is capped by your settings: always asked ({s.successes} verified "
@@ -669,7 +669,7 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
                f"a row, from {k} session{'' if k == 1 else 's'} (2 needed), before the agent acts alone.")
         if s.provisional:
             why += f" {s.provisional} of them carried over from the previous agent, provisional."
-    return f"clearance — {act.summary}\n{why} Approve if the action is right; deny if it is wrong."
+    return f"tenure — {act.summary}\n{why} Approve if the action is right; deny if it is wrong."
 
 
 # Seconds: Hermes runs a longer terminal call in the background (its TERMINAL_MAX_FOREGROUND_TIMEOUT default).
@@ -735,12 +735,12 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     if phase == "notify" and not blocked and not failed:    # the files were written: the owner can revert them
         undo_id = st.add_undo(agent, key, p["snap_id"], fault=bool(reason))
         if reason:
-            posts.append(f"clearance: {key} acted on its own, but the automatic check failed ({reason}); counted as "
-                         f"a fault · /clearance undo {undo_id}")
+            posts.append(f"tenure: {key} acted on its own, but the automatic check failed ({reason}); counted as "
+                         f"a fault · /tenure undo {undo_id}")
         else:
-            posts.append(f"clearance: {key} acted on its own · /clearance undo {undo_id}")
+            posts.append(f"tenure: {key} acted on its own · /tenure undo {undo_id}")
     elif reason:
-        posts.append(f"clearance: {key}: the automatic check failed ({reason}); counted as a fault.")
+        posts.append(f"tenure: {key}: the automatic check failed ({reason}); counted as a fault.")
     return posts + _say(events, cfg["spot"])
 
 
@@ -775,9 +775,9 @@ def pre_api_request(model="", provider="", session_id="", **kwargs):
         for text in posts:
             _announce(text)
     except LockTimeout:
-        log.warning("clearance: pre_api_request skipped: the store stayed busy")
+        log.warning("tenure: pre_api_request skipped: the store stayed busy")
     except Exception:
-        log.exception("clearance: pre_api_request failed")
+        log.exception("tenure: pre_api_request failed")
     return None
 
 
@@ -801,7 +801,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         uid = uuid.uuid4().hex
         if act.stakes == classify.CAP:
             return {"action": "approve", "rule_key": f"{PREFIX}:cap:{act.type}:{uid}",
-                    "message": f"clearance — {act.summary}\n{act.type} is capped: always asked."}
+                    "message": f"tenure — {act.summary}\n{act.type} is capped: always asked."}
         call, sid = str(tool_call_id or ""), str(session_id or task_id or "")
         session, agent, nobody = anon(sid), agent_of(sid, deadline), nobody_answers()
         n = params.required_n(cfg["risks"], act.stakes)
@@ -843,13 +843,13 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             _announce(text)
         return directive
     except Exception as e:
-        log.exception("clearance: pre_tool_call failed")
+        log.exception("tenure: pre_tool_call failed")
         if taken:
             undo.discard(taken, data_dir())
         if act is not None and act.stakes == classify.FREE:
             return None
         return {"action": "approve", "rule_key": f"{PREFIX}:ask:{act.type if act else 'unknown'}:{uuid.uuid4().hex}",
-                "message": f"clearance: internal error ({type(e).__name__}); asking you instead of letting the action "
+                "message": f"tenure: internal error ({type(e).__name__}); asking you instead of letting the action "
                            f"through."}
 
 
@@ -890,9 +890,9 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
         for text in posts:
             _announce(text)
     except LockTimeout:
-        log.warning("clearance: post_approval_response skipped: the store stayed busy")
+        log.warning("tenure: post_approval_response skipped: the store stayed busy")
     except Exception:
-        log.exception("clearance: post_approval_response failed")
+        log.exception("tenure: post_approval_response failed")
     return None
 
 
@@ -939,9 +939,9 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         for text in posts:
             _announce(text)
     except LockTimeout:
-        log.warning("clearance: post_tool_call skipped: the store stayed busy")
+        log.warning("tenure: post_tool_call skipped: the store stayed busy")
     except Exception:
-        log.exception("clearance: post_tool_call failed")
+        log.exception("tenure: post_tool_call failed")
     return None
 
 
@@ -974,9 +974,9 @@ def subagent_start(parent_session_id="", child_session_id="", **kwargs):
         if tainted:
             _taint(child)
     except LockTimeout:
-        log.warning("clearance: subagent_start skipped: the store stayed busy")
+        log.warning("tenure: subagent_start skipped: the store stayed busy")
     except Exception:
-        log.exception("clearance: subagent_start failed")
+        log.exception("tenure: subagent_start failed")
     return None
 
 
@@ -995,9 +995,9 @@ def subagent_stop(parent_session_id="", child_session_id="", **kwargs):
         if tainted:
             _taint(parent)
     except LockTimeout:
-        log.warning("clearance: subagent_stop skipped: the store stayed busy")
+        log.warning("tenure: subagent_stop skipped: the store stayed busy")
     except Exception:
-        log.exception("clearance: subagent_stop failed")
+        log.exception("tenure: subagent_stop failed")
     return None
 
 
@@ -1016,8 +1016,8 @@ def register(ctx):
     ctx.register_hook("subagent_start", subagent_start)
     ctx.register_hook("subagent_stop", subagent_stop)
     from . import cli
-    ctx.register_cli_command(name="clearance", help="Earned autonomy per action type: status, models, undo, flag, "
+    ctx.register_cli_command(name="tenure", help="Earned autonomy per action type: status, models, undo, flag, "
                                                      "revoke, passport, verify, export",
                              setup_fn=cli.setup, handler_fn=cli.run)
-    ctx.register_command("clearance", handler=_slash,
+    ctx.register_command("tenure", handler=_slash,
                          description="What the agent has earned, per action type; models, undo, flag, revoke, passport, verify")

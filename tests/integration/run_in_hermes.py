@@ -1,8 +1,8 @@
-"""End-to-end check inside a real Hermes install: clearance is discovered, enabled and called through Hermes' own
+"""End-to-end check inside a real Hermes install: tenure is discovered, enabled and called through Hermes' own
 approval gate (``resolve_pre_tool_block``, the path a live agent uses), with a scripted owner answering the prompts.
 File tools really run, through ``model_tools.handle_function_call``, in a throwaway project directory, and
 ``post_tool_call`` is fired by Hermes' own emitter, as model_tools.py fires it. Undo, passport, export and verify go
-through the ``hermes clearance`` command line.
+through the ``hermes tenure`` command line.
 
     HERMES_AGENT_DIR=/path/to/hermes-agent /path/to/hermes/python tests/integration/run_in_hermes.py
 
@@ -16,8 +16,8 @@ import sys
 import tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-home = tempfile.mkdtemp(prefix="clearance-it-")
-project = os.path.realpath(tempfile.mkdtemp(prefix="clearance-project-"))
+home = tempfile.mkdtemp(prefix="tenure-it-")
+project = os.path.realpath(tempfile.mkdtemp(prefix="tenure-project-"))
 os.environ["HERMES_HOME"] = home
 os.environ["HERMES_INTERACTIVE"] = "1"          # a person at the CLI answers approvals
 os.environ["TERMINAL_CWD"] = project
@@ -25,13 +25,13 @@ for name in ("HERMES_YOLO_MODE", "HERMES_CRON_SESSION", "ANTHROPIC_API_KEY"):
     os.environ.pop(name, None)
 os.chdir(project)
 os.makedirs(os.path.join(home, "plugins"))
-shutil.copytree(os.path.join(REPO, "clearance"), os.path.join(home, "plugins", "clearance"),
+shutil.copytree(os.path.join(REPO, "tenure"), os.path.join(home, "plugins", "tenure"),
                 ignore=shutil.ignore_patterns("__pycache__"))
 # low 1/20: a series of 21, longer than the 12 successes of the middle tier, so the climb shows T2 before T3.
 # cron_mode approve: a cron job runs its asks unattended, so its automatic check is what judges them.
 with open(os.path.join(home, "config.yaml"), "w") as f:
     f.write("approvals:\n  cron_mode: approve\n"
-            "plugins:\n  enabled: [clearance]\n  entries:\n    clearance:\n      settings:\n"
+            "plugins:\n  enabled: [tenure]\n  entries:\n    tenure:\n      settings:\n"
             "        risks: {low: 1/20, medium: 1/5, high: cap}\n")
 
 sys.path.insert(0, os.environ.get("HERMES_AGENT_DIR") or os.path.expanduser("~/.hermes/hermes-agent"))
@@ -59,7 +59,7 @@ def capture_post(ctx, text):
 approval.prompt_dangerous_approval = scripted_owner
 plugin_messages.post = capture_post               # what the plugin would post into the conversation
 plugins.discover_plugins(force=True)
-core = next((m for m in list(sys.modules.values()) if getattr(m, "PREFIX", None) == "clearance"
+core = next((m for m in list(sys.modules.values()) if getattr(m, "PREFIX", None) == "tenure"
              and hasattr(m, "pre_tool_call")), None)
 failures = []
 
@@ -126,8 +126,8 @@ def tier(agent="model-a@test", key="file:write"):
 
 
 def cli(*argv):
-    """``hermes clearance ...`` in a child process: Hermes' own argparse, the same home and project."""
-    p = subprocess.run([HERMES, "clearance", *argv], capture_output=True, text=True, cwd=project,
+    """``hermes tenure ...`` in a child process: Hermes' own argparse, the same home and project."""
+    p = subprocess.run([HERMES, "tenure", *argv], capture_output=True, text=True, cwd=project,
                        env={**os.environ}, timeout=120)
     return p.returncode, (p.stdout + p.stderr).strip()
 
@@ -142,9 +142,9 @@ def since(mark):
 
 
 # ---------------------------------------------------------------------------------------------- loaded
-check("clearance loaded", core is not None, True)
+check("tenure loaded", core is not None, True)
 from tools import approval_context  # noqa: E402
-check("runs under the Hermes default approvals.mode (smart): clearance's own asks still reach the owner",
+check("runs under the Hermes default approvals.mode (smart): tenure's own asks still reach the owner",
       approval_context._get_approval_mode(), "smart")
 check("six hooks registered", sorted(h for h in ("pre_api_request", "pre_tool_call", "post_approval_response",
                                                  "post_tool_call", "subagent_start", "subagent_stop")
@@ -168,12 +168,12 @@ check("after 12 successes: T2", tier(), ("notify", 12, 1))
 mark = len(posted)
 check("T2: acts without asking", write("notified"), "ran")
 check("T2: the file really changed", read(), "notified")
-undo_posts = [p for p in since(mark) if "/clearance undo" in p]
+undo_posts = [p for p in since(mark) if "/tenure undo" in p]
 check("T2: the owner is notified with an undo", len(undo_posts), 1)
 undo_id = undo_posts[0].rsplit(" ", 1)[1] if undo_posts else "0"
 code, out = cli("undo", undo_id)
 print("     " + out.replace("\n", "\n     "))
-check("hermes clearance undo: exit code", code, 0)
+check("hermes tenure undo: exit code", code, 0)
 check("undo: the file is back as before the action", read(), "v12")
 check("undo: counted as a fault, back to T1, series reset", tier(), ("ask", 0, 0))
 code, out = cli("undo", undo_id)
@@ -192,7 +192,7 @@ for _ in range(n):                             # the rest of the series acts the
 check("full series from one session: still T2", tier(), ("notify", n, 1))
 mark = len(posted)
 check("T2 write for the tamper test: acts", write("tamper-me"), "ran")
-tamper_ids = [p.rsplit(" ", 1)[1] for p in since(mark) if "/clearance undo" in p]
+tamper_ids = [p.rsplit(" ", 1)[1] for p in since(mark) if "/tenure undo" in p]
 entry = core.store_().get_undo(int(tamper_ids[0])) if tamper_ids else None
 victim = os.path.join(project, "victim.txt")
 with open(victim, "w") as f:
@@ -215,7 +215,7 @@ check("a second session completes the series: T3", (write("second", session="it-
       ("ran", ("alone", n, 2)))
 mark = len(posted)
 check("T3: acts alone", write("alone", session="it-2"), "ran")
-check("T3: no undo notice (acting alone)", [p for p in since(mark) if "/clearance undo" in p], [])
+check("T3: no undo notice (acting alone)", [p for p in since(mark) if "/tenure undo" in p], [])
 check("T3: the file really changed", read(), "alone")
 
 # --------------------------------------------------------------------------------- spot check and descent
@@ -241,9 +241,9 @@ check("subagent_start: the child of a suspended parent asks",
       write("child", "once", session="it-5-child"), "approved")
 
 # ----------------------------------------------------------------- self-protection, through Hermes' own home
-for cmd in ("hermes config set plugins.entries.clearance.settings.enabled false", "hermes plugins disable clearance",
-            "hermes clearance strict off", "python -m hermes_cli config set approvals.mode off",
-            "find ~ -name clearance.db -delete", f"sqlite3 {core.data_dir()}/clearance.db 'delete from ledger'",
+for cmd in ("hermes config set plugins.entries.tenure.settings.enabled false", "hermes plugins disable tenure",
+            "hermes tenure strict off", "python -m hermes_cli config set approvals.mode off",
+            "find ~ -name tenure.db -delete", f"sqlite3 {core.data_dir()}/tenure.db 'delete from ledger'",
             f"rm -rf {core.data_dir()}/undo"):
     before = len(asked)
     got = run("terminal", {"command": cmd}, "deny", session="it-2", real=False)
@@ -258,7 +258,7 @@ os.makedirs(level, exist_ok=True)
 check("cd into a profile, alone: capped, then run for real",
       run("terminal", {"command": f"cd {level}"}, "once", session="it-6"), "approved")
 before = len(asked)
-got = run("terminal", {"command": "tar xf /tmp/clearance-it-none.tar"}, "deny", session="it-6", real=False)
+got = run("terminal", {"command": "tar xf /tmp/tenure-it-none.tar"}, "deny", session="it-6", real=False)
 check("the next call runs in that profile: capped", (got, "is capped: always asked" in "".join(asked[before:])),
       ("refused", True))
 
@@ -328,9 +328,9 @@ check("sources seen", sorted({o["source"] for o in outcomes}),
 pp, ledger = os.path.join(project, "passport.json"), os.path.join(project, "ledger.jsonl")
 code, out = cli("passport", "--agent", "model-a@test", "--out", pp)
 print("     " + out.replace("\n", "\n     "))
-check("hermes clearance passport: exit code", code, 0)
+check("hermes tenure passport: exit code", code, 0)
 code, out = cli("export", ledger)
-check("hermes clearance export: exit code", code, 0)
+check("hermes tenure export: exit code", code, 0)
 code, out = cli("verify", pp, ledger)
 print("     " + out)
 check("verify with the ledger: OK", (code, out.startswith("OK:")), (0, True))
