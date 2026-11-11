@@ -176,7 +176,8 @@ out.host_hant = b['zh-hant'].a.hello({ name: 'Bo' })
 out.host_items = b.en.a.items({ n: 2 })
 console.log(JSON.stringify(out))
 """, encoding="utf-8")
-    res = json.loads(subprocess.run([NODE, str(script)], check=True, capture_output=True, text=True).stdout)
+    res = json.loads(subprocess.run([NODE, str(script)], check=True, capture_output=True, text=True,
+                                    encoding="utf-8").stdout)
     assert res["unknown"] == "Hello Bo"
     assert res["missing"] == "English only"
     assert res["hant"] == "你好 Bo"

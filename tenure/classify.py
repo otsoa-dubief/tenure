@@ -1360,7 +1360,7 @@ def undoable_shell(command: str, cwd: str | None, home: str) -> list[str] | None
     folder), not a link, not under .git, low stakes for ``_file``, and all of them can be saved; else None. No glob,
     variable, substitution, chain, pipe or second redirect: anything Tenure cannot be sure of keeps today's question."""
     text = str(command or "").strip()
-    if not text or not cwd or os.name == "nt":
+    if not text or not cwd or getattr(os, "name", "") == "nt":
         return None                                      # POSIX shells only: on Windows a file command keeps asking
     if "\n" in text:
         return _undo_checked(_undo_heredoc(text, cwd, home), cwd, home)
@@ -4504,6 +4504,13 @@ def _complex_floor(command: str) -> bool:
     return depth != 0 or any(_seg_complex(seg.tokens) for seg in _build(tokens))
 
 
+def _windows_slashes(command: str) -> str:
+    """On Windows a backslash between path characters is a path separator (C:\\Users\\me\\.hermes), not the POSIX
+    escape that would glue the name into C:Usersme.hermes and hide it from every check: it is read as a slash. A
+    backslash before a space, a quote, a dollar, a backtick or another backslash keeps its shell meaning."""
+    return re.sub(r"\\(?=[^\s\"'$`\\])", "/", command)
+
+
 def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str, bool]:
     """The precise reading (typed twice, the riskier wins: by lines, then the whole command tokenised) may lower
     stakes only for commands it fully understands. Two floors are checked independently of it: a sensitive name
@@ -4522,6 +4529,8 @@ def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str,
         return head if head[1] == CAP else ("shell:complex", HIGH, False)
     home = _norm(home or os.path.expanduser("~"))
     command = _join_lines(command)
+    if getattr(os, "name", "") == "nt":
+        command = _windows_slashes(command)
     start = cwd or os.getcwd()
     by_lines = _run(_glue_find(_build(_tokens_lines(command))), start, home, depth)
     whole = _run(_glue_find(_build(_tokens_whole(command))), start, home, depth)

@@ -1,3 +1,4 @@
+import sys
 import os
 import stat
 import time
@@ -22,6 +23,7 @@ def test_snapshot_then_restore_puts_content_back(tmp_path):
     assert not os.path.exists(d)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX file modes")
 def test_snapshot_dir_and_manifest_modes(tmp_path):
     f = tmp_path / "a.txt"
     f.write_bytes(b"x")

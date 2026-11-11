@@ -733,7 +733,8 @@ def slash(raw_args="", **kwargs):
         if (raw_args or "").strip() in ("help", "-h", "--help"):
             return _usage()
         try:
-            ns = parser.parse_args(shlex.split(raw_args or ""))
+            raw = raw_args or ""
+            ns = parser.parse_args(shlex.split(raw.replace("\\", "/") if os.name == "nt" else raw))
         except _Usage as e:
             return (f"tenure: {e}\n" if str(e) else "") + _usage()
         return execute(ns)[0]

@@ -898,3 +898,15 @@ def test_a_command_of_max_command_bytes_is_not_read():
     assert len(under) == C.MAX_COMMAND - 1 and len(at) == C.MAX_COMMAND
     assert cmd(under)[0] != "shell:complex"
     assert cmd(at)[:2] == ("shell:complex", C.HIGH)
+
+
+def test_windows_backslash_paths_are_read_as_paths(monkeypatch):
+    import types
+    real = C.os
+    fake = types.SimpleNamespace(**{k: getattr(real, k) for k in dir(real) if not k.startswith("__")})
+    fake.name = "nt"
+    monkeypatch.setattr(C, "os", fake)
+    assert C._windows_slashes(r"rm -rf C:\Users\me\.hermes\config.yaml") == "rm -rf C:/Users/me/.hermes/config.yaml"
+    assert C._windows_slashes(r"echo a\ b") == r"echo a\ b"
+    assert cmd(r"rm -rf ~\.hermes\config.yaml")[1] == C.CAP
+    assert C.undoable_shell("rm src/a.py", CWD, HOME) is None

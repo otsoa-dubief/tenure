@@ -218,8 +218,8 @@ def describe(snap_id: str | None, root: str) -> dict:
         if not files:
             return {}
         cwd = m.get("cwd") or ""
-        first = (os.path.relpath(files[0], cwd) if cwd and files[0].startswith(cwd.rstrip("/") + "/")
-                 else os.path.basename(files[0]))
+        f0, base = files[0].replace("\\", "/"), cwd.replace("\\", "/").rstrip("/")
+        first = (f0[len(base) + 1:] if base and f0.startswith(base + "/") else f0.rsplit("/", 1)[-1])
         return {"file": first, "files": len(files)}
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return {}
