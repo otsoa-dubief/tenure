@@ -216,6 +216,10 @@ const TENURE_LOCALES = {
     "help.passport_checks": "The check verifies the signature and the hash chain, then replays the ledger to recompute the same tiers. Nothing in it is self-declared.",
     "help.session_body": "Some asks (code run inline, complex shell commands, local commands tenure does not cover such as rm, mv or cp, and a command after outside content) offer “Allow for this session”: that ask stays quiet until the session ends. It is your choice, not evidence: it earns nothing, and a new session asks again.",
     "help.session_title": "Allow for this session",
+    "help.study_adds": "What tenure adds: the trusted start (not the study: trusted actions earn nothing), spot checks on a type that acts alone, two distinct sessions in the series that reaches T3, suspension after outside content, and carry-over to a new model (strict mode is the study). start: probation is the study's own start.",
+    "help.study_body": "After a type's first fault, or from the start with start: probation, tenure applies the rule of a preregistered study on earned autonomy: a sequential test (Wald) for the middle tier, act then tell you, and a CSP-1 series (Dodge's continuous sampling plan) for Tenured (T3). The study replays that rule on 6,000+ simulated agents. Its results are pending: tenure does not claim the study has confirmed the rule.",
+    "help.study_link": "The preregistration on OSF",
+    "help.study_title": "The study behind the rule",
     "help.tiers_climb": "A type climbs with verified successes and no fault. From Probation, at least {low} in a row at low stakes, or {medium} at medium stakes, reach Under review (T2); only reversible types pass through T2. A longer series, spread over at least {sessions} sessions, makes it Tenured (T3).",
     "help.tiers_drop": "One fault sends the type back down, and its series starts over.",
     "help.tiers_title": "The tiers",
@@ -409,6 +413,7 @@ const TENURE_LOCALES = {
     "passport.pending_note": "Computed under the last logged settings; the new settings apply from the next action.",
     "passport.protocol": "Protocol",
     "passport.rule": "Rule",
+    "passport.rule_osf": "preregistered on OSF",
     "passport.save_image": "Save image (.png)",
     "passport.signature": "a plugin for Hermes Agent",
     "passport.title": "Signed passport",
@@ -440,6 +445,30 @@ const TENURE_LOCALES = {
     "preset.name.fast": "fast",
     "preset.value": "{preset} · 1 in {k} spot-checked",
     "preset.value_pending": "{preset} · 1 in {k} spot-checked · applies from the next action",
+    "pstyle.animation": "Animation",
+    "pstyle.animation_desc_develop": "The emblem develops point by point, the ledger hash settles, then the seal prints.",
+    "pstyle.animation_desc_holographic": "The card tilts slowly, with a glare band and a slow shimmer.",
+    "pstyle.animation_desc_scan": "A scan line prints the card from top to bottom.",
+    "pstyle.animation_desc_still": "No motion.",
+    "pstyle.animation_develop": "Develop",
+    "pstyle.animation_holographic": "Holographic",
+    "pstyle.animation_scan": "Scan",
+    "pstyle.animation_still": "Still",
+    "pstyle.card": "Card",
+    "pstyle.card_accent": "Accent",
+    "pstyle.card_ink": "Ink",
+    "pstyle.card_paper": "Paper",
+    "pstyle.customise": "Customise",
+    "pstyle.forced_still": "Animations are off, here or in your system: the passport stays still.",
+    "pstyle.help": "How the passport looks, on this page and in the saved image. For you only, on this screen; what the card says never changes.",
+    "pstyle.no_agent": "No agent yet: the preview appears with the first one.",
+    "pstyle.pattern": "Emblem pattern",
+    "pstyle.pattern_grid": "Grid",
+    "pstyle.pattern_note": "Every pattern fills with the share of autonomy the agent earned, laid out from its id: the same agent always gets the same emblem.",
+    "pstyle.pattern_rings": "Rings",
+    "pstyle.pattern_sunburst": "Sunburst",
+    "pstyle.preview": "Preview of your passport",
+    "pstyle.title": "Your passport",
     "recent.check_failed": "check failed",
     "recent.check_failed_tip": "The automatic check failed: already counted as a fault. Undo restores the files.",
     "recent.collapse": "Hide the actions",
@@ -517,6 +546,7 @@ const TENURE_LOCALES = {
     "settings.spot_value": "1 in {k}",
     "settings.start_help": "What an action type does before its first fault.",
     "settings.start_probation": "The study's start: every action type asks first (T1) and earns each tier from your answers.",
+    "settings.start_study": "The preregistered study's start",
     "settings.start_trusted": "Covered types (file edits, memory, subagents, known development tools) ask nothing until their first fault, as Hermes alone would. A fault puts that type on Probation (T1), and it earns its tier back. Leaving the machine and money always ask.",
     "settings.strict_desc_off": "A new model inherits the previous model's record at low and medium stakes, halved and provisional until its own approvals confirm it. High stakes start over.",
     "settings.strict_desc_on": "A new model starts with an empty record on every action type, as in the study.",
@@ -897,6 +927,10 @@ const TENURE_LOCALES = {
     "help.passport_checks": "يتحقق الفحص من التوقيع ومن سلسلة التجزئة، ثم يعيد تشغيل الدفتر ليحسب المستويات نفسها. لا شيء فيه مُعلَن ذاتيًا.",
     "help.session_body": "بعض الأسئلة (شيفرة تُشغَّل مباشرة، وأوامر shell المعقدة، وأوامر محلية غير مشمولة مثل rm وmv وcp، وأمر بعد قراءة محتوى خارجي) تعرض «السماح لهذه الجلسة»: فيسكت ذلك السؤال حتى تنتهي الجلسة. إنه اختيارك، لا دليل: لا يُكسب شيئًا، والجلسة الجديدة تسأل من جديد.",
     "help.session_title": "السماح لهذه الجلسة",
+    "help.study_adds": "ما يضيفه tenure: البداية الموثوقة (ليست من الدراسة: الإجراءات الموثوقة لا تكسب شيئًا)، وفحوص عشوائية على نوع يعمل وحده، وجلستان مختلفتان في السلسلة التي تبلغ T3، والإيقاف بعد محتوى خارجي، والنقل إلى نموذج جديد (الوضع الصارم هو الدراسة). start: probation هي بداية الدراسة نفسها.",
+    "help.study_body": "بعد أول إخفاق لنوع ما، أو منذ البداية مع start: probation، يطبّق tenure قاعدة دراسة مسجّلة مسبقًا عن الاستقلالية المكتسبة: اختبار تتابعي (Wald) للمستوى الأوسط، أي التنفيذ ثم إعلامك، وسلسلة CSP-1 (خطة Dodge للمعاينة المستمرة) لمستوى مُثبَّت (T3). تعيد الدراسة تشغيل هذه القاعدة على أكثر من 6000 وكيل محاكى. نتائجها لم تصدر بعد: لا يدّعي tenure أن الدراسة أكّدت القاعدة.",
+    "help.study_link": "التسجيل المسبق على OSF",
+    "help.study_title": "الدراسة وراء القاعدة",
     "help.tiers_climb": "يصعد النوع بنجاحات موثّقة دون إخفاق. من فترة الاختبار، يبلغ قيد المراجعة (T2) بعد {low} على التوالي على الأقل عند الخطورة المنخفضة، أو {medium} عند المتوسطة؛ ولا يمر بـ T2 إلا الأنواع القابلة للتراجع. وسلسلة أطول، موزّعة على {sessions} جلسات على الأقل، تجعله مُثبَّتًا (T3).",
     "help.tiers_drop": "إخفاق واحد يُنزل النوع، وتبدأ سلسلته من جديد.",
     "help.tiers_title": "المستويات",
@@ -1154,6 +1188,7 @@ const TENURE_LOCALES = {
     "passport.pending_note": "محسوب وفق آخر إعدادات مسجّلة؛ تسري الإعدادات الجديدة من الإجراء التالي.",
     "passport.protocol": "البروتوكول",
     "passport.rule": "القاعدة",
+    "passport.rule_osf": "مسجّلة مسبقًا على OSF",
     "passport.save_image": "حفظ الصورة (.png)",
     "passport.signature": "إضافة لـ Hermes Agent",
     "passport.title": "جواز موقَّع",
@@ -1189,6 +1224,30 @@ const TENURE_LOCALES = {
     "preset.name.fast": "سريع",
     "preset.value": "{preset} · فحص عشوائي لإجراء من كل {k}",
     "preset.value_pending": "{preset} · فحص عشوائي لإجراء من كل {k} · يسري من الإجراء التالي",
+    "pstyle.animation": "الحركة",
+    "pstyle.animation_desc_develop": "يظهر الشعار نقطة بنقطة، ويستقر تجزئة السجل، ثم يُطبع الختم.",
+    "pstyle.animation_desc_holographic": "تميل البطاقة ببطء، مع شريط لمعان وبريق بطيء.",
+    "pstyle.animation_desc_scan": "خط مسح يطبع البطاقة من الأعلى إلى الأسفل.",
+    "pstyle.animation_desc_still": "بلا حركة.",
+    "pstyle.animation_develop": "إظهار",
+    "pstyle.animation_holographic": "هولوغرافي",
+    "pstyle.animation_scan": "مسح",
+    "pstyle.animation_still": "ثابت",
+    "pstyle.card": "البطاقة",
+    "pstyle.card_accent": "لون التمييز",
+    "pstyle.card_ink": "حبر",
+    "pstyle.card_paper": "ورق",
+    "pstyle.customise": "تخصيص",
+    "pstyle.forced_still": "الحركة متوقفة، هنا أو في نظامك: يبقى الجواز ثابتًا.",
+    "pstyle.help": "مظهر الجواز، في هذه الصفحة وفي الصورة المحفوظة. لك وحدك، على هذه الشاشة؛ ما تقوله البطاقة لا يتغيّر أبدًا.",
+    "pstyle.no_agent": "لا يوجد وكيل بعد: تظهر المعاينة مع أول وكيل.",
+    "pstyle.pattern": "نقش الشعار",
+    "pstyle.pattern_grid": "شبكة",
+    "pstyle.pattern_note": "كل نقش يمتلئ بحصة الاستقلالية التي اكتسبها الوكيل، ويُرتَّب انطلاقًا من معرّفه: للوكيل نفسه الشعار نفسه دائمًا.",
+    "pstyle.pattern_rings": "حلقات",
+    "pstyle.pattern_sunburst": "شمس",
+    "pstyle.preview": "معاينة جواز سفرك",
+    "pstyle.title": "جواز سفرك",
     "recent.check_failed": "فشل الفحص",
     "recent.check_failed_tip": "فشل الفحص التلقائي: حُسب إخفاقًا بالفعل. التراجع يستعيد الملفات.",
     "recent.collapse": "إخفاء الإجراءات",
@@ -1278,6 +1337,7 @@ const TENURE_LOCALES = {
     "settings.spot_value": "1 من كل {k}",
     "settings.start_help": "ما يفعله نوع الإجراء قبل أول إخفاق له.",
     "settings.start_probation": "بداية الدراسة: كل نوع إجراء يسأل أولًا (T1) ويكتسب كل مستوى من إجاباتك.",
+    "settings.start_study": "بداية الدراسة المسجّلة مسبقًا",
     "settings.start_trusted": "الأنواع المشمولة (تعديل الملفات، والذاكرة، والوكلاء الفرعيون، وأدوات التطوير المعروفة) لا تسأل شيئًا حتى أول إخفاق لها، كما يعمل Hermes وحده. الإخفاق يضع ذلك النوع في فترة اختبار (T1)، ثم يستعيد مستواه. مغادرة الجهاز والمال يسألان دائمًا.",
     "settings.strict_desc_off": "يرث النموذج الجديد سجل النموذج السابق عند الخطورة المنخفضة والمتوسطة، منصّفًا ومؤقتًا حتى تؤكده موافقاته الخاصة. الخطورة العالية تبدأ من الصفر.",
     "settings.strict_desc_on": "يبدأ النموذج الجديد بسجل فارغ في كل نوع إجراء، كما في الدراسة.",
@@ -1669,6 +1729,10 @@ const TENURE_LOCALES = {
     "help.passport_checks": "La comprobación verifica la firma y la cadena de hashes, y luego reproduce el registro para recalcular los mismos niveles. Nada en él es autodeclarado.",
     "help.session_body": "Algunas preguntas (código ejecutado en línea, comandos de shell complejos, comandos locales no cubiertos como rm, mv o cp, y un comando tras contenido externo) ofrecen «Permitir esta sesión»: esa pregunta calla hasta que termina la sesión. Es tu elección, no evidencia: no hace ganar nada, y una sesión nueva vuelve a preguntar.",
     "help.session_title": "Permitir esta sesión",
+    "help.study_adds": "Lo que añade tenure: el inicio de confianza (no es el estudio: las acciones de confianza no ganan nada), controles aleatorios en un tipo que actúa solo, dos sesiones distintas en la serie que lleva a T3, la suspensión tras contenido externo y la herencia a un modelo nuevo (el modo estricto es el estudio). start: probation es el inicio propio del estudio.",
+    "help.study_body": "Tras el primer fallo de un tipo, o desde el inicio con start: probation, tenure aplica la regla de un estudio prerregistrado sobre la autonomía ganada: una prueba secuencial (Wald) para el nivel intermedio, actuar y luego avisarte, y una serie CSP-1 (el plan de muestreo continuo de Dodge) para Titular (T3). El estudio reproduce esa regla en más de 6.000 agentes simulados. Sus resultados están pendientes: tenure no afirma que el estudio haya confirmado la regla.",
+    "help.study_link": "El prerregistro en OSF",
+    "help.study_title": "El estudio detrás de la regla",
     "help.tiers_climb": "Un tipo sube con éxitos verificados y sin fallos. Desde el período de prueba, al menos {low} seguidas con impacto bajo, o {medium} con impacto medio, llevan a En revisión (T2); solo los tipos reversibles pasan por T2. Una serie más larga, repartida en al menos {sessions} sesiones, lo hace Titular (T3).",
     "help.tiers_drop": "Un solo fallo hace bajar el tipo, y su serie vuelve a empezar.",
     "help.tiers_title": "Los niveles",
@@ -1863,6 +1927,7 @@ const TENURE_LOCALES = {
     "passport.pending_note": "Calculado con los últimos ajustes registrados; los nuevos ajustes se aplican desde la próxima acción.",
     "passport.protocol": "Protocolo",
     "passport.rule": "Regla",
+    "passport.rule_osf": "prerregistrada en OSF",
     "passport.save_image": "Guardar imagen (.png)",
     "passport.signature": "un plugin para Hermes Agent",
     "passport.title": "Pasaporte firmado",
@@ -1894,6 +1959,30 @@ const TENURE_LOCALES = {
     "preset.name.fast": "rápido",
     "preset.value": "{preset} · 1 de cada {k} con control aleatorio",
     "preset.value_pending": "{preset} · 1 de cada {k} con control aleatorio · se aplica desde la próxima acción",
+    "pstyle.animation": "Animación",
+    "pstyle.animation_desc_develop": "El emblema se revela punto a punto, el hash del registro se asienta y luego se imprime el sello.",
+    "pstyle.animation_desc_holographic": "La tarjeta se inclina despacio, con una banda de brillo y un reflejo lento.",
+    "pstyle.animation_desc_scan": "Una línea de escaneo imprime la tarjeta de arriba abajo.",
+    "pstyle.animation_desc_still": "Sin movimiento.",
+    "pstyle.animation_develop": "Revelado",
+    "pstyle.animation_holographic": "Holográfica",
+    "pstyle.animation_scan": "Escaneo",
+    "pstyle.animation_still": "Fija",
+    "pstyle.card": "Tarjeta",
+    "pstyle.card_accent": "Acento",
+    "pstyle.card_ink": "Tinta",
+    "pstyle.card_paper": "Papel",
+    "pstyle.customise": "Personalizar",
+    "pstyle.forced_still": "Las animaciones están desactivadas, aquí o en tu sistema: el pasaporte queda fijo.",
+    "pstyle.help": "El aspecto del pasaporte, en esta página y en la imagen guardada. Solo para ti, en esta pantalla; lo que dice la tarjeta nunca cambia.",
+    "pstyle.no_agent": "Aún no hay agentes: la vista previa aparecerá con el primero.",
+    "pstyle.pattern": "Motivo del emblema",
+    "pstyle.pattern_grid": "Cuadrícula",
+    "pstyle.pattern_note": "Cada motivo se llena con la parte de autonomía que ganó el agente, dispuesta a partir de su identificador: el mismo agente siempre tiene el mismo emblema.",
+    "pstyle.pattern_rings": "Anillos",
+    "pstyle.pattern_sunburst": "Sol",
+    "pstyle.preview": "Vista previa de tu pasaporte",
+    "pstyle.title": "Tu pasaporte",
     "recent.check_failed": "falló la comprobación",
     "recent.check_failed_tip": "La comprobación automática falló: ya se contó como fallo. Deshacer restaura los archivos.",
     "recent.collapse": "Ocultar las acciones",
@@ -1971,6 +2060,7 @@ const TENURE_LOCALES = {
     "settings.spot_value": "1 de cada {k}",
     "settings.start_help": "Lo que hace un tipo de acción antes de su primer fallo.",
     "settings.start_probation": "El inicio del estudio: cada tipo de acción pregunta antes (T1) y gana cada nivel a partir de tus respuestas.",
+    "settings.start_study": "El inicio del estudio prerregistrado",
     "settings.start_trusted": "Los tipos cubiertos (edición de archivos, memoria, subagentes, herramientas de desarrollo conocidas) no preguntan nada hasta su primer fallo, como Hermes solo. Un fallo pone ese tipo en período de prueba (T1), y vuelve a ganarse su nivel. Salir de la máquina y el dinero siempre preguntan.",
     "settings.strict_desc_off": "Un modelo nuevo hereda el historial del anterior con impacto bajo y medio, a la mitad y provisional hasta que sus propias aprobaciones lo confirmen. El impacto alto empieza de cero.",
     "settings.strict_desc_on": "Un modelo nuevo empieza con un historial vacío en cada tipo de acción, como en el estudio.",
@@ -2302,6 +2392,10 @@ const TENURE_LOCALES = {
     "help.passport_checks": "La vérification contrôle la signature et la chaîne de hachage, puis rejoue le registre pour recalculer les mêmes niveaux. Rien n'y est autodéclaré.",
     "help.session_body": "Certaines demandes (code exécuté en ligne, commandes shell complexes, commandes locales non couvertes comme rm, mv ou cp, et une commande après du contenu extérieur) proposent « Autoriser cette session » : cette demande se tait jusqu'à la fin de la session. C'est votre choix, pas une preuve : il ne fait rien gagner, et une nouvelle session redemande.",
     "help.session_title": "Autoriser cette session",
+    "help.study_adds": "Ce que tenure ajoute : le départ en confiance (pas l'étude : les actions en confiance ne rapportent rien), des contrôles aléatoires sur un type qui agit seul, deux sessions distinctes dans la série qui mène à T3, la suspension après un contenu extérieur, et l'héritage vers un nouveau modèle (le mode strict suit l'étude). start: probation est le départ propre à l'étude.",
+    "help.study_body": "Après la première faute d'un type, ou dès le départ avec start: probation, tenure applique la règle d'une étude préenregistrée sur l'autonomie acquise : un test séquentiel (Wald) pour le niveau intermédiaire, agir puis vous prévenir, et une série CSP-1 (le plan d'échantillonnage continu de Dodge) pour Titulaire (T3). L'étude rejoue cette règle sur plus de 6 000 agents simulés. Ses résultats sont en attente : tenure n'affirme pas que l'étude a confirmé la règle.",
+    "help.study_link": "Le préenregistrement sur OSF",
+    "help.study_title": "L'étude derrière la règle",
     "help.tiers_climb": "Un type monte par des succès vérifiés, sans faute. Depuis la Probation, au moins {low} d'affilée à enjeu faible, ou {medium} à enjeu moyen, mènent En examen (T2) ; seuls les types réversibles passent par T2. Une série plus longue, répartie sur au moins {sessions} sessions, le rend Titulaire (T3).",
     "help.tiers_drop": "Une seule faute fait redescendre le type, et sa série repart de zéro.",
     "help.tiers_title": "Les niveaux",
@@ -2496,6 +2590,7 @@ const TENURE_LOCALES = {
     "passport.pending_note": "Calculé avec les derniers réglages enregistrés ; les nouveaux réglages s'appliquent dès la prochaine action.",
     "passport.protocol": "Protocole",
     "passport.rule": "Règle",
+    "passport.rule_osf": "préenregistrée sur OSF",
     "passport.save_image": "Enregistrer l'image (.png)",
     "passport.signature": "un plugin pour Hermes Agent",
     "passport.title": "Passeport signé",
@@ -2527,6 +2622,30 @@ const TENURE_LOCALES = {
     "preset.name.fast": "rapide",
     "preset.value": "{preset} · 1 action sur {k} contrôlée",
     "preset.value_pending": "{preset} · 1 action sur {k} contrôlée · s'applique dès la prochaine action",
+    "pstyle.animation": "Animation",
+    "pstyle.animation_desc_develop": "L'emblème se révèle point par point, le hachage du registre se fixe, puis le sceau s'imprime.",
+    "pstyle.animation_desc_holographic": "La carte s'incline lentement, avec une bande de reflet et un lent miroitement.",
+    "pstyle.animation_desc_scan": "Une ligne de balayage imprime la carte de haut en bas.",
+    "pstyle.animation_desc_still": "Aucun mouvement.",
+    "pstyle.animation_develop": "Révélation",
+    "pstyle.animation_holographic": "Holographique",
+    "pstyle.animation_scan": "Balayage",
+    "pstyle.animation_still": "Fixe",
+    "pstyle.card": "Carte",
+    "pstyle.card_accent": "Accent",
+    "pstyle.card_ink": "Encre",
+    "pstyle.card_paper": "Papier",
+    "pstyle.customise": "Personnaliser",
+    "pstyle.forced_still": "Les animations sont désactivées, ici ou dans votre système : le passeport reste fixe.",
+    "pstyle.help": "L'apparence du passeport, sur cette page et dans l'image enregistrée. Pour vous seul, sur cet écran ; ce que dit la carte ne change jamais.",
+    "pstyle.no_agent": "Pas encore d'agent : l'aperçu apparaîtra avec le premier.",
+    "pstyle.pattern": "Motif de l'emblème",
+    "pstyle.pattern_grid": "Grille",
+    "pstyle.pattern_note": "Chaque motif se remplit de la part d'autonomie acquise par l'agent, disposée à partir de son identifiant : un même agent a toujours le même emblème.",
+    "pstyle.pattern_rings": "Anneaux",
+    "pstyle.pattern_sunburst": "Soleil",
+    "pstyle.preview": "Aperçu de votre passeport",
+    "pstyle.title": "Votre passeport",
     "recent.check_failed": "vérification échouée",
     "recent.check_failed_tip": "La vérification automatique a échoué : déjà comptée comme une faute. Annuler restaure les fichiers.",
     "recent.collapse": "Masquer les actions",
@@ -2604,6 +2723,7 @@ const TENURE_LOCALES = {
     "settings.spot_value": "1 sur {k}",
     "settings.start_help": "Ce que fait un type d'action avant sa première faute.",
     "settings.start_probation": "Le départ de l'étude : chaque type d'action demande d'abord (T1) et gagne chaque niveau à partir de vos réponses.",
+    "settings.start_study": "Le départ de l'étude préenregistrée",
     "settings.start_trusted": "Les types couverts (modifications de fichiers, mémoire, sous-agents, outils de développement connus) ne demandent rien jusqu'à leur première faute, comme Hermes seul. Une faute met ce type en Probation (T1), et il regagne son niveau. Sortir de la machine et l'argent demandent toujours.",
     "settings.strict_desc_off": "Un nouveau modèle hérite de l'historique du précédent à enjeu faible et moyen, divisé par deux et provisoire jusqu'à ce que ses propres validations le confirment. L'enjeu élevé repart de zéro.",
     "settings.strict_desc_on": "Un nouveau modèle part d'un historique vide sur chaque type d'action, comme dans l'étude.",
@@ -2919,6 +3039,10 @@ const TENURE_LOCALES = {
     "help.passport_checks": "验证会检查签名和哈希链，然后重放账本，重新计算出相同的级别。其中没有任何自我声明。",
     "help.session_body": "有些询问（内联运行的代码、复杂的 shell 命令、未覆盖的本地命令如 rm、mv、cp，以及读取外部内容之后的命令）提供「允许本会话」：该询问在会话结束前不再出现。这是你的选择，不是证据：它不会赢得任何东西，新会话会再次询问。",
     "help.session_title": "允许本会话",
+    "help.study_adds": "tenure 的补充：信任起步（不属于研究：信任期间的操作不计入任何成绩）、对独立执行的类型进行抽查、到达 T3 的连续记录需跨越两个不同会话、读取外部内容后暂停，以及向新模型的继承（严格模式即研究原规则）。start: probation 就是研究本身的起点。",
+    "help.study_body": "某个类型出现第一次失误后，或在 start: probation 下从一开始，tenure 就采用一项关于“赢得的自主权”的预注册研究的规则：中间级别（先执行再告知你）用序贯检验（Wald），转正（T3）用 CSP-1 连续记录（Dodge 的连续抽样方案）。该研究在 6,000 多个模拟智能体上重放这一规则。结果尚未公布：tenure 并不声称研究已证实该规则。",
+    "help.study_link": "OSF 上的预注册",
+    "help.study_title": "规则背后的研究",
     "help.tiers_climb": "类型凭已验证的成功且无失误来升级。从试用期开始，低风险至少连续 {low} 次，或中风险 {medium} 次，进入考察中（T2）；只有可撤销的类型会经过 T2。更长的连续记录，分布在至少 {sessions} 个会话中，使其转正（T3）。",
     "help.tiers_drop": "一次失误就会让该类型降级，其连续记录重新开始。",
     "help.tiers_title": "级别",
@@ -3096,6 +3220,7 @@ const TENURE_LOCALES = {
     "passport.pending_note": "按最近记录的设置计算；新设置从下一个操作起生效。",
     "passport.protocol": "协议",
     "passport.rule": "规则",
+    "passport.rule_osf": "已在 OSF 预注册",
     "passport.save_image": "保存图片（.png）",
     "passport.signature": "Hermes Agent 插件",
     "passport.title": "已签名护照",
@@ -3126,6 +3251,30 @@ const TENURE_LOCALES = {
     "preset.name.fast": "快速",
     "preset.value": "{preset} · 每 {k} 个抽查 1 个",
     "preset.value_pending": "{preset} · 每 {k} 个抽查 1 个 · 从下一个操作起生效",
+    "pstyle.animation": "动画",
+    "pstyle.animation_desc_develop": "徽记逐点显影，账本哈希定格，然后盖上印章。",
+    "pstyle.animation_desc_holographic": "卡片缓缓倾斜，带一道反光和缓慢的闪烁。",
+    "pstyle.animation_desc_scan": "一条扫描线自上而下印出卡片。",
+    "pstyle.animation_desc_still": "没有动效。",
+    "pstyle.animation_develop": "显影",
+    "pstyle.animation_holographic": "全息",
+    "pstyle.animation_scan": "扫描",
+    "pstyle.animation_still": "静止",
+    "pstyle.card": "卡片",
+    "pstyle.card_accent": "强调色",
+    "pstyle.card_ink": "墨色",
+    "pstyle.card_paper": "纸色",
+    "pstyle.customise": "自定义",
+    "pstyle.forced_still": "动画已关闭（在这里或在你的系统中）：护照保持静止。",
+    "pstyle.help": "护照在本页和保存的图片中的外观。只对你、只在这台屏幕上生效；卡片上的内容永不改变。",
+    "pstyle.no_agent": "还没有智能体：有了第一个后会显示预览。",
+    "pstyle.pattern": "徽记图案",
+    "pstyle.pattern_grid": "网格",
+    "pstyle.pattern_note": "每种图案都按智能体赢得的自主权比例填充，并依据其标识排布：同一个智能体的徽记始终相同。",
+    "pstyle.pattern_rings": "圆环",
+    "pstyle.pattern_sunburst": "放射",
+    "pstyle.preview": "你的护照预览",
+    "pstyle.title": "你的护照",
     "recent.check_failed": "检查失败",
     "recent.check_failed_tip": "自动检查失败：已记为一次失误。撤销可恢复文件。",
     "recent.collapse": "收起这些操作",
@@ -3200,6 +3349,7 @@ const TENURE_LOCALES = {
     "settings.spot_value": "每 {k} 个抽查 1 个",
     "settings.start_help": "操作类型在第一次失误之前的行为。",
     "settings.start_probation": "研究的起点：每个操作类型都先询问（T1），并根据你的回答赢得每个级别。",
+    "settings.start_study": "预注册研究的起点",
     "settings.start_trusted": "覆盖的类型（文件编辑、记忆、子智能体、常见开发工具）在第一次失误之前什么都不问，与 Hermes 单独运行时一样。一次失误会让该类型进入试用期（T1），之后重新赢得级别。离开本机的操作和涉及金钱的操作始终询问。",
     "settings.strict_desc_off": "新模型继承上一个模型在低风险和中风险上的记录，减半且为暂定，直到它自己的批准加以确认。高风险从零开始。",
     "settings.strict_desc_on": "新模型在每个操作类型上都从空记录开始，与研究中一致。",
@@ -3570,6 +3720,47 @@ function useMotion() {
   return on
 }
 
+// The passport's look, per viewer (ctx.storage `passport_style`): animation, emblem pattern, card. Defaults = the
+// original look. Only the look: every value on the card stays the agent's own.
+const PASS_STYLE = { animation: ['develop', 'holographic', 'scan', 'still'], pattern: ['sunburst', 'rings', 'grid'], card: ['accent', 'ink', 'paper'] }
+const PASS_STYLE_DEFAULT = { animation: 'develop', pattern: 'sunburst', card: 'accent' }
+let passStyle = { ...PASS_STYLE_DEFAULT }
+let focusPassStyle = false
+
+function cleanPassStyle(v) {
+  let o = v
+  if (typeof o === 'string') {
+    try { o = JSON.parse(o) } catch (e) { o = null }
+  }
+  const out = { ...PASS_STYLE_DEFAULT }
+  if (o && typeof o === 'object') for (const k of Object.keys(PASS_STYLE)) if (PASS_STYLE[k].includes(o[k])) out[k] = o[k]
+  return out
+}
+
+function setPassStyle(patch) {
+  passStyle = cleanPassStyle({ ...passStyle, ...patch })
+  if (storage) storage.set('passport_style', { ...passStyle })
+  bus.dispatchEvent(new Event('passstyle'))
+}
+
+function usePassStyle() {
+  const [st, setSt] = useState(passStyle)
+  useEffect(() => {
+    const update = () => setSt(passStyle)
+    bus.addEventListener('passstyle', update)
+    return () => bus.removeEventListener('passstyle', update)
+  }, [])
+  return st
+}
+
+/** A stable number in [0, 1) from an agent's id: it lays out the emblem's rings or lattice, never its density. */
+function seedOf(id) {
+  const str = String(id || '')
+  let h = 2166136261
+  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619)   // the dashboard's same hash
+  return (h >>> 0) / 4294967296
+}
+
 // Static canvases repaint when the theme or the accent changes (the host rewrites attributes on <html> / <body>).
 // They repaint only when a computed colour really changed (the host touches those attributes for other reasons too),
 // and when the device pixel ratio changes (a window moved to another screen, zoom).
@@ -3819,9 +4010,36 @@ function DitherBar({ value, solid, track, trust, change, motion, delay = 0, rows
 }
 
 // ---- the emblem: an original dithered sunburst; its density is the share of autonomy the agent earned.
-function emblemValue(dx, dy, rot, share) {
+// The passport can draw it as concentric rings or a square lattice instead (Settings, "Your passport"): the same
+// density from the same share, laid out from a seed taken from the agent's id, so one agent's emblem never changes.
+function emblemValue(dx, dy, rot, share, pattern = 'sunburst', seed = 0) {
   const r = Math.hypot(dx, dy)
   if (r > 1) return -1
+  if (pattern === 'rings' || pattern === 'grid') {
+    let w
+    if (pattern === 'rings') {
+      const wob = 0.035 * Math.cos((Math.atan2(dy, dx) + rot) * 3 + seed * 6.283)
+      w = Math.pow((Math.cos((r + wob) * Math.PI * 2 * (6 + Math.floor(seed * 3)) + seed * 6.283) + 1) / 2, 2)
+    } else {
+      const ang = rot + seed * 1.571
+      const c = Math.cos(ang), sn = Math.sin(ang)
+      const u = (dx * c - dy * sn) / 0.19 + seed * 7, v = (dx * sn + dy * c) / 0.19 + seed * 3
+      w = Math.max(Math.abs(u - Math.round(u)), Math.abs(v - Math.round(v))) < 0.3 ? 1 : 0.2
+    }
+    const core = pattern === 'rings' ? Math.max(0, 1 - r / 0.2) * (0.45 + 0.55 * share) : 0
+    let v = Math.max(core * 1.15, w * (1.1 - r) * 1.25 * (0.18 + 0.82 * share), 0.16 * (1 - r))
+    // Each pattern keeps a fixed mark of its own, as the sunburst keeps its inner circle: three thin rings, or a
+    // square turned with the lattice. Only the dither around it says how much autonomy was earned.
+    if (pattern === 'rings') {
+      if (Math.abs(r - 0.3) < 0.02 || Math.abs(r - 0.55) < 0.02 || Math.abs(r - 0.78) < 0.02) v = 1
+    } else {
+      const ang = rot + seed * 1.571
+      const q = Math.max(Math.abs(dx * Math.cos(ang) - dy * Math.sin(ang)), Math.abs(dx * Math.sin(ang) + dy * Math.cos(ang)))
+      if (Math.abs(q - 0.4) < 0.022) v = 1
+    }
+    if (Math.abs(r - 0.97) < 0.02) v = 1
+    return v
+  }
   const a = Math.atan2(dy, dx) + rot
   const ray = Math.pow((Math.cos(a * 36) + 1) / 2, 2)
   const core = Math.max(0, 1 - r / 0.42) * (0.45 + 0.55 * share)
@@ -3834,7 +4052,7 @@ function emblemValue(dx, dy, rot, share) {
  * crumble = { from, k }: the emblem as it was at share `from` loses cells (those the new share no longer lights, and
  * about a quarter of the others), which drop a few cells and fade as k goes 0 -> 1; the new state prints under them.
  */
-function paintEmblem(cv, { size, n, share, develop = 1, rot = 0, crumble = null, ink = null, scale = 0 }) {
+function paintEmblem(cv, { size, n, share, develop = 1, rot = 0, crumble = null, ink = null, scale = 0, pattern = 'sunburst', seed = 0 }) {
   const dpr = fitCanvas(cv, size, size, scale)
   const x = cv.getContext('2d')
   x.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -3848,8 +4066,8 @@ function paintEmblem(cv, { size, n, share, develop = 1, rot = 0, crumble = null,
       const th = bayer(i, j)
       const dx = (i - c + 0.5) / c, dy = (j - c + 0.5) / c
       if (crumble) {
-        const was = emblemValue(dx, dy, rot, crumble.from) > th
-        const now = emblemValue(dx, dy, rot, share) > th
+        const was = emblemValue(dx, dy, rot, crumble.from, pattern, seed) > th
+        const now = emblemValue(dx, dy, rot, share, pattern, seed) > th
         const r = ((i * 73 + j * 151) % 97) / 97
         const falls = was && (!now || r < 0.25)
         if (falls) {
@@ -3865,7 +4083,7 @@ function paintEmblem(cv, { size, n, share, develop = 1, rot = 0, crumble = null,
         continue
       }
       if (th >= develop) continue
-      if (emblemValue(dx, dy, rot, share) > th) x.fillRect(i * cell, j * cell, dot, dot)
+      if (emblemValue(dx, dy, rot, share, pattern, seed) > th) x.fillRect(i * cell, j * cell, dot, dot)
     }
   }
 }
@@ -3874,15 +4092,18 @@ function paintEmblem(cv, { size, n, share, develop = 1, rot = 0, crumble = null,
  * The emblem. develops point by point on mount (B), can turn slowly (the passport), and pulses once when `pulse`
  * changes (C: density up, then back). The turning loop stops while the emblem is off screen or the window hidden.
  */
-function Emblem({ share, size = 120, n = 60, rotate = false, pulse = 0, crumble = 0, motion, className, label }) {
+function Emblem({ share, size = 120, n = 60, rotate = false, pulse = 0, crumble = 0, motion, className, label, pattern = 'sunburst', seed = 0 }) {
   const ref = useRef(null)
   const st = useRef({ raf: 0, dev0: 0, pulse0: 0, crumble0: 0, from: share, rot: 0, rot0: 0, visible: true, share, prev: share })
   st.current.prev = st.current.share                     // the share before this render: a crumble starts from it
   st.current.share = share
   const paint = (develop, boost, rot, crumbleAt) =>
     ref.current &&
-    paintEmblem(ref.current, { size, n, share: clamp01(st.current.share + boost), develop, rot, crumble: crumbleAt == null ? null : { from: st.current.from, k: crumbleAt } })
+    paintEmblem(ref.current, { size, n, share: clamp01(st.current.share + boost), develop, rot, pattern, seed, crumble: crumbleAt == null ? null : { from: st.current.from, k: crumbleAt } })
   useRepaint(() => paint(1, 0, st.current.rot))
+  useEffect(() => {
+    if (!st.current.raf) paint(1, 0, st.current.rot)
+  }, [pattern, seed])
   const wake = () => {
     const s = st.current
     if (s.raf || !ref.current) return
@@ -4193,6 +4414,26 @@ const CSS = `
   background:linear-gradient(105deg,transparent 38%,color-mix(in srgb,var(--tn-on) 34%,transparent) 50%,transparent 62%);background-size:260% 100%;
   background-position:calc(50% - var(--tn-gx,0) * 120%) 0;-webkit-mask-image:${MASKS[2]};mask-image:${MASKS[2]};-webkit-mask-size:8px 8px;mask-size:8px 8px}
 .tn-pass[data-motion=on]:hover .tn-glare{opacity:1}
+.tn-pass[data-card=ink]{--tn-on:#ecebe6;background:#121316;box-shadow:inset 0 0 0 1px rgba(236,235,230,0.14)}
+.tn-pass[data-card=ink] :is(.tn-pemb .tn-emblem,.tn-psig .tn-emblem,.tn-seal,.tn-ok){color:color-mix(in srgb,var(--tn-acc) 72%,#fff)}
+.tn-pass[data-card=paper]{--tn-on:#17181b;background:#f3f1ea;box-shadow:inset 0 0 0 1px rgba(23,24,27,0.12)}
+.tn-pass[data-anim=holographic]:not(.tn-tilting){animation:tn-holo-tilt 9s ease-in-out infinite}
+@keyframes tn-holo-tilt{0%,100%{transform:rotateX(1.2deg) rotateY(-2.5deg)}50%{transform:rotateX(-1.2deg) rotateY(2.5deg)}}
+.tn-holo{position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 40%,color-mix(in srgb,var(--tn-on) 26%,transparent) 50%,transparent 60%);background-size:320% 100%;animation:tn-holo-shimmer 7s linear infinite;-webkit-mask-image:${MASKS[2]};mask-image:${MASKS[2]};-webkit-mask-size:8px 8px;mask-size:8px 8px}
+@keyframes tn-holo-shimmer{from{background-position:100% 0}to{background-position:0 0}}
+.tn-pass[data-anim=scan]{animation:tn-scan-print 1.8s steps(40,end) both}
+@keyframes tn-scan-print{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
+.tn-scanline{position:absolute;inset-inline:0;height:3px;inset-block-start:0;background:var(--tn-on);pointer-events:none;animation:tn-scan-line 1.8s steps(40,end) both}
+@keyframes tn-scan-line{from{inset-block-start:0;opacity:1}96%{opacity:1}to{inset-block-start:calc(100% - 3px);opacity:0}}
+.tn-pstyle{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,22rem);gap:1rem 1.5rem;align-items:start}
+@container (max-width:44rem){.tn-pstyle{grid-template-columns:minmax(0,1fr)}}
+.tn-pstyle-ctl{display:flex;flex-direction:column;gap:0.5rem}
+.tn-pstyle-row{display:flex;flex-direction:column;gap:0.3rem;margin-block-start:0.35rem}
+.tn-pstyle-preview .tn-pass-wrap{max-width:22rem}
+.tn-ext{display:inline-flex;align-items:center;gap:0.25rem;color:var(--tn-acc-text);text-decoration:underline;text-underline-offset:3px}
+.tn-ext:hover{color:var(--tn-fg)}
+.tn-linkbtn{display:inline-flex;align-items:center;gap:0.35rem;padding:0.3rem 0.2rem;border:0;background:transparent;color:var(--tn-acc-text);font:500 0.66rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.tn-linkbtn:hover{color:var(--tn-fg)}
 .tn-chip.tn-out,.tn-chip.tn-in{-webkit-mask-size:8px 8px;mask-size:8px 8px}
 .tn-range{width:100%;height:10px;color:var(--tn-acc)}
 .tn-btn{display:inline-flex;align-items:center;gap:0.45rem;min-height:2rem;padding:0.3rem 0.9rem;font:500 0.66rem/1.2 var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;border:1px solid var(--tn-acc);border-radius:0;background:transparent;color:var(--tn-acc-text);cursor:pointer;outline:none;transition:background 120ms,color 120ms}
@@ -4366,7 +4607,9 @@ const CSS = `
 .tn-input:focus{border-color:var(--tn-acc);box-shadow:0 0 0 2px color-mix(in srgb,var(--tn-acc) 25%,transparent)}
 .tn-input option{color:initial}
 .tn-input-sm{height:1.6rem;font-size:0.7rem;padding:0 0.4rem}
-.tn-sw-arrow{padding-block-end:0.4rem;color:var(--tn-mut);font:0.9rem var(--tn-mono)}
+.tn-sw-arrow{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:2rem;height:2rem;margin:0;padding:0 0.5rem;border:1px solid color-mix(in srgb,var(--tn-fg) 30%,transparent);border-radius:0;background:transparent;color:var(--tn-acc-text);font:0.9rem var(--tn-mono);cursor:pointer;outline:none}
+.tn-sw-arrow:hover{border-color:var(--tn-acc);background:color-mix(in srgb,var(--tn-acc) 14%,transparent)}
+.tn-sw-arrow:focus-visible{outline:2px solid var(--tn-acc);outline-offset:1px}
 .tn-sw-pair{font:0.78rem var(--tn-mono);color:var(--tn-fg2);margin-inline-end:0.4rem}
 .tn-sw-pair b{color:var(--tn-fg);font-weight:500}
 .tn-sw-legend{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:0.35rem 0.75rem;margin:0.25rem 0;font-size:0.72rem;color:var(--tn-fg2);align-items:center}
@@ -4729,7 +4972,13 @@ const scramble = n => Array.from({ length: n }, () => HEX[Math.floor(Math.random
  */
 const PASS_ROWS = 8 // rows the card shows; the rest is counted on one line (the JSON file carries every type)
 
-function PassportCard({ agent, doc, settled, ok, t, motion, outerRef }) {
+function PassportCard({ agent, doc, settled, ok, t, motion: motionOn, outerRef, look }) {
+  const style = look || PASS_STYLE_DEFAULT
+  // The Animations switch and reduced motion force Still; only Develop runs the printed sequence below.
+  const anim = motionOn ? style.animation : 'still'
+  const motion = anim === 'develop'
+  const tilts = anim === 'develop' || anim === 'holographic'
+  const seed = seedOf(agent.agent)
   const cardRef = useRef(null)
   const setCard = el => {
     cardRef.current = el
@@ -4822,7 +5071,7 @@ function PassportCard({ agent, doc, settled, ok, t, motion, outerRef }) {
   }, [settled, ok, head])
   const onMove = e => {
     const el = cardRef.current
-    if (!el || !motion || e.pointerType !== 'mouse') return
+    if (!el || !tilts || e.pointerType !== 'mouse') return
     const r = el.getBoundingClientRect()
     const px = clamp01((e.clientX - r.x) / r.width) - 0.5
     const py = clamp01((e.clientY - r.y) / r.height) - 0.5
@@ -4842,13 +5091,17 @@ function PassportCard({ agent, doc, settled, ok, t, motion, outerRef }) {
     className: 'tn-pass-wrap',
     children: jsxs('div', {
       className: 'tn-pass',
-      'data-motion': motion ? 'on' : 'off',
+      'data-anim': anim,
+      'data-card': style.card,
+      'data-motion': tilts ? 'on' : 'off',
       onPointerLeave: onLeave,
       onPointerMove: onMove,
       ref: setCard,
       children: [
         jsx('div', { 'aria-hidden': true, className: 'tn-sweep', ref: sweepRef }),
         jsx('div', { 'aria-hidden': true, className: 'tn-glare' }),
+        anim === 'holographic' ? jsx('div', { 'aria-hidden': true, className: 'tn-holo' }) : null,
+        anim === 'scan' ? jsx('div', { 'aria-hidden': true, className: 'tn-scanline' }) : null,
         jsxs('div', {
           className: 'tn-ptop',
           children: [
@@ -4856,7 +5109,7 @@ function PassportCard({ agent, doc, settled, ok, t, motion, outerRef }) {
             jsxs('span', { children: [t('passport.card_title'), ' ', jsx('span', { 'aria-hidden': true, className: 'tn-ok', ref: okRef, children: '✓' })] })
           ]
         }),
-        jsx('div', { className: 'tn-pemb', children: jsx(Emblem, { motion, n: 96, rotate: true, share: shareOf(agent), size: 216 }) }),
+        jsx('div', { className: 'tn-pemb', children: jsx(Emblem, { motion, n: 96, pattern: style.pattern, rotate: true, seed, share: shareOf(agent), size: 216 }) }),
         jsx('div', {
           'aria-label': name,
           className: 'tn-pname',
@@ -4947,10 +5200,14 @@ function saveBlob(blob, name) {
  * dither bar, faults / verified outcomes, ledger head, signature), its colours read from the card as displayed, the
  * host's own fonts. The seal and the ✓ only when the passport verified.
  */
-async function passportPng({ card, agent, doc, ok, t }) {
+async function passportPng({ card, agent, doc, ok, t, look }) {
   const cs = getComputedStyle(card)
   const paper = cs.backgroundColor
   const ink = cs.color
+  // The emblem, the seal and the signature take the card's detail colour (the accent on an Ink card).
+  const embEl = card.querySelector('.tn-pemb .tn-emblem')
+  const detail = embEl ? getComputedStyle(embEl).color : ink
+  const style = look || PASS_STYLE_DEFAULT
   const rtl = cs.direction === 'rtl'
   // The host's faces, as the page uses them (Collapse, JetBrains Mono); loaded before drawing, fallbacks otherwise.
   const fam = { display: "'Collapse', system-ui, sans-serif", mono: "'JetBrains Mono', ui-monospace, monospace", sans: 'system-ui, sans-serif' }
@@ -5021,11 +5278,11 @@ async function passportPng({ card, agent, doc, ok, t }) {
   text(up(t('passport.card_title')) + (ok ? ' ✓' : ''), end, yTop, `500 17px ${labelFont}`, 'end', 2.4)
   // Emblem, as a drawing of the same function the card uses.
   const em = document.createElement('canvas')
-  paintEmblem(em, { size: EMB, n: 96, share: shareOf(agent), ink, scale: S })
+  paintEmblem(em, { size: EMB, n: 96, share: shareOf(agent), ink: detail, scale: S, pattern: style.pattern, seed: seedOf(agent.agent) })
   x.drawImage(em, (W - EMB) / 2, yEmb, EMB, EMB)
   if (ok) {
     const seal = document.createElement('canvas')
-    paintSeal(seal, { size: 96, ink, scale: S })
+    paintSeal(seal, { size: 96, ink: detail, scale: S })
     x.save()
     x.translate(rtl ? pad + 48 : W - pad - 48, yEmb + 40)
     x.rotate((-10 * Math.PI) / 180)
@@ -5114,7 +5371,7 @@ async function passportPng({ card, agent, doc, ok, t }) {
   text(up(t('passport.ledger')), rtl ? end + headW + 12 : end - headW - 12, yFoot, `500 15px ${labelFont}`, 'end', 1.6)
   // Signature: emblem + TENURE + a plugin for Hermes Agent.
   const sig = document.createElement('canvas')
-  paintEmblem(sig, { size: 30, n: 18, share: 1, ink, scale: S })
+  paintEmblem(sig, { size: 30, n: 18, share: 1, ink: detail, scale: S })
   x.save()
   x.globalAlpha = 0.85
   x.drawImage(sig, rtl ? W - pad - 30 : pad, ySig - 22, 30, 30)
@@ -5131,6 +5388,7 @@ async function passportPng({ card, agent, doc, ok, t }) {
 }
 
 function PassportSection({ agent, t, n, motion }) {
+  const look = usePassStyle()
   const head = agent.totals ? agent.totals.actions : 0
   const cardRef = useRef(null)
   const [drawing, setDrawing] = useState(false)
@@ -5167,7 +5425,7 @@ function PassportSection({ agent, t, n, motion }) {
     if (!cardRef.current || drawing) return
     setDrawing(true)
     try {
-      const blob = await passportPng({ card: cardRef.current, agent, doc, ok: !!ok, t })
+      const blob = await passportPng({ card: cardRef.current, agent, doc, look, ok: !!ok, t })
       haptic('tap')
       saveBlob(blob, base + '.png')
     } catch (e) {
@@ -5183,7 +5441,7 @@ function PassportSection({ agent, t, n, motion }) {
       jsxs('div', {
         className: 'tn-pass-grid',
         children: [
-          jsx(PassportCard, { agent, doc, motion, ok: !!ok, outerRef: cardRef, settled: !!error || (!!doc && !isLoading), t }, agent.key),
+          jsx(PassportCard, { agent, doc, look, motion, ok: !!ok, outerRef: cardRef, settled: !!error || (!!doc && !isLoading), t }, agent.key + look.animation),
           jsxs('div', {
             className: 'tn-pass-acts',
             children: [
@@ -5202,6 +5460,15 @@ function PassportSection({ agent, t, n, motion }) {
                 onClick: saveImage,
                 type: 'button',
                 children: [jsx(Codicon, { name: drawing ? 'loading' : 'file-media', size: '0.8rem', spinning: drawing }), t('passport.save_image')]
+              }),
+              jsxs('button', {
+                className: 'tn-linkbtn',
+                onClick: () => {
+                  focusPassStyle = true
+                  openView('settings')
+                },
+                type: 'button',
+                children: [jsx(Codicon, { name: 'paintcan', size: '0.75rem' }), t('pstyle.customise')]
               }),
               jsx('p', { className: 'tn-hint', style: { margin: 0 }, children: t('passport.note') })
             ]
@@ -5243,7 +5510,16 @@ function PassportSection({ agent, t, n, motion }) {
                     rows: [
                       { label: t('passport.protocol'), value: jsx('span', { className: 'font-mono', children: p.protocol }) },
                       { label: t('passport.field_agent'), value: jsx('span', { className: 'font-mono tn-bdi', children: `${(p.agent || {}).model}@${(p.agent || {}).provider}` }) },
-                      { label: t('passport.rule'), value: jsx('span', { className: 'font-mono', children: `${p.rule.name} · ${String(p.rule.fingerprint).slice(0, 16)}` }) },
+                      {
+                        label: t('passport.rule'),
+                        value: jsxs('span', {
+                          children: [
+                            jsx('span', { className: 'font-mono', children: `${p.rule.name} · ${String(p.rule.fingerprint).slice(0, 16)}` }),
+                            ' · ',
+                            jsx(ExtLink, { href: OSF_URL, children: t('passport.rule_osf') })
+                          ]
+                        })
+                      },
                       { label: t('passport.ledger'), value: jsx('span', { children: t('passport.ledger_value', { n: p.ledger.count, head: String(p.ledger.head).slice(0, 12) }) }) },
                       { label: t('passport.generated'), value: when(p.generated_at) },
                       { label: t('passport.field_profile'), value: jsx('span', { className: 'font-mono', children: t('passport.value_hashed', { profile: (p.agent || {}).profile }) }) },
@@ -5950,9 +6226,10 @@ const studyN = bar => Math.ceil(Number((1 / (0.95 * bar)).toFixed(9))) - 1
 // params.DEFAULT_PRESET / DEFAULT_START / DEFAULT_SPOT: what applies before a profile logged any settings.
 const DEFAULTS = { preset: 'balanced', start: 'trusted', spot: 0.1, strict: false }
 
-function SettingRow({ n, title, help, children }) {
+function SettingRow({ n, title, help, children, id }) {
   return jsxs('section', {
     className: 'tn-hrow',
+    id,
     children: [
       jsx('div', { 'aria-hidden': true, className: 'tn-tnum', children: '#' + pad2(n) }),
       jsxs('div', {
@@ -6275,6 +6552,48 @@ const TYPES_YAML = `plugins:
  * plugin-settings writer), then re-read, so what shows is what is in force. The equivalent command stays under each
  * control, and is the way when this Hermes refuses to save from here (501 / 403).
  */
+// The preregistration of the study whose rule tenure applies after a first mistake (docs/the-study.md).
+const OSF_URL = 'https://osf.io/vycge/'
+
+/** A link out, opened by the host in the browser (a new window), as the app's own outside links. */
+function ExtLink({ href, children }) {
+  return jsxs('a', { className: 'tn-ext', href, rel: 'noreferrer', target: '_blank', children: [children, jsx(Codicon, { name: 'link-external', size: '0.7rem' })] })
+}
+
+/** Settings, "Your passport": animation, emblem pattern and card, with the card itself as a live preview. */
+function PassportStyleControl({ agent, t }) {
+  const look = usePassStyle()
+  const motion = useMotion()
+  const row = (key, label, options) =>
+    jsxs('div', {
+      className: 'tn-pstyle-row',
+      children: [jsx('span', { className: 'tn-eyebrow', children: label }), jsx(Seg, { label, onPick: id => setPassStyle({ [key]: id }), options, value: look[key] })]
+    })
+  return jsxs('div', {
+    className: 'tn-pstyle',
+    children: [
+      jsxs('div', {
+        className: 'tn-pstyle-ctl',
+        children: [
+          row('animation', t('pstyle.animation'), PASS_STYLE.animation.map(id => ({ id, label: t('pstyle.animation_' + id) }))),
+          jsx('p', { className: 'tn-hint', style: { margin: 0 }, children: motion ? t('pstyle.animation_desc_' + look.animation) : t('pstyle.forced_still') }),
+          row('pattern', t('pstyle.pattern'), PASS_STYLE.pattern.map(id => ({ id, label: t('pstyle.pattern_' + id) }))),
+          jsx('p', { className: 'tn-hint', style: { margin: 0 }, children: t('pstyle.pattern_note') }),
+          row('card', t('pstyle.card'), PASS_STYLE.card.map(id => ({ id, label: t('pstyle.card_' + id) })))
+        ]
+      }),
+      agent
+        ? jsx('div', {
+            'aria-label': t('pstyle.preview'),
+            className: 'tn-pstyle-preview',
+            role: 'group',
+            children: jsx(PassportCard, { agent, doc: null, look, motion, ok: false, settled: true, t }, agent.key + look.animation + look.pattern + look.card)
+          })
+        : jsx('p', { className: 'tn-hint', children: t('pstyle.no_agent') })
+    ]
+  })
+}
+
 function SettingsView({ data, t }) {
   const here = ((data && data.profiles) || []).find(p => p.current) || null
   const s = here && !here.error ? here.settings : null
@@ -6294,6 +6613,13 @@ function SettingsView({ data, t }) {
     head: jsx('span', { className: 'tn-opt-name', children: presetName(t, id) }),
     body: [jsx('p', { className: 'tn-htext', children: t('settings.preset_desc_' + id) }, 'd'), jsx('div', { children: riskLines(PRESETS[id], t) }, 'r')]
   })
+  // "Customise" next to a passport opens Settings on this section.
+  useEffect(() => {
+    if (!focusPassStyle) return
+    focusPassStyle = false
+    const el = document.getElementById('tn-pass-style')
+    if (el) el.scrollIntoView({ block: 'start' })
+  }, [])
   const startHead = trusted =>
     jsxs('span', { className: 'tn-opt-name tn-start', 'data-start': trusted ? 'trusted' : 'probation', children: [jsx('i', { 'aria-hidden': true }), t(trusted ? 'start.trusted' : 'start.probation')] })
   return jsx('div', {
@@ -6350,7 +6676,12 @@ function SettingsView({ data, t }) {
             options: [true, false].map(trusted => ({
               id: trusted ? 'trusted' : 'probation',
               head: startHead(trusted),
-              body: jsx('p', { className: 'tn-htext', children: t(trusted ? 'settings.start_trusted' : 'settings.start_probation') })
+              body: trusted
+                ? jsx('p', { className: 'tn-htext', children: t('settings.start_trusted') })
+                : [
+                    jsx('p', { className: 'tn-htext', children: t('settings.start_probation') }, 'p'),
+                    jsxs('p', { className: 'tn-hint', style: { margin: 0 }, children: [t('settings.start_study'), ' · ', jsx(ExtLink, { href: OSF_URL, children: 'OSF' })] }, 's')
+                  ]
             })),
             profile,
             t
@@ -6380,10 +6711,17 @@ function SettingsView({ data, t }) {
           title: t('page.animations'),
           children: jsx('div', { className: 'tn-opt', children: jsx(AnimationsToggle, { t }) })
         }),
-        jsx(SettingRow, { help: t('settings.enabled_help'), n: 7, title: t('settings.enabled_title'), children: jsx(EnabledControl, { enabled, profile, t }) }),
+        jsx(SettingRow, {
+          help: t('pstyle.help'),
+          id: 'tn-pass-style',
+          n: 7,
+          title: t('pstyle.title'),
+          children: jsx(PassportStyleControl, { agent: allAgents(data).find(a => a.profile === profile) || allAgents(data)[0] || null, t })
+        }),
+        jsx(SettingRow, { help: t('settings.enabled_help'), n: 8, title: t('settings.enabled_title'), children: jsx(EnabledControl, { enabled, profile, t }) }),
         jsx(SettingRow, {
           help: t('settings.advanced_help'),
-          n: 8,
+          n: 9,
           title: t('settings.advanced_title'),
           children: [
             jsx('p', { className: 'tn-htext', children: t('settings.advanced_types') }, 't'),
@@ -6486,10 +6824,19 @@ function HelpView({ data, t }) {
             jsx('p', { className: 'tn-htext', children: t('help.passport_checks') }, 'c')
           ]
         }),
-        jsx(SettingRow, { n: 7, title: t('page.view_benchmark'), children: jsx('p', { className: 'tn-htext', children: t('help.benchmark_body', { n: RANK_MIN }) }) }),
+        jsx(SettingRow, {
+          n: 7,
+          title: t('help.study_title'),
+          children: [
+            jsx('p', { className: 'tn-htext', children: t('help.study_body') }, 'b'),
+            jsx('p', { className: 'tn-htext', children: t('help.study_adds') }, 'a'),
+            jsx('p', { className: 'tn-htext', children: jsx(ExtLink, { href: OSF_URL, children: t('help.study_link') }) }, 'l')
+          ]
+        }),
+        jsx(SettingRow, { n: 8, title: t('page.view_benchmark'), children: jsx('p', { className: 'tn-htext', children: t('help.benchmark_body', { n: RANK_MIN }) }) }),
         jsx(SettingRow, {
           help: t('help.keys_note'),
-          n: 8,
+          n: 9,
           title: t('help.keys_title'),
           children: jsx('dl', {
             className: 'tn-keys',
@@ -7152,7 +7499,8 @@ function SwitchView({ data, t }) {
                     })
                   ]
                 }),
-                jsx('span', { 'aria-hidden': true, className: 'tn-sw-arrow', children: t('switch.arrow') }),
+                // The arrow runs the preview too: it reads as the action between the two agents.
+                jsx('button', { 'aria-label': t('switch.preview'), className: 'tn-sw-arrow', title: t('switch.preview'), type: 'submit', children: t('switch.arrow') }),
                 jsxs('label', {
                   className: 'tn-field tn-field-grow',
                   children: [
@@ -7162,7 +7510,13 @@ function SwitchView({ data, t }) {
                       className: 'tn-input',
                       list: 'tn-models-list',
                       name: 'to',
-                      onChange: e => setDraft(e.target.value),
+                      onChange: e => {
+                        const v = e.target.value
+                        setDraft(v)
+                        // A suggestion picked from the list (or a known model typed in full) runs the preview at once.
+                        const ev = e.nativeEvent || {}
+                        if (ev.inputType === 'insertReplacementText' || (!ev.inputType && models.includes(v.trim()))) setTo(v.trim())
+                      },
                       placeholder: t('switch.placeholder', { example: models[0] || 'gpt-5' }),
                       value: draft
                     }),
@@ -7840,6 +8194,7 @@ export default {
     // Every call of the page carries raw=1 while raw names are on (the dashboard's `r` switch).
     rest = (path, opts) => ctx.rest(rawPref ? path + (path.includes('?') ? '&' : '?') + 'raw=1' : path, opts)
     animPref = storage && storage.get('animations', 'on') === 'off' ? 'off' : 'on'
+    passStyle = cleanPassStyle(storage ? storage.get('passport_style', null) : null)
     const style = document.createElement('style')
     style.dataset.plugin = ID
     style.textContent = CSS

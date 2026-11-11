@@ -226,6 +226,10 @@ const TENURE_LOCALES = {
     "help.raw": "Raw type names on / off",
     "help.session_body": "Some asks (code run inline, complex shell commands, local commands tenure does not cover such as rm, mv or cp, and a command after outside content) offer “Allow for this session”: that ask stays quiet until the session ends. It is your choice, not evidence: it earns nothing, and a new session asks again.",
     "help.session_title": "Allow for this session",
+    "help.study_adds": "What tenure adds: the trusted start (not the study: trusted actions earn nothing), spot checks on a type that acts alone, two distinct sessions in the series that reaches T3, suspension after outside content, and carry-over to a new model (strict mode is the study). start: probation is the study's own start.",
+    "help.study_body": "After a type's first fault, or from the start with start: probation, tenure applies the rule of a preregistered study on earned autonomy: a sequential test (Wald) for the middle tier, act then tell you, and a CSP-1 series (Dodge's continuous sampling plan) for Tenured (T3). The study replays that rule on 6,000+ simulated agents. Its results are pending: tenure does not claim the study has confirmed the rule.",
+    "help.study_link": "The preregistration on OSF",
+    "help.study_title": "The study behind the rule",
     "help.tiers_climb": "A type climbs with verified successes and no fault. From Probation, at least {low} in a row at low stakes, or {medium} at medium stakes, reach Under review (T2); only reversible types pass through T2. A longer series, spread over at least {sessions} sessions, makes it Tenured (T3).",
     "help.tiers_drop": "One fault sends the type back down, and its series starts over.",
     "help.tiers_title": "The tiers",
@@ -351,6 +355,7 @@ const TENURE_LOCALES = {
     },
     "passport.note": "Signed and tamper-evident: a change after it is signed or anchored shows on verification. An older passport still verifies against a longer ledger; the verifier says what changed since.",
     "passport.pending_note": "Computed under the last logged settings; the new settings apply from the next action.",
+    "passport.rule_osf": "preregistered on OSF",
     "passport.save_image": "Save image (.png)",
     "passport.trusted": "Trusted (not earned)",
     "passport.types_title": "Attested types",
@@ -387,6 +392,30 @@ const TENURE_LOCALES = {
     },
     "profile.suspended_title": "A session read outside content: it asks for everything until it ends.",
     "profile.this_profile": " · this profile",
+    "pstyle.animation": "Animation",
+    "pstyle.animation_desc_develop": "The emblem develops point by point, the ledger hash settles, then the seal prints.",
+    "pstyle.animation_desc_holographic": "The card tilts slowly, with a glare band and a slow shimmer.",
+    "pstyle.animation_desc_scan": "A scan line prints the card from top to bottom.",
+    "pstyle.animation_desc_still": "No motion.",
+    "pstyle.animation_develop": "Develop",
+    "pstyle.animation_holographic": "Holographic",
+    "pstyle.animation_scan": "Scan",
+    "pstyle.animation_still": "Still",
+    "pstyle.card": "Card",
+    "pstyle.card_accent": "Accent",
+    "pstyle.card_ink": "Ink",
+    "pstyle.card_paper": "Paper",
+    "pstyle.customise": "Customise",
+    "pstyle.forced_still": "Animations are off, here or in your system: the passport stays still.",
+    "pstyle.help": "How the passport looks, on this page and in the saved image. For you only, on this screen; what the card says never changes.",
+    "pstyle.no_agent": "No agent yet: the preview appears with the first one.",
+    "pstyle.pattern": "Emblem pattern",
+    "pstyle.pattern_grid": "Grid",
+    "pstyle.pattern_note": "Every pattern fills with the share of autonomy the agent earned, laid out from its id: the same agent always gets the same emblem.",
+    "pstyle.pattern_rings": "Rings",
+    "pstyle.pattern_sunburst": "Sunburst",
+    "pstyle.preview": "Preview of your passport",
+    "pstyle.title": "Your passport",
     "recent.check_failed": "check failed",
     "recent.check_failed_tip": "The automatic check failed: already counted as a fault. Undo restores the files.",
     "recent.flag_desc": "This counts as a fault: {type} will drop at least one tier and climb again. Use it for an error nobody caught.",
@@ -442,6 +471,7 @@ const TENURE_LOCALES = {
     "settings.spot_value": "1 in {k}",
     "settings.start_help": "What an action type does before its first fault.",
     "settings.start_probation": "The study's start: every action type asks first (T1) and earns each tier from your answers.",
+    "settings.start_study": "The preregistered study's start",
     "settings.start_trusted": "Covered types (file edits, memory, subagents, known development tools) ask nothing until their first fault, as Hermes alone would. A fault puts that type on Probation (T1), and it earns its tier back. Leaving the machine and money always ask.",
     "settings.strict_desc_off": "A new model inherits the previous model's record at low and medium stakes, halved and provisional until its own approvals confirm it. High stakes start over.",
     "settings.strict_desc_on": "A new model starts with an empty record on every action type, as in the study.",
@@ -882,6 +912,10 @@ const TENURE_LOCALES = {
     "help.raw": "إظهار / إخفاء الأسماء الخام للأنواع",
     "help.session_body": "بعض الأسئلة (شيفرة تُشغَّل مباشرة، وأوامر shell المعقدة، وأوامر محلية غير مشمولة مثل rm وmv وcp، وأمر بعد قراءة محتوى خارجي) تعرض «السماح لهذه الجلسة»: فيسكت ذلك السؤال حتى تنتهي الجلسة. إنه اختيارك، لا دليل: لا يُكسب شيئًا، والجلسة الجديدة تسأل من جديد.",
     "help.session_title": "السماح لهذه الجلسة",
+    "help.study_adds": "ما يضيفه tenure: البداية الموثوقة (ليست من الدراسة: الإجراءات الموثوقة لا تكسب شيئًا)، وفحوص عشوائية على نوع يعمل وحده، وجلستان مختلفتان في السلسلة التي تبلغ T3، والإيقاف بعد محتوى خارجي، والنقل إلى نموذج جديد (الوضع الصارم هو الدراسة). start: probation هي بداية الدراسة نفسها.",
+    "help.study_body": "بعد أول إخفاق لنوع ما، أو منذ البداية مع start: probation، يطبّق tenure قاعدة دراسة مسجّلة مسبقًا عن الاستقلالية المكتسبة: اختبار تتابعي (Wald) للمستوى الأوسط، أي التنفيذ ثم إعلامك، وسلسلة CSP-1 (خطة Dodge للمعاينة المستمرة) لمستوى مُثبَّت (T3). تعيد الدراسة تشغيل هذه القاعدة على أكثر من 6000 وكيل محاكى. نتائجها لم تصدر بعد: لا يدّعي tenure أن الدراسة أكّدت القاعدة.",
+    "help.study_link": "التسجيل المسبق على OSF",
+    "help.study_title": "الدراسة وراء القاعدة",
     "help.tiers_climb": "يصعد النوع بنجاحات موثّقة دون إخفاق. من فترة الاختبار، يبلغ قيد المراجعة (T2) بعد {low} على التوالي على الأقل عند الخطورة المنخفضة، أو {medium} عند المتوسطة؛ ولا يمر بـ T2 إلا الأنواع القابلة للتراجع. وسلسلة أطول، موزّعة على {sessions} جلسات على الأقل، تجعله مُثبَّتًا (T3).",
     "help.tiers_drop": "إخفاق واحد يُنزل النوع، وتبدأ سلسلته من جديد.",
     "help.tiers_title": "المستويات",
@@ -1035,6 +1069,7 @@ const TENURE_LOCALES = {
     },
     "passport.note": "موقَّع ويكشف التلاعب: أي تغيير بعد توقيعه أو تثبيته يظهر عند التحقق. يظل الجواز الأقدم صالحًا مقابل دفتر أطول؛ ويذكر المتحقِّق ما تغيّر منذ ذلك.",
     "passport.pending_note": "محسوب وفق آخر إعدادات مسجّلة؛ تسري الإعدادات الجديدة من الإجراء التالي.",
+    "passport.rule_osf": "مسجّلة مسبقًا على OSF",
     "passport.save_image": "حفظ الصورة (.png)",
     "passport.trusted": "موثوق (غير مكتسب)",
     "passport.types_title": "الأنواع المشهود لها",
@@ -1083,6 +1118,30 @@ const TENURE_LOCALES = {
     },
     "profile.suspended_title": "قرأت الجلسة محتوى خارجيًا: يسأل عن كل شيء حتى تنتهي.",
     "profile.this_profile": " · الملف الشخصي الحالي",
+    "pstyle.animation": "الحركة",
+    "pstyle.animation_desc_develop": "يظهر الشعار نقطة بنقطة، ويستقر تجزئة السجل، ثم يُطبع الختم.",
+    "pstyle.animation_desc_holographic": "تميل البطاقة ببطء، مع شريط لمعان وبريق بطيء.",
+    "pstyle.animation_desc_scan": "خط مسح يطبع البطاقة من الأعلى إلى الأسفل.",
+    "pstyle.animation_desc_still": "بلا حركة.",
+    "pstyle.animation_develop": "إظهار",
+    "pstyle.animation_holographic": "هولوغرافي",
+    "pstyle.animation_scan": "مسح",
+    "pstyle.animation_still": "ثابت",
+    "pstyle.card": "البطاقة",
+    "pstyle.card_accent": "لون التمييز",
+    "pstyle.card_ink": "حبر",
+    "pstyle.card_paper": "ورق",
+    "pstyle.customise": "تخصيص",
+    "pstyle.forced_still": "الحركة متوقفة، هنا أو في نظامك: يبقى الجواز ثابتًا.",
+    "pstyle.help": "مظهر الجواز، في هذه الصفحة وفي الصورة المحفوظة. لك وحدك، على هذه الشاشة؛ ما تقوله البطاقة لا يتغيّر أبدًا.",
+    "pstyle.no_agent": "لا يوجد وكيل بعد: تظهر المعاينة مع أول وكيل.",
+    "pstyle.pattern": "نقش الشعار",
+    "pstyle.pattern_grid": "شبكة",
+    "pstyle.pattern_note": "كل نقش يمتلئ بحصة الاستقلالية التي اكتسبها الوكيل، ويُرتَّب انطلاقًا من معرّفه: للوكيل نفسه الشعار نفسه دائمًا.",
+    "pstyle.pattern_rings": "حلقات",
+    "pstyle.pattern_sunburst": "شمس",
+    "pstyle.preview": "معاينة جواز سفرك",
+    "pstyle.title": "جواز سفرك",
     "recent.check_failed": "فشل الفحص",
     "recent.check_failed_tip": "فشل الفحص التلقائي: حُسب إخفاقًا بالفعل. التراجع يستعيد الملفات.",
     "recent.flag_desc": "يُحسب هذا إخفاقًا: سينزل {type} مستوى واحدًا على الأقل ثم يصعد من جديد. استخدمه لخطأ لم يلحظه أحد.",
@@ -1142,6 +1201,7 @@ const TENURE_LOCALES = {
     "settings.spot_value": "1 من كل {k}",
     "settings.start_help": "ما يفعله نوع الإجراء قبل أول إخفاق له.",
     "settings.start_probation": "بداية الدراسة: كل نوع إجراء يسأل أولًا (T1) ويكتسب كل مستوى من إجاباتك.",
+    "settings.start_study": "بداية الدراسة المسجّلة مسبقًا",
     "settings.start_trusted": "الأنواع المشمولة (تعديل الملفات، والذاكرة، والوكلاء الفرعيون، وأدوات التطوير المعروفة) لا تسأل شيئًا حتى أول إخفاق لها، كما يعمل Hermes وحده. الإخفاق يضع ذلك النوع في فترة اختبار (T1)، ثم يستعيد مستواه. مغادرة الجهاز والمال يسألان دائمًا.",
     "settings.strict_desc_off": "يرث النموذج الجديد سجل النموذج السابق عند الخطورة المنخفضة والمتوسطة، منصّفًا ومؤقتًا حتى تؤكده موافقاته الخاصة. الخطورة العالية تبدأ من الصفر.",
     "settings.strict_desc_on": "يبدأ النموذج الجديد بسجل فارغ في كل نوع إجراء، كما في الدراسة.",
@@ -1576,6 +1636,10 @@ const TENURE_LOCALES = {
     "help.raw": "Nombres reales de los tipos: sí / no",
     "help.session_body": "Algunas preguntas (código ejecutado en línea, comandos de shell complejos, comandos locales no cubiertos como rm, mv o cp, y un comando tras contenido externo) ofrecen «Permitir esta sesión»: esa pregunta calla hasta que termina la sesión. Es tu elección, no evidencia: no hace ganar nada, y una sesión nueva vuelve a preguntar.",
     "help.session_title": "Permitir esta sesión",
+    "help.study_adds": "Lo que añade tenure: el inicio de confianza (no es el estudio: las acciones de confianza no ganan nada), controles aleatorios en un tipo que actúa solo, dos sesiones distintas en la serie que lleva a T3, la suspensión tras contenido externo y la herencia a un modelo nuevo (el modo estricto es el estudio). start: probation es el inicio propio del estudio.",
+    "help.study_body": "Tras el primer fallo de un tipo, o desde el inicio con start: probation, tenure aplica la regla de un estudio prerregistrado sobre la autonomía ganada: una prueba secuencial (Wald) para el nivel intermedio, actuar y luego avisarte, y una serie CSP-1 (el plan de muestreo continuo de Dodge) para Titular (T3). El estudio reproduce esa regla en más de 6.000 agentes simulados. Sus resultados están pendientes: tenure no afirma que el estudio haya confirmado la regla.",
+    "help.study_link": "El prerregistro en OSF",
+    "help.study_title": "El estudio detrás de la regla",
     "help.tiers_climb": "Un tipo sube con éxitos verificados y sin fallos. Desde el período de prueba, al menos {low} seguidas con impacto bajo, o {medium} con impacto medio, llevan a En revisión (T2); solo los tipos reversibles pasan por T2. Una serie más larga, repartida en al menos {sessions} sesiones, lo hace Titular (T3).",
     "help.tiers_drop": "Un solo fallo hace bajar el tipo, y su serie vuelve a empezar.",
     "help.tiers_title": "Los niveles",
@@ -1702,6 +1766,7 @@ const TENURE_LOCALES = {
     },
     "passport.note": "Firmado y a prueba de manipulaciones: cualquier cambio tras firmarlo o anclarlo se ve al verificarlo. Un pasaporte antiguo sigue verificándose frente a un registro más largo; el verificador indica qué ha cambiado desde entonces.",
     "passport.pending_note": "Calculado con los últimos ajustes registrados; los nuevos ajustes se aplican desde la próxima acción.",
+    "passport.rule_osf": "prerregistrada en OSF",
     "passport.save_image": "Guardar imagen (.png)",
     "passport.trusted": "De confianza (no ganado)",
     "passport.types_title": "Tipos certificados",
@@ -1738,6 +1803,30 @@ const TENURE_LOCALES = {
     },
     "profile.suspended_title": "Una sesión leyó contenido externo: pregunta por todo hasta que termine.",
     "profile.this_profile": " · este perfil",
+    "pstyle.animation": "Animación",
+    "pstyle.animation_desc_develop": "El emblema se revela punto a punto, el hash del registro se asienta y luego se imprime el sello.",
+    "pstyle.animation_desc_holographic": "La tarjeta se inclina despacio, con una banda de brillo y un reflejo lento.",
+    "pstyle.animation_desc_scan": "Una línea de escaneo imprime la tarjeta de arriba abajo.",
+    "pstyle.animation_desc_still": "Sin movimiento.",
+    "pstyle.animation_develop": "Revelado",
+    "pstyle.animation_holographic": "Holográfica",
+    "pstyle.animation_scan": "Escaneo",
+    "pstyle.animation_still": "Fija",
+    "pstyle.card": "Tarjeta",
+    "pstyle.card_accent": "Acento",
+    "pstyle.card_ink": "Tinta",
+    "pstyle.card_paper": "Papel",
+    "pstyle.customise": "Personalizar",
+    "pstyle.forced_still": "Las animaciones están desactivadas, aquí o en tu sistema: el pasaporte queda fijo.",
+    "pstyle.help": "El aspecto del pasaporte, en esta página y en la imagen guardada. Solo para ti, en esta pantalla; lo que dice la tarjeta nunca cambia.",
+    "pstyle.no_agent": "Aún no hay agentes: la vista previa aparecerá con el primero.",
+    "pstyle.pattern": "Motivo del emblema",
+    "pstyle.pattern_grid": "Cuadrícula",
+    "pstyle.pattern_note": "Cada motivo se llena con la parte de autonomía que ganó el agente, dispuesta a partir de su identificador: el mismo agente siempre tiene el mismo emblema.",
+    "pstyle.pattern_rings": "Anillos",
+    "pstyle.pattern_sunburst": "Sol",
+    "pstyle.preview": "Vista previa de tu pasaporte",
+    "pstyle.title": "Tu pasaporte",
     "recent.check_failed": "falló la comprobación",
     "recent.check_failed_tip": "La comprobación automática falló: ya se contó como fallo. Deshacer restaura los archivos.",
     "recent.flag_desc": "Cuenta como un fallo: {type} bajará al menos un nivel y tendrá que volver a subir. Úsalo para un error que nadie detectó.",
@@ -1793,6 +1882,7 @@ const TENURE_LOCALES = {
     "settings.spot_value": "1 de cada {k}",
     "settings.start_help": "Lo que hace un tipo de acción antes de su primer fallo.",
     "settings.start_probation": "El inicio del estudio: cada tipo de acción pregunta antes (T1) y gana cada nivel a partir de tus respuestas.",
+    "settings.start_study": "El inicio del estudio prerregistrado",
     "settings.start_trusted": "Los tipos cubiertos (edición de archivos, memoria, subagentes, herramientas de desarrollo conocidas) no preguntan nada hasta su primer fallo, como Hermes solo. Un fallo pone ese tipo en período de prueba (T1), y vuelve a ganarse su nivel. Salir de la máquina y el dinero siempre preguntan.",
     "settings.strict_desc_off": "Un modelo nuevo hereda el historial del anterior con impacto bajo y medio, a la mitad y provisional hasta que sus propias aprobaciones lo confirmen. El impacto alto empieza de cero.",
     "settings.strict_desc_on": "Un modelo nuevo empieza con un historial vacío en cada tipo de acción, como en el estudio.",
@@ -2171,6 +2261,10 @@ const TENURE_LOCALES = {
     "help.raw": "Afficher / masquer les noms bruts",
     "help.session_body": "Certaines demandes (code exécuté en ligne, commandes shell complexes, commandes locales non couvertes comme rm, mv ou cp, et une commande après du contenu extérieur) proposent « Autoriser cette session » : cette demande se tait jusqu'à la fin de la session. C'est votre choix, pas une preuve : il ne fait rien gagner, et une nouvelle session redemande.",
     "help.session_title": "Autoriser cette session",
+    "help.study_adds": "Ce que tenure ajoute : le départ en confiance (pas l'étude : les actions en confiance ne rapportent rien), des contrôles aléatoires sur un type qui agit seul, deux sessions distinctes dans la série qui mène à T3, la suspension après un contenu extérieur, et l'héritage vers un nouveau modèle (le mode strict suit l'étude). start: probation est le départ propre à l'étude.",
+    "help.study_body": "Après la première faute d'un type, ou dès le départ avec start: probation, tenure applique la règle d'une étude préenregistrée sur l'autonomie acquise : un test séquentiel (Wald) pour le niveau intermédiaire, agir puis vous prévenir, et une série CSP-1 (le plan d'échantillonnage continu de Dodge) pour Titulaire (T3). L'étude rejoue cette règle sur plus de 6 000 agents simulés. Ses résultats sont en attente : tenure n'affirme pas que l'étude a confirmé la règle.",
+    "help.study_link": "Le préenregistrement sur OSF",
+    "help.study_title": "L'étude derrière la règle",
     "help.tiers_climb": "Un type monte par des succès vérifiés, sans faute. Depuis la Probation, au moins {low} d'affilée à enjeu faible, ou {medium} à enjeu moyen, mènent En examen (T2) ; seuls les types réversibles passent par T2. Une série plus longue, répartie sur au moins {sessions} sessions, le rend Titulaire (T3).",
     "help.tiers_drop": "Une seule faute fait redescendre le type, et sa série repart de zéro.",
     "help.tiers_title": "Les niveaux",
@@ -2297,6 +2391,7 @@ const TENURE_LOCALES = {
     },
     "passport.note": "Signé et scellé : toute modification faite après la signature ou l'ancrage apparaît à la vérification. Un ancien passeport se vérifie encore avec un registre plus long ; le vérificateur indique ce qui a changé depuis.",
     "passport.pending_note": "Calculé avec les derniers réglages enregistrés ; les nouveaux réglages s'appliquent dès la prochaine action.",
+    "passport.rule_osf": "préenregistrée sur OSF",
     "passport.save_image": "Enregistrer l'image (.png)",
     "passport.trusted": "De confiance (non acquis)",
     "passport.types_title": "Types attestés",
@@ -2333,6 +2428,30 @@ const TENURE_LOCALES = {
     },
     "profile.suspended_title": "La session a lu du contenu externe : elle demande avant chaque action, jusqu'à sa fin.",
     "profile.this_profile": " · ce profil",
+    "pstyle.animation": "Animation",
+    "pstyle.animation_desc_develop": "L'emblème se révèle point par point, le hachage du registre se fixe, puis le sceau s'imprime.",
+    "pstyle.animation_desc_holographic": "La carte s'incline lentement, avec une bande de reflet et un lent miroitement.",
+    "pstyle.animation_desc_scan": "Une ligne de balayage imprime la carte de haut en bas.",
+    "pstyle.animation_desc_still": "Aucun mouvement.",
+    "pstyle.animation_develop": "Révélation",
+    "pstyle.animation_holographic": "Holographique",
+    "pstyle.animation_scan": "Balayage",
+    "pstyle.animation_still": "Fixe",
+    "pstyle.card": "Carte",
+    "pstyle.card_accent": "Accent",
+    "pstyle.card_ink": "Encre",
+    "pstyle.card_paper": "Papier",
+    "pstyle.customise": "Personnaliser",
+    "pstyle.forced_still": "Les animations sont désactivées, ici ou dans votre système : le passeport reste fixe.",
+    "pstyle.help": "L'apparence du passeport, sur cette page et dans l'image enregistrée. Pour vous seul, sur cet écran ; ce que dit la carte ne change jamais.",
+    "pstyle.no_agent": "Pas encore d'agent : l'aperçu apparaîtra avec le premier.",
+    "pstyle.pattern": "Motif de l'emblème",
+    "pstyle.pattern_grid": "Grille",
+    "pstyle.pattern_note": "Chaque motif se remplit de la part d'autonomie acquise par l'agent, disposée à partir de son identifiant : un même agent a toujours le même emblème.",
+    "pstyle.pattern_rings": "Anneaux",
+    "pstyle.pattern_sunburst": "Soleil",
+    "pstyle.preview": "Aperçu de votre passeport",
+    "pstyle.title": "Votre passeport",
     "recent.check_failed": "vérification échouée",
     "recent.check_failed_tip": "La vérification automatique a échoué : déjà comptée comme une faute. Annuler restaure les fichiers.",
     "recent.flag_desc": "Cela compte comme une faute : {type} descendra d'au moins un niveau et devra remonter. À utiliser pour une erreur que personne n'a repérée.",
@@ -2388,6 +2507,7 @@ const TENURE_LOCALES = {
     "settings.spot_value": "1 sur {k}",
     "settings.start_help": "Ce que fait un type d'action avant sa première faute.",
     "settings.start_probation": "Le départ de l'étude : chaque type d'action demande d'abord (T1) et gagne chaque niveau à partir de vos réponses.",
+    "settings.start_study": "Le départ de l'étude préenregistrée",
     "settings.start_trusted": "Les types couverts (modifications de fichiers, mémoire, sous-agents, outils de développement connus) ne demandent rien jusqu'à leur première faute, comme Hermes seul. Une faute met ce type en Probation (T1), et il regagne son niveau. Sortir de la machine et l'argent demandent toujours.",
     "settings.strict_desc_off": "Un nouveau modèle hérite de l'historique du précédent à enjeu faible et moyen, divisé par deux et provisoire jusqu'à ce que ses propres validations le confirment. L'enjeu élevé repart de zéro.",
     "settings.strict_desc_on": "Un nouveau modèle part d'un historique vide sur chaque type d'action, comme dans l'étude.",
@@ -2748,6 +2868,10 @@ const TENURE_LOCALES = {
     "help.raw": "切换原始类型名",
     "help.session_body": "有些询问（内联运行的代码、复杂的 shell 命令、未覆盖的本地命令如 rm、mv、cp，以及读取外部内容之后的命令）提供「允许本会话」：该询问在会话结束前不再出现。这是你的选择，不是证据：它不会赢得任何东西，新会话会再次询问。",
     "help.session_title": "允许本会话",
+    "help.study_adds": "tenure 的补充：信任起步（不属于研究：信任期间的操作不计入任何成绩）、对独立执行的类型进行抽查、到达 T3 的连续记录需跨越两个不同会话、读取外部内容后暂停，以及向新模型的继承（严格模式即研究原规则）。start: probation 就是研究本身的起点。",
+    "help.study_body": "某个类型出现第一次失误后，或在 start: probation 下从一开始，tenure 就采用一项关于“赢得的自主权”的预注册研究的规则：中间级别（先执行再告知你）用序贯检验（Wald），转正（T3）用 CSP-1 连续记录（Dodge 的连续抽样方案）。该研究在 6,000 多个模拟智能体上重放这一规则。结果尚未公布：tenure 并不声称研究已证实该规则。",
+    "help.study_link": "OSF 上的预注册",
+    "help.study_title": "规则背后的研究",
     "help.tiers_climb": "类型凭已验证的成功且无失误来升级。从试用期开始，低风险至少连续 {low} 次，或中风险 {medium} 次，进入考察中（T2）；只有可撤销的类型会经过 T2。更长的连续记录，分布在至少 {sessions} 个会话中，使其转正（T3）。",
     "help.tiers_drop": "一次失误就会让该类型降级，其连续记录重新开始。",
     "help.tiers_title": "级别",
@@ -2866,6 +2990,7 @@ const TENURE_LOCALES = {
     },
     "passport.note": "已签名且可发现篡改：签名或锚定后的任何改动都会在验证时显示出来。较早的护照对照更长的账本依然能通过验证；验证器会说明此后的变化。",
     "passport.pending_note": "按最近记录的设置计算；新设置从下一个操作起生效。",
+    "passport.rule_osf": "已在 OSF 预注册",
     "passport.save_image": "保存图片（.png）",
     "passport.trusted": "信任中（非赢得）",
     "passport.types_title": "已证实的类型",
@@ -2899,6 +3024,30 @@ const TENURE_LOCALES = {
     },
     "profile.suspended_title": "此会话读取了外部内容：在会话结束前，每次操作都会询问。",
     "profile.this_profile": " · 当前配置文件",
+    "pstyle.animation": "动画",
+    "pstyle.animation_desc_develop": "徽记逐点显影，账本哈希定格，然后盖上印章。",
+    "pstyle.animation_desc_holographic": "卡片缓缓倾斜，带一道反光和缓慢的闪烁。",
+    "pstyle.animation_desc_scan": "一条扫描线自上而下印出卡片。",
+    "pstyle.animation_desc_still": "没有动效。",
+    "pstyle.animation_develop": "显影",
+    "pstyle.animation_holographic": "全息",
+    "pstyle.animation_scan": "扫描",
+    "pstyle.animation_still": "静止",
+    "pstyle.card": "卡片",
+    "pstyle.card_accent": "强调色",
+    "pstyle.card_ink": "墨色",
+    "pstyle.card_paper": "纸色",
+    "pstyle.customise": "自定义",
+    "pstyle.forced_still": "动画已关闭（在这里或在你的系统中）：护照保持静止。",
+    "pstyle.help": "护照在本页和保存的图片中的外观。只对你、只在这台屏幕上生效；卡片上的内容永不改变。",
+    "pstyle.no_agent": "还没有智能体：有了第一个后会显示预览。",
+    "pstyle.pattern": "徽记图案",
+    "pstyle.pattern_grid": "网格",
+    "pstyle.pattern_note": "每种图案都按智能体赢得的自主权比例填充，并依据其标识排布：同一个智能体的徽记始终相同。",
+    "pstyle.pattern_rings": "圆环",
+    "pstyle.pattern_sunburst": "放射",
+    "pstyle.preview": "你的护照预览",
+    "pstyle.title": "你的护照",
     "recent.check_failed": "检查失败",
     "recent.check_failed_tip": "自动检查失败：已记为一次失误。撤销可恢复文件。",
     "recent.flag_desc": "这会记为一次失误：{type} 至少下降一个级别，之后需重新晋升。用于没人发现的错误。",
@@ -2953,6 +3102,7 @@ const TENURE_LOCALES = {
     "settings.spot_value": "每 {k} 个抽查 1 个",
     "settings.start_help": "操作类型在第一次失误之前的行为。",
     "settings.start_probation": "研究的起点：每个操作类型都先询问（T1），并根据你的回答赢得每个级别。",
+    "settings.start_study": "预注册研究的起点",
     "settings.start_trusted": "覆盖的类型（文件编辑、记忆、子智能体、常见开发工具）在第一次失误之前什么都不问，与 Hermes 单独运行时一样。一次失误会让该类型进入试用期（T1），之后重新赢得级别。离开本机的操作和涉及金钱的操作始终询问。",
     "settings.strict_desc_off": "新模型继承上一个模型在低风险和中风险上的记录，减半且为暂定，直到它自己的批准加以确认。高风险从零开始。",
     "settings.strict_desc_on": "新模型在每个操作类型上都从空记录开始，与研究中一致。",
@@ -3419,6 +3569,39 @@ const TENURE_LOCALES = {
   function motion() { return ANIM && !reducedMotion() && !document.hidden; }
   function readAnimPref() { try { return window.localStorage.getItem("tenure.animations") !== "off"; } catch (e) { return true; } }
   function writeAnimPref(on) { try { window.localStorage.setItem("tenure.animations", on ? "on" : "off"); } catch (e) { /* ignore */ } }
+
+  // The passport's look, per viewer (localStorage "tenure.passportStyle", JSON {animation, pattern, card}): the same
+  // options, words and defaults as the Desktop page. Only the look: every value on the card stays the agent's own.
+  var PASS_STYLE = { animation: ["develop", "holographic", "scan", "still"], pattern: ["sunburst", "rings", "grid"], card: ["accent", "ink", "paper"] };
+  var PASS_STYLE_DEFAULT = { animation: "develop", pattern: "sunburst", card: "accent" };
+  function cleanPassStyle(o) {
+    var out = Object.assign({}, PASS_STYLE_DEFAULT);
+    if (o && typeof o === "object") Object.keys(PASS_STYLE).forEach(function (k) { if (PASS_STYLE[k].indexOf(o[k]) >= 0) out[k] = o[k]; });
+    return out;
+  }
+  function readPassStyle() {
+    try { return cleanPassStyle(JSON.parse(window.localStorage.getItem("tenure.passportStyle") || "null")); } catch (e) { return cleanPassStyle(null); }
+  }
+  var PASS_LOOK = readPassStyle(), passLookSubs = [], focusPassStyle = false;
+  function writePassStyle(patch) {
+    PASS_LOOK = cleanPassStyle(Object.assign({}, PASS_LOOK, patch));
+    try { window.localStorage.setItem("tenure.passportStyle", JSON.stringify(PASS_LOOK)); } catch (e) { /* this view only */ }
+    passLookSubs.slice().forEach(function (f) { f(PASS_LOOK); });
+  }
+  function usePassStyle() {
+    var st = useState(PASS_LOOK), set = st[1];
+    useEffect(function () {
+      passLookSubs.push(set);
+      return function () { passLookSubs = passLookSubs.filter(function (f) { return f !== set; }); };
+    }, []);
+    return st[0];
+  }
+  /** A stable number in [0, 1) from an agent's id: it lays out the emblem's rings or lattice, never its density. */
+  function seedOf(id) {
+    var hs = 2166136261, str = String(id || "");
+    for (var i = 0; i < str.length; i++) hs = Math.imul(hs ^ str.charCodeAt(i), 16777619);
+    return (hs >>> 0) / 4294967296;
+  }
   function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
   function easeOut(x) { return 1 - Math.pow(1 - x, 3); }
 
@@ -3554,7 +3737,7 @@ const TENURE_LOCALES = {
       if (s.v === target && s.color === col && s.w === w && s.dpr === dpr && s.geo === gk) return;
       var from = s.v, first = from === null;
       s.color = col; s.w = w; s.dpr = dpr; s.v = target; s.geo = gk;
-      if (!motion() || (!first && from === target)) { cancelAnimationFrame(s.raf); paintBar(cv, target, 1, 0, geo); return; }
+      if (props.still || !motion() || (!first && from === target)) { cancelAnimationFrame(s.raf); paintBar(cv, target, 1, 0, geo); return; }
       if (first) {
         tween(s, 600, props.delay || 0, function (k) { paintBar(cv, target, easeOut(k), 0, geo); });
       } else if (from === TRUST_BAR || target === TRUST_BAR) {
@@ -3575,23 +3758,48 @@ const TENURE_LOCALES = {
     return h("canvas", { ref: ref, className: cx("tnr-dbar", props.className), "aria-hidden": true });
   }
 
-  /** The emblem: an original dithered sunburst, its density the share of earned autonomy. */
-  function embValue(i, j, n, rot, share) {
+  /** The emblem: an original dithered sunburst, its density the share of earned autonomy. The passport can draw it
+   *  as concentric rings or a square lattice instead (Settings, "Your passport"): the same density from the same
+   *  share, laid out from a seed taken from the agent's id, so one agent's emblem never changes. Same formulas as
+   *  the Desktop page. */
+  function embValue(i, j, n, rot, share, pattern, seed) {
     var c = n / 2, dx = i - c + 0.5, dy = j - c + 0.5, r = Math.sqrt(dx * dx + dy * dy) / c;
     if (r > 1) return -1;
+    if (pattern === "rings" || pattern === "grid") {
+      var ux = dx / c, uy = dy / c, w, sd = seed || 0;
+      if (pattern === "rings") {
+        var wob = 0.035 * Math.cos((Math.atan2(uy, ux) + rot) * 3 + sd * 6.283);
+        w = Math.pow((Math.cos((r + wob) * Math.PI * 2 * (6 + Math.floor(sd * 3)) + sd * 6.283) + 1) / 2, 2);
+      } else {
+        var ang = rot + sd * 1.571, ca = Math.cos(ang), sa = Math.sin(ang);
+        var u = (ux * ca - uy * sa) / 0.19 + sd * 7, vv = (ux * sa + uy * ca) / 0.19 + sd * 3;
+        w = Math.max(Math.abs(u - Math.round(u)), Math.abs(vv - Math.round(vv))) < 0.3 ? 1 : 0.2;
+      }
+      var cr = pattern === "rings" ? Math.max(0, 1 - r / 0.2) * (0.45 + 0.55 * share) : 0;
+      var pv = Math.max(cr * 1.15, w * (1.1 - r) * 1.25 * (0.18 + 0.82 * share), 0.16 * (1 - r));
+      // A fixed mark of its own, as the sunburst's inner circle: three thin rings, or a square turned with the lattice.
+      if (pattern === "rings") {
+        if (Math.abs(r - 0.3) < 0.02 || Math.abs(r - 0.55) < 0.02 || Math.abs(r - 0.78) < 0.02) pv = 1;
+      } else {
+        var an2 = rot + sd * 1.571, q = Math.max(Math.abs(ux * Math.cos(an2) - uy * Math.sin(an2)), Math.abs(ux * Math.sin(an2) + uy * Math.cos(an2)));
+        if (Math.abs(q - 0.4) < 0.022) pv = 1;
+      }
+      if (Math.abs(r - 0.97) < 0.02) pv = 1;
+      return pv;
+    }
     var a = Math.atan2(dy, dx) + rot, ray = Math.pow((Math.cos(a * 36) + 1) / 2, 2), core = Math.max(0, 1 - r / 0.42);
     var v = Math.max(core * 1.15, ray * (1.08 - r) * 1.25 * (0.4 + 0.6 * share), 0.18 * (1 - r));
     if (Math.abs(r - 0.47) < 0.025 || Math.abs(r - 0.97) < 0.02) v = 1;
     return v;
   }
-  function paintEmblem(cv, size, n, share, dev, rot) {
+  function paintEmblem(cv, size, n, share, dev, rot, pattern, seed) {
     var x = prep(cv, size, size);
-    if (x) drawEmblem(x, size, n, share, dev, rot);
+    if (x) drawEmblem(x, size, n, share, dev, rot, pattern, seed);
   }
-  function drawEmblem(x, size, n, share, dev, rot) {
+  function drawEmblem(x, size, n, share, dev, rot, pattern, seed) {
     var c = size / n, g = Math.min(0.8, c * 0.27), d = dev * 16;
     for (var j = 0; j < n; j++) for (var i = 0; i < n; i++) {
-      var v = embValue(i, j, n, rot, share);
+      var v = embValue(i, j, n, rot, share, pattern, seed);
       if (v < 0) continue;
       var th = BAYER[j & 3][i & 3];
       if (v * 16 > th && th < d) x.fillRect(i * c, j * c, c - g, c - g);
@@ -3605,19 +3813,21 @@ const TENURE_LOCALES = {
     var st = useRef({ share: null, color: "", raf: 0, rot: 0, loop: 0, seen: true });
     var size = props.size || 72, n = Math.min(96, props.cells || Math.round(size / 3));
     var share = clamp01(props.share || 0);
+    var pat = props.pattern || "sunburst", seed = props.seed || 0;
+    function paint(cv, sh, dev, rot) { paintEmblem(cv, size, n, sh, dev, rot, pat, seed); }
     useEffect(function () {
       var cv = ref.current, s = st.current;
       if (!cv) return;
-      var col = getComputedStyle(cv).color;
-      if (s.share === share && s.color === col) return;
+      var col = getComputedStyle(cv).color, pk = pat + "|" + seed;
+      if (s.share === share && s.color === col && s.pk === pk) return;
       var from = s.share;
-      s.share = share; s.color = col;
-      if (!motion()) { paintEmblem(cv, size, n, share, 1, s.rot); return; }
+      s.share = share; s.color = col; s.pk = pk;
+      if (props.still || !motion()) { paint(cv, share, 1, s.rot); return; }
       if (from === null) {
-        tween(s, props.developMs || 1400, props.delay || 0, function (k) { paintEmblem(cv, size, n, share, k, s.rot); }, startLoop);
+        tween(s, props.developMs || 1400, props.delay || 0, function (k) { paint(cv, share, k, s.rot); }, startLoop);
       } else if (share > from) {
-        tween(s, 900, 0, function (k) { paintEmblem(cv, size, n, clamp01(share + 0.45 * Math.sin(Math.PI * k)), 1, s.rot); }, startLoop);
-      } else paintEmblem(cv, size, n, share, 1, s.rot);
+        tween(s, 900, 0, function (k) { paint(cv, clamp01(share + 0.45 * Math.sin(Math.PI * k)), 1, s.rot); }, startLoop);
+      } else paint(cv, share, 1, s.rot);
     });
     function startLoop() {
       var s = st.current, cv = ref.current, last = 0;
@@ -3627,7 +3837,7 @@ const TENURE_LOCALES = {
         if (!motion() || !s.seen) { s.loop = 0; return; }   // resumed by the observer or the next render
         if (last) s.rot += Math.min(0.1, (ts - last) / 1000) * 0.06;
         last = ts;
-        if (!s.raf) paintEmblem(cv, size, n, s.share, 1, s.rot);     // a pulse in progress paints itself
+        if (!s.raf) paint(cv, s.share, 1, s.rot);     // a pulse in progress paints itself
         s.loop = requestAnimationFrame(f);
       }
       s.loop = requestAnimationFrame(f);
@@ -4613,22 +4823,31 @@ const TENURE_LOCALES = {
     if (!agents.length) return h(Empty, { title: t("switch.empty") });
     var counts = {};
     if (res) res.types.forEach(function (ty) { counts[ty.status] = (counts[ty.status] || 0) + 1; });
+    function run() { setTo(draft.trim()); }
     return h("div", { className: "tnr-switch" },
       h("p", { className: "tnr-lede" }, t("switch.lede")),
       h("form", {
-        className: "tnr-switch-form", onSubmit: function (e) { e.preventDefault(); setTo(draft.trim()); }
+        className: "tnr-switch-form", onSubmit: function (e) { e.preventDefault(); run(); }
       },
         h("label", { className: "tnr-field" }, h("span", null, t("switch.from")),
           h(Sel, { value: fromRow ? fromRow.key : "", onChange: setFrom, label: t("switch.from"),
             options: agents.map(function (r) { return [r.key, r.agent.agent + " · " + r.profile]; }) })),
-        h("span", { className: "tnr-switch-arrow", "aria-hidden": true }, t("common.arrow")),
+        // The arrow runs the preview too: it reads as the action between the two agents.
+        h("button", { type: "submit", className: "tnr-switch-arrow tnr-focus", title: t("switch.preview"), "aria-label": t("switch.preview") }, t("common.arrow")),
         h("label", { className: "tnr-field tnr-field--grow" }, h("span", null, t("switch.to")),
           h("input", {
             className: "tnr-input", list: "tnr-models-list", placeholder: t("switch.placeholder", { example: models[0] || "gpt-5" }),
-            value: draft, onChange: function (e) { setDraft(e.target.value); }, "aria-label": t("switch.to_aria"), name: "to"
+            value: draft, "aria-label": t("switch.to_aria"), name: "to",
+            onChange: function (e) {
+              var v = e.target.value, ev = e.nativeEvent || {};
+              setDraft(v);
+              // A suggestion picked from the list (or a known model typed in full) runs the preview at once.
+              if (ev.inputType === "insertReplacementText" || (!ev.inputType && models.indexOf(v.trim()) >= 0)) setTo(v.trim());
+            }
           }),
           h("datalist", { id: "tnr-models-list" }, models.map(function (m) { return h("option", { key: m, value: m }); }))),
-        h(Btn, { kind: "primary", className: "tnr-switch-go" }, t("switch.preview"))),
+        // Btn is type="button" (it never submits a form by itself): the preview runs from its click.
+        h(Btn, { kind: "primary", className: "tnr-switch-go", onClick: run }, t("switch.preview"))),
       err ? h("div", { className: "tnr-error" }, err) : null,
       !to ? h(Empty, { title: t("switch.pick.title") }, t("switch.pick.body")) : null,
       res ? h(Fragment, null,
@@ -4726,6 +4945,8 @@ const TENURE_LOCALES = {
    *  displayed. The seal and the check mark only when the passport verified. */
   function passportPng(card, o) {
     var cs = getComputedStyle(card), paper = cs.backgroundColor, ink = cs.color, rtl = cs.direction === "rtl";
+    // The emblem, the seal and the signature take the card's detail colour (the accent on an Ink card).
+    var embEl = card.querySelector(".tnr-pass-emblem canvas"), detail = embEl ? getComputedStyle(embEl).color : ink;
     var nameEl = card.querySelector(".tnr-pass-name"), codeEl = card.querySelector("code");
     var disp = nameEl ? getComputedStyle(nameEl).fontFamily : "sans-serif";
     var mono = codeEl ? getComputedStyle(codeEl).fontFamily : "ui-monospace, monospace";
@@ -4752,8 +4973,8 @@ const TENURE_LOCALES = {
     function rule(y) { x.globalAlpha = 0.35; x.fillRect(pad, y, W - pad * 2, 1.5); x.globalAlpha = 1; }
     text("TENURE", start, yTop, "500 17px " + label, "start");
     text(up(t("passport.card.title") + " · " + (o.signed ? "ED25519" : t("passport.value.unsigned"))) + (o.ok ? " ✓" : ""), end, yTop, "500 17px " + label, "end");
-    x.save(); x.translate((W - EMB) / 2, yEmb); drawEmblem(x, EMB, 96, o.share, 1, 0); x.restore();
-    if (o.ok) { x.save(); x.translate(rtl ? pad : W - pad - 96, yEmb - 8); x.globalAlpha = 0.92; drawSeal(x, 96, 1); x.restore(); }
+    x.save(); x.fillStyle = detail; x.translate((W - EMB) / 2, yEmb); drawEmblem(x, EMB, 96, o.share, 1, 0, o.pattern, o.seed); x.restore();
+    if (o.ok) { x.save(); x.fillStyle = detail; x.translate(rtl ? pad : W - pad - 96, yEmb - 8); x.globalAlpha = 0.92; drawSeal(x, 96, 1); x.restore(); }
     x.save(); x.direction = "ltr"; x.font = "400 " + nameSize + "px " + disp; x.textAlign = "center"; x.fillText(o.name, W / 2, yName); x.restore();
     rule(yRule1);
     var BAR_W = 300, COUNT_W = 90;
@@ -4789,7 +5010,7 @@ const TENURE_LOCALES = {
     var hw = x.measureText(o.head).width;
     x.save(); x.direction = "ltr"; x.textAlign = rtl ? "left" : "right"; x.fillText(o.head, end, yFoot); x.restore();
     text(up(t("passport.field.ledger")), rtl ? end + hw + 12 : end - hw - 12, yFoot, "500 15px " + label, "end");
-    x.save(); x.globalAlpha = 0.85; x.translate(rtl ? W - pad - 30 : pad, ySig - 22); drawEmblem(x, 30, 18, 1, 1, 0); x.restore();
+    x.save(); x.fillStyle = detail; x.globalAlpha = 0.85; x.translate(rtl ? W - pad - 30 : pad, ySig - 22); drawEmblem(x, 30, 18, 1, 1, 0); x.restore();
     x.save(); x.direction = "ltr"; x.font = "700 17px " + disp; x.textAlign = rtl ? "right" : "left";
     var bw = x.measureText("TENURE").width; x.fillText("TENURE", rtl ? W - pad - 42 : pad + 42, ySig); x.restore();
     text(t("passport.card.signature"), rtl ? W - pad - 42 - bw - 14 : pad + 42 + bw + 14, ySig, "400 15px " + label, "start");
@@ -4798,6 +5019,9 @@ const TENURE_LOCALES = {
 
   function PassportCard(props) {
     var d = props.doc, ok = props.ok;
+    // The Animations switch and reduced motion force Still; only Develop runs the printed entrance below.
+    var look = props.look || PASS_STYLE_DEFAULT, anim = motion() ? look.animation : "still";
+    var dev = anim === "develop", tilts = dev || anim === "holographic", seed = seedOf(props.seedId || (d.agent.model + "@" + d.agent.provider));
     var cardRef = useRef(null), okRef = useRef(null), sealRef = useRef(null), sweepRef = useRef(null);
     var st = useRef({ raf: 0, done: false, color: "" });
     var name = d.agent.model, head = short(d.ledger.head, 8);
@@ -4823,7 +5047,7 @@ const TENURE_LOCALES = {
     useEffect(function () {
       var s = st.current, card = cardRef.current;
       if (!card) return undefined;
-      if (!motion()) { s.done = true; settle(); return undefined; }
+      if (!dev) { s.done = true; settle(); return undefined; }
       var H = card.clientHeight;
       tween(s, 1500, 0, function (k) {
         var tt = k * 1.5;
@@ -4842,7 +5066,7 @@ const TENURE_LOCALES = {
     });
     function tilt(e) {
       var card = cardRef.current;
-      if (!card || e.pointerType !== "mouse" || !motion()) return;
+      if (!card || e.pointerType !== "mouse" || !tilts) return;
       var r = card.getBoundingClientRect(), px = (e.clientX - r.left) / r.width - 0.5, py = (e.clientY - r.top) / r.height - 0.5;
       card.style.transform = "perspective(900px) rotateY(" + (px * 8).toFixed(2) + "deg) rotateX(" + (-py * 8).toFixed(2) + "deg)";
       card.style.setProperty("--gx", (px + 0.5).toFixed(3));
@@ -4854,17 +5078,20 @@ const TENURE_LOCALES = {
       card.style.transform = ""; card.classList.remove("is-tilt");
     }
     if (props.cardRef) props.cardRef.current = { el: function () { return cardRef.current; },
-      data: { name: name, head: head, types: types, byType: byType, totals: totals, share: autonomyShare(types), signed: !!d.signature } };
+      data: { name: name, head: head, types: types, byType: byType, totals: totals, share: autonomyShare(types), signed: !!d.signature,
+        pattern: look.pattern, seed: seed } };
     return h("div", { className: "tnr-pass-wrap" },
       h("div", { ref: cardRef, className: "tnr-pass", role: "img", "aria-label": t("passport.card.aria", { agent: name, verdict: props.verdict }),
-        onPointerMove: tilt, onPointerLeave: untilt },
+        "data-anim": anim, "data-card": look.card, onPointerMove: tilt, onPointerLeave: untilt },
         h("div", { ref: sweepRef, className: "tnr-pass-sweep", "aria-hidden": true }),
+        anim === "holographic" ? h("div", { className: "tnr-pass-holo", "aria-hidden": true }) : null,
+        anim === "scan" ? h("div", { className: "tnr-pass-scanline", "aria-hidden": true }) : null,
         h("div", { className: "tnr-pass-top", "aria-hidden": true },
           h("span", null, "TENURE"),
           h("span", null, t("passport.card.title") + " · " + (d.signature ? "ED25519" : t("passport.value.unsigned")) + " ",
-            h("span", { ref: okRef, className: cx("tnr-pass-ok", !motion() && ok && "is-on") }, "✓"))),
+            h("span", { ref: okRef, className: cx("tnr-pass-ok", !dev && ok && "is-on") }, "✓"))),
         h("div", { className: "tnr-pass-emblem", "aria-hidden": true },
-          h(Emblem, { share: autonomyShare(types), size: 176, cells: 64, rotate: true, developMs: 600 })),
+          h(Emblem, { share: autonomyShare(types), size: 176, cells: 64, rotate: dev, still: !dev, developMs: 600, pattern: look.pattern, seed: seed })),
         h("div", { className: "tnr-pass-name", "aria-hidden": true }, h("bdi", null, name)),
         h("div", { className: "tnr-pass-rows", "aria-hidden": true },
           types.slice(0, PASS_ROWS).map(function (ty, i) {
@@ -4876,7 +5103,7 @@ const TENURE_LOCALES = {
               h("span", { className: "tnr-pass-k" }, h("bdi", null, h("span", { className: "tnr-pass-n" }, nth(i + 1)), " ", h("code", null, ty.type)),
                 trust ? h("span", { className: "tnr-pass-tier" }, h("b", null, t("passport.trusted")))
                   : h("span", { className: "tnr-pass-tier" }, h("b", null, cap ? t("tier.capped.chip") : TIER[eff]), " " + tierLabel(eff, cap))),
-              h(DitherBar, Object.assign(bp, { className: "tnr-pass-bar", delay: 120 + i * 80 })),
+              h(DitherBar, Object.assign(bp, { className: "tnr-pass-bar", delay: 120 + i * 80, still: !dev })),
               h("span", { className: "tnr-pass-count" }, cap || trust || ty.required == null ? "" : num(ty.series) + "/" + num(ty.required)));
           }),
           types.length > PASS_ROWS ? h("div", { className: "tnr-pass-more" }, t("passport.more_types", { n: types.length - PASS_ROWS })) : null),
@@ -4885,11 +5112,12 @@ const TENURE_LOCALES = {
           h("span", null, t("passport.field.ledger") + " ", h("span", { className: "tnr-pass-hash" }, head))),
         h("div", { className: "tnr-pass-sig", "aria-hidden": true },
           h(Emblem, { share: 1, size: 16, cells: 16 }), h("b", null, "TENURE"), h("span", null, t("passport.card.signature"))),
-        h("canvas", { ref: sealRef, className: cx("tnr-pass-seal", !motion() && ok && "is-on"), "aria-hidden": true })));
+        h("canvas", { ref: sealRef, className: cx("tnr-pass-seal", !dev && ok && "is-on"), "aria-hidden": true })));
   }
 
   function PassportView(props) {
     var agents = props.rows;
+    var look = usePassStyle();
     var selS = useState(""), sel = selS[0], setSel = selS[1];
     var row = agents.filter(function (r) { return r.key === sel; })[0] || agents[0];
     var res = usePoll(function () {
@@ -4925,11 +5153,13 @@ const TENURE_LOCALES = {
             options: agents.map(function (r) { return [r.key, r.agent.agent + " · " + r.profile]; }) })),
         h(Btn, { kind: "primary", onClick: download, disabled: !d }, t("passport.download")),
         h(Btn, { onClick: saveImage, disabled: !d || drawing }, drawing ? "…" : t("passport.save_image")),
+        h("button", { type: "button", className: "tnr-linkbtn tnr-focus", onClick: props.onCustomise }, t("pstyle.customise")),
         h("span", { className: "tnr-dim tnr-small" }, t("passport.note"))),
       res.error && !res.data ? h("div", { className: "tnr-error" }, errText(res.error)) : h(Stale, { res: res }),
       pending && d ? h("div", { className: "tnr-note" }, t("passport.pending_note")) : null,
       !d ? h("div", { className: "tnr-dim tnr-pad" }, t("common.loading")) : h("div", { className: "tnr-passport-grid" },
-        h(PassportCard, { key: row.key + "|" + d.ledger.head, doc: d, ok: verified, verdict: v.title, mapTypes: row.agent.types, cardRef: cardApi }),
+        h(PassportCard, { key: row.key + "|" + d.ledger.head + "|" + look.animation, doc: d, ok: verified, verdict: v.title, mapTypes: row.agent.types, cardRef: cardApi,
+          look: look, seedId: row.agent.agent }),
         h("section", { className: cx("tnr-verdict", "tnr-verdict--" + v.tone) },
           h("div", { className: "tnr-verdict-title" }, v.title),
           h("ul", null, v.lines.map(function (l, i) { return h("li", { key: i }, l); })),
@@ -4940,7 +5170,8 @@ const TENURE_LOCALES = {
         h("section", { className: "tnr-passport-fields" },
           h("dl", null,
             [["protocol", d.protocol], ["agent", d.agent.model + "@" + d.agent.provider],
-              ["profile", t("passport.value.hashed", { profile: d.agent.profile })], ["rule", d.rule.name + " · " + short(d.rule.fingerprint, 16)],
+              ["profile", t("passport.value.hashed", { profile: d.agent.profile })],
+              ["rule", h(Fragment, null, d.rule.name + " · " + short(d.rule.fingerprint, 16), h("div", { className: "tnr-ext-line" }, h(ExtLink, { href: OSF_URL }, t("passport.rule_osf"))))],
               ["settings", short(d.settings_fingerprint, 16)],
               ["ledger", t("passport.value.ledger", { n: d.ledger.count, head: short(d.ledger.head, 16) })],
               ["public_key", short(d.public_key, 24) || t("passport.value.none")],
@@ -5278,13 +5509,50 @@ const TENURE_LOCALES = {
       h(OrTerminal, { config: true, st: st, text: "enabled: " + (enabled === false ? "true" : "false") }));
   }
   function SettingRow(props) {
-    return h("section", { className: "tnr-srow" },
+    return h("section", { className: "tnr-srow", id: props.id },
       h(Eyebrow, { n: props.n }, props.title),
       props.help ? h("p", { className: "tnr-dim tnr-small tnr-srow-help" }, props.help) : null,
       props.children);
   }
 
-  /** The settings in force in this profile, each one changeable here, in the same eight sections and words as the
+  // The preregistration of the study whose rule tenure applies after a first mistake (docs/the-study.md).
+  var OSF_URL = "https://osf.io/vycge/";
+  /** A link out, in a new tab, as the dashboard's own outside links. */
+  function ExtLink(props) {
+    return h("a", { className: "tnr-ext tnr-focus", href: props.href, target: "_blank", rel: "noreferrer" }, props.children, h("span", { "aria-hidden": true }, " ↗"));
+  }
+
+  /** Settings, "Your passport": animation, emblem pattern and card, with the card itself as a live preview (the first
+   *  agent of this profile, its real record; no ledger head here, the passport view verifies it). */
+  var PSTYLE_LABELS = {
+    animation: function (id) { return { develop: t("pstyle.animation_develop"), holographic: t("pstyle.animation_holographic"), scan: t("pstyle.animation_scan"), still: t("pstyle.animation_still") }[id]; },
+    pattern: function (id) { return { sunburst: t("pstyle.pattern_sunburst"), rings: t("pstyle.pattern_rings"), grid: t("pstyle.pattern_grid") }[id]; },
+    card: function (id) { return { accent: t("pstyle.card_accent"), ink: t("pstyle.card_ink"), paper: t("pstyle.card_paper") }[id]; }
+  };
+  function animDesc(id) {
+    return { develop: t("pstyle.animation_desc_develop"), holographic: t("pstyle.animation_desc_holographic"), scan: t("pstyle.animation_desc_scan"), still: t("pstyle.animation_desc_still") }[id];
+  }
+  function PassportStyleControl(props) {
+    var look = usePassStyle(), row = props.row;
+    function line(key, label) {
+      return h("div", { className: "tnr-pstyle-row" }, h("span", { className: "tnr-eyebrow" }, label),
+        h(Seg, { label: label, value: look[key], onPick: function (id) { var o = {}; o[key] = id; writePassStyle(o); },
+          options: PASS_STYLE[key].map(function (id) { return { id: id, label: PSTYLE_LABELS[key](id) }; }) }));
+    }
+    var doc = row ? { agent: { model: row.agent.model, provider: row.agent.provider }, ledger: { head: null }, types: row.agent.types || [], signature: null } : null;
+    return h("div", { className: "tnr-pstyle" },
+      h("div", { className: "tnr-pstyle-ctl" },
+        line("animation", t("pstyle.animation")),
+        h("p", { className: "tnr-dim tnr-small" }, props.moving ? animDesc(look.animation) : t("pstyle.forced_still")),
+        line("pattern", t("pstyle.pattern")),
+        h("p", { className: "tnr-dim tnr-small" }, t("pstyle.pattern_note")),
+        line("card", t("pstyle.card"))),
+      doc ? h("div", { className: "tnr-pstyle-preview", role: "group", "aria-label": t("pstyle.preview") },
+        h(PassportCard, { key: row.key + look.animation + look.pattern + look.card, doc: doc, ok: false, verdict: "", mapTypes: row.agent.types, look: look, seedId: row.agent.agent }))
+        : h("p", { className: "tnr-dim tnr-small" }, t("pstyle.no_agent")));
+  }
+
+  /** The settings in force in this profile, each one changeable here, in the same nine sections and words as the
    *  Desktop page: saved through POST /settings (Hermes' own plugin-settings writer), then re-read, so what shows is
    *  what is in force. The equivalent command stays under each control, and is the way when saving is refused. */
   function SettingsView(props) {
@@ -5302,6 +5570,15 @@ const TENURE_LOCALES = {
     var common = { raw: props.raw, onReadOnly: props.onReadOnly, readOnly: props.readOnly };
     function ctl(extra) { return Object.assign({}, common, extra); }
     var anim = props.anim;
+    var rows = props.rows || [];
+    var here = rows.filter(function (r) { return r.profile === profile; })[0] || rows[0] || null;
+    // "Customise" next to a passport opens Settings on this section.
+    useEffect(function () {
+      if (!focusPassStyle) return;
+      focusPassStyle = false;
+      var el = document.getElementById("tnr-pass-style");
+      if (el) el.scrollIntoView({ block: "start" });
+    }, []);
     return h("div", { className: "tnr-settings" },
       h("header", { className: "tnr-shero" },
         h("div", { className: "tnr-eyebrow" }, "#" + t("view.settings"), h("span", { className: "tnr-dim" }, " · "), t("meta.profile") + " ", h("bdi", null, profile)),
@@ -5325,7 +5602,9 @@ const TENURE_LOCALES = {
           options: [true, false].map(function (tr) {
             return { id: tr ? "trusted" : "probation",
               head: h("span", { className: "tnr-opt-name tnr-opt-start" }, h(TierChip, { tier: tr ? "trusted" : "ask", still: true }), t(tr ? "start.trusted" : "start.probation")),
-              body: h("p", { className: "tnr-small" }, t(tr ? "settings.start_trusted" : "settings.start_probation")) };
+              body: tr ? h("p", { className: "tnr-small" }, t("settings.start_trusted"))
+                : h(Fragment, null, h("p", { className: "tnr-small" }, t("settings.start_probation")),
+                  h("p", { className: "tnr-dim tnr-small" }, t("settings.start_study") + " · ", h(ExtLink, { href: OSF_URL }, "OSF"))) };
           }) }))),
       h(SettingRow, { n: 4, title: t("settings.spot_title") }, h(SpotControl, ctl({ spot: spot }))),
       h(SettingRow, { n: 5, title: t("settings.strict_title"), help: t("settings.strict_help") },
@@ -5341,8 +5620,10 @@ const TENURE_LOCALES = {
             h("input", { type: "checkbox", checked: anim.on && !anim.reduced, disabled: anim.reduced, onChange: function (e) { anim.set(e.target.checked); } }),
             h("span", { className: "tnr-toggle-track", "aria-hidden": true }),
             h("span", null, t("page.animations"))))),
-      h(SettingRow, { n: 7, title: t("settings.enabled_title"), help: t("settings.enabled_help") }, h(EnabledControl, ctl({ enabled: enabled }))),
-      h(SettingRow, { n: 8, title: t("settings.advanced_title"), help: t("settings.advanced_help") },
+      h(SettingRow, { n: 7, id: "tnr-pass-style", title: t("pstyle.title"), help: t("pstyle.help") },
+        h(PassportStyleControl, { row: here, moving: anim.on && !anim.reduced })),
+      h(SettingRow, { n: 8, title: t("settings.enabled_title"), help: t("settings.enabled_help") }, h(EnabledControl, ctl({ enabled: enabled }))),
+      h(SettingRow, { n: 9, title: t("settings.advanced_title"), help: t("settings.advanced_help") },
         h("p", { className: "tnr-small" }, t("settings.advanced_types")),
         h("pre", { className: "tnr-pre" }, TYPES_YAML),
         h("p", { className: "tnr-dim tnr-small" }, t("settings.advanced_docs"))));
@@ -5351,7 +5632,7 @@ const TENURE_LOCALES = {
   // ------------------------------------------------------------------------------------------------------ help
   var EXPORT_COMMAND = "hermes tenure export ledger.jsonl";
   var VERIFY_COMMAND = "hermes tenure verify passport.json ledger.jsonl";
-  /** How tenure works: the same eight sections and words as the Desktop page's Help view, the tab's own shortcuts
+  /** How tenure works: the same nine sections and words as the Desktop page's Help view, the tab's own shortcuts
    *  in the keyboard section. */
   function HelpView(props) {
     var st = props.settings;
@@ -5385,8 +5666,11 @@ const TENURE_LOCALES = {
       h(SettingRow, { n: 6, title: t("help.passport_title") },
         h("p", null, t("help.passport_body")), h(CopyCmd, { cmd: EXPORT_COMMAND }), h(CopyCmd, { cmd: VERIFY_COMMAND }),
         h("p", null, t("help.passport_checks"))),
-      h(SettingRow, { n: 7, title: t("view.models") }, h("p", null, t("help.benchmark_body", { n: RANK_MIN }))),
-      h(SettingRow, { n: 8, title: t("help.keys_title"), help: t("help.keys_note") },
+      h(SettingRow, { n: 7, title: t("help.study_title") },
+        h("p", null, t("help.study_body")), h("p", null, t("help.study_adds")),
+        h("p", null, h(ExtLink, { href: OSF_URL }, t("help.study_link")))),
+      h(SettingRow, { n: 8, title: t("view.models") }, h("p", null, t("help.benchmark_body", { n: RANK_MIN }))),
+      h(SettingRow, { n: 9, title: t("help.keys_title"), help: t("help.keys_note") },
         h("dl", { className: "tnr-help-keys" }, keys.map(function (x) {
           return h(Fragment, { key: x[0] }, h("dt", null, h(Kbd, null, x[0])), h("dd", null, x[1]));
         }))));
@@ -5594,10 +5878,11 @@ const TENURE_LOCALES = {
     } else if (view === "models") body = h(ModelsView, { raw: raw, version: version });
     else if (view === "community") body = h(CommunityView, { version: version });
     else if (view === "switch") body = h(SwitchView, { rows: rows, raw: raw, version: version });
-    else if (view === "passport") body = h(PassportView, { rows: rows, raw: raw, version: version, onDone: done });
+    else if (view === "passport") body = h(PassportView, { rows: rows, raw: raw, version: version, onDone: done,
+      onCustomise: function () { focusPassStyle = true; openView("settings"); } });
     else if (view === "undo") body = h(UndoView, { undoable: activity && activity.undoable, current: currentProfile, onDone: done, raw: raw });
     else if (view === "help") body = h(HelpView, { settings: current && current.settings });
-    else body = h(SettingsView, { settings: current && current.settings, start: startOf(current), profile: currentProfile, raw: raw,
+    else body = h(SettingsView, { settings: current && current.settings, start: startOf(current), profile: currentProfile, raw: raw, rows: rows,
       readOnly: settingsRO, onReadOnly: setSettingsRO,
       anim: { on: animOn, reduced: reduced, set: function (on) { writeAnimPref(on); setAnimOn(on); } } });
 
