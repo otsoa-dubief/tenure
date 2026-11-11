@@ -428,3 +428,22 @@ def test_classify_reads_a_plain_rm_as_an_undoable_file_change(plugin):
     assert mod.classify.files_written("terminal", {"command": "rm notes.txt"}, ctx.cwd) == [
         os.path.join(ctx.cwd, "notes.txt")]
     assert mod.classify.classify("terminal", {"command": "rm -r notes.txt"}, cwd=ctx.cwd).type == "shell:rm"
+
+
+def test_a_heredoc_whose_body_reads_like_commands_is_still_a_file_change(plugin):
+    mod, ctx = plugin(TRUST)
+    for body in ("- item one\n- item two\n", "console.log('hi');\nprocess.exit(1)\n", "#!/bin/sh\necho start\nnpm test\n"):
+        a = mod.classify.classify("terminal", {"command": f"cat <<'EOF' > out.txt\n{body}EOF"}, cwd=ctx.cwd)
+        assert (a.type, a.stakes) == ("file:shell", "low"), body
+    a = mod.classify.classify("terminal", {"command": "cat <<'EOF' | sh\nrm -rf /\nEOF"}, cwd=ctx.cwd)
+    assert a.type != "file:shell"
+    a = mod.classify.classify("terminal", {"command": "cat <<'EOF' > s.sh\nrm -rf /\nEOF"}, cwd=ctx.cwd)
+    assert a.stakes == "cap"                                             # self-protection still reads the body
+
+
+def test_a_chain_of_plain_file_commands_runs_with_one_undo(plugin):
+    mod, ctx = plugin(TRUST)
+    _mk(ctx, "a.txt")
+    _mk(ctx, "b.txt")
+    assert ctx.call("terminal", {"command": "rm a.txt && rm b.txt"}) == "ran" and ctx.prompts == []
+    assert "/tenure undo" in ctx.posted[-1]

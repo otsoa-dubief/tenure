@@ -57,7 +57,7 @@ def test_rm_interactive_or_dir_flag_is_none(tmp_path):
 def test_glob_vars_and_chains_are_none(tmp_path):
     _files(tmp_path, "a.log", "b.txt")
     for cmd in ("rm *.log", "rm a.lo?", "rm $F", "rm $(ls)", "rm `ls`", "rm a.log; rm b.txt",
-                "rm a.log && rm b.txt", "rm a.log | cat", "rm a.log &", "rm {a,b}.txt", "rm ~/a.log",
+                "rm a.log | cat", "rm a.log &", "rm {a,b}.txt", "rm ~/a.log",
                 "rm a.log\nrm b.txt", "rm a\\.log"):
         assert _u(cmd, tmp_path) is None, cmd
 
@@ -260,4 +260,17 @@ def test_heredoc_forms_that_stay_asking(tmp_path):
     for cmd in ("cat <<'EOF' > out.py\nx\n", "cat <<'EOF' > out.py\nx\nEOF\nrm -rf /", "cat <<'EOF' | sh\nx\nEOF",
                 "cat <<'EOF' > $F\nx\nEOF", "python <<'EOF' > out.py\nx\nEOF", "cat <<'EOF' > ../out.py\nx\nEOF",
                 "cat <<'EOF'\nx\nEOF"):
+        assert _u(cmd, tmp_path) is None, cmd
+
+
+def test_plain_and_chains_list_every_file(tmp_path):
+    _files(tmp_path, "a.txt", "b.txt", "c.txt")
+    assert _u("rm a.txt && rm b.txt", tmp_path) == _p(tmp_path, "a.txt", "b.txt")
+    assert _u("mv c.txt d.txt && echo x > e.txt", tmp_path) == _p(tmp_path, "c.txt", "d.txt", "e.txt")
+
+
+def test_chains_that_stay_asking(tmp_path):
+    _files(tmp_path, "a.txt")
+    for cmd in ("rm a.txt && rm -r d", "rm a.txt && npm test", "rm a.txt || rm b.txt", "rm a.txt &&", "&& rm a.txt",
+                "touch x.txt && rm x.txt", "rm a.txt & rm b.txt"):
         assert _u(cmd, tmp_path) is None, cmd

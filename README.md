@@ -47,8 +47,9 @@ What tenure asks that Hermes alone would not:
 
 - what leaves your machine: pushes, publishing, deploys, registry logins, messages, uploads, cloud writes, payments;
 - what cannot be undone: recursive deletes, file commands with a glob or a variable, files outside the project,
-  discarding uncommitted git work, anything under `sudo` (a plain `rm`, `mv`, `cp`, `sed -i`, `touch` or `echo > file`
-  on project files is saved first and runs with an undo, like a file write);
+  discarding uncommitted git work, anything under `sudo` (a plain `rm`, `mv`, `cp`, `sed -i`, `touch`, `echo > file`
+  or `cat <<'EOF' > file` on project files, alone or joined by `&&`, is saved first and runs with an undo, like a file
+  write; a heredoc whose body names tenure's or Hermes' own files still asks);
 - programs outside the list above (database and unknown CLIs, or a package runner starting one), until they earn it;
 - shell it cannot read safely (`for`, `if`, `python -c`), and the agent's own skills, plugins and secrets;
 - every command, for the rest of a session that just read outside content (web, mail, downloads, `git pull`);

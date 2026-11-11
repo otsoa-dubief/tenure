@@ -1367,6 +1367,16 @@ def undoable_shell(command: str, cwd: str | None, home: str) -> list[str] | None
     if any(_undo_odd(c) for c in text):
         return None                                      # a control character or an unusual space: read differently
     masked = _undo_mask(text)
+    if masked is not None and "&&" in masked:            # plain file commands joined by &&: every file of each
+        cuts = [m.start() for m in re.finditer("&&", masked)]
+        bounds = [0] + [c + 2 for c in cuts]
+        parts = [text[b:e].strip() for b, e in zip(bounds, cuts + [len(text)])]
+        if not all(parts):
+            return None
+        found = [undoable_shell(part, cwd, home) for part in parts]
+        if any(f is None for f in found):
+            return None
+        return _undo_checked([p for f in found for p in f], cwd, home)
     if masked is None or any(c in _UNDOABLE_BAD for c in masked.replace(">", "")):
         return None
     redirect = None
@@ -5041,8 +5051,11 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         t, stakes, rev = _files(tool_name, args, cwd, home)
     elif tool_name == "terminal":
         t, stakes, rev = _shell(str(args.get("command", "")), cwd, home)
-        if (stakes in (LOW, MEDIUM) and t.split(":")[0] == "shell" and t.split(":")[1:2] and t.split(":")[1] in
-                UNDOABLE_PROGRAMS and undoable_shell(str(args.get("command", "")), cwd, home)):
+        command = str(args.get("command", ""))
+        plain = (stakes in (LOW, MEDIUM) and t.split(":")[0] == "shell" and t.split(":")[1:2]
+                 and t.split(":")[1] in UNDOABLE_PROGRAMS)
+        heredoc = "\n" in command.strip() and stakes != CAP     # its body is data, not the commands _shell read
+        if (plain or heredoc) and undoable_shell(command, cwd, home):
             t, stakes, rev = "file:shell", LOW, True    # every file it changes can be saved first: a file change
     elif tool_name == "execute_code":
         t, stakes, rev = _code(str(args.get("code") or ""), cwd, home)
