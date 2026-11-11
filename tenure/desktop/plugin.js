@@ -77,6 +77,7 @@ const TENURE_LOCALES = {
     },
     "benchmark.no_public": "—",
     "benchmark.no_public_type": "No public measure for this action type.",
+    "benchmark.not_enough": "not enough evidence",
     "benchmark.not_ranked": "Not enough evidence yet",
     "benchmark.not_ranked_note": "A model is ranked once it has {n} verified outcomes on this type.",
     "benchmark.note": "Each model's verified record on your work for this action type, with the 95% range of its fault rate, ranked by the top of that range. The public score is context: capability on their tasks, not reliability on yours.",
@@ -146,11 +147,7 @@ const TENURE_LOCALES = {
       "one": "{n} type trusted, not earned",
       "other": "{n} types trusted, not earned"
     },
-    "empty.desc": "Work as usual. Every change asks first, and each action type earns its tier from the answers you give.",
-    "empty.desc_trusted": "Work as usual. Each action type acts as Hermes alone would until its first mistake; from then on it asks first and earns its tier back from your answers.",
-    "empty.title": "No agent has acted yet",
     "event.confirmed": "carried-over evidence confirmed by its own",
-    "event.expired_pending": "pending action expired · no evidence",
     "event.fault_check": "automatic check failed",
     "event.fault_flag": "flagged as a fault by you",
     "event.fault_other": "fault ({source})",
@@ -258,6 +255,11 @@ const TENURE_LOCALES = {
       "other": "{n} sessions"
     },
     "map.current": " · this profile",
+    "map.empty_after": ", and climbs only on verified successes: reversible types reach the middle tier after a run of verified successes without a fault, and T3 after a full series of N from two sessions.",
+    "map.empty_before": "tenure starts counting at the first action an agent asks to run. Reads never ask. Every action type starts at ",
+    "map.empty_bold": "T1, asks first",
+    "map.empty_title": "No evidence yet",
+    "map.empty_trusted": "Work as usual. Each action type acts as Hermes alone would until its first mistake; from then on it asks first and earns its tier back from your answers.",
     "map.fault_on_record": "fault on record",
     "map.group_high": "high stakes",
     "map.group_low": "low stakes",
@@ -326,7 +328,7 @@ const TENURE_LOCALES = {
     "missing.trusted_undo": "trusted until its first mistake · acts, then tells you, with an Undo",
     "model_menu.badge": "{tier} earned",
     "moment.dismiss": "Dismiss",
-    "moment.eyebrow_down": "#Fault · {type}",
+    "moment.eyebrow_down": "#Fault caught · {type}",
     "moment.eyebrow_up": "#Promotion · {type}",
     "moment.granted": "Tenure granted",
     "moment.on_probation": "On probation",
@@ -363,6 +365,7 @@ const TENURE_LOCALES = {
     "page.view_community": "Community",
     "page.view_help": "Help",
     "page.view_map": "Map",
+    "page.view_passport": "Passport",
     "page.view_settings": "Settings",
     "page.view_switch": "Switch preview",
     "page.view_undo": "Undo",
@@ -370,13 +373,21 @@ const TENURE_LOCALES = {
     "palette.open": "Tenure: Open",
     "palette.passport": "Tenure: Show passport for current model",
     "palette.revoke": "Tenure: Revoke current model…",
+    "passport.agent": "Agent",
     "passport.card_title": "Passport · Ed25519",
+    "passport.col_guarantee": "guarantee",
+    "passport.col_series": "series",
+    "passport.col_sessions": "sessions",
+    "passport.col_tier": "tier",
     "passport.copy_command": "Copy command",
     "passport.download": "Download passport (.json)",
+    "passport.empty_body": "A passport covers an agent's record; it appears with the first verified action.",
+    "passport.empty_title": "No passport yet",
     "passport.faults_checks": {
       "one": "{n} fault / {total} verified outcomes",
       "other": "{n} faults / {total} verified outcomes"
     },
+    "passport.field_agent": "Agent",
     "passport.field_profile": "Profile",
     "passport.field_public_key": "Public key",
     "passport.field_settings": "Settings",
@@ -394,6 +405,7 @@ const TENURE_LOCALES = {
       "one": "+{n} more action type, in the file",
       "other": "+{n} more action types, in the file"
     },
+    "passport.note": "Signed and tamper-evident: a change after it is signed or anchored shows on verification. An older passport still verifies against a longer ledger; the verifier says what changed since.",
     "passport.pending_note": "Computed under the last logged settings; the new settings apply from the next action.",
     "passport.protocol": "Protocol",
     "passport.rule": "Rule",
@@ -401,6 +413,7 @@ const TENURE_LOCALES = {
     "passport.signature": "a plugin for Hermes Agent",
     "passport.title": "Signed passport",
     "passport.trusted": "Trusted (not earned)",
+    "passport.types_title": "Attested types",
     "passport.unavailable": "Not available: {error}",
     "passport.value_hashed": "{profile} (hashed)",
     "passport.value_none": "none",
@@ -608,7 +621,6 @@ const TENURE_LOCALES = {
     },
     "timeline.empty": "No evidence for this filter",
     "timeline.filter_label": "Filter by type",
-    "timeline.loading": "Loading the evidence…",
     "timeline.note": "From the hash-chained ledger, newest first, last 200 events. Repeated outcomes are grouped.",
     "timeline.title": "Evidence timeline",
     "toast.acted": {
@@ -698,6 +710,7 @@ const TENURE_LOCALES = {
     },
     "benchmark.no_public": "—",
     "benchmark.no_public_type": "لا مقياس عام لنوع الإجراء هذا.",
+    "benchmark.not_enough": "أدلة غير كافية",
     "benchmark.not_ranked": "لا أدلة كافية بعد",
     "benchmark.not_ranked_note": "يدخل النموذج الترتيب عندما يبلغ {n} نتيجة موثّقة على هذا النوع.",
     "benchmark.note": "السجل الموثَّق لكل نموذج على عملك لنوع الإجراء هذا، مع نطاق 95% لمعدل إخفاقه، مرتبًا حسب الحد الأعلى لهذا النطاق. النتيجة العامة للسياق فقط: قدرة على مهامهم، لا موثوقية على مهامك.",
@@ -799,11 +812,7 @@ const TENURE_LOCALES = {
       "many": "{n} نوعًا موثوقًا، غير مكتسب",
       "other": "{n} نوع موثوق، غير مكتسب"
     },
-    "empty.desc": "اعمل كالمعتاد. كل تغيير يسأل أولًا، وكل نوع إجراء يكتسب مستواه من إجاباتك.",
-    "empty.desc_trusted": "اعمل كالمعتاد. كل نوع إجراء يعمل كما يعمل Hermes وحده حتى أول خطأ له؛ وبعدها يسأل أولًا ويستعيد مستواه من إجاباتك.",
-    "empty.title": "لم ينفّذ أي وكيل شيئًا بعد",
     "event.confirmed": "أدلة منقولة أكّدتها أدلته هو",
-    "event.expired_pending": "انتهت صلاحية الإجراء المعلّق · بلا دليل",
     "event.fault_check": "فشل الفحص التلقائي",
     "event.fault_flag": "أبلغتَ عنه كإخفاق",
     "event.fault_other": "إخفاق ({source})",
@@ -939,6 +948,11 @@ const TENURE_LOCALES = {
       "other": "{n} جلسة"
     },
     "map.current": " · الملف الشخصي الحالي",
+    "map.empty_after": "، ولا يصعد إلا بنجاحات موثّقة: تبلغ الأنواع القابلة للتراجع المستوى الأوسط بعد سلسلة من النجاحات الموثّقة دون إخفاق، وT3 بعد سلسلة كاملة من N على جلستين.",
+    "map.empty_before": "يبدأ tenure العدّ عند أول إجراء يطلب الوكيل تنفيذه. القراءة لا تسأل أبدًا. يبدأ كل نوع إجراء في ",
+    "map.empty_bold": "T1، يسأل أولًا",
+    "map.empty_title": "لا أدلة بعد",
+    "map.empty_trusted": "اعمل كالمعتاد. كل نوع إجراء يعمل كما يعمل Hermes وحده حتى أول خطأ له؛ وبعدها يسأل أولًا ويستعيد مستواه من إجاباتك.",
     "map.fault_on_record": "إخفاق مسجَّل",
     "map.group_high": "خطورة عالية",
     "map.group_low": "خطورة منخفضة",
@@ -1039,7 +1053,7 @@ const TENURE_LOCALES = {
     "missing.trusted_undo": "موثوق حتى أول خطأ له · ينفّذ ثم يُبلغ مع إمكانية التراجع",
     "model_menu.badge": "{tier} مكتسب",
     "moment.dismiss": "إغلاق",
-    "moment.eyebrow_down": "#إخفاق · {type}",
+    "moment.eyebrow_down": "#رُصد إخفاق · {type}",
     "moment.eyebrow_up": "#ترقية · {type}",
     "moment.granted": "مُنح التثبيت",
     "moment.on_probation": "في فترة اختبار",
@@ -1084,6 +1098,7 @@ const TENURE_LOCALES = {
     "page.view_community": "المجتمع",
     "page.view_help": "المساعدة",
     "page.view_map": "الخريطة",
+    "page.view_passport": "الجواز",
     "page.view_settings": "الإعدادات",
     "page.view_switch": "معاينة التبديل",
     "page.view_undo": "تراجع",
@@ -1091,9 +1106,16 @@ const TENURE_LOCALES = {
     "palette.open": "Tenure: فتح",
     "palette.passport": "Tenure: عرض جواز النموذج الحالي",
     "palette.revoke": "Tenure: سحب استقلالية النموذج الحالي…",
+    "passport.agent": "الوكيل",
     "passport.card_title": "جواز · Ed25519",
+    "passport.col_guarantee": "الضمان",
+    "passport.col_series": "السلسلة",
+    "passport.col_sessions": "الجلسات",
+    "passport.col_tier": "المستوى",
     "passport.copy_command": "نسخ الأمر",
     "passport.download": "تنزيل الجواز (.json)",
+    "passport.empty_body": "يغطي الجواز سجل الوكيل؛ ويظهر مع أول إجراء موثّق.",
+    "passport.empty_title": "لا جواز بعد",
     "passport.faults_checks": {
       "zero": "{n} إخفاق / {total} نتائج موثّقة",
       "one": "{n} إخفاق / {total} نتائج موثّقة",
@@ -1102,6 +1124,7 @@ const TENURE_LOCALES = {
       "many": "{n} إخفاق / {total} نتائج موثّقة",
       "other": "{n} إخفاق / {total} نتائج موثّقة"
     },
+    "passport.field_agent": "الوكيل",
     "passport.field_profile": "الملف الشخصي",
     "passport.field_public_key": "المفتاح العام",
     "passport.field_settings": "الإعدادات",
@@ -1127,6 +1150,7 @@ const TENURE_LOCALES = {
       "many": "+{n} نوعَ إجراء آخر، في الملف",
       "other": "+{n} نوعِ إجراء آخر، في الملف"
     },
+    "passport.note": "موقَّع ويكشف التلاعب: أي تغيير بعد توقيعه أو تثبيته يظهر عند التحقق. يظل الجواز الأقدم صالحًا مقابل دفتر أطول؛ ويذكر المتحقِّق ما تغيّر منذ ذلك.",
     "passport.pending_note": "محسوب وفق آخر إعدادات مسجّلة؛ تسري الإعدادات الجديدة من الإجراء التالي.",
     "passport.protocol": "البروتوكول",
     "passport.rule": "القاعدة",
@@ -1134,6 +1158,7 @@ const TENURE_LOCALES = {
     "passport.signature": "إضافة لـ Hermes Agent",
     "passport.title": "جواز موقَّع",
     "passport.trusted": "موثوق (غير مكتسب)",
+    "passport.types_title": "الأنواع المشهود لها",
     "passport.unavailable": "غير متاح: {error}",
     "passport.value_hashed": "{profile} (مجزَّأ)",
     "passport.value_none": "لا شيء",
@@ -1397,7 +1422,6 @@ const TENURE_LOCALES = {
     },
     "timeline.empty": "لا أدلة لهذا المرشّح",
     "timeline.filter_label": "التصفية حسب النوع",
-    "timeline.loading": "جارٍ تحميل الأدلة…",
     "timeline.note": "من الدفتر المتسلسل بالتجزئة، الأحدث أولًا، آخر 200 حدث. تُجمَّع النتائج المتكررة.",
     "timeline.title": "خط الأدلة الزمني",
     "toast.acted": {
@@ -1503,6 +1527,7 @@ const TENURE_LOCALES = {
     },
     "benchmark.no_public": "—",
     "benchmark.no_public_type": "No hay medida pública para este tipo de acción.",
+    "benchmark.not_enough": "evidencia insuficiente",
     "benchmark.not_ranked": "Aún no hay evidencia suficiente",
     "benchmark.not_ranked_note": "Un modelo entra en la clasificación cuando tiene {n} resultados verificados en este tipo.",
     "benchmark.note": "El historial verificado de cada modelo en tu trabajo para este tipo de acción, con el rango del 95 % de su tasa de fallos, ordenado por el extremo superior de ese rango. La puntuación pública es contexto: capacidad en sus tareas, no fiabilidad en las tuyas.",
@@ -1575,11 +1600,7 @@ const TENURE_LOCALES = {
       "many": "{n} tipos de confianza, no ganados",
       "other": "{n} tipos de confianza, no ganados"
     },
-    "empty.desc": "Trabaja como siempre. Cada cambio pregunta antes, y cada tipo de acción se gana su nivel con tus respuestas.",
-    "empty.desc_trusted": "Trabaja como siempre. Cada tipo de acción actúa como Hermes solo hasta su primer error; desde entonces pregunta antes y recupera su nivel con tus respuestas.",
-    "empty.title": "Ningún agente ha actuado todavía",
     "event.confirmed": "evidencia heredada confirmada por la suya propia",
-    "event.expired_pending": "acción pendiente caducada · sin evidencia",
     "event.fault_check": "falló la comprobación automática",
     "event.fault_flag": "marcado por ti como fallo",
     "event.fault_other": "fallo ({source})",
@@ -1687,6 +1708,11 @@ const TENURE_LOCALES = {
       "other": "{n} sesiones"
     },
     "map.current": " · este perfil",
+    "map.empty_after": ", y solo sube con éxitos verificados: los tipos reversibles llegan al nivel intermedio tras una serie de éxitos verificados sin fallos, y a T3 tras una serie completa de N en dos sesiones.",
+    "map.empty_before": "tenure empieza a contar en la primera acción que un agente pide ejecutar. Las lecturas nunca preguntan. Cada tipo de acción empieza en ",
+    "map.empty_bold": "T1, pregunta antes",
+    "map.empty_title": "Aún no hay evidencia",
+    "map.empty_trusted": "Trabaja como siempre. Cada tipo de acción actúa como Hermes solo hasta su primer error; desde entonces pregunta antes y recupera su nivel con tus respuestas.",
     "map.fault_on_record": "fallo registrado",
     "map.group_high": "impacto alto",
     "map.group_low": "impacto bajo",
@@ -1755,7 +1781,7 @@ const TENURE_LOCALES = {
     "missing.trusted_undo": "de confianza hasta su primer error · actúa y luego avisa, con opción de deshacer",
     "model_menu.badge": "{tier} ganado",
     "moment.dismiss": "Cerrar",
-    "moment.eyebrow_down": "#Fallo · {type}",
+    "moment.eyebrow_down": "#Fallo detectado · {type}",
     "moment.eyebrow_up": "#Ascenso · {type}",
     "moment.granted": "Titularidad concedida",
     "moment.on_probation": "En período de prueba",
@@ -1792,6 +1818,7 @@ const TENURE_LOCALES = {
     "page.view_community": "Comunidad",
     "page.view_help": "Ayuda",
     "page.view_map": "Mapa",
+    "page.view_passport": "Pasaporte",
     "page.view_settings": "Ajustes",
     "page.view_switch": "Cambio de modelo",
     "page.view_undo": "Deshacer",
@@ -1799,13 +1826,21 @@ const TENURE_LOCALES = {
     "palette.open": "Tenure: Abrir",
     "palette.passport": "Tenure: Mostrar el pasaporte del modelo actual",
     "palette.revoke": "Tenure: Revocar el modelo actual…",
+    "passport.agent": "Agente",
     "passport.card_title": "Pasaporte · Ed25519",
+    "passport.col_guarantee": "garantía",
+    "passport.col_series": "serie",
+    "passport.col_sessions": "sesiones",
+    "passport.col_tier": "nivel",
     "passport.copy_command": "Copiar comando",
     "passport.download": "Descargar pasaporte (.json)",
+    "passport.empty_body": "Un pasaporte resume el historial de un agente; aparece con la primera acción verificada.",
+    "passport.empty_title": "Aún no hay pasaporte",
     "passport.faults_checks": {
       "one": "{n} fallo / {total} resultados verificados",
       "other": "{n} fallos / {total} resultados verificados"
     },
+    "passport.field_agent": "Agente",
     "passport.field_profile": "Perfil",
     "passport.field_public_key": "Clave pública",
     "passport.field_settings": "Configuración",
@@ -1824,6 +1859,7 @@ const TENURE_LOCALES = {
       "many": "+{n} tipos de acción más, en el archivo",
       "other": "+{n} tipos de acción más, en el archivo"
     },
+    "passport.note": "Firmado y a prueba de manipulaciones: cualquier cambio tras firmarlo o anclarlo se ve al verificarlo. Un pasaporte antiguo sigue verificándose frente a un registro más largo; el verificador indica qué ha cambiado desde entonces.",
     "passport.pending_note": "Calculado con los últimos ajustes registrados; los nuevos ajustes se aplican desde la próxima acción.",
     "passport.protocol": "Protocolo",
     "passport.rule": "Regla",
@@ -1831,6 +1867,7 @@ const TENURE_LOCALES = {
     "passport.signature": "un plugin para Hermes Agent",
     "passport.title": "Pasaporte firmado",
     "passport.trusted": "De confianza (no ganado)",
+    "passport.types_title": "Tipos certificados",
     "passport.unavailable": "No disponible: {error}",
     "passport.value_hashed": "{profile} (hash)",
     "passport.value_none": "ninguno",
@@ -2038,7 +2075,6 @@ const TENURE_LOCALES = {
     },
     "timeline.empty": "No hay evidencia para este filtro",
     "timeline.filter_label": "Filtrar por tipo",
-    "timeline.loading": "Cargando la evidencia…",
     "timeline.note": "Del registro encadenado por hash, los más recientes primero, últimos 200 eventos. Los resultados repetidos se agrupan.",
     "timeline.title": "Cronología de la evidencia",
     "toast.acted": {
@@ -2124,6 +2160,7 @@ const TENURE_LOCALES = {
     },
     "benchmark.no_public": "—",
     "benchmark.no_public_type": "Aucune mesure publique pour ce type d'action.",
+    "benchmark.not_enough": "pas assez de preuves",
     "benchmark.not_ranked": "Pas encore assez de preuves",
     "benchmark.not_ranked_note": "Un modèle est classé à partir de {n} résultats vérifiés sur ce type.",
     "benchmark.note": "L'historique vérifié de chaque modèle sur votre travail pour ce type d'action, avec la fourchette à 95 % de son taux de fautes, classé par le haut de cette fourchette. Le score public sert de contexte : il mesure la capacité sur les tâches du benchmark, pas la fiabilité sur les vôtres.",
@@ -2196,11 +2233,7 @@ const TENURE_LOCALES = {
       "many": "{n} types de confiance, non acquis",
       "other": "{n} types de confiance, non acquis"
     },
-    "empty.desc": "Travaillez comme d'habitude. L'agent demande avant chaque modification, et chaque type d'action gagne son niveau selon vos réponses.",
-    "empty.desc_trusted": "Travaillez comme d'habitude. Chaque type d'action agit comme Hermes seul jusqu'à sa première erreur ; ensuite, il demande d'abord et regagne son niveau selon vos réponses.",
-    "empty.title": "Aucun agent n'a encore agi",
     "event.confirmed": "preuves héritées confirmées par les siennes",
-    "event.expired_pending": "action en attente expirée · aucune preuve",
     "event.fault_check": "vérification automatique échouée",
     "event.fault_flag": "signalé par vous comme une faute",
     "event.fault_other": "faute ({source})",
@@ -2308,6 +2341,11 @@ const TENURE_LOCALES = {
       "other": "{n} sessions"
     },
     "map.current": " · ce profil",
+    "map.empty_after": ", et ne monte que sur des succès vérifiés : les types réversibles atteignent le niveau intermédiaire après une série de succès vérifiés sans faute, et T3 après une série complète de N sur deux sessions.",
+    "map.empty_before": "tenure commence à compter dès la première action qu'un agent demande à exécuter. Les lectures ne demandent jamais. Chaque type d'action commence en ",
+    "map.empty_bold": "T1, demande d'abord",
+    "map.empty_title": "Aucune preuve pour l'instant",
+    "map.empty_trusted": "Travaillez comme d'habitude. Chaque type d'action agit comme Hermes seul jusqu'à sa première erreur ; ensuite, il demande d'abord et regagne son niveau selon vos réponses.",
     "map.fault_on_record": "faute à l'historique",
     "map.group_high": "enjeu élevé",
     "map.group_low": "enjeu faible",
@@ -2376,7 +2414,7 @@ const TENURE_LOCALES = {
     "missing.trusted_undo": "de confiance jusqu'à sa première erreur · agit, puis prévient, annulable",
     "model_menu.badge": "{tier} acquis",
     "moment.dismiss": "Fermer",
-    "moment.eyebrow_down": "#Faute · {type}",
+    "moment.eyebrow_down": "#Faute relevée · {type}",
     "moment.eyebrow_up": "#Promotion · {type}",
     "moment.granted": "Titularisé",
     "moment.on_probation": "En probation",
@@ -2413,6 +2451,7 @@ const TENURE_LOCALES = {
     "page.view_community": "Communauté",
     "page.view_help": "Aide",
     "page.view_map": "Carte",
+    "page.view_passport": "Passeport",
     "page.view_settings": "Paramètres",
     "page.view_switch": "Aperçu du changement",
     "page.view_undo": "Annuler",
@@ -2420,13 +2459,21 @@ const TENURE_LOCALES = {
     "palette.open": "Tenure : Ouvrir",
     "palette.passport": "Tenure : Afficher le passeport du modèle actuel",
     "palette.revoke": "Tenure : Révoquer le modèle actuel…",
+    "passport.agent": "Agent",
     "passport.card_title": "Passeport · Ed25519",
+    "passport.col_guarantee": "garantie",
+    "passport.col_series": "série",
+    "passport.col_sessions": "sessions",
+    "passport.col_tier": "niveau",
     "passport.copy_command": "Copier la commande",
     "passport.download": "Télécharger le passeport (.json)",
+    "passport.empty_body": "Un passeport couvre l'historique d'un agent ; il apparaît dès la première action vérifiée.",
+    "passport.empty_title": "Pas encore de passeport",
     "passport.faults_checks": {
       "one": "{n} faute / {total} résultats vérifiés",
       "other": "{n} fautes / {total} résultats vérifiés"
     },
+    "passport.field_agent": "Agent",
     "passport.field_profile": "Profil",
     "passport.field_public_key": "Clé publique",
     "passport.field_settings": "Paramètres",
@@ -2445,6 +2492,7 @@ const TENURE_LOCALES = {
       "many": "+{n} types d'action de plus, dans le fichier",
       "other": "+{n} types d'action de plus, dans le fichier"
     },
+    "passport.note": "Signé et scellé : toute modification faite après la signature ou l'ancrage apparaît à la vérification. Un ancien passeport se vérifie encore avec un registre plus long ; le vérificateur indique ce qui a changé depuis.",
     "passport.pending_note": "Calculé avec les derniers réglages enregistrés ; les nouveaux réglages s'appliquent dès la prochaine action.",
     "passport.protocol": "Protocole",
     "passport.rule": "Règle",
@@ -2452,6 +2500,7 @@ const TENURE_LOCALES = {
     "passport.signature": "un plugin pour Hermes Agent",
     "passport.title": "Passeport signé",
     "passport.trusted": "De confiance (non acquis)",
+    "passport.types_title": "Types attestés",
     "passport.unavailable": "Indisponible : {error}",
     "passport.value_hashed": "{profile} (haché)",
     "passport.value_none": "aucun",
@@ -2659,7 +2708,6 @@ const TENURE_LOCALES = {
     },
     "timeline.empty": "Aucune preuve pour ce filtre",
     "timeline.filter_label": "Filtrer par type",
-    "timeline.loading": "Lecture des preuves…",
     "timeline.note": "Issu du registre chaîné par hachage, du plus récent au plus ancien, 200 derniers événements. Les résultats répétés sont regroupés.",
     "timeline.title": "Chronologie des preuves",
     "toast.acted": {
@@ -2744,6 +2792,7 @@ const TENURE_LOCALES = {
     },
     "benchmark.no_public": "—",
     "benchmark.no_public_type": "此操作类型没有公开测评。",
+    "benchmark.not_enough": "证据不足",
     "benchmark.not_ranked": "证据尚不足",
     "benchmark.not_ranked_note": "模型在此类型上有 {n} 次已验证结果后才参与排名。",
     "benchmark.note": "每个模型在你的工作中、针对此操作类型的已验证记录，附失误率的 95% 区间，按区间上限排名。公开分数仅供参考：它衡量的是模型在别人任务上的能力，而不是在你的工作上的可靠性。",
@@ -2805,11 +2854,7 @@ const TENURE_LOCALES = {
     "emblem.trusted": {
       "other": "{n} 个类型信任中，非赢得"
     },
-    "empty.desc": "照常工作即可。每次更改都会先询问你，每个操作类型会根据你的回答赢得相应级别。",
-    "empty.desc_trusted": "照常工作即可。每个操作类型在首次失误前像单独使用 Hermes 一样执行；此后会先询问你，并根据你的回答重新赢得级别。",
-    "empty.title": "还没有智能体执行过操作",
     "event.confirmed": "继承的证据已由它自己的记录确认",
-    "event.expired_pending": "待处理操作已过期 · 无证据",
     "event.fault_check": "自动检查失败",
     "event.fault_flag": "被你标记为失误",
     "event.fault_other": "失误（{source}）",
@@ -2910,6 +2955,11 @@ const TENURE_LOCALES = {
       "other": "{n} 个会话"
     },
     "map.current": " · 当前配置文件",
+    "map.empty_after": " 开始，且只凭已验证的成功晋升：可逆类型在连续若干次无失误的已验证成功后升到中间级别，在来自两个会话的完整 N 次连续成功后升到 T3。",
+    "map.empty_before": "tenure 从智能体请求运行的第一个操作开始计数。读取从不询问。每个操作类型都从 ",
+    "map.empty_bold": "T1（先询问）",
+    "map.empty_title": "还没有证据",
+    "map.empty_trusted": "照常工作即可。每个操作类型在首次失误前像单独使用 Hermes 一样执行；此后会先询问你，并根据你的回答重新赢得级别。",
     "map.fault_on_record": "有失误记录",
     "map.group_high": "高风险",
     "map.group_low": "低风险",
@@ -2970,7 +3020,7 @@ const TENURE_LOCALES = {
     "missing.trusted_undo": "首次失误前保持信任 · 先执行后告知，可撤销",
     "model_menu.badge": "已赢得 {tier}",
     "moment.dismiss": "关闭",
-    "moment.eyebrow_down": "#失误 · {type}",
+    "moment.eyebrow_down": "#发现失误 · {type}",
     "moment.eyebrow_up": "#晋升 · {type}",
     "moment.granted": "已获转正",
     "moment.on_probation": "进入试用期",
@@ -3005,6 +3055,7 @@ const TENURE_LOCALES = {
     "page.view_community": "社区",
     "page.view_help": "帮助",
     "page.view_map": "总览",
+    "page.view_passport": "护照",
     "page.view_settings": "设置",
     "page.view_switch": "切换预览",
     "page.view_undo": "撤销",
@@ -3012,12 +3063,20 @@ const TENURE_LOCALES = {
     "palette.open": "Tenure：打开",
     "palette.passport": "Tenure：显示当前模型的护照",
     "palette.revoke": "Tenure：收回当前模型的自主权…",
+    "passport.agent": "智能体",
     "passport.card_title": "护照 · Ed25519",
+    "passport.col_guarantee": "保证",
+    "passport.col_series": "连续",
+    "passport.col_sessions": "会话",
+    "passport.col_tier": "级别",
     "passport.copy_command": "复制命令",
     "passport.download": "下载护照（.json）",
+    "passport.empty_body": "护照汇总智能体的记录；第一个已验证的操作出现后才会生成。",
+    "passport.empty_title": "还没有护照",
     "passport.faults_checks": {
       "other": "{n} 次失误 / {total} 次已验证结果"
     },
+    "passport.field_agent": "智能体",
     "passport.field_profile": "配置文件",
     "passport.field_public_key": "公钥",
     "passport.field_settings": "设置",
@@ -3033,6 +3092,7 @@ const TENURE_LOCALES = {
     "passport.more_types": {
       "other": "另有 {n} 个操作类型，见文件"
     },
+    "passport.note": "已签名且可发现篡改：签名或锚定后的任何改动都会在验证时显示出来。较早的护照对照更长的账本依然能通过验证；验证器会说明此后的变化。",
     "passport.pending_note": "按最近记录的设置计算；新设置从下一个操作起生效。",
     "passport.protocol": "协议",
     "passport.rule": "规则",
@@ -3040,6 +3100,7 @@ const TENURE_LOCALES = {
     "passport.signature": "Hermes Agent 插件",
     "passport.title": "已签名护照",
     "passport.trusted": "信任中（非赢得）",
+    "passport.types_title": "已证实的类型",
     "passport.unavailable": "不可用：{error}",
     "passport.value_hashed": "{profile}（已哈希）",
     "passport.value_none": "无",
@@ -3233,7 +3294,6 @@ const TENURE_LOCALES = {
     },
     "timeline.empty": "此筛选条件下没有证据",
     "timeline.filter_label": "按类型筛选",
-    "timeline.loading": "正在加载证据…",
     "timeline.note": "来自哈希链账本，最新在前，最近 200 个事件。重复的结果已合并。",
     "timeline.title": "证据时间线",
     "toast.acted": {
@@ -4099,6 +4159,8 @@ const CSS = `
 .tn-pass-grid{display:flex;flex-direction:column;gap:0.9rem}
 .tn-pass-side{display:flex;flex-direction:column;gap:0.75rem;min-width:0;max-width:46rem}
 .tn-pass-acts{display:flex;flex-wrap:wrap;gap:0.5rem}
+.tn-pass-acts > p{flex-basis:100%}
+.tn-pass-types{display:flex;flex-direction:column;gap:0.5rem;margin-block-start:1.25rem}
 .tn-pass{position:relative;overflow:hidden;background:var(--tn-acc);color:var(--tn-on);padding:clamp(1.1rem,4.4cqi,2.1rem) clamp(1.1rem,5cqi,2.4rem) clamp(1rem,4cqi,1.8rem);transform-style:preserve-3d;transition:transform 400ms cubic-bezier(.2,.7,.2,1);will-change:transform}
 .tn-pass.tn-tilting{transition:transform 80ms linear}
 .tn-ptop{display:flex;justify-content:space-between;gap:0.5rem;font:500 clamp(0.62rem,1.5cqi,0.74rem) var(--tn-mono);letter-spacing:0.14em;text-transform:uppercase}
@@ -4234,6 +4296,8 @@ const CSS = `
 .tn-root .tn-mono{font-family:var(--tn-mono)}
 .tn-root .tn-dim{color:var(--tn-mut)}
 .tn-root .tn-end{text-align:end}
+.tn-root td.tn-end{white-space:nowrap}
+.tn-root td.tn-end > span + span{margin-inline-start:0.35rem}
 .tn-head-tog{display:flex;align-items:center;gap:0.5rem 1rem;margin-inline-start:auto}
 .tn-raw{border:0;background:transparent;padding:0;cursor:pointer;outline:none}
 .tn-raw i{font-style:normal;display:inline-block;width:0.6rem;height:0.6rem;border:1px solid var(--tn-acc)}
@@ -4552,7 +4616,6 @@ function groupUndo(rows) {
 
 function RecentSection({ agent, t, n }) {
   const profile = useValue(host.state.profile)
-  const qc = useQueryClient()
   const [flagging, setFlagging] = useState(null)
   const [open, setOpen] = useState({})
   const [target, setTarget] = useState(null)
@@ -4650,22 +4713,7 @@ function RecentSection({ agent, t, n }) {
             )
           }),
       jsx(UndoDialog, { onClose: () => setTarget(null), t, target }),
-      jsx(ConfirmDialog, {
-        busyLabel: t('revoke.busy'),
-        confirmLabel: t('flag.confirm'),
-        description: flagging ? t('flag.desc', { type: flagging.type }) : null,
-        destructive: true,
-        onClose: () => setFlagging(null),
-        onConfirm: async () => {
-          const r = flagging
-          await rest('/flag?of=' + encodeURIComponent(r.profile), { method: 'POST', body: { agent: r.agent, type: r.type } })
-          haptic('success')
-          host.notify({ kind: 'success', message: t('recent.flagged', { type: r.type }) })
-          qc.invalidateQueries({ queryKey: ['tenure'] })
-        },
-        open: flagging !== null,
-        title: t('flag.title')
-      })
+      jsx(FlagDialog, { onClose: () => setFlagging(null), t, target: flagging })
     ]
   })
 }
@@ -5154,7 +5202,8 @@ function PassportSection({ agent, t, n, motion }) {
                 onClick: saveImage,
                 type: 'button',
                 children: [jsx(Codicon, { name: drawing ? 'loading' : 'file-media', size: '0.8rem', spinning: drawing }), t('passport.save_image')]
-              })
+              }),
+              jsx('p', { className: 'tn-hint', style: { margin: 0 }, children: t('passport.note') })
             ]
           }),
           jsxs('div', {
@@ -5193,6 +5242,7 @@ function PassportSection({ agent, t, n, motion }) {
                 ? jsx(PanelMeta, {
                     rows: [
                       { label: t('passport.protocol'), value: jsx('span', { className: 'font-mono', children: p.protocol }) },
+                      { label: t('passport.field_agent'), value: jsx('span', { className: 'font-mono tn-bdi', children: `${(p.agent || {}).model}@${(p.agent || {}).provider}` }) },
                       { label: t('passport.rule'), value: jsx('span', { className: 'font-mono', children: `${p.rule.name} · ${String(p.rule.fingerprint).slice(0, 16)}` }) },
                       { label: t('passport.ledger'), value: jsx('span', { children: t('passport.ledger_value', { n: p.ledger.count, head: String(p.ledger.head).slice(0, 12) }) }) },
                       { label: t('passport.generated'), value: when(p.generated_at) },
@@ -5218,8 +5268,115 @@ function PassportSection({ agent, t, n, motion }) {
             ]
           })
         ]
+      }),
+      p && (p.types || []).length ? jsx(PassportTypes, { live: agent.types || [], t, types: p.types }) : null
+    ]
+  })
+}
+
+/** The passport's attested types, as the dashboard lists them: a type the trusted start covers shows "—" and
+ *  "Trusted (not earned)", never a tier it did not earn. */
+function PassportTypes({ types, live, t }) {
+  const byType = new Map(live.map(ty => [ty.type, ty]))
+  return jsxs('div', {
+    className: 'tn-pass-types',
+    children: [
+      jsx(Eyebrow, { children: t('passport.types_title') }),
+      jsx('div', {
+        className: 'tn-map-scroll',
+        children: jsxs('table', {
+          className: 'tn-table',
+          children: [
+            jsx('thead', {
+              children: jsxs('tr', {
+                children: [
+                  jsx('th', { children: t('undo.col_type') }),
+                  jsx('th', { children: t('passport.col_tier') }),
+                  jsx('th', { className: 'tn-end', children: t('passport.col_series') }),
+                  jsx('th', { className: 'tn-end', children: t('passport.col_sessions') }),
+                  jsx('th', { children: t('passport.col_guarantee') })
+                ]
+              })
+            }),
+            jsx('tbody', {
+              children: types.map(ty => {
+                const g = ty.guarantee || {}
+                const m = byType.get(ty.type)
+                const eff = ty.effective_tier || ty.tier
+                const trust = !!(m && m.trusted && eff !== 'alone') && !g.capped
+                const tier = g.capped ? 'cap' : trust ? 'trusted' : eff || 'ask'
+                const stakes = ['low', 'medium', 'high'].includes(ty.stakes) ? t('type.stakes_' + ty.stakes) : t('type.stakes_other', { stakes: ty.stakes })
+                return jsxs(
+                  'tr',
+                  {
+                    children: [
+                      jsxs('td', { children: [jsx('code', { className: 'tn-mono tn-bdi', children: ty.type }), jsx('div', { className: 'tn-hint', children: stakes })] }),
+                      jsxs('td', {
+                        children: [
+                          jsx(TierChip, { motion: false, t, tier }),
+                          jsx('div', { className: 'tn-hint', children: trust ? t('passport.trusted') : TierLabel(tier, t) })
+                        ]
+                      }),
+                      jsx('td', { className: 'tn-end tn-mono', children: trust || ty.required == null ? '—' : num(ty.series) + '/' + num(ty.required) }),
+                      jsx('td', { className: 'tn-end tn-mono', children: trust ? '—' : num(ty.sessions) }),
+                      jsx('td', {
+                        children: g.capped
+                          ? jsx('span', { className: 'tn-hint', children: t('legend.capped') })
+                          : trust
+                            ? jsx('span', { className: 'tn-hint', children: t('type.trusted_no_guarantee') })
+                            : jsx(Guarantee, { g, t })
+                      })
+                    ]
+                  },
+                  ty.type
+                )
+              })
+            })
+          ]
+        })
       })
     ]
+  })
+}
+
+/** The Passport tab: any agent's signed passport, picked from a list; the same section as on the agent's page. */
+function PassportView({ data, t }) {
+  const motion = useMotion()
+  const agents = allAgents(data)
+  const [sel, setSel] = useState(() => focusKey)
+  const a = agents.find(x => x.key === sel) || agents[0]
+  return jsx('div', {
+    className: 'tn-root tn-doc-wrap',
+    children: jsxs('div', {
+      className: 'tn-doc tn-doc-wide',
+      children: [
+        jsxs('header', {
+          className: 'tn-hero',
+          style: { display: 'block' },
+          children: [
+            jsx('div', { className: 'tn-eyebrow', children: '#' + t('page.view_passport') }),
+            agents.length ? null : jsx('h3', { className: 'tn-name', children: t('passport.empty_title') }),
+            agents.length ? null : jsx('p', { className: 'tn-intro-body', style: { margin: '0.35rem 0 0' }, children: t('passport.empty_body') })
+          ]
+        }),
+        agents.length
+          ? jsxs('label', {
+              className: 'tn-field',
+              style: { maxWidth: '28rem' },
+              children: [
+                jsx('span', { className: 'tn-eyebrow', children: t('passport.agent') }),
+                jsx('select', {
+                  className: 'tn-input',
+                  onChange: e => setSel(e.target.value),
+                  value: a ? a.key : '',
+                  children: agents.map(x => jsx('option', { value: x.key, children: `${displayName(x.model)}@${x.provider} · ${x.profile}` }, x.key))
+                })
+              ]
+            })
+          : null,
+        a ? jsx(PassportSection, { agent: a, motion, n: 1, t }, a.key) : null
+      ]
+    })
   })
 }
 
@@ -5723,7 +5880,9 @@ function BenchmarkView({ t }) {
                             children: jsx(RangeBar, { delay: 80 + i * 40, high: r.high, low: r.low, max, motion, rate: r.rate })
                           })
                         }),
-                        jsx('span', { className: 'tn-bnum', children: t('benchmark.rate', { rate: pct(r.rate), low: pct(r.low), high: pct(r.high) }) }),
+                        r.enough === false
+                          ? jsx('span', { className: 'tn-bnum tn-dim', children: t('benchmark.not_enough') })
+                          : jsx('span', { className: 'tn-bnum', children: t('benchmark.rate', { rate: pct(r.rate), low: pct(r.low), high: pct(r.high) }) }),
                         jsx('span', { className: 'tn-bnum tn-end', children: num(r.sessions_in_series) }),
                         showPub
                           ? jsx(Tip, {
@@ -6334,7 +6493,14 @@ function HelpView({ data, t }) {
           title: t('help.keys_title'),
           children: jsx('dl', {
             className: 'tn-keys',
-            children: [...PAGE_KEYS.map(([k, v]) => [k, t('page.view_' + v)]), ['j / k', t('help.key_next_prev')], ['↵', t('help.key_open')], ['r', t('help.key_raw')], ['esc', t('help.key_close')]].flatMap(([k, label]) => [
+            children: [
+              ...PAGE_KEYS.filter(([k]) => k !== '?').map(([k, v]) => [k, t('page.view_' + v)]),
+              ['j / k · ↑ / ↓', t('help.key_next_prev')],
+              ['↵', t('help.key_open')],
+              ['r', t('help.key_raw')],
+              ['esc', t('help.key_close')],
+              ['?', t('help.key_help')]
+            ].flatMap(([k, label]) => [
               jsx('dt', { children: jsx('kbd', { className: 'tn-kbd', children: k }) }, 'k' + k),
               jsx('dd', { children: k === '?' ? t('help.key_help') : label }, 'd' + k)
             ])
@@ -6796,7 +6962,8 @@ function CommunityView({ t }) {
   const { data, error, isLoading, refetch } = useQuery({ queryKey: ['tenure', profile, 'community'], queryFn: () => rest('/community'), refetchInterval: HEARTBEAT_MS * 5 })
   if (isLoading && !data) return jsx(PanelEmpty, { description: t('common.loading'), icon: 'loading~spin' })
   if (error && !data)
-    return jsx(ErrorState, { description: error.message || String(error), title: t('backend.title'), children: jsx(Button, { onClick: () => refetch(), size: 'sm', children: t('common.retry') }) })
+    // A plain error, as on the dashboard: the board is a local file the agent half reads, not the agent half itself.
+    return jsx(ErrorState, { title: error.message || String(error), children: jsx(Button, { onClick: () => refetch(), size: 'sm', children: t('common.retry') }) })
   const board = data && data.board
   const head = (title, body) =>
     jsxs('header', {
@@ -7124,11 +7291,33 @@ function UndoDialog({ target, onClose, t }) {
   })
 }
 
+/** Flag one action an error nobody caught, after Hermes' own confirmation dialog: a fault on its type. */
+function FlagDialog({ target, onClose, t }) {
+  const qc = useQueryClient()
+  return jsx(ConfirmDialog, {
+    busyLabel: t('revoke.busy'),
+    confirmLabel: t('flag.confirm'),
+    description: target ? t('flag.desc', { type: target.type }) : null,
+    destructive: true,
+    onClose,
+    onConfirm: async () => {
+      const r = target
+      await rest('/flag?of=' + encodeURIComponent(r.profile), { method: 'POST', body: { agent: r.agent, type: r.type } })
+      haptic('success')
+      host.notify({ kind: 'success', message: t('recent.flagged', { type: r.type }) })
+      qc.invalidateQueries({ queryKey: ['tenure'] })
+    },
+    open: target !== null,
+    title: t('flag.title')
+  })
+}
+
 function UndoView({ data, t }) {
   const motion = useMotion()
   const { data: act } = useActivity()
   const [open, setOpen] = useState({})
   const [target, setTarget] = useState(null)
+  const [flagging, setFlagging] = useState(null)
   const list = (act && act.undoable) || []
   const current = data && data.current
   const head = jsxs('header', {
@@ -7160,12 +7349,18 @@ function UndoView({ data, t }) {
               : jsx('span', { className: 'tn-hint', children: t('recent.no_snapshot') })
           }),
           jsx('td', { className: 'tn-hint', children: undoEffect(u, t) }),
-          jsx('td', {
+          jsxs('td', {
             className: 'tn-end',
-            children: jsx(Tip, {
-              label: mine ? t('undo.title') : t('common.own_profile_only'),
-              children: jsx('span', { tabIndex: mine ? undefined : 0, children: jsx(Button, { disabled: !mine, onClick: () => setTarget(u), size: 'xs', variant: 'outline', children: t('undo.confirm', { id: u.id }) }) })
-            })
+            children: [
+              jsx(Tip, {
+                label: mine ? t('recent.flag_tip') : t('common.own_profile_only'),
+                children: jsx('span', { tabIndex: mine ? undefined : 0, children: jsx(Button, { disabled: !mine, onClick: () => setFlagging(u), size: 'xs', variant: 'ghost', children: t('recent.flag') }) })
+              }),
+              jsx(Tip, {
+                label: mine ? t('undo.title') : t('common.own_profile_only'),
+                children: jsx('span', { tabIndex: mine ? undefined : 0, children: jsx(Button, { disabled: !mine, onClick: () => setTarget(u), size: 'xs', variant: 'outline', children: t('undo.confirm', { id: u.id }) }) })
+              })
+            ]
           })
         ]
       },
@@ -7239,7 +7434,8 @@ function UndoView({ data, t }) {
               })
             })
           : null,
-        jsx(UndoDialog, { onClose: () => setTarget(null), t, target })
+        jsx(UndoDialog, { onClose: () => setTarget(null), t, target }),
+        jsx(FlagDialog, { onClose: () => setFlagging(null), t, target: flagging })
       ]
     })
   })
@@ -7282,7 +7478,7 @@ function describeEvent(e, t) {
   if (e.event === 'revoke' || e.event === 'revoked') return { glyph: '↺', tone: 'fault', text: t('event.revoked') }
   if (e.event === 'confirmed') return { glyph: '✓', tone: 'ok', text: t('event.confirmed') }
   if (e.event === 'agent') return { glyph: '⇄', tone: 'move', text: e.from ? t('event.switch_from', { from: e.from }) : t('event.switch') }
-  if (e.event === 'neutral_expired') return { glyph: '○', tone: 'muted', text: t('event.expired_pending') }
+  if (e.event === 'neutral_expired') return { glyph: '○', tone: 'muted', text: t('event.neutral_expired') }
   return { glyph: '·', tone: 'muted', text: e.event }
 }
 
@@ -7340,7 +7536,7 @@ function TimelineSection({ agent, t, n }) {
       error
         ? jsx('p', { className: 'tn-note', children: error.message || String(error) })
         : !events
-          ? jsx('p', { className: 'tn-hint', children: t('timeline.loading') })
+          ? jsx('p', { className: 'tn-hint', children: t('common.loading') })
           : !grouped.length
             ? jsx('p', { className: 'tn-hint', children: t('timeline.empty') })
             : jsxs('div', {
@@ -7391,13 +7587,13 @@ function TimelineSection({ agent, t, n }) {
 /** The keys of this page (while focus is inside it); the keys stay as they are, only their descriptions are translated. */
 const PAGE_KEYS = [
   ['m', 'map'],
-  ['a', 'agents'],
-  ['p', 'agents'],
   ['b', 'benchmark'],
   ['c', 'community'],
   ['w', 'switch'],
+  ['p', 'passport'],
   ['u', 'undo'],
   ['s', 'settings'],
+  ['a', 'agents'],
   ['?', 'help']
 ]
 
@@ -7463,7 +7659,7 @@ function RawToggle({ t }) {
   })
 }
 
-const VIEWS = ['map', 'agents', 'benchmark', 'community', 'switch', 'undo', 'settings', 'help']
+const VIEWS = ['map', 'agents', 'benchmark', 'community', 'switch', 'passport', 'undo', 'settings', 'help']
 const typing = e => {
   const el = e.target
   const tag = ((el && el.tagName) || '').toLowerCase()
@@ -7475,7 +7671,14 @@ function TenurePage() {
   const { data, error, isLoading, refetch, dataUpdatedAt } = useAgents()
   const { data: activity } = useActivity()
   const qc = useQueryClient()
-  const [view, setView] = useState('map')
+  const [view, setViewNow] = useState('map')
+  const back = useRef('map')                           // the view "?" or Esc returns to from Help
+  const setView = v => {
+    setViewNow(cur => {
+      if (cur !== 'help') back.current = cur
+      return v
+    })
+  }
   const rootRef = useRef(null)
   useEffect(() => {
     const onFocus = () => setView('agents')
@@ -7493,13 +7696,16 @@ function TenurePage() {
   const agents = allAgents(data)
   const here = ((data && data.profiles) || []).find(p => p.current) || {}
   const start = startOf(here.settings, (here.agents || []).flatMap(a => a.types || []))
-  const trustedStart = start === 'trusted'
+  const trustedStart = (start || DEFAULTS.start) === 'trusted'
   const unreadable = ((data && data.profiles) || []).filter(p => p.error).map(p => p.profile)
   const undoCount = ((activity && activity.undoable) || []).length
   const onKey = e => {
     if (e.metaKey || e.ctrlKey || e.altKey || typing(e)) return
     const hit = PAGE_KEYS.find(([k]) => k === e.key)
-    if (hit) {
+    if (e.key === '?') {
+      setView(view === 'help' ? back.current : 'help')    // ? toggles the help
+      e.preventDefault()
+    } else if (hit) {
       setView(hit[1])
       e.preventDefault()
     } else if (e.key === 'r') {
@@ -7507,14 +7713,15 @@ function TenurePage() {
       qc.resetQueries({ queryKey: ['tenure'] })
       e.preventDefault()
     } else if (e.key === 'Escape' && (view === 'help' || view === 'agents')) {
-      setView('map')                                   // dialogs keep their own Escape (typing() skips them)
+      // Dialogs keep their own Escape (typing() skips them); then the agent's page closes, then the help.
+      setView(view === 'help' ? (back.current === 'help' ? 'map' : back.current) : 'map')
       e.preventDefault()
-    } else if ((e.key === 'j' || e.key === 'k') && view === 'map' && rootRef.current) {
+    } else if (['j', 'k', 'ArrowDown', 'ArrowUp'].includes(e.key) && view === 'map' && rootRef.current) {
       // Next / previous agent: focus moves between the map's agent buttons; Enter opens the focused one.
       const btns = [...rootRef.current.querySelectorAll('.tn-magent')]
       if (!btns.length) return
       const at = btns.indexOf(document.activeElement)
-      const next = at < 0 ? 0 : Math.max(0, Math.min(btns.length - 1, at + (e.key === 'j' ? 1 : -1)))
+      const next = at < 0 ? 0 : Math.max(0, Math.min(btns.length - 1, at + (e.key === 'j' || e.key === 'ArrowDown' ? 1 : -1)))
       btns[next].focus()
       if (btns[next].scrollIntoView) btns[next].scrollIntoView({ block: 'nearest' })
       e.preventDefault()
@@ -7536,7 +7743,15 @@ function TenurePage() {
   else if (view === 'settings') body = jsx(SettingsView, { data, t })
   else if (view === 'help') body = jsx(HelpView, { data, t })
   else if (view === 'community') body = jsx(CommunityView, { t })
-  else if (!agents.length) body = jsx(PanelEmpty, { description: t(trustedStart ? 'empty.desc_trusted' : 'empty.desc'), icon: 'shield', title: t('empty.title') })
+  else if (!agents.length && (view === 'map' || view === 'agents'))
+    body = jsx(PanelEmpty, {
+      description: trustedStart
+        ? t('map.empty_trusted')
+        : jsxs('span', { children: [t('map.empty_before'), jsx('b', { children: t('map.empty_bold') }), t('map.empty_after')] }),
+      icon: 'shield',
+      title: t('map.empty_title')
+    })
+  else if (view === 'passport') body = jsx(PassportView, { data, t })
   else if (view === 'map') body = jsx(MapView, { data, onOpen: openAgent, t, transitions })
   else if (view === 'benchmark') body = jsx(BenchmarkView, { t })
   else if (view === 'switch') body = jsx(SwitchView, { data, t })

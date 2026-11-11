@@ -51,7 +51,7 @@ const TENURE_LOCALES = {
     "common.arrow": "→",
     "common.capped": "capped",
     "common.list_sep": ", ",
-    "common.loading": "Loading…",
+    "common.loading": "Reading the evidence…",
     "common.no_public_measure": "no public measure",
     "common.one_in": "1 in {k}",
     "common.percent": "{v}%",
@@ -152,7 +152,6 @@ const TENURE_LOCALES = {
     "event.neutral.nobody": "nobody to answer · no evidence",
     "event.neutral.other": "neutral ({source})",
     "event.neutral.timeout": "no answer · no evidence",
-    "event.neutral_expired": "pending action expired · no evidence",
     "event.revoked": "revoked by you",
     "event.success.approved": "approved by you, ran cleanly",
     "event.success.notify": "acted, then told you · not undone",
@@ -252,6 +251,7 @@ const TENURE_LOCALES = {
     "map.empty.before": "tenure starts counting at the first action an agent asks to run. Reads never ask. Every action type starts at ",
     "map.empty.bold": "T1, asks first",
     "map.empty.title": "No evidence yet",
+    "map.empty.trusted": "Work as usual. Each action type acts as Hermes alone would until its first mistake; from then on it asks first and earns its tier back from your answers.",
     "map.open_hint": "open ",
     "map.th.agent": "Agent",
     "map.th.agent_sub": "profile · model@provider",
@@ -302,8 +302,10 @@ const TENURE_LOCALES = {
     "moment.eyebrow.down": "Fault caught",
     "moment.eyebrow.up": "Promotion",
     "moment.granted": "Tenure granted",
+    "moment.on_probation": "On probation",
     "moment.probation": "Back on probation",
     "moment.review": "Under review",
+    "moment.review_sub": "{name} now acts, then tells you, with an Undo.",
     "page.anim_off": "motion off",
     "page.anim_on": "motion on",
     "page.anim_reduced": "Your system asks for reduced motion: animations stay off",
@@ -311,7 +313,6 @@ const TENURE_LOCALES = {
     "page.animations": "Animations",
     "page.error": "Could not read tenure: {error}",
     "page.live": "live · ",
-    "page.loading": "Loading the record…",
     "page.polling": "Polling every {s} s",
     "page.raw_off": "redacted names",
     "page.raw_on": "raw names",
@@ -385,7 +386,7 @@ const TENURE_LOCALES = {
       "other": "{n} suspended: external content read"
     },
     "profile.suspended_title": "A session read outside content: it asks for everything until it ends.",
-    "profile.this_dashboard": " · this dashboard",
+    "profile.this_profile": " · this profile",
     "recent.check_failed": "check failed",
     "recent.check_failed_tip": "The automatic check failed: already counted as a fault. Undo restores the files.",
     "recent.flag_desc": "This counts as a fault: {type} will drop at least one tier and climb again. Use it for an error nobody caught.",
@@ -557,7 +558,6 @@ const TENURE_LOCALES = {
     },
     "timeline.empty": "No evidence for this filter",
     "timeline.filter_label": "Filter by type",
-    "timeline.loading": "Loading the evidence…",
     "timeline.note": "From the hash-chained ledger, newest first, last 200 events. Repeated outcomes are grouped.",
     "timeline.title": "Evidence timeline",
     "toast.transition": "{agent} · {type}: {from} → {to}",
@@ -651,7 +651,7 @@ const TENURE_LOCALES = {
     "common.arrow": "←",
     "common.capped": "مقيَّد",
     "common.list_sep": "، ",
-    "common.loading": "جارٍ التحميل…",
+    "common.loading": "جارٍ قراءة الأدلة…",
     "common.no_public_measure": "لا مقياس عام",
     "common.one_in": "1 من كل {k}",
     "common.percent": "{v}%",
@@ -784,7 +784,6 @@ const TENURE_LOCALES = {
     "event.neutral.nobody": "لا أحد ليجيب · بلا دليل",
     "event.neutral.other": "محايد ({source})",
     "event.neutral.timeout": "بلا إجابة · بلا دليل",
-    "event.neutral_expired": "انتهت صلاحية الإجراء المعلّق · بلا دليل",
     "event.revoked": "سحبتَه",
     "event.success.approved": "وافقتَ عليه، ونُفّذ بسلام",
     "event.success.notify": "نفّذ ثم أبلغ · لم يُتراجع عنه",
@@ -908,6 +907,7 @@ const TENURE_LOCALES = {
     "map.empty.before": "يبدأ tenure العدّ عند أول إجراء يطلب الوكيل تنفيذه. القراءة لا تسأل أبدًا. يبدأ كل نوع إجراء في ",
     "map.empty.bold": "T1، يسأل أولًا",
     "map.empty.title": "لا أدلة بعد",
+    "map.empty.trusted": "اعمل كالمعتاد. كل نوع إجراء يعمل كما يعمل Hermes وحده حتى أول خطأ له؛ وبعدها يسأل أولًا ويستعيد مستواه من إجاباتك.",
     "map.open_hint": "فتح ",
     "map.th.agent": "الوكيل",
     "map.th.agent_sub": "الملف الشخصي · model@provider",
@@ -978,8 +978,10 @@ const TENURE_LOCALES = {
     "moment.eyebrow.down": "رُصد إخفاق",
     "moment.eyebrow.up": "ترقية",
     "moment.granted": "مُنح التثبيت",
+    "moment.on_probation": "في فترة اختبار",
     "moment.probation": "العودة إلى فترة الاختبار",
     "moment.review": "قيد المراجعة",
+    "moment.review_sub": "{name} ينفّذ الآن ثم يُبلغك، مع زر تراجع.",
     "page.anim_off": "الحركة متوقفة",
     "page.anim_on": "الحركة مفعّلة",
     "page.anim_reduced": "يطلب نظامك تقليل الحركة: تبقى الحركة متوقفة",
@@ -987,7 +989,6 @@ const TENURE_LOCALES = {
     "page.animations": "الرسوم المتحركة",
     "page.error": "تعذّرت قراءة tenure: {error}",
     "page.live": "مباشر · ",
-    "page.loading": "جارٍ تحميل السجل…",
     "page.polling": "تحديث كل {s} ث",
     "page.raw_off": "أسماء محجوبة",
     "page.raw_on": "أسماء خام",
@@ -1081,7 +1082,7 @@ const TENURE_LOCALES = {
       "other": "{n} معلّقة: قُرئ محتوى خارجي"
     },
     "profile.suspended_title": "قرأت الجلسة محتوى خارجيًا: يسأل عن كل شيء حتى تنتهي.",
-    "profile.this_dashboard": " · هذه اللوحة",
+    "profile.this_profile": " · الملف الشخصي الحالي",
     "recent.check_failed": "فشل الفحص",
     "recent.check_failed_tip": "فشل الفحص التلقائي: حُسب إخفاقًا بالفعل. التراجع يستعيد الملفات.",
     "recent.flag_desc": "يُحسب هذا إخفاقًا: سينزل {type} مستوى واحدًا على الأقل ثم يصعد من جديد. استخدمه لخطأ لم يلحظه أحد.",
@@ -1297,7 +1298,6 @@ const TENURE_LOCALES = {
     },
     "timeline.empty": "لا أدلة لهذا المرشّح",
     "timeline.filter_label": "التصفية حسب النوع",
-    "timeline.loading": "جارٍ تحميل الأدلة…",
     "timeline.note": "من الدفتر المتسلسل بالتجزئة، الأحدث أولًا، آخر 200 حدث. تُجمَّع النتائج المتكررة.",
     "timeline.title": "خط الأدلة الزمني",
     "toast.transition": "{agent} · {type}: من {from} إلى {to}",
@@ -1399,7 +1399,7 @@ const TENURE_LOCALES = {
     "common.arrow": "→",
     "common.capped": "limitado",
     "common.list_sep": ", ",
-    "common.loading": "Cargando…",
+    "common.loading": "Leyendo la evidencia…",
     "common.no_public_measure": "sin medida pública",
     "common.one_in": "1 de cada {k}",
     "common.percent": "{v} %",
@@ -1502,7 +1502,6 @@ const TENURE_LOCALES = {
     "event.neutral.nobody": "nadie que responda · sin evidencia",
     "event.neutral.other": "neutro ({source})",
     "event.neutral.timeout": "sin respuesta · sin evidencia",
-    "event.neutral_expired": "acción pendiente caducada · sin evidencia",
     "event.revoked": "revocado por ti",
     "event.success.approved": "aprobado por ti, se ejecutó sin problemas",
     "event.success.notify": "actuó y luego avisó · no deshecho",
@@ -1602,6 +1601,7 @@ const TENURE_LOCALES = {
     "map.empty.before": "tenure empieza a contar en la primera acción que un agente pide ejecutar. Las lecturas nunca preguntan. Cada tipo de acción empieza en ",
     "map.empty.bold": "T1, pregunta antes",
     "map.empty.title": "Aún no hay evidencia",
+    "map.empty.trusted": "Trabaja como siempre. Cada tipo de acción actúa como Hermes solo hasta su primer error; desde entonces pregunta antes y recupera su nivel con tus respuestas.",
     "map.open_hint": "abrir ",
     "map.th.agent": "Agente",
     "map.th.agent_sub": "perfil · modelo@proveedor",
@@ -1652,8 +1652,10 @@ const TENURE_LOCALES = {
     "moment.eyebrow.down": "Fallo detectado",
     "moment.eyebrow.up": "Ascenso",
     "moment.granted": "Titularidad concedida",
+    "moment.on_probation": "En período de prueba",
     "moment.probation": "De vuelta a prueba",
     "moment.review": "En revisión",
+    "moment.review_sub": "{name} ahora actúa y luego te avisa, con opción de Deshacer.",
     "page.anim_off": "animaciones desactivadas",
     "page.anim_on": "animaciones activadas",
     "page.anim_reduced": "Tu sistema pide reducir el movimiento: las animaciones quedan desactivadas",
@@ -1661,7 +1663,6 @@ const TENURE_LOCALES = {
     "page.animations": "Animaciones",
     "page.error": "No se pudo leer tenure: {error}",
     "page.live": "en directo · ",
-    "page.loading": "Cargando el historial…",
     "page.polling": "Actualizando cada {s} s",
     "page.raw_off": "nombres ocultos",
     "page.raw_on": "nombres reales",
@@ -1736,7 +1737,7 @@ const TENURE_LOCALES = {
       "other": "{n} suspendidas: contenido externo leído"
     },
     "profile.suspended_title": "Una sesión leyó contenido externo: pregunta por todo hasta que termine.",
-    "profile.this_dashboard": " · este panel",
+    "profile.this_profile": " · este perfil",
     "recent.check_failed": "falló la comprobación",
     "recent.check_failed_tip": "La comprobación automática falló: ya se contó como fallo. Deshacer restaura los archivos.",
     "recent.flag_desc": "Cuenta como un fallo: {type} bajará al menos un nivel y tendrá que volver a subir. Úsalo para un error que nadie detectó.",
@@ -1908,7 +1909,6 @@ const TENURE_LOCALES = {
     },
     "timeline.empty": "No hay evidencia para este filtro",
     "timeline.filter_label": "Filtrar por tipo",
-    "timeline.loading": "Cargando la evidencia…",
     "timeline.note": "Del registro encadenado por hash, los más recientes primero, últimos 200 eventos. Los resultados repetidos se agrupan.",
     "timeline.title": "Cronología de la evidencia",
     "toast.transition": "{agent} · {type}: {from} → {to}",
@@ -1994,7 +1994,7 @@ const TENURE_LOCALES = {
     "common.arrow": "→",
     "common.capped": "plafonné",
     "common.list_sep": ", ",
-    "common.loading": "Chargement…",
+    "common.loading": "Lecture des preuves…",
     "common.no_public_measure": "aucune mesure publique",
     "common.one_in": "1 sur {k}",
     "common.percent": "{v} %",
@@ -2097,7 +2097,6 @@ const TENURE_LOCALES = {
     "event.neutral.nobody": "personne pour répondre · aucune preuve",
     "event.neutral.other": "neutre ({source})",
     "event.neutral.timeout": "pas de réponse · aucune preuve",
-    "event.neutral_expired": "action en attente expirée · aucune preuve",
     "event.revoked": "révoqué par vous",
     "event.success.approved": "approuvé par vous, exécuté sans erreur",
     "event.success.notify": "a agi, puis prévenu · non annulé",
@@ -2197,6 +2196,7 @@ const TENURE_LOCALES = {
     "map.empty.before": "tenure commence à compter dès la première action qu'un agent demande à exécuter. Les lectures ne demandent jamais. Chaque type d'action commence en ",
     "map.empty.bold": "T1, demande d'abord",
     "map.empty.title": "Aucune preuve pour l'instant",
+    "map.empty.trusted": "Travaillez comme d'habitude. Chaque type d'action agit comme Hermes seul jusqu'à sa première erreur ; ensuite, il demande d'abord et regagne son niveau selon vos réponses.",
     "map.open_hint": "ouvrir ",
     "map.th.agent": "Agent",
     "map.th.agent_sub": "profil · modèle@fournisseur",
@@ -2247,8 +2247,10 @@ const TENURE_LOCALES = {
     "moment.eyebrow.down": "Faute relevée",
     "moment.eyebrow.up": "Promotion",
     "moment.granted": "Titularisé",
+    "moment.on_probation": "En probation",
     "moment.probation": "Retour en probation",
     "moment.review": "En examen",
+    "moment.review_sub": "{name} agit désormais, puis vous prévient, avec un bouton Annuler.",
     "page.anim_off": "animations désactivées",
     "page.anim_on": "animations activées",
     "page.anim_reduced": "Votre système demande de réduire les animations : elles restent désactivées",
@@ -2256,7 +2258,6 @@ const TENURE_LOCALES = {
     "page.animations": "Animations",
     "page.error": "Impossible de lire tenure : {error}",
     "page.live": "en direct · ",
-    "page.loading": "Chargement de l'historique…",
     "page.polling": "Actualisation toutes les {s} s",
     "page.raw_off": "noms masqués",
     "page.raw_on": "noms bruts",
@@ -2331,7 +2332,7 @@ const TENURE_LOCALES = {
       "other": "{n} suspendues : ont lu du contenu externe"
     },
     "profile.suspended_title": "La session a lu du contenu externe : elle demande avant chaque action, jusqu'à sa fin.",
-    "profile.this_dashboard": " · ce tableau de bord",
+    "profile.this_profile": " · ce profil",
     "recent.check_failed": "vérification échouée",
     "recent.check_failed_tip": "La vérification automatique a échoué : déjà comptée comme une faute. Annuler restaure les fichiers.",
     "recent.flag_desc": "Cela compte comme une faute : {type} descendra d'au moins un niveau et devra remonter. À utiliser pour une erreur que personne n'a repérée.",
@@ -2503,7 +2504,6 @@ const TENURE_LOCALES = {
     },
     "timeline.empty": "Aucune preuve pour ce filtre",
     "timeline.filter_label": "Filtrer par type",
-    "timeline.loading": "Lecture des preuves…",
     "timeline.note": "Issu du registre chaîné par hachage, du plus récent au plus ancien, 200 derniers événements. Les résultats répétés sont regroupés.",
     "timeline.title": "Chronologie des preuves",
     "toast.transition": "{agent} · {type} : {from} → {to}",
@@ -2587,7 +2587,7 @@ const TENURE_LOCALES = {
     "common.arrow": "→",
     "common.capped": "受限",
     "common.list_sep": "、",
-    "common.loading": "正在加载…",
+    "common.loading": "正在读取证据…",
     "common.no_public_measure": "无公开测评",
     "common.one_in": "1/{k}",
     "common.percent": "{v}%",
@@ -2680,7 +2680,6 @@ const TENURE_LOCALES = {
     "event.neutral.nobody": "无人应答 · 无证据",
     "event.neutral.other": "中性（{source}）",
     "event.neutral.timeout": "无回应 · 无证据",
-    "event.neutral_expired": "待处理操作已过期 · 无证据",
     "event.revoked": "被你收回",
     "event.success.approved": "经你批准，运行无误",
     "event.success.notify": "已执行并告知 · 未撤销",
@@ -2774,6 +2773,7 @@ const TENURE_LOCALES = {
     "map.empty.before": "tenure 从智能体请求运行的第一个操作开始计数。读取从不询问。每个操作类型都从 ",
     "map.empty.bold": "T1（先询问）",
     "map.empty.title": "还没有证据",
+    "map.empty.trusted": "照常工作即可。每个操作类型在首次失误前像单独使用 Hermes 一样执行；此后会先询问你，并根据你的回答重新赢得级别。",
     "map.open_hint": "打开 ",
     "map.th.agent": "智能体",
     "map.th.agent_sub": "配置文件 · model@provider",
@@ -2819,8 +2819,10 @@ const TENURE_LOCALES = {
     "moment.eyebrow.down": "发现失误",
     "moment.eyebrow.up": "晋升",
     "moment.granted": "已获转正",
+    "moment.on_probation": "进入试用期",
     "moment.probation": "重回试用期",
     "moment.review": "进入考察",
+    "moment.review_sub": "{name} 现在先执行后告知，可撤销。",
     "page.anim_off": "动画已关闭",
     "page.anim_on": "动画已开启",
     "page.anim_reduced": "你的系统要求减少动态效果：动画保持关闭",
@@ -2828,7 +2830,6 @@ const TENURE_LOCALES = {
     "page.animations": "动画",
     "page.error": "无法读取 tenure：{error}",
     "page.live": "实时 · ",
-    "page.loading": "正在加载记录…",
     "page.polling": "每 {s} 秒刷新",
     "page.raw_off": "名称已脱敏",
     "page.raw_on": "原始名称",
@@ -2897,7 +2898,7 @@ const TENURE_LOCALES = {
       "other": "{n} 个已暂停：读取了外部内容"
     },
     "profile.suspended_title": "此会话读取了外部内容：在会话结束前，每次操作都会询问。",
-    "profile.this_dashboard": " · 此仪表盘",
+    "profile.this_profile": " · 当前配置文件",
     "recent.check_failed": "检查失败",
     "recent.check_failed_tip": "自动检查失败：已记为一次失误。撤销可恢复文件。",
     "recent.flag_desc": "这会记为一次失误：{type} 至少下降一个级别，之后需重新晋升。用于没人发现的错误。",
@@ -3058,7 +3059,6 @@ const TENURE_LOCALES = {
     },
     "timeline.empty": "此筛选条件下没有证据",
     "timeline.filter_label": "按类型筛选",
-    "timeline.loading": "正在加载证据…",
     "timeline.note": "来自哈希链账本，最新在前，最近 200 个事件。重复的结果已合并。",
     "timeline.title": "证据时间线",
     "toast.transition": "{agent} · {type}：{from} → {to}",
@@ -3348,7 +3348,10 @@ const TENURE_LOCALES = {
     var el = e.target;
     if (!el) return false;
     var tag = (el.tagName || "").toLowerCase();
-    return tag === "input" || tag === "textarea" || tag === "select" || el.isContentEditable;
+    if (tag === "input" || tag === "textarea" || tag === "select" || el.isContentEditable) return true;
+    // Inside Hermes' confirmation dialog, its own keys (Esc closes it first); the agent drawer is ours.
+    var dlg = el.closest && el.closest("[role=dialog],[role=alertdialog]");
+    return !!(dlg && !(dlg.classList && dlg.classList.contains("tnr-drawer")));
   }
 
   /** Poll ``fn`` every POLL_MS while the page is visible; ``deps`` restart it. An answer is tagged with the deps it
@@ -4064,8 +4067,9 @@ const TENURE_LOCALES = {
     var rows = props.rows;
     var fresh = useFresh(rows.length > 0);
     if (!rows.length) {
-      return h(Empty, { title: t("map.empty.title") },
-        t("map.empty.before"), h("b", null, t("map.empty.bold")), t("map.empty.after"));
+      // The trusted start says so: nothing asks until a type's first mistake.
+      return (props.start || DEFAULTS.start) === "trusted" ? h(Empty, { title: t("map.empty.title") }, t("map.empty.trusted"))
+        : h(Empty, { title: t("map.empty.title") }, t("map.empty.before"), h("b", null, t("map.empty.bold")), t("map.empty.after"));
     }
     var current = props.settings;
     var byProfile = [];
@@ -4107,7 +4111,7 @@ const TENURE_LOCALES = {
               h("th", { colSpan: ncols + 1, scope: "rowgroup" },
                 h("span", { className: "tnr-profile-name" }, t("profile.name", { profile: "\u0001" }).split("\u0001")[0], h("bdi", null, grp.profile),
                   t("profile.name", { profile: "\u0001" }).split("\u0001")[1] || ""),
-                h("span", { className: "tnr-dim" }, grp.info.current ? t("profile.this_dashboard") : t("profile.read_only")),
+                h("span", { className: "tnr-dim" }, grp.info.current ? t("profile.this_profile") : t("profile.read_only")),
                 grp.info.suspended ? h(Flag, { kind: "warn", title: t("profile.suspended_title") }, t("profile.sessions_suspended", { n: grp.info.suspended })) : null,
                 grp.info.settings ? h("span", { className: "tnr-dim tnr-profile-preset" }, profileSettings(grp.info.settings, grp.info)) : null)),
             grp.rows.map(function (x) {
@@ -4142,7 +4146,7 @@ const TENURE_LOCALES = {
           h("div", { className: "tnr-map-profile tnr-map-profile--card" },
             h("span", { className: "tnr-profile-name" }, t("profile.name", { profile: "\u0001" }).split("\u0001")[0], h("bdi", null, grp.profile),
               t("profile.name", { profile: "\u0001" }).split("\u0001")[1] || ""),
-            h("span", { className: "tnr-dim" }, grp.info.current ? t("profile.this_dashboard") : t("profile.read_only")),
+            h("span", { className: "tnr-dim" }, grp.info.current ? t("profile.this_profile") : t("profile.read_only")),
             grp.info.suspended ? h(Flag, { kind: "warn", title: t("profile.suspended_title") }, t("profile.suspended", { n: grp.info.suspended })) : null),
           grp.rows.map(function (x) {
             var r = x.r, a = r.agent, tot = a.totals || {};
@@ -4241,7 +4245,7 @@ const TENURE_LOCALES = {
     if (e.event === "revoke" || e.event === "revoked") return { glyph: "↺", tone: "fault", text: t("event.revoked") };
     if (e.event === "confirmed") return { glyph: "✓", tone: "ok", text: t("event.confirmed") };
     if (e.event === "agent") return { glyph: "⇄", tone: "move", text: e.from ? t("event.switch_from", { from: e.from }) : t("event.switch") };
-    if (e.event === "neutral_expired") return { glyph: "○", tone: "muted", text: t("event.neutral_expired") };
+    if (e.event === "neutral_expired") return { glyph: "○", tone: "muted", text: t("event.neutral.expired") };
     return { glyph: "·", tone: "muted", text: e.event };
   }
 
@@ -4260,7 +4264,7 @@ const TENURE_LOCALES = {
 
   function Timeline(props) {
     var events = props.events;
-    if (!events) return h("div", { className: "tnr-dim tnr-pad" }, t("timeline.loading"));
+    if (!events) return h("div", { className: "tnr-dim tnr-pad" }, t("common.loading"));
     if (!events.length) return h(Empty, { title: t("timeline.empty") });
     var groups = [];
     runs(events).forEach(function (r) {
@@ -5357,7 +5361,7 @@ const TENURE_LOCALES = {
     var low = toT2({ stakes: "low", reversible: true, wald: 0 }), medium = toT2({ stakes: "medium", reversible: true, wald: 0 });
     // The keys stay as they are; only their descriptions are translated.
     var keys = [["m", t("view.map")], ["b", t("view.models")], ["c", t("view.community")], ["w", t("view.switch")], ["p", t("view.passport")], ["u", t("view.undo")],
-      ["s", t("view.settings")], ["a", t("help.agent")], ["j / k", t("help.next_prev")], ["↵", t("help.open")],
+      ["s", t("view.settings")], ["a", t("help.agent")], ["j / k · ↑ / ↓", t("help.next_prev")], ["↵", t("help.open")],
       ["r", t("help.raw")], ["esc", t("help.close")], ["?", t("help.help")]];
     return h("div", { className: "tnr-settings tnr-helpview" },
       h("p", { className: "tnr-lede" }, h("b", null, t("help.title")), " · " + t("help.intro")),
@@ -5410,14 +5414,15 @@ const TENURE_LOCALES = {
   function Moment(props) {
     var m = props.moment;
     var granted = m.kind === "granted", down = m.kind === "probation";
-    var title = granted ? t("moment.granted") : down ? t("moment.probation") : t("moment.review");
+    // The first fault of a trusted type puts it on Probation for the first time; an earned tier lost goes back.
+    var title = granted ? t("moment.granted") : down ? t(m.first ? "moment.on_probation" : "moment.probation") : t("moment.review");
     return h("div", { className: cx("tnr-moment", "tnr-moment--" + m.kind), role: "status" },
       h("div", { className: "tnr-moment-in" },
         h("div", { className: "tnr-moment-eyebrow" }, "#", down ? t("moment.eyebrow.down") : t("moment.eyebrow.up"), " · ", h("code", null, m.type)),
         h("div", { className: "tnr-moment-title" }, title),
-        h("div", { className: "tnr-moment-sub" },
+        h("div", { className: "tnr-moment-sub" }, m.kind === "review" ? t("moment.review_sub", { name: m.agent }) : h(Fragment, null,
           h("bdi", { className: "tnr-mono" }, m.agent), " · ",
-          h("b", null, TIER[m.to]), " " + tierLabel(m.to) + (m.repair ? " · " + m.repair : ""))),
+          h("b", null, TIER[m.to]), " " + tierLabel(m.to) + (m.repair ? " · " + m.repair : "")))),
       h("button", { type: "button", className: "tnr-moment-x", onClick: props.onClose, "aria-label": t("moment.dismiss"),
         title: t("moment.dismiss") }, "×"),
       granted ? h(DitherFade) : null);
@@ -5495,7 +5500,7 @@ const TENURE_LOCALES = {
       prev.current = now;
       if (!before) return;
       var found = [];
-      // Trusted ranks just above T1: its first fault (trusted -> T1) is a drop, and plays "Back on probation".
+      // Trusted ranks just above T1: its first fault (trusted -> T1) is a drop, and plays "On probation".
       var RANK = { ask: 0, trusted: 0.5, notify: 1, alone: 2 };
       Object.keys(now).forEach(function (k) {
         var b = before[k], n = now[k];
@@ -5515,7 +5520,8 @@ const TENURE_LOCALES = {
         var pick = up3 ? ["granted", up3] : fell ? ["probation", fell] : up2 ? ["review", up2] : null;
         if (pick) {
           var cur = now[pick[1].k];
-          setMoment({ kind: pick[0], type: pick[1].type, agent: cur ? cur.r.agent.model : pick[1].agent, to: pick[1].to,
+          setMoment({ kind: pick[0], first: pick[0] === "probation" && pick[1].from === "trusted", type: pick[1].type,
+            agent: cur ? cur.r.agent.model : pick[1].agent, to: pick[1].to,
             repair: pick[0] === "probation" && cur ? missing(cur.t).text : "", at: Date.now() });
         }
         var f = found[0];
@@ -5580,7 +5586,7 @@ const TENURE_LOCALES = {
 
     var retry = h(Btn, { kind: "ghost", onClick: function () { setVersion(version + 1); } }, t("page.retry"));
     var body;
-    if (!data && !err) body = h("div", { className: "tnr-dim tnr-pad" }, t("page.loading"));
+    if (!data && !err) body = h("div", { className: "tnr-dim tnr-pad" }, t("common.loading"));
     else if (!data && err) body = h("div", { className: "tnr-error" }, t("page.error", { error: errText(err) }), " ", retry);
     else if (view === "map") {
       body = h(MapView, { profiles: profiles, rows: rows, settings: current && current.settings, focus: focus, onFocus: setFocus,
