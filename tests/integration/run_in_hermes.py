@@ -160,6 +160,24 @@ if START == "trusted":
     check("trusted: the undo restores the file and counts a fault", (code, os.path.exists(os.path.join(project, "notes.md"))), (0, False))
     check("trusted: after its first mistake, file:write asks first", write("b\n", "once"), "approved")
     check("trusted: the other types keep their trust", run("terminal", {"command": "npm test"}, real=False), "ran")
+    for cmd in ("cd src && npm test", "source .venv/bin/activate && pytest", "npx jest", "git commit -m 'fix'"):
+        check(f"trusted: everyday work asks nothing: {cmd}", run("terminal", {"command": cmd}, real=False), "ran")
+    for cmd in ("npm test && rm -rf build", "npm run deploy", "aws s3 cp a s3://b", "uv publish", "sudo make install",
+                "git checkout -- .", "stripe charges create", "sed -i s/a/b/ notes.md"):
+        check(f"trusted: still asks: {cmd}", run("terminal", {"command": cmd}, "once", real=False), "approved")
+    code, out = cli("flag", "shell:npm")
+    check("trusted: a flag ends the trust for that type", run("terminal", {"command": "npm test"}, "once", real=False),
+          "approved")
+    pp = os.path.join(project, "passport.json")
+    led = os.path.join(project, "ledger.jsonl")
+    cli("passport", "--out", pp, "--no-redact")
+    cli("export", led)
+    code, out = cli("verify", pp, led)
+    check("trusted: the passport verifies against the ledger", (code, out.startswith("OK")), (0, True))
+    with open(pp, encoding="utf-8") as f:
+        kinds = {t["type"]: t["trusted"] for t in json.load(f)["types"]}
+    check("trusted: the passport says which types are trusted, not earned",
+          (kinds.get("shell:git:commit"), kinds.get("shell:npm"), kinds.get("file:write")), (True, False, False))
     print("\n" + core.cli.status_text(every=True))
     shutil.rmtree(home, ignore_errors=True)
     shutil.rmtree(project, ignore_errors=True)
