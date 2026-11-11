@@ -119,6 +119,7 @@
   "cli.explain.new_model_strict": "Un modelo nuevo empieza con un historial vacío (modo estricto).",
   "cli.explain.reads": "Las lecturas nunca preguntan; los secretos, las habilidades y plugins del propio agente y los archivos sensibles siempre preguntan.",
   "cli.explain.t1": "T1 pregunta antes. Cada acción de un tipo nuevo te pregunta.",
+  "cli.explain.t1_trusted": "Inicio con confianza (por defecto): archivos, memoria, subagentes y herramientas de desarrollo conocidas no preguntan nada hasta su primer fallo (una anulación, un aviso, una comprobación fallida, un rechazo), y no ganan nada mientras tanto. Después T1 pregunta primero, solo para ese tipo, y se aplica la regla de abajo. Todo lo demás empieza en T1.",
   "cli.explain.t2": "T2 actúa y luego te avisa. Tras {low} aprobadas seguidas con impacto bajo, {medium} con impacto medio, un tipo reversible actúa y te avisa, con opción de deshacer ({command}). El impacto alto y los tipos irreversibles nunca llegan a T2.",
   "cli.explain.t3": "T3 actúa por su cuenta. Tras la serie de aprobaciones seguidas indicada abajo para su impacto, en al menos {sessions} sesiones; 1 acción de cada {spot} sigue pasando un control aleatorio. El plan de muestreo continuo CSP-1 de Dodge fija la longitud de la serie.",
   "cli.explain.title": "Cómo decide tenure, un tipo de acción cada vez:",

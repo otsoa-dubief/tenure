@@ -119,6 +119,7 @@
   "cli.explain.new_model_strict": "Un nouveau modèle démarre avec un historique vide (mode strict).",
   "cli.explain.reads": "Les lectures ne demandent jamais ; les secrets, les skills et plugins de l'agent et les fichiers sensibles demandent toujours.",
   "cli.explain.t1": "T1 demande d'abord. Chaque action d'un nouveau type vous est soumise.",
+  "cli.explain.t1_trusted": "Départ en confiance (par défaut) : fichiers, mémoire, sous-agents et outils de développement connus ne demandent rien jusqu'à leur première faute (une annulation, un signalement, un contrôle raté, un refus), et ne gagnent rien entre-temps. Ensuite T1 demande d'abord, pour ce type seulement, et la règle ci-dessous s'applique. Tout le reste commence en T1.",
   "cli.explain.t2": "T2 agit, puis vous prévient. Après {low} approbations d'affilée à enjeu faible, {medium} à enjeu moyen, un type réversible agit et vous prévient, avec une annulation ({command}). L'enjeu élevé et les types irréversibles n'obtiennent jamais T2.",
   "cli.explain.t3": "T3 agit seul. Après la série d'approbations d'affilée indiquée ci-dessous pour son enjeu, sur au moins {sessions} sessions ; 1 action sur {spot} reste contrôlée au hasard. Le plan d'échantillonnage continu CSP-1 de Dodge fixe la longueur de la série.",
   "cli.explain.title": "Comment tenure décide, un type d'action à la fois :",

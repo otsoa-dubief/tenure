@@ -4,8 +4,8 @@ manifest_version: 2
 api_version: 1
 label: tenure
 description: >-
-  Revocable trust for Hermes agents. No extra question on day one: what the agent changes can be undone for 24 hours,
-  and anything can be flagged. Its first mistake on a kind of action (an undo, a flag, a refusal, a failed check)
+  Revocable trust for Hermes agents. No extra question for everyday work (files, memory, known dev tools): what the
+  agent writes can be undone for 24 hours, and anything can be flagged. Its first mistake on a kind of action (an undo, a flag, a refusal, a failed check)
   puts that kind on probation: it asks first, then earns its way back to acting then notifying (with undo) and to
   acting alone with random spot checks, from verified evidence and a guarantee you choose (Dodge's CSP-1). What
   leaves the machine always asks. Your own per-model benchmark, a live dashboard map, and a signed, tamper-evident

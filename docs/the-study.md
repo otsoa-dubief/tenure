@@ -12,6 +12,10 @@ Added layers:
 - the requirement of two distinct sessions;
 - suspension after external content.
 
+Trusted start (tenure's default, not the study): a type of the covered kinds (files, memory, subagents, known local
+dev tools) asks nothing until its first fault, earns nothing meanwhile, and from that fault on follows the study's rule
+from T1. `start: probation` is the study's start.
+
 Adaptations:
 
 - human approval plus clean execution counts as proof, an adaptation of the study's automatic control;

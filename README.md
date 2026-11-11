@@ -3,8 +3,8 @@
 <p align="center"><strong>Hermes trusts your agent blindly. Tenure makes that trust revocable.</strong></p>
 
 <p align="center">
-  A plugin for <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>. Not one extra question on day
-  one. Every action can be undone or flagged. The first mistake on a kind of action puts that kind, and only that
+  A plugin for <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>. No extra question for everyday
+  work: files, memory, build, test, git. What it writes can be undone, anything can be flagged. The first mistake on a kind of action puts that kind, and only that
   kind, on probation: it asks first, and earns its autonomy back on verified evidence.
 </p>
 
@@ -38,19 +38,20 @@ Tenure keeps Hermes' speed and adds what is missing:
 
 | Tier | What happens |
 |---|---|
-| **Trusted** (the start) | The agent works as with Hermes alone: no extra question. Files it changes are saved first and can be undone for 24 hours (`/tenure undo`); anything can be flagged (`/tenure flag`). |
+| **Trusted** (the start) | For files, memory, subagents and the usual local dev tools (npm, python, pytest, cargo, go, make, git...), the agent works as with Hermes alone: no extra question. Files it changes are saved first and can be undone for 24 hours (`/tenure undo`); anything can be flagged (`/tenure flag`). Trust is given, not earned: it reaches no tier and claims no guarantee. |
 | **T1 · Probation** (asks first) | After its first mistake (an undo, a flag, a failed automatic check, a refusal), that kind of action asks you first. Only that kind. |
 | **T2 · Under review** (acts, then tells you) | Earned back on approvals: the agent acts, then tells you, with an undo. Only for reversible types at low or medium stakes. |
 | **T3 · Tenured** (acts on its own) | Earned on a series of verified successes over two sessions, under a risk you set. One in ten is still spot-checked. |
 
-What leaves your machine (pushes, messages, uploads, payments), the agent's own skills, plugins and secrets, and a
-session that just read outside content (web, mail, downloads) always ask: those are the only questions Hermes would
-not have asked. Prefer the preregistered study's start, where every type begins on probation?
+What tenure asks that Hermes alone would not: what leaves your machine (pushes, messages, uploads, cloud writes,
+payments), deleting files, programs outside the list above (deploy, database and unknown CLIs, until they earn it),
+shell constructs it cannot read safely (`for`, `if`, `python -c`), the agent's own skills, plugins and secrets, and a
+session that just read outside content (web, mail, downloads). Prefer the preregistered study's start, where every type begins on probation?
 `hermes tenure start probation`.
 
 | | Hermes by default | `--yolo` | An allowlist | **tenure** |
 |---|---|---|---|---|
-| Extra questions on day one | - | - | - | **none**, except what leaves the machine and a session that just read outside content |
+| Extra questions on day one | - | - | - | **none for files, memory and known dev tools**; what leaves the machine, deletions and unknown CLIs ask |
 | Undo of what the agent changed | no | no | no | **yes, 24 hours** |
 | Trust taken back after a mistake | no | no | by hand | **automatically, per action type** |
 | Trust earned back on evidence | no | no | by hand | **yes, under a risk you choose** |
@@ -135,6 +136,10 @@ Adaptations:
 - a trial is the next 3 real actions, asked; the study replays 3 hidden variants of the faulty case.
 
 Carry-over is our addition; strict mode is the study. The public-benchmark veto is our addition too.
+
+**The trusted start is not the study.** By default, a type of the covered kinds starts trusted and only enters the
+study's rule at its first fault; trusted actions earn nothing and carry no guarantee. The study's start, where every
+type begins at T1, is `hermes tenure start probation`; every number on this page refers to the rule after that point.
 
 ## How it works
 

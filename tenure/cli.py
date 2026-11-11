@@ -280,7 +280,7 @@ def explain_text() -> str:
     t2 = {lv: math.ceil(params.wald_steps(lv)[2] / params.wald_steps(lv)[1] - 1e-9) for lv in params.WALD}
     new_model = tr("cli.explain.new_model_strict" if cfg["strict"] else "cli.explain.new_model")
     lines = [tr("cli.explain.title"),
-             "  " + tr("cli.explain.t1"),
+             "  " + (tr("cli.explain.t1_trusted") if cfg.get("start") == "trusted" else tr("cli.explain.t1")),
              "  " + tr("cli.explain.t2", low=t2["low"], medium=t2["medium"], command="/tenure undo N"),
              "  " + tr("cli.explain.t3", sessions=rule.SESSIONS, spot=spot),
              "  " + tr("cli.explain.fault"),
