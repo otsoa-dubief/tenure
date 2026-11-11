@@ -41,7 +41,7 @@ Screenshots from one real session (Claude Sonnet 5.5 through Nous, on a demo pro
 | <img alt="Fault caught, file:shell: On probation, 17 more to reach Under review; file:write still trusted" src="docs/images/desktop-probation.png"> | <img alt="Hermes approval prompt: tenure, file:shell rm notes/a2.txt asks first after a mistake: 17 more approvals and it acts again, then tells you, with an undo" src="docs/images/desktop-asks-first.png"> |
 | **3. That kind only.** `file:shell` goes on probation; `file:write` keeps its trust. | **4. It asks first.** The next `rm` goes through Hermes' own approval prompt; each approval earns the trust back. |
 
-<p align="center"><img alt="The signed autonomy passport of claude-sonnet-5.5: file:shell T1 probation 1/21, file:write trusted (not earned), 1 fault / 7 verified outcomes, ledger cb0baa71, ED25519" src="docs/images/desktop-passport.png" width="560"><br><sub>The signed passport of that session (<code>hermes tenure verify</code> checks it against the ledger).</sub></p>
+<p align="center"><img alt="The signed autonomy passport of claude-sonnet-5.5: file:shell T1 probation 1/21, file:write trusted (not earned), 1 fault / 7 verified outcomes, ledger cb0baa71, ED25519" src="docs/images/passport.gif" width="620"><br><sub>The signed passport of that session (<code>hermes tenure verify</code> checks it against the ledger).</sub></p>
 
 ## The problem
 
