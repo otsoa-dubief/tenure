@@ -281,7 +281,7 @@ Community tab shows the board once you save it as `plugin-data/tenure/community-
 
 - **On Windows, plain `rm`, `mv`, `cp` or `sed -i` keep asking.** They are not snapshotted for an undo there, so
   they ask first instead of acting then telling; file writes through Hermes' own tools are saved and undoable as
-  everywhere else. Windows paths (`C:\\Users\\...`) are read as paths by every check, and the full suite runs on
+  everywhere else. Windows paths (`C:\Users\...`) are read as paths by every check, and the full suite runs on
   Windows in CI.
 - **A copied profile is caught only inside one install, and only once the original has run this version.** The
   check compares the database file with the other profiles of the same Hermes root. A copy made before the
