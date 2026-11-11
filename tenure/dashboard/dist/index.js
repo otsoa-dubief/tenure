@@ -509,8 +509,10 @@ const TENURE_LOCALES = {
     "switch.empty": "No agent to preview yet",
     "switch.footnote": "Public scores inform; they never grant autonomy. A veto only blocks carry-over, beyond a fixed margin.",
     "switch.from": "From",
+    "switch.group.agents": "Your agents",
     "switch.lede": "Before you change model: what the new agent would inherit, type by type. A new model or provider is a new agent. Carry-over is our addition; strict mode is the study.",
     "switch.none": "none",
+    "switch.other": "Other model…",
     "switch.pick.body": "Type any model id. Nothing changes until Hermes actually runs the new model.",
     "switch.pick.title": "Pick a target model",
     "switch.placeholder": "model id, e.g. {example} or model@provider",
@@ -1255,8 +1257,10 @@ const TENURE_LOCALES = {
     "switch.empty": "لا وكيل للمعاينة بعد",
     "switch.footnote": "النتائج العامة للعلم؛ لا تمنح استقلالية أبدًا. الرفض يمنع النقل فقط، فوق هامش ثابت.",
     "switch.from": "من",
+    "switch.group.agents": "وكلاؤك",
     "switch.lede": "قبل أن تغيّر النموذج: ما الذي سيرثه الوكيل الجديد، نوعًا بنوع. النموذج أو المزوّد الجديد وكيل جديد. النقل إضافة منا؛ الوضع الصارم هو الدراسة.",
     "switch.none": "لا شيء",
+    "switch.other": "نموذج آخر…",
     "switch.pick.body": "اكتب أي معرّف نموذج. لا شيء يتغيّر حتى يشغّل Hermes النموذج الجديد فعلًا.",
     "switch.pick.title": "اختر النموذج الهدف",
     "switch.placeholder": "معرّف النموذج، مثل {example} أو model@provider",
@@ -1920,8 +1924,10 @@ const TENURE_LOCALES = {
     "switch.empty": "Aún no hay ningún agente que previsualizar",
     "switch.footnote": "Las puntuaciones públicas informan; nunca conceden autonomía. Un veto solo bloquea la herencia, más allá de un margen fijo.",
     "switch.from": "Desde",
+    "switch.group.agents": "Tus agentes",
     "switch.lede": "Antes de cambiar de modelo: lo que heredaría el nuevo agente, tipo por tipo. Un modelo o proveedor nuevo es un agente nuevo. La herencia es un añadido nuestro; el modo estricto es el estudio.",
     "switch.none": "ninguno",
+    "switch.other": "Otro modelo…",
     "switch.pick.body": "Escribe cualquier id de modelo. Nada cambia hasta que Hermes ejecute de verdad el modelo nuevo.",
     "switch.pick.title": "Elige un modelo de destino",
     "switch.placeholder": "id de modelo, p. ej. {example} o model@provider",
@@ -2545,8 +2551,10 @@ const TENURE_LOCALES = {
     "switch.empty": "Aucun agent à prévisualiser pour l'instant",
     "switch.footnote": "Les scores publics informent ; ils n'accordent jamais d'autonomie. Un blocage n'empêche que l'héritage, au-delà d'une marge fixe.",
     "switch.from": "De",
+    "switch.group.agents": "Vos agents",
     "switch.lede": "Avant de changer de modèle : ce dont le nouvel agent hériterait, type par type. Un nouveau modèle ou fournisseur est un nouvel agent. L'héritage vient de nous ; le mode strict suit l'étude.",
     "switch.none": "aucun",
+    "switch.other": "Autre modèle…",
     "switch.pick.body": "Saisissez n'importe quel identifiant de modèle. Rien ne change tant que Hermes n'utilise pas vraiment le nouveau modèle.",
     "switch.pick.title": "Choisissez un modèle cible",
     "switch.placeholder": "identifiant de modèle, p. ex. {example} ou model@provider",
@@ -3136,8 +3144,10 @@ const TENURE_LOCALES = {
     "switch.empty": "还没有可预览的智能体",
     "switch.footnote": "公开分数仅供参考，从不授予自主权。否决只会阻止继承，且仅在超出固定差距时生效。",
     "switch.from": "从",
+    "switch.group.agents": "你的智能体",
     "switch.lede": "更换模型之前：逐个类型查看新智能体会继承什么。新模型或新提供方即为新智能体。继承是我们的补充；严格模式即研究原规则。",
     "switch.none": "无",
+    "switch.other": "其他模型…",
     "switch.pick.body": "输入任意模型 ID。在 Hermes 真正运行新模型之前，什么都不会改变。",
     "switch.pick.title": "选择目标模型",
     "switch.placeholder": "模型 ID，例如 {example} 或 model@provider",
@@ -4811,6 +4821,19 @@ const TENURE_LOCALES = {
       agents.forEach(function (r) { seen[r.agent.model] = 1; });
       return Object.keys(seen).sort();
     }, [agents]);
+    // Every model Hermes' own picker offers, by provider (GET /switch-models); "Other model" types any id.
+    var provS = useState([]), providers = provS[0], setProviders = provS[1];
+    var otherS = useState(false), other = otherS[0], setOther = otherS[1];
+    useEffect(function () {
+      var alive = true;
+      apiGet("/switch-models", {}).then(function (d) { if (alive) setProviders((d && d.providers) || []); },
+        function () { if (alive) setProviders([]); });
+      return function () { alive = false; };
+    }, []);
+    function pick(v) {
+      if (v === "__other") { setOther(true); setDraft(""); return; }
+      setOther(false); setDraft(v); setTo(v);
+    }
     useEffect(function () {
       if (!fromRow || !to) { setRes(null); return; }
       var alive = true;
@@ -4823,7 +4846,7 @@ const TENURE_LOCALES = {
     if (!agents.length) return h(Empty, { title: t("switch.empty") });
     var counts = {};
     if (res) res.types.forEach(function (ty) { counts[ty.status] = (counts[ty.status] || 0) + 1; });
-    function run() { setTo(draft.trim()); }
+    function run() { if (draft.trim()) setTo(draft.trim()); }
     return h("div", { className: "tnr-switch" },
       h("p", { className: "tnr-lede" }, t("switch.lede")),
       h("form", {
@@ -4835,17 +4858,26 @@ const TENURE_LOCALES = {
         // The arrow runs the preview too: it reads as the action between the two agents.
         h("button", { type: "submit", className: "tnr-switch-arrow tnr-focus", title: t("switch.preview"), "aria-label": t("switch.preview") }, t("common.arrow")),
         h("label", { className: "tnr-field tnr-field--grow" }, h("span", null, t("switch.to")),
-          h("input", {
-            className: "tnr-input", list: "tnr-models-list", placeholder: t("switch.placeholder", { example: models[0] || "gpt-5" }),
-            value: draft, "aria-label": t("switch.to_aria"), name: "to",
-            onChange: function (e) {
-              var v = e.target.value, ev = e.nativeEvent || {};
-              setDraft(v);
-              // A suggestion picked from the list (or a known model typed in full) runs the preview at once.
-              if (ev.inputType === "insertReplacementText" || (!ev.inputType && models.indexOf(v.trim()) >= 0)) setTo(v.trim());
-            }
-          }),
-          h("datalist", { id: "tnr-models-list" }, models.map(function (m) { return h("option", { key: m, value: m }); }))),
+          h("select", {
+            className: "tnr-input tnr-select", "aria-label": t("switch.to_aria"), name: "to_pick",
+            value: other ? "__other" : (to || ""), onChange: function (e) { pick(e.target.value); }
+          },
+            h("option", { value: "" }, t("switch.pick.title")),
+            models.length ? h("optgroup", { label: t("switch.group.agents") },
+              models.map(function (m) { return h("option", { key: "a:" + m, value: m }, m); })) : null,
+            providers.map(function (p) {
+              return h("optgroup", { key: p.slug, label: p.name },
+                p.models.map(function (m) { return h("option", { key: p.slug + ":" + m, value: m + "@" + p.slug }, m); }));
+            }),
+            to && !other && models.indexOf(to) < 0 && !providers.some(function (p) {
+              return p.models.some(function (m) { return m + "@" + p.slug === to; });
+            }) ? h("option", { value: to }, to) : null,
+            h("option", { value: "__other" }, t("switch.other"))),
+          other ? h("input", {
+            className: "tnr-input", placeholder: t("switch.placeholder", { example: models[0] || "gpt-5" }),
+            value: draft, "aria-label": t("switch.to_aria"), name: "to", autoFocus: true,
+            onChange: function (e) { setDraft(e.target.value); }
+          }) : null),
         // Btn is type="button" (it never submits a form by itself): the preview runs from its click.
         h(Btn, { kind: "primary", className: "tnr-switch-go", onClick: run }, t("switch.preview"))),
       err ? h("div", { className: "tnr-error" }, err) : null,

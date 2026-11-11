@@ -400,6 +400,33 @@ def _community() -> dict:
     return {"board": community.load_board(path), "path": path}
 
 
+def _hermes_inventory() -> dict:
+    """Hermes' own model picker payload (the providers this Hermes is set up for), read from its disk cache."""
+    from hermes_cli import inventory
+    return inventory.build_models_payload(inventory.load_picker_context(), canonical_order=True,
+                                          non_blocking_catalogs=True)
+
+
+def _hermes_models() -> list[dict]:
+    """[{slug, name, models}] from Hermes' picker; [] when Hermes cannot say (older Hermes, no provider set up)."""
+    try:
+        rows = _hermes_inventory().get("providers") or []
+    except Exception:
+        return []
+    out = []
+    for r in rows:
+        models = [m if isinstance(m, str) else str((m or {}).get("id") or "") for m in (r.get("models") or [])]
+        models = [m for m in models if m]
+        if r.get("slug") and models:
+            out.append({"slug": str(r["slug"]), "name": str(r.get("name") or r["slug"]), "models": models})
+    return out
+
+
+def _switch_models() -> dict:
+    """The models a switch can be previewed to: every model of every provider Hermes' own picker offers."""
+    return {"providers": _hermes_models()}
+
+
 def _get(fn, *args):
     """A GET's work, in a worker thread: an unreadable profile answers 503 instead of an error page."""
     try:
@@ -433,6 +460,11 @@ async def models(type: str | None = Query(None), raw: bool = _RAW):
 @router.get("/community")
 async def community():
     return await asyncio.to_thread(_get, _community)
+
+
+@router.get("/switch-models")
+async def switch_models():
+    return await asyncio.to_thread(_get, _switch_models)
 
 
 @router.get("/preview")

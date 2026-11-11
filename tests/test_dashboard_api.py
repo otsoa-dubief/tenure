@@ -592,3 +592,24 @@ def test_a_copy_that_has_not_started_shows_no_earned_tier_and_signs_nothing(env)
     assert t["effective_tier"] == core.rule.T1
     r = get(client, "/passport", agent=A, of="bot2")
     assert r.status_code == 409 and "has not started" in r.json()["detail"]
+
+
+def test_models_lists_the_models_of_hermes_picker(env, monkeypatch):
+    core, api, client, root = env
+    monkeypatch.setattr(api, "_hermes_models", lambda: [
+        {"slug": "anthropic", "name": "Anthropic", "models": ["claude-opus-5-5", "claude-sonnet-5-5"]},
+        {"slug": "nous", "name": "Nous Portal", "models": ["hermes-5"]}])
+    r = get(client, "/switch-models")
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert [p["slug"] for p in d["providers"]] == ["anthropic", "nous"]
+    assert d["providers"][0]["models"] == ["claude-opus-5-5", "claude-sonnet-5-5"]
+
+
+def test_models_survives_without_hermes_inventory(env, monkeypatch):
+    core, api, client, root = env
+    def boom():
+        raise RuntimeError("no hermes here")
+    monkeypatch.setattr(api, "_hermes_inventory", boom)
+    r = get(client, "/switch-models")
+    assert r.status_code == 200 and r.json()["providers"] == []
