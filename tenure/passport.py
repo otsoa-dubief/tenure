@@ -156,7 +156,9 @@ def _replay(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState], di
             result, source = e["result"], e["source"]
             if source not in store.OUTCOME_SOURCES.get(result, ()):
                 raise ValueError(f"row {i}: unknown outcome {result!r} from {source!r}")
-            if result == "success":
+            if result == "success" and rule.trusted(s, n, cfg.get("start")):
+                events = rule.on_trusted_success(s, source=source)
+            elif result == "success":
                 events = rule.on_success(s, n, session=e.get("session", ""), source=source)
             elif result == "fault":
                 events = rule.on_fault(s, n, session=e.get("session", ""), source=source)

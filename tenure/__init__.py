@@ -670,7 +670,9 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
     n = params.required_n(cfg["risks"], stakes)
     rebased = rule.rebase(s) if recorded is not None and recorded.stakes != stakes else []
     was_trusted = trusted(cfg, s, n, stakes)
-    if result == "success":
+    if result == "success" and was_trusted:
+        events = rule.on_trusted_success(s, source=source)
+    elif result == "success":
         events = rule.on_success(s, n, session=session, source=source)
     elif result == "fault":
         events = rule.on_fault(s, n, session=session, source=source)

@@ -37,10 +37,12 @@ def test_the_first_fault_puts_the_type_on_probation_and_the_study_rule_applies(p
     assert s.distrusted and s.tier == mod.rule.T1
     assert ctx.call("write_file", write("t2")) == "approved"            # asks now, only for this type
     assert ctx.call("terminal", NPM) == "ran"                            # other types keep their trust
-    climb(ctx, 14, name="back")                                          # the study's Wald climb, after a fault
-    assert state(mod, "file:write").tier == mod.rule.T1
-    climb(ctx, 1, name="last")
-    assert state(mod, "file:write").tier == mod.rule.T2 and len(ctx.prompts) == 16
+    k = 1
+    while state(mod, "file:write").tier == mod.rule.T1:                 # the study's Wald climb, after a fault
+        climb(ctx, 1, name=f"back{k}")
+        k += 1
+    assert state(mod, "file:write").tier == mod.rule.T2
+    assert len(ctx.prompts) == k == 17                                   # 17 approvals after a first fault, all asked
 
 
 def test_a_flag_on_a_command_takes_its_trust_back(plugin):
@@ -63,14 +65,17 @@ def test_a_suspended_session_still_asks(plugin):
     assert ctx.call("write_file", write("s1")) == "approved"
 
 
-def test_no_spot_check_before_tenure_then_spot_checks_like_the_study(plugin):
+def test_trust_earns_no_tier_keeps_its_undo_and_claims_no_guarantee(plugin):
     mod, ctx = plugin(TRUST)
     mod.ST.rng.values = [0.0] * 40                                       # every draw would be a spot check
-    for i in range(4):                                                   # FAST: 4 in a row over 2 sessions = T3
+    for i in range(12):                                                  # FAST: 4 in a row over 2 sessions = T3
         assert ctx.call("write_file", write(f"sp{i}"), session=f"s{i % 2}") == "ran"
-    assert ctx.prompts == [] and state(mod, "file:write").tier == mod.rule.T3
-    assert ctx.call("write_file", write("sp-next"), session="s1") == "approved"   # the guarantee needs its checks
-    assert "spot check" in ctx.prompts[-1]["message"]
+        assert "/tenure undo" in ctx.posted[-1]                          # every action keeps its undo
+    s = state(mod, "file:write")
+    assert ctx.prompts == [] and s.tier == mod.rule.T1 and s.series == 0 and s.successes == 12
+    assert not [e for e in ledger(mod, "tier")]                          # no "Tenure granted" for unearned trust
+    text = mod.cli.slash("status")
+    assert "Trusted (until a mistake)" in text and "unchecked errors under" not in text
 
 
 def test_a_fault_ends_the_trust_for_every_model_of_the_profile(plugin):

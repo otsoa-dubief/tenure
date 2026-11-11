@@ -271,6 +271,15 @@ def on_fault(s: TypeState, n: int | None, *, session: str, source: str) -> list[
     return events
 
 
+def on_trusted_success(s: TypeState, *, source: str) -> list[dict]:
+    """A verified success of a type the trusted start covers: statistics only. Trust is given, not earned: the series
+    and the score stay as they are, so no tier is reached without a person's approvals (after a first fault)."""
+    s.successes += 1
+    if source == "spot":
+        s.spot_checks += 1
+    return []
+
+
 def on_neutral(s: TypeState, reason: str) -> list[dict]:
     """A timeout, a cancellation, an answer from no one or an unverifiable result: nothing is learned."""
     s.neutrals += 1
