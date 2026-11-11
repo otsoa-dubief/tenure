@@ -33,6 +33,10 @@ PRESETS = {
 DEFAULT_PRESET = "balanced"
 STARTS = ("trusted", "probation")   # trusted: no ask before a type's first fault; probation: the study's T1 start
 DEFAULT_START = "trusted"
+# Asks that the owner may silence for the rest of a session ("Allow for this session") under the trusted start: code
+# run inline and shell constructs read as complex. Each answer is the owner's, never evidence; a new session asks again.
+SESSION_TYPES = frozenset({"shell:python:inline", "shell:python3:inline", "shell:node:inline", "shell:stdin-code",
+                           "shell:complex"})
 # What the trusted start covers: files and memory (with an undo where files are written), handing work to a subagent,
 # and the usual local development tools. Any other program (a deploy, payment or database CLI, an unknown tool,
 # deleting files) asks under the study rule from the start, whatever the start mode.
@@ -45,7 +49,7 @@ TRUSTED_PROGRAMS = frozenset({
     "npm", "pnpm", "yarn", "bun", "node", "deno", "tsc", "eslint", "prettier", "jest", "vitest",
     "python", "python3", "pytest", "uv", "poetry", "pip", "pip3", "ruff", "black", "mypy", "isort",
     "cargo", "rustc", "go", "make", "cmake", "gradle", "mvn", "swift", "dotnet",
-    "git", "mkdir", "touch", "cd", "pushd", "popd", "export", "sleep", "set",
+    "git", "mkdir", "touch", "cd", "pushd", "popd", "export", "sleep", "set", "lsof", "chmod",
 })
 DEFAULT_SPOT = 0.1          # one cleared action in ten still asks
 LEVELS = ("low", "medium", "high")

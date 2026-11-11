@@ -51,7 +51,9 @@ What tenure asks that Hermes alone would not:
 - shell it cannot read safely (`for`, `if`, `python -c`), and the agent's own skills, plugins and secrets;
 - every command, for the rest of a session that just read outside content (web, mail, downloads, `git pull`);
   file writes keep going with their undo, and `/new` starts afresh;
-- writing through the shell (`> file`, `tee`), local scripts (`./run.sh`, `bash x.sh`) and `docker`.
+- writing through the shell (`echo … > file`, `tee`; a covered tool's own output, `pytest > log`, is fine), local
+  scripts (`./run.sh`, `bash x.sh`) and `docker`. For inline code (`python -c`, `for`, `if`), "Allow for this
+  session" stops the questions until the session ends.
 
 Prefer the preregistered study's start, where every type begins on probation? `hermes tenure start probation`.
 
@@ -110,43 +112,11 @@ Catalogs and glossaries live in [`tenure/locales/`](tenure/locales).
 
 After a type's first mistake (or from the start with `start: probation`), tenure applies
 the same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending; see [docs/the-study.md](docs/the-study.md)).
-
-> **The question.** When can an AI agent be trusted to act alone, one action type at a time, on verified evidence,
-> under an error budget fixed in advance, with a guarantee anyone can check and revoke?
-
-| | |
-|---|---|
-| **Preregistered** | Plan, rule, replay engine and decision criteria frozen at a git tag and [registered on OSF](https://osf.io/vycge/) on 10 November 2026, before any confirmatory data. Embargoed until the results are out. |
-| **Falsifiable** | What would refute the rule is written down in advance. The result will be published whatever it is, negative included. |
-| **Validated first** | The rule was replayed on 6,000+ simulated agents (519 synthetic worlds × 12 model-environment configurations), where the truth is known, to check that the decision procedure reaches the right verdict. |
-| **Running now** | Three Claude models play four environments of two public agent benchmarks (τ-bench 2.0 airline, retail and banking; WorkBench): 14,266 planned episodes. Every write with a known tool is judged by exact comparison with the task's expected actions; automated alerts are reviewed on blind sheets, and a human re-reviews a random draw without seeing the first verdict. |
-| **Compared against** | Fixed allowlists and risk-based triage, replayed offline on the same episodes. |
-
-**What tenure claims, and what it does not.** It runs the study's rule, with the layers below. It does not
-claim that the study has confirmed the rule: the results are pending, and this section will say what they are.
-
-### What tenure adds or adapts
-
-The middle tier (act, then notify) is part of the study.
-
-Added layers:
-
-- spot checks on a cleared type (one in ten by default);
-- the requirement of two distinct sessions;
-- suspension after external content.
-
-Adaptations:
-
-- human approval plus clean execution counts as proof, an adaptation of the study's automatic control;
-- one trial covers the faults that happen during the wait and the inherited faults;
-- evidence is re-based when the stakes of a type change;
-- a trial is the next 3 real actions, asked; the study replays 3 hidden variants of the faulty case.
-
-Carry-over is our addition; strict mode is the study. The public-benchmark veto is our addition too.
-
-**The trusted start is not the study.** By default, a type of the covered kinds starts trusted and only enters the
-study's rule at its first fault; trusted actions earn nothing and carry no guarantee. The study's start, where every
-type begins at T1, is `hermes tenure start probation`; every number on this page refers to the rule after that point.
+It does not claim the study has confirmed the rule: the results are pending. On top of the study's rule, tenure adds
+spot checks, two distinct sessions in the series that reaches T3, and suspension after external content; it adapts
+the proof (a person's approval plus a clean run). Carry-over is our addition; strict mode is the study. The trusted
+start is not the study either: trusted actions earn nothing and carry no guarantee. Details, the preregistration
+(OSF) and every difference: [docs/the-study.md](docs/the-study.md).
 
 ## How it works
 

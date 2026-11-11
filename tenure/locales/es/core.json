@@ -1,11 +1,12 @@
 {
   "ask.capped": "tenure — {summary}\n{type} está limitado: siempre se pregunta.",
   "ask.internal_error": "tenure: error interno ({error}); te pregunto en lugar de dejar pasar la acción.",
-  "ask.prompt": "tenure — {summary}\n{why}\nPermítelo si es correcto; recházalo si es incorrecto (cuenta como fallo). Permitirlo para la sesión o siempre cuenta como una sola aprobación: tenure decide cuándo deja de preguntar.",
+  "ask.prompt": "tenure — {summary}\n{why}\nRechaza si es incorrecto: cuenta como un fallo.",
+  "ask.prompt_session": "tenure — {summary}\n{why}\nPermítelo para esta sesión y tenure deja de preguntar por esto hasta que termine; recházalo si es incorrecto (un fallo).",
   "ask.spot": "control aleatorio de tenure — {summary}\n{type} actúa por su cuenta; 1 acción de cada {spot} se sigue comprobando al azar.\nPermítelo si es correcto; recházalo si es incorrecto (el tipo vuelve a bajar). Permitirlo para la sesión o siempre cuenta como una sola aprobación.",
   "ask.why.capped": {
-    "one": "{type} (impacto {stakes}) está limitado por tu configuración: siempre se pregunta ({n} éxito verificado en el historial).",
-    "other": "{type} (impacto {stakes}) está limitado por tu configuración: siempre se pregunta ({n} éxitos verificados en el historial)."
+    "one": "{type} (impacto {stakes}) siempre pregunta ({n} éxito verificado registrado).",
+    "other": "{type} (impacto {stakes}) siempre pregunta ({n} éxitos verificados registrados)."
   },
   "ask.why.climb": "{type} (impacto {stakes}) pregunta primero tras un error: {n} aprobaciones más y vuelve a actuar, y luego te avisa, con deshacer.",
   "ask.why.other_stakes": "{type} ganó su historial con impacto {earned}, y esta acción tiene impacto {stakes}: pregunta.",
@@ -15,6 +16,7 @@
   },
   "ask.why.series": "{type} (impacto {stakes}) pregunta antes: {series}/{required} acciones limpias seguidas, {sessions} de {needed} sesiones, antes de actuar por su cuenta.",
   "ask.why.suspended": "Esta sesión leyó contenido externo, así que cada acción vuelve a preguntar (suspendido: contenido externo leído). Abre una sesión nueva (/new) para trabajar como antes.",
+  "ask.why.suspended_trusted": "Esta sesión leyó contenido externo: los comandos preguntan hasta una sesión nueva (/new); las ediciones de archivos siguen, con su deshacer.",
   "ask.why.trial": {
     "one": "{type} está a prueba tras un fallo: falta {n} éxito verificado más, sin ningún fallo.",
     "other": "{type} está a prueba tras un fallo: faltan {n} éxitos verificados más, sin ningún fallo."

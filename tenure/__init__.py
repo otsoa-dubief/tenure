@@ -865,14 +865,14 @@ def _to_t2(s: rule.TypeState) -> int:
 
 
 def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool,
-                 earned_at: str | None) -> str:
+                 earned_at: str | None, per_session: bool = False, trusted_start: bool = False) -> str:
     stakes = stakes_name(act.stakes)
     if decision == rule.SPOT:
         return tr("ask.spot", summary=act.summary, type=act.type, spot=round(1 / spot))
     if n is None:
         why = tr("ask.why.capped", type=act.type, stakes=stakes, n=s.successes)
     elif suspended:
-        why = tr("ask.why.suspended")
+        why = tr("ask.why.suspended_trusted" if trusted_start else "ask.why.suspended")
     elif s.trial_left:
         why = tr("ask.why.trial", type=act.type, n=s.trial_left)
     elif s.trial_wait:
@@ -888,6 +888,8 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
                  sessions=len(s.sessions), needed=rule.SESSIONS)
         if s.provisional:
             why += " " + tr("ask.why.provisional", n=s.provisional)
+    if per_session:
+        return tr("ask.prompt_session", summary=act.summary, why=why)
     return tr("ask.prompt", summary=act.summary, why=why)
 
 
@@ -1064,11 +1066,15 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             else:
                 kind = ("ask" if nobody else "spot" if decision == rule.SPOT else "capped" if n is None
                         else "trial" if s.trial_left or s.trial_wait else "ask")
-                key = f"{PREFIX}:{kind}:{act.type}:{uid}"
+                # Under the trusted start, an ask for inline code, or one only the suspension causes, has a key stable
+                # for the session: "Allow for this session" then covers that type until the session ends.
+                per_session = (cfg.get("start") == "trusted" and not nobody and decision == rule.ASK
+                               and (act.type in params.SESSION_TYPES or (suspended and trusted(cfg, s, n, act.stakes))))
+                key = f"{PREFIX}:session:{act.type}:{session}" if per_session else f"{PREFIX}:{kind}:{act.type}:{uid}"
                 st.add_pending(uid, phase="nobody" if nobody else "asked", rule_key=key, **row)
                 directive = {"action": "approve", "rule_key": key,
                              "message": _ask_message(act, s, n, cfg["spot"], decision=decision, suspended=suspended,
-                                                     unsaved=unsaved,
+                                                     unsaved=unsaved, per_session=per_session, trusted_start=cfg.get("start") == "trusted",
                                                      earned_at=recorded.stakes if recorded else None)}
         if taken and taken != snap:
             undo.discard(taken, data_dir())
@@ -1101,7 +1107,8 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
         cfg = settings()
         posts = []
         with txn() as st:
-            p = st.get_pending(key.rsplit(":", 1)[1]) if key else st.find_pending(session, call)
+            p = (st.get_pending(key.rsplit(":", 1)[1]) if key and not key.startswith(f"{PREFIX}:session:")
+                 else st.find_pending(session, call))
             verdict = outcome(choice, kwargs.get("decided_by"))
             if raw and not mine:
                 # Hermes' own prompt on a call tenure let through (trusted start or an earned tier): a person's

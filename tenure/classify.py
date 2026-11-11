@@ -1463,6 +1463,7 @@ def _git_discards(sub: str, args: list[str]) -> bool:
     return False
 
 
+MONEY_CLIS = {"stripe", "paypal", "braintree", "adyen", "square", "lemonsqueezy", "paddle"}
 CLOUD_READ = {"describe", "list", "get", "show", "ls", "help", "wait", "version", "info", "search", "lookup", "whoami"}
 
 
@@ -3081,7 +3082,8 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
                        for n, t in enumerate(tokens))
     toks = _unwrap(tokens)
     if not toks:
-        return "shell:unknown", MEDIUM
+        bare = [os.path.basename(t) for t in tokens if t and not ENV_ASSIGN.match(t)]
+        return ("shell:env", MEDIUM) if bare[:1] == ["env"] else ("shell:unknown", MEDIUM)
     if toks[0].startswith("$"):
         return "shell:dynamic", HIGH                         # the program is computed: illegible
     prog = re.sub(r"[`$()'\"{}]", "", os.path.basename(toks[0])) or "unknown"   # a type name, no shell punctuation
@@ -3239,6 +3241,8 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
         return f"shell:terraform:{sub}", HIGH if sub in ("apply", "destroy", "import") else MEDIUM
     if prog in CLOUD:
         return f"shell:{prog}:{sub}", FREE if _cloud_read(args) else HIGH
+    if prog in MONEY_CLIS:
+        return f"shell:{prog}:{sub or 'default'}", HIGH          # payments: always high stakes
     if prog == "git":
         if sub == "grep" and any(a.startswith("--open-files-in-pager") or re.match(r"-[A-Za-z]*O", a)
                                  and not a.startswith("--") for a in args):

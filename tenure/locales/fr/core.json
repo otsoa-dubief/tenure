@@ -1,11 +1,12 @@
 {
   "ask.capped": "tenure — {summary}\n{type} est plafonné : toujours demandé.",
   "ask.internal_error": "tenure : erreur interne ({error}) ; on vous demande plutôt que de laisser passer l'action.",
-  "ask.prompt": "tenure — {summary}\n{why}\nAutorisez l'action si elle est juste ; refusez-la si elle est fausse (c'est une faute). L'autoriser pour la session ou toujours compte comme une seule approbation : c'est tenure qui décide quand cesser de demander.",
+  "ask.prompt": "tenure — {summary}\n{why}\nRefusez si c'est faux : cela compte comme une faute.",
+  "ask.prompt_session": "tenure — {summary}\n{why}\nAutorisez pour cette session et tenure ne vous le demande plus jusqu'à la fin de la session ; refusez si c'est faux (une faute).",
   "ask.spot": "tenure, contrôle aléatoire — {summary}\n{type} agit seul ; 1 action sur {spot} reste contrôlée au hasard.\nAutorisez l'action si elle est juste ; refusez-la si elle est fausse (le type redescend). L'autoriser pour la session ou toujours compte comme une seule approbation.",
   "ask.why.capped": {
-    "one": "{type} (enjeu {stakes}) est plafonné par vos paramètres : toujours demandé ({n} succès vérifié à son actif).",
-    "other": "{type} (enjeu {stakes}) est plafonné par vos paramètres : toujours demandé ({n} succès vérifiés à son actif)."
+    "one": "{type} (enjeu {stakes}) demande toujours ({n} succès vérifié enregistré).",
+    "other": "{type} (enjeu {stakes}) demande toujours ({n} succès vérifiés enregistrés)."
   },
   "ask.why.climb": "{type} (enjeu {stakes}) demande d'abord après une erreur : encore {n} accords et il agit de nouveau, puis vous prévient, avec une annulation.",
   "ask.why.other_stakes": "{type} a gagné son historique à enjeu {earned}, mais cette action est à enjeu {stakes} : il demande.",
@@ -15,6 +16,7 @@
   },
   "ask.why.series": "{type} (enjeu {stakes}) demande d'abord : {series}/{required} succès d'affilée sans faute, {sessions} sessions sur {needed}, avant d'agir seul.",
   "ask.why.suspended": "Cette session a lu du contenu externe : chaque action vous est de nouveau demandée (session suspendue). Ouvrez une nouvelle session (/new) pour retravailler comme avant.",
+  "ask.why.suspended_trusted": "Cette session a lu du contenu extérieur : les commandes demandent jusqu'à une nouvelle session (/new) ; les modifications de fichiers continuent, avec leur annulation.",
   "ask.why.trial": {
     "one": "{type} est à l'essai après une faute : il lui faut encore {n} succès vérifié, sans faute.",
     "other": "{type} est à l'essai après une faute : il lui faut encore {n} succès vérifiés, sans faute."

@@ -244,7 +244,7 @@ def test_the_approval_prompt_is_localised_and_names_no_button(plugin, tmp_path, 
     ask = lambda: mod._ask_message(act, s, 4, 0.05, decision=mod.rule.ASK, suspended=False, unsaved=False,
                                    earned_at=None)
     english = ask()
-    assert "Allow it if it is right; deny it if it is wrong" in english
+    assert "Deny it if it is wrong: that counts as a fault." in english
     assert not any(label in english for label in ("Run", "Reject", "Session/", "Always allow"))
     fake_locales(tmp_path, monkeypatch, {"fr": FR})
     monkeypatch.setenv("HERMES_LANGUAGE", "fr")

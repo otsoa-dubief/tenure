@@ -454,7 +454,7 @@ def test_high_stakes_capped_by_the_preset_count_successes_but_never_climb(plugin
         assert ctx.call("terminal", {"command": "git push origin main"}) == "approved"
     keys = [d["rule_key"] for d in ctx.prompts]
     assert all(k.startswith("tenure:capped:shell:git:push:") for k in keys) and len(set(keys)) == 5
-    assert "capped by your settings" in ctx.prompts[0]["message"]
+    assert "always asks" in ctx.prompts[0]["message"]
     s = state(mod, "shell:git:push")
     assert (s.successes, s.series, s.tier) == (5, 0, mod.rule.T1)
 

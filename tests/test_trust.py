@@ -261,3 +261,29 @@ def test_pip_is_covered_like_npm(plugin):
     mod, ctx = plugin(TRUST)
     assert ctx.call("terminal", {"command": "pip install requests"}) == "ran"
     assert ctx.call("terminal", {"command": "pip3 install -e ."}) == "ran"
+
+
+def test_inline_code_asks_once_per_session_when_allowed_for_the_session(plugin):
+    mod, ctx = plugin(TRUST)
+    assert ctx.call("terminal", {"command": "python -c 'print(1)'"}, answer="session") == "approved"
+    assert "for this session" in ctx.prompts[-1]["message"]
+    assert ctx.call("terminal", {"command": "python -c 'print(2)'"}) == "ran"            # Hermes' session grant
+    assert ctx.call("terminal", {"command": "python -c 'print(3)'"}, session="s2") == "approved"
+    s = state(mod, "shell:python:inline")
+    assert (s.successes, s.neutrals) == (2, 1)                                               # the grant teaches nothing
+
+
+def test_after_outside_content_a_session_answer_covers_that_command(plugin):
+    mod, ctx = plugin(TRUST)
+    ctx.call("web_search", {"query": "x"})
+    assert ctx.call("terminal", NPM, answer="session") == "approved"
+    assert ctx.call("terminal", NPM) == "ran"
+    assert ctx.call("terminal", {"command": "make build"}) == "approved"                    # one type at a time
+
+
+def test_everyday_diagnostics_and_money(plugin):
+    mod, ctx = plugin(TRUST)
+    assert ctx.call("terminal", {"command": "lsof -i :3000"}) == "ran"
+    assert ctx.call("terminal", {"command": "chmod +x run.sh"}) == "ran"
+    assert mod.classify.classify("terminal", {"command": "stripe charges create"}, cwd="/p", home="/h").stakes == "high"
+    assert mod.classify.classify("terminal", {"command": "env"}, cwd="/p", home="/h").type == "shell:env"

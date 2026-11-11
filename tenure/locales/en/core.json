@@ -1,11 +1,12 @@
 {
   "ask.capped": "tenure — {summary}\n{type} is capped: always asked.",
   "ask.internal_error": "tenure: internal error ({error}); asking you instead of letting the action through.",
-  "ask.prompt": "tenure — {summary}\n{why}\nAllow it if it is right; deny it if it is wrong (that counts as a fault). Allowing it for the session or always counts as a single approval: tenure decides when it stops asking.",
+  "ask.prompt": "tenure — {summary}\n{why}\nDeny it if it is wrong: that counts as a fault.",
+  "ask.prompt_session": "tenure — {summary}\n{why}\nAllow it for this session and tenure stops asking about this until the session ends; deny it if it is wrong (a fault).",
   "ask.spot": "tenure spot check — {summary}\n{type} acts on its own; 1 action in {spot} is still checked at random.\nAllow it if it is right; deny it if it is wrong (the type goes back down). Allowing it for the session or always counts as a single approval.",
   "ask.why.capped": {
-    "one": "{type} ({stakes} stakes) is capped by your settings: always asked ({n} verified success on record).",
-    "other": "{type} ({stakes} stakes) is capped by your settings: always asked ({n} verified successes on record)."
+    "one": "{type} ({stakes} stakes) always asks ({n} verified success on record).",
+    "other": "{type} ({stakes} stakes) always asks ({n} verified successes on record)."
   },
   "ask.why.climb": "{type} ({stakes} stakes) asks first after a mistake: {n} more approvals and it acts again, then tells you, with an undo.",
   "ask.why.other_stakes": "{type} earned its record at {earned} stakes, and this action has {stakes} stakes: it asks.",
@@ -15,6 +16,7 @@
   },
   "ask.why.series": "{type} ({stakes} stakes) asks first: {series}/{required} clean runs in a row, {sessions} of {needed} sessions, before it acts on its own.",
   "ask.why.suspended": "This session read external content, so every action asks again (suspended: external content read). Start a new session (/new) to work as before.",
+  "ask.why.suspended_trusted": "This session read outside content: commands ask until a new session (/new); file edits continue, with their undo.",
   "ask.why.trial": {
     "one": "{type} is on trial after a fault: {n} more verified success needed, without a fault.",
     "other": "{type} is on trial after a fault: {n} more verified successes needed, without a fault."
