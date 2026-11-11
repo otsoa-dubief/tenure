@@ -1392,6 +1392,23 @@ PUBLISH = {("npm", "publish"), ("pnpm", "publish"), ("yarn", "publish"), ("twine
 CLOUD = {"aws", "gcloud", "az"}
 CLOUD_WRITE = {"create", "delete", "put", "update", "deploy", "rm", "cp", "mv", "sync", "mb", "rb", "set", "add",
                "remove", "attach", "detach", "start", "stop", "terminate", "run", "invoke", "publish", "send"}
+CLOUD_READ = {"describe", "list", "get", "show", "ls", "help", "wait", "version", "info", "search", "lookup", "whoami"}
+
+
+def _cloud_read(args: list[str]) -> bool:
+    """A cloud CLI call is a read when one of its words (the operation, after the service) starts with a read verb
+    (``describe-instances``, ``get-caller-identity``, ``list``, ``s3 ls``) and none carries a write verb, dashes
+    included (``terminate-instances``, ``send-email``, ``put-object``). Anything else leaves the machine."""
+    words = [a.lower() for a in args if a and not a.startswith("-") and "=" not in a and "/" not in a]
+    parts = [w.split("-") for w in words]
+    if any(set(p) & (CLOUD_WRITE | CLOUD_WRITE_MORE) for p in parts):
+        return False
+    return any(p[0] in CLOUD_READ for p in parts[1:] or parts)
+
+
+CLOUD_WRITE_MORE = {"upload", "up", "patch", "modify", "reboot", "restore", "import", "export", "enable", "disable",
+                    "grant", "revoke", "tag", "untag", "copy", "move", "apply", "promote", "failover", "reset", "rotate",
+                    "submit", "execute", "exec", "ssh", "scp", "login", "configure", "init", "build", "push", "release"}
 KUBE_WRITE = {"apply", "delete", "create", "replace", "patch", "scale", "rollout", "edit", "drain", "cordon", "exec"}
 SEPS = {";", ";;", ";&", ";;&", "&", "&&", "|", "||", "|&", "\n"}
 PIPES = {"|", "|&"}
@@ -3125,7 +3142,7 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     if prog == "terraform":
         return f"shell:terraform:{sub}", HIGH if sub in ("apply", "destroy", "import") else MEDIUM
     if prog in CLOUD:
-        return f"shell:{prog}:{sub}", HIGH if CLOUD_WRITE & set(args) else FREE
+        return f"shell:{prog}:{sub}", FREE if _cloud_read(args) else HIGH
     if prog == "git":
         if sub == "grep" and any(a.startswith("--open-files-in-pager") or re.match(r"-[A-Za-z]*O", a)
                                  and not a.startswith("--") for a in args):
