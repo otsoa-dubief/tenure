@@ -49,14 +49,16 @@ What tenure asks that Hermes alone would not:
 - what cannot be undone: deleting files, discarding uncommitted git work, `sed -i`, `cp`, `mv`, anything under `sudo`;
 - programs outside the list above (database and unknown CLIs, or a package runner starting one), until they earn it;
 - shell it cannot read safely (`for`, `if`, `python -c`), and the agent's own skills, plugins and secrets;
-- everything, for the rest of a session that just read outside content (web, mail, downloads).
+- every command, for the rest of a session that just read outside content (web, mail, downloads, `git pull`);
+  file writes keep going with their undo, and `/new` starts afresh;
+- writing through the shell (`> file`, `tee`), local scripts (`./run.sh`, `bash x.sh`) and `docker`.
 
 Prefer the preregistered study's start, where every type begins on probation? `hermes tenure start probation`.
 
 | | Hermes by default | `--yolo` | An allowlist | **tenure** |
 |---|---|---|---|---|
 | Extra questions on day one | - | - | - | **none for files, memory and known dev tools**; what leaves the machine, deletions and unknown CLIs ask |
-| Undo of what the agent changed | no | no | no | **yes, 24 hours** |
+| Undo of the files the agent writes | no | no | no | **yes, 24 hours** |
 | Trust taken back after a mistake | no | no | by hand | **automatically, per action type** |
 | Trust earned back on evidence | no | no | by hand | **yes, under a risk you choose** |
 | Evidence someone else can check | no | no | no | **signed passport** |
@@ -170,7 +172,8 @@ Asked-but-never-run actions are never counted as successes.
 
 **Two sessions.** The series that reaches "act alone" must hold successes from at least two distinct sessions.
 
-**Suspension after external content.** A session asks for everything, until it ends, after using one of these
+**Suspension after external content.** A session asks for everything until it ends (under the trusted start: everything but file writes, which keep
+their undo; `/new` starts a fresh session), after using one of these
 tools or commands: web search and extraction, the browser, `read_file` outside the project, `execute_code`,
 downloads and network commands in the terminal (`curl`, `wget`, `git clone`, `git pull`, `git fetch`, `gh` reads...),
 and the read tools of MCP servers that bring in outside content (mail, chat, web, search, GitHub, Notion...). The

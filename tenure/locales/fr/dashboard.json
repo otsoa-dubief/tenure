@@ -470,7 +470,7 @@
   "undo.effect.already": "restaure les fichiers · la vérification automatique a déjà compté une faute",
   "undo.effect.fault": "restaure les fichiers · compte comme une faute",
   "undo.effect.none": "rien à restaurer (pas d'instantané) · compterait comme une faute",
-  "undo.empty.body": "Les actions en T2 (agir, puis prévenir) gardent 24 heures un instantané des fichiers qu'elles ont écrits. Elles apparaissent ici, de la plus récente à la plus ancienne, chacune avec son bouton Annuler.",
+  "undo.empty.body": "Les écritures que l'agent a faites sans demander (en confiance, ou en T2 : agir, puis prévenir) gardent 24 heures un instantané des fichiers. Elles apparaissent ici, de la plus récente à la plus ancienne, chacune avec son bouton Annuler.",
   "undo.empty.title": "Rien à annuler",
   "undo.expand": "Détailler",
   "undo.lede": "Dernières actions faites en T2 (agir, puis prévenir). Annuler restaure les fichiers depuis leur instantané et compte comme une faute du type.",

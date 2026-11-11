@@ -470,7 +470,7 @@
   "undo.effect.already": "restaura los archivos · la comprobación automática ya contó un fallo",
   "undo.effect.fault": "restaura los archivos · cuenta como fallo",
   "undo.effect.none": "nada que restaurar (sin instantánea) · contaría como fallo",
-  "undo.empty.body": "Las acciones en T2 (actúa y luego avisa) guardan una instantánea de los archivos que escribieron durante 24 horas. Aparecen aquí, las más recientes primero, cada una con su botón Deshacer.",
+  "undo.empty.body": "Las escrituras que el agente hizo sin preguntar (con confianza, o en T2: actúa y luego avisa) guardan una instantánea de los archivos durante 24 horas. Aparecen aquí, las más recientes primero, cada una con su botón Deshacer.",
   "undo.empty.title": "Nada que deshacer",
   "undo.expand": "Desplegar",
   "undo.lede": "Acciones recientes que actuaron y luego avisaron. Deshacer restaura los archivos desde su instantánea y cuenta como fallo del tipo.",

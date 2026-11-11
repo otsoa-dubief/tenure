@@ -4,7 +4,8 @@ This is the reference behind the summary in the [README](../README.md#self-prote
 
 ## Suspension after external content
 
-A session asks for everything, until it ends, after using one of these
+A session asks for everything until it ends (under the trusted start: everything but file writes, which keep
+their undo; `/new` starts a fresh session), after using one of these
 tools or commands:
 
 - the tools `web_search`, `web_extract`, every `browser_*` tool, `read_file` on a path outside the project, and
