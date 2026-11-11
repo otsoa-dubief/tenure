@@ -1343,6 +1343,207 @@ def files_written(tool_name: str, args: dict, cwd: str | None, home: str | None 
     return out
 
 
+# ------------------------------------------------------------------------------------------ undoable file commands
+UNDOABLE_PROGRAMS = frozenset({"rm", "mv", "cp", "sed", "touch", "echo", "printf", "cat"})
+UNDOABLE_MAX_FILES = 50
+UNDOABLE_MAX_BYTES = 5_000_000                           # undo.snapshot's own limit
+_UNDOABLE_BAD = set(";|&$`(){}*?[]<\n\\~!#")
+
+
+def undoable_shell(command: str, cwd: str | None, home: str) -> list[str] | None:
+    """Every file a plain rm, mv, cp, sed -i, touch, or echo/printf/cat redirected to a file creates, changes or
+    removes, as absolute paths, when each is a regular file of the project (or a new one in an existing project
+    folder), not a link, not under .git, low stakes for ``_file``, and all of them can be saved; else None. No glob,
+    variable, substitution, chain, pipe or second redirect: anything Tenure cannot be sure of keeps today's question."""
+    text = str(command or "").strip()
+    masked = _undo_mask(text) if text and cwd else None
+    if masked is None or any(c in _UNDOABLE_BAD for c in masked.replace(">", "")):
+        return None
+    redirect = None
+    if ">" in masked:
+        m = re.fullmatch(r"(.*?[^\s0-9>])\s*(>>?)\s*([^>]+?)", masked, re.S)
+        if not m or ">" in m.group(1) or not m.group(3).strip():
+            return None
+        try:
+            target = shlex.split(text[m.start(3):m.end(3)])
+        except ValueError:
+            return None
+        if len(target) != 1:
+            return None
+        redirect, text = target[0], text[:m.end(1)]
+    try:
+        toks = shlex.split(text)
+    except ValueError:
+        return None
+    if not toks or toks[0] not in UNDOABLE_PROGRAMS:
+        return None
+    prog, args = toks[0], toks[1:]
+    if redirect is not None:
+        out = _undo_redirect(prog, args, redirect, cwd, home)
+    elif prog == "rm":
+        out = _undo_rm(args, cwd, home)
+    elif prog in ("mv", "cp"):
+        out = _undo_mv_cp(prog, args, cwd, home)
+    elif prog == "sed":
+        out = _undo_sed(args, cwd, home)
+    elif prog == "touch":
+        out = _undo_touch(args, cwd, home)
+    else:
+        out = None
+    if not out or len(out) > UNDOABLE_MAX_FILES:
+        return None
+    seen: list[str] = []
+    for p in out:
+        if p not in seen:
+            seen.append(p)
+    size = 0
+    for p in seen:
+        if not _undo_target_ok(p, cwd, home):
+            return None
+        if os.path.lexists(p):
+            size += os.path.getsize(p)
+    return seen if size <= UNDOABLE_MAX_BYTES else None
+
+
+def _undo_mask(text: str) -> str | None:
+    """The command with every quoted character replaced by `_`, so only what the shell reads as syntax is left; None
+    when a double-quoted part holds `$`, a backtick or a backslash (it would be expanded), or a quote is not closed."""
+    out, i, n = [], 0, len(text)
+    while i < n:
+        c = text[i]
+        if c == "'":
+            j = text.find("'", i + 1)
+            if j < 0:
+                return None
+            out.append("_" * (j - i + 1))
+            i = j + 1
+        elif c == '"':
+            j = text.find('"', i + 1)
+            if j < 0 or any(x in text[i + 1:j] for x in "$`\\"):
+                return None
+            out.append("_" * (j - i + 1))
+            i = j + 1
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
+def _undo_opts(args: list[str], allowed: str) -> tuple[list[str], set[str]] | None:
+    """(operands, short flags) when every option is a short flag among ``allowed`` (`--` ends them); else None."""
+    flags: set[str] = set()
+    rest = list(args)
+    while rest and rest[0].startswith("-") and rest[0] != "-":
+        a = rest.pop(0)
+        if a == "--":
+            break
+        if a.startswith("--") or any(c not in allowed for c in a[1:]):
+            return None
+        flags |= set(a[1:])
+    if any(r.startswith("-") for r in rest):
+        return None                                      # an option after an operand: read as GNU would, too unsure
+    return rest, flags
+
+
+def _undo_path(p: str, cwd: str, home: str) -> str:
+    return _abs(p, cwd, home)
+
+
+def _undo_target_ok(p: str, cwd: str, home: str) -> bool:
+    """A file the command changes: not a link, not a folder, not under .git, its folder exists, low stakes."""
+    if os.path.islink(p) or os.path.isdir(p) or not os.path.isdir(os.path.dirname(p)):
+        return False
+    if ".git" in _norm(p).split("/"):
+        return False
+    return _file(p, cwd, home)[1] == LOW
+
+
+def _undo_source_ok(p: str, cwd: str, home: str) -> bool:
+    """A file the command only reads: a regular project file (what it holds stays inside the project)."""
+    return (os.path.isfile(p) and not os.path.islink(p) and ".git" not in _norm(p).split("/")
+            and _file(p, cwd, home)[1] == LOW)
+
+
+def _undo_rm(args: list[str], cwd: str, home: str) -> list[str] | None:
+    got = _undo_opts(args, "fv")
+    if not got or not got[0]:
+        return None
+    paths = [_undo_path(a, cwd, home) for a in got[0]]
+    return paths if all(os.path.isfile(p) and not os.path.islink(p) for p in paths) else None
+
+
+def _undo_mv_cp(prog: str, args: list[str], cwd: str, home: str) -> list[str] | None:
+    got = _undo_opts(args, "fvn" + ("p" if prog == "cp" else ""))
+    if not got or len(got[0]) < 2:
+        return None
+    srcs, dest = [_undo_path(a, cwd, home) for a in got[0][:-1]], _undo_path(got[0][-1], cwd, home)
+    if not all(_undo_source_ok(s, cwd, home) for s in srcs):
+        return None
+    if os.path.isdir(dest) and not os.path.islink(dest):
+        targets = [os.path.join(dest, os.path.basename(s)) for s in srcs]
+    elif len(srcs) == 1 and not got[0][-1].endswith("/"):
+        targets = [dest]
+    else:
+        return None
+    if any(t in srcs for t in targets):
+        return None                                      # a file onto itself: let the program say no
+    return (srcs + targets) if prog == "mv" else targets
+
+
+def _undo_sed(args: list[str], cwd: str, home: str) -> list[str] | None:
+    """sed with one -i (GNU -i, -iSUFFIX, BSD -i '' or -i SUFFIX), at most one -e, one script that neither writes nor
+    executes under both readings, then the files."""
+    rest, suffix, script, in_place = list(args), None, None, False
+    while rest and rest[0].startswith("-"):
+        a = rest.pop(0)
+        if a == "-i" and not in_place:
+            in_place = True
+            if rest and (rest[0] == "" or re.fullmatch(r"\.[\w.-]+", rest[0])) and len(rest) > 2:
+                suffix = rest.pop(0) or None             # BSD: the next word is the suffix ('' for none)
+        elif a.startswith("-i") and not in_place and re.fullmatch(r"-i\.[\w.-]+", a):
+            in_place, suffix = True, a[2:]
+        elif a == "-e" and script is None and rest:
+            script = rest.pop(0)
+        else:
+            return None
+    if not in_place:
+        return None
+    if script is None:
+        if not rest:
+            return None
+        script = rest.pop(0)
+    if not rest or any(r.startswith("-") for r in rest):
+        return None
+    for brackets in (True, False):
+        read = _sed_script(script, brackets)
+        if read is None or read[0] or read[1]:
+            return None
+    files = [_undo_path(r, cwd, home) for r in rest]
+    if not all(os.path.isfile(f) and not os.path.islink(f) for f in files):
+        return None
+    return files + ([f + suffix for f in files] if suffix else [])
+
+
+def _undo_touch(args: list[str], cwd: str, home: str) -> list[str] | None:
+    got = _undo_opts(args, "c")
+    if not got or not got[0]:
+        return None
+    return [_undo_path(a, cwd, home) for a in got[0]]
+
+
+def _undo_redirect(prog: str, args: list[str], target: str, cwd: str, home: str) -> list[str] | None:
+    """echo/printf/cat ... > file or >> file: writes the one file; cat reads only project files."""
+    if prog not in ("echo", "printf", "cat"):
+        return None
+    if prog == "cat":
+        got = _undo_opts(args, "")
+        if got is None or not all(_undo_source_ok(_undo_path(a, cwd, home), cwd, home) for a in got[0]):
+            return None
+    elif prog == "printf" and args and args[0].startswith("-"):
+        return None                                      # printf -v writes a variable: not ours to read
+    return [_undo_path(target, cwd, home)]
+
+
 def _files(tool_name: str, args: dict, cwd: str | None, home: str) -> tuple[str, str, bool]:
     paths = files_written(tool_name, args, cwd, home)
     if not paths or (tool_name == "patch" and _v4a_unreadable(str(args.get("patch") or ""))):
