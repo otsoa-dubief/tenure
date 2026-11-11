@@ -3527,7 +3527,9 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
             return f"shell:{prog}:send", HIGH
         return f"shell:{prog}", MEDIUM if writes or "-o" in args or "-O" in args else FREE
     if prog == "rsync":
-        return "shell:rsync", HIGH if any(re.match(r"^[^/]*:", a) for a in args if not a.startswith("-")) else MEDIUM
+        remote = [a for a in args if not a.startswith("-") and re.match(r"^[^/]*:", a)
+                  and not (_nt() and _DRIVE_ROOT.match(a[:3]))]          # Windows: C:/x is a drive, not a host
+        return "shell:rsync", HIGH if remote else MEDIUM
     if prog == "gh":
         if sub in ("pr", "issue", "repo", "release", "run", "workflow"):
             plain = _strip(args, GH_VALUE_OPTS)

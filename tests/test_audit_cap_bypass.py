@@ -639,6 +639,8 @@ def world(tmp_path, monkeypatch):
     fb.mkdir()
     (fb / "hermes").write_text("#!/usr/bin/env python3\nfrom hermes_cli.main import main\nmain()\n")
     (fb / "hermes").chmod(0o755)
+    if sys.platform == "win32":                   # pip installs Hermes as hermes.exe on Windows: PATH finds that
+        (fb / "hermes.exe").write_bytes(b"MZ")
     proj = h / "proj"
     (proj / "src").mkdir(parents=True)
     (proj / ".hermes").mkdir()
@@ -892,6 +894,8 @@ def test_docker_home_stays_free(tmp_path, monkeypatch):
     "perl -e 'rename \"../../../data\", \"../../../d2\"'",
 ])
 def test_t1_computed_ends_recursive_globs_and_paths_inside_strings(world, cmd):
+    if sys.platform == "win32" and cmd.startswith("osascript"):
+        pytest.skip("osascript and POSIX file names are macOS only")
     assert wsh(world, cmd)[1] == CAP, cmd
 
 
