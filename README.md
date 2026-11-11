@@ -277,51 +277,27 @@ Community tab shows the board once you save it as `plugin-data/tenure/community-
 
 ## Limits
 
-<details><summary>15 known limits, stated plainly (click to open)</summary>
+<details><summary>Known limits, stated plainly (click to open)</summary>
 
-- **On Windows, plain `rm`, `mv`, `cp` or `sed -i` keep asking.** They are not snapshotted for an undo there, so
-  they ask first instead of acting then telling; file writes through Hermes' own tools are saved and undoable as
-  everywhere else. Windows paths (`C:\Users\...`) are read as paths by every check, and the full suite runs on
-  Windows in CI.
-- **A copied profile is caught only inside one install, and only once the original has run this version.** The
-  check compares the database file with the other profiles of the same Hermes root. A copy made before the
-  original ever ran tenure 1.0.0 or later, a copy whose original was deleted before the copy first started,
-  or a copy placed outside the install (another `HERMES_HOME`, another machine) keeps the original's record. Until
-  a copy starts, the dashboard shows it at T1 with "copied from another profile" and signs no passport for it.
-- **It over-asks by design.** Shell constructs outside the supported grammar (`if`, `for`, functions, globs in a
-  write target), write targets it cannot resolve, and any name that looks sensitive are classified as high stakes
-  or always-ask. Most wrong guesses cost you a question.
-- **Static reading, not a sandbox.** tenure classifies the text of a command before it runs. A spelling it does
-  not recognise can slip through: a tool's own setting variable it does not watch (`GH_PAGER`,
-  `RIPGREP_CONFIG_PATH`, `KUBECONFIG`...), a shell alias, function or `trap` set in an earlier call, or a form of a
-  command nobody has thought of yet. Each one found so far is capped in the tests (`tests/test_audit_cap_bypass.py`).
-  If the agent itself is untrusted, run Hermes in a container as well.
-- **Granularity is per action type.** A cleared `shell:python` can run any Python. Reclassify broad types as `cap`
-  if that matters to you.
-- **Memory is low stakes.** Hermes' `memory` tool is classed with project files (low stakes), so it can be cleared;
-  writing the files under `memories/` directly is capped. Reclassify `memory:write` if memories steer your agent.
-- **The passport is tamper-evident; it cannot prevent tampering.** It is signed by the owner's own key, so the owner can
-  rewrite a whole history and re-sign it. Anchor its head (`hermes tenure anchor`) somewhere public to fix a point in time.
-  The signature shows that a passport matches a ledger, not who made it: pin the owner's key with `verify --key`.
-  An older passport still verifies against a longer ledger; `verify` then says what changed since.
-- **The database trusts itself.** tenure reads its tiers from its own database, and the hash chain is not a
-  secret. Code that is already allowed to run (see the limit under Self-protection) could rewrite both; writing
-  them by any command tenure can read is capped.
-- **Redaction uses unsalted hashes.** A redacted passport hides a type name from a casual reader, not from
-  someone who guesses it.
-- **SQLite side files.** The dashboard opens each database read-only; on a database in WAL mode SQLite may still
-  create or touch the `-wal` and `-shm` files next to it. No table or row is written by a read.
-- **Settings from the dashboard** (`/settings`) may not reach the plugin from the dashboard process; the tab then
-  shows the CLI command to run.
-- **Learning needs a person to answer.** `approvals.mode` `smart` (the Hermes default) and `manual` both work:
-  tenure's own approvals skip the smart guardian and always reach you. With `--yolo`, `off` or cron, Hermes
-  settles the ask itself and nothing is learned; a verdict given by the smart guardian on Hermes' own prompts
-  counts for nothing.
-- **Git hooks.** `git config core.hooksPath .husky` (the husky set-up) is capped: it always asks.
-  Turning a pager on or off (`pager.log false`) is ordinary.
-- Only a person teaches: approvals count when a person answers, and a T2 action counts only when someone could
-  undo it (under cron or `--yolo` it still acts and keeps its undo, but counts for nothing). Records are per model and per Hermes profile.
-- The guarantee covers errors you would refuse when asked. An error nobody would notice cannot be counted.
+- **Static reading, not a sandbox.** tenure reads a command's text before it runs. It over-asks on purpose (shell
+  it cannot parse, targets it cannot resolve and sensitive-looking names ask), but a spelling it does not
+  recognise can still slip through: a tool setting it does not watch (`GH_PAGER`, `KUBECONFIG`...), an alias or a
+  function set in an earlier call. Each one found so far is capped in `tests/test_audit_cap_bypass.py`. If the
+  agent itself is untrusted, run Hermes in a container as well.
+- **Trust is per action type, per model, per profile.** A cleared `shell:python` runs any Python, and Hermes'
+  memory tool counts as low stakes: reclassify a broad type as `cap` if that matters to you. A profile copied
+  outside its install (another `HERMES_HOME`, another machine) keeps the original's record.
+- **Only a person teaches.** Approvals count when someone answers; under `--yolo`, `off` or cron, Hermes settles
+  the ask and nothing is learned. The guarantee covers errors you would refuse if asked: an error nobody notices
+  cannot be counted.
+- **The passport proves consistency, not authorship.** It is signed with your own key, so a rewritten history
+  could be re-signed: anchor its head publicly (`hermes tenure anchor`) and pin the key with `verify --key`. The
+  database and its hash chain are not secret either; writing them by any command tenure reads is capped.
+  Redaction hides type names from a casual reader only.
+- **On Windows, plain `rm`, `mv`, `cp` or `sed -i` keep asking** instead of acting with an undo; writes through
+  Hermes' own tools are saved and undoable as everywhere else.
+- **Settings saved from the dashboard** may not reach the plugin from the dashboard process; the tab then shows
+  the CLI command to run.
 
 </details>
 
