@@ -3819,7 +3819,8 @@ const TENURE_LOCALES = {
   /** The agent's emblem: develops point by point on mount (A), pulses once when the share climbs (C); with
    *  ``rotate``, its rays turn slowly while it is on screen. */
   function Emblem(props) {
-    var ref = useRef(null);
+    var ref = useRef(null), hotRef = useRef(false);
+    hotRef.current = !!props.hot;                     // hovered or focused: a pulse, then a faster turn
     var st = useRef({ share: null, color: "", raf: 0, rot: 0, loop: 0, seen: true });
     var size = props.size || 72, n = Math.min(96, props.cells || Math.round(size / 3));
     var share = clamp01(props.share || 0);
@@ -3845,7 +3846,7 @@ const TENURE_LOCALES = {
       function f(ts) {
         if (!ref.current || !props.rotate) { s.loop = 0; return; }
         if (!motion() || !s.seen) { s.loop = 0; return; }   // resumed by the observer or the next render
-        if (last) s.rot += Math.min(0.1, (ts - last) / 1000) * 0.06;
+        if (last) s.rot += Math.min(0.1, (ts - last) / 1000) * (hotRef.current ? 0.9 : 0.06);   // faster while hovered
         last = ts;
         if (!s.raf) paint(cv, s.share, 1, s.rot);     // a pulse in progress paints itself
         s.loop = requestAnimationFrame(f);
@@ -3871,6 +3872,11 @@ const TENURE_LOCALES = {
       };
     }, [props.rotate]);
     useEffect(function () { if (props.rotate && !st.current.raf) startLoop(); });
+    useEffect(function () {
+      var s = st.current, cv = ref.current;
+      if (!props.hot || !cv || props.still || !motion() || s.share === null) return;
+      tween(s, 700, 0, function (k) { paint(cv, clamp01(s.share + 0.35 * Math.sin(Math.PI * k)), 1, s.rot); }, startLoop);
+    }, [props.hot]);
     return h("canvas", { ref: ref, className: cx("tnr-emblem", props.className), "aria-hidden": true,
       style: { width: size, height: size } });
   }
@@ -4282,6 +4288,7 @@ const TENURE_LOCALES = {
   }
 
   function MapView(props) {
+    var hotS = useState(null), hot = hotS[0], setHot = hotS[1];    // the agent under the pointer or the focus
     var profiles = props.profiles;
     var cols = useMemo(function () { return columns(profiles); }, [profiles]);
     var rows = props.rows;
@@ -4342,11 +4349,13 @@ const TENURE_LOCALES = {
               return h("tr", {
                 key: r.key, className: cx("tnr-map-row", fresh && "tnr-in", x.i === props.focus && "is-focus"), style: { "--i": x.i },
                 onClick: function () { props.onFocus(x.i); props.onOpen(r); },
+                onMouseEnter: function () { setHot(r.key); }, onMouseLeave: function () { setHot(null); },
+                onFocus: function () { setHot(r.key); }, onBlur: function () { setHot(null); },
                 "aria-selected": x.i === props.focus
               },
                 h("th", { scope: "row", className: "tnr-td-agent" },
                   h("div", { className: "tnr-agent-head" },
-                    h(Emblem, { share: autonomyShare(a.types), size: 30, cells: 30, delay: x.i * 40, developMs: 900 }),
+                    h(Emblem, { share: autonomyShare(a.types), size: 30, cells: 30, delay: x.i * 40, developMs: 900, rotate: true, hot: hot === r.key }),
                     h("div", { className: "tnr-agent-model" }, a.model, h("bdi", { className: "tnr-dim" }, "@" + a.provider))),
                   h("div", { className: "tnr-agent-tot" }, totalsLines(tot)),
                   h("div", { className: "tnr-agent-flags" },
@@ -4372,10 +4381,12 @@ const TENURE_LOCALES = {
             var r = x.r, a = r.agent, tot = a.totals || {};
             return h("button", {
               type: "button", key: r.key, className: cx("tnr-agent-card", fresh && "tnr-in", x.i === props.focus && "is-focus"), style: { "--i": x.i },
-              onClick: function () { props.onFocus(x.i); props.onOpen(r); }
+              onClick: function () { props.onFocus(x.i); props.onOpen(r); },
+              onMouseEnter: function () { setHot(r.key); }, onMouseLeave: function () { setHot(null); },
+              onFocus: function () { setHot(r.key); }, onBlur: function () { setHot(null); }
             },
               h("div", { className: "tnr-agent-head" },
-                h(Emblem, { share: autonomyShare(a.types), size: 36, cells: 36, delay: x.i * 40, developMs: 900 }),
+                h(Emblem, { share: autonomyShare(a.types), size: 36, cells: 36, delay: x.i * 40, developMs: 900, rotate: true, hot: hot === r.key }),
                 h("div", { className: "tnr-agent-model" }, a.model, h("bdi", { className: "tnr-dim" }, "@" + a.provider))),
               h("div", { className: "tnr-agent-tot" }, totals(tot)),
               h("div", { className: "tnr-card-types" },

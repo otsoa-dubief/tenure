@@ -4102,8 +4102,10 @@ function paintEmblem(cv, { size, n, share, develop = 1, rot = 0, crumble = null,
  * The emblem. develops point by point on mount (B), can turn slowly (the passport), and pulses once when `pulse`
  * changes (C: density up, then back). The turning loop stops while the emblem is off screen or the window hidden.
  */
-function Emblem({ share, size = 120, n = 60, rotate = false, pulse = 0, crumble = 0, motion, className, label, pattern = 'sunburst', seed = 0 }) {
+function Emblem({ share, size = 120, n = 60, rotate = false, hot = false, pulse = 0, crumble = 0, motion, className, label, pattern = 'sunburst', seed = 0 }) {
   const ref = useRef(null)
+  const hotRef = useRef(hot)
+  hotRef.current = hot                                    // hovered or focused: a pulse, then a faster turn
   const st = useRef({ raf: 0, dev0: 0, pulse0: 0, crumble0: 0, from: share, rot: 0, rot0: 0, visible: true, share, prev: share })
   st.current.prev = st.current.share                     // the share before this render: a crumble starts from it
   st.current.share = share
@@ -4135,13 +4137,18 @@ function Emblem({ share, size = 120, n = 60, rotate = false, pulse = 0, crumble 
           ck = null
         }
       }
-      const turning = rotate && develop >= 1 && s.visible && !(typeof document !== 'undefined' && document.hidden)
+      const turning = (rotate || hotRef.current) && develop >= 1 && s.visible && !(typeof document !== 'undefined' && document.hidden)
       if (turning) {
-        if (!s.rot0) s.rot0 = now - s.rot / 0.00006
-        s.rot = (now - s.rot0) * 0.00006 // ~0.06 rad/s
+        const speed = hotRef.current ? 0.0009 : 0.00006 // ~0.9 rad/s hovered, ~0.06 rad/s at rest
+        if (s.speed !== speed) {
+          s.speed = speed
+          s.rot0 = 0
+        }
+        if (!s.rot0) s.rot0 = now - s.rot / speed
+        s.rot = (now - s.rot0) * speed
       } else s.rot0 = 0
       // The slow turn alone needs no more than ~14 frames a second; developing and pulsing paint every frame.
-      const idle = develop >= 1 && !s.pulse0 && !s.crumble0
+      const idle = develop >= 1 && !s.pulse0 && !s.crumble0 && !hotRef.current
       if (!idle || now - (s.last || 0) >= 70) {
         s.last = now
         paint(ck == null ? develop : cdev, boost, s.rot, ck)
@@ -4187,6 +4194,11 @@ function Emblem({ share, size = 120, n = 60, rotate = false, pulse = 0, crumble 
     st.current.pulse0 = performance.now()
     wake()
   }, [pulse])
+  useEffect(() => {
+    if (!hot || !motion) return
+    st.current.pulse0 = performance.now()
+    wake()
+  }, [hot])
   useEffect(() => {
     if (!crumble || !motion) return
     const s = st.current
@@ -7135,6 +7147,7 @@ function Transitions({ items, t, n }) {
 /** The dashboard's Map: four totals, every profile × agent × action type, the legend, the tier changes seen here. */
 function MapView({ data, t, transitions, onOpen }) {
   const motion = useMotion()
+  const [hot, setHot] = useState(null)               // the agent row under the pointer or the focus
   const { data: activity } = useActivity()
   const profiles = ((data && data.profiles) || []).filter(p => !p.error)
   const cols = columns(profiles)
@@ -7213,6 +7226,10 @@ function MapView({ data, t, transitions, onOpen }) {
                               {
                                 className: cn('tn-mrow', motion && 'tn-enter'),
                                 onClick: () => open(key),
+                                onMouseEnter: () => setHot(key),
+                                onMouseLeave: () => setHot(h => (h === key ? null : h)),
+                                onFocus: () => setHot(key),
+                                onBlur: () => setHot(h => (h === key ? null : h)),
                                 style: motion ? { animationDelay: `${row * 40}ms` } : undefined,
                                 children: [
                                   jsx('th', {
@@ -7226,7 +7243,7 @@ function MapView({ data, t, transitions, onOpen }) {
                                       },
                                       type: 'button',
                                       children: [
-                                        jsx(Emblem, { label: displayName(a.model), motion, n: 26, share: shareOf(a), size: 30 }, key),
+                                        jsx(Emblem, { hot: hot === key, label: displayName(a.model), motion, n: 26, rotate: true, share: shareOf(a), size: 30 }, key),
                                         jsxs('span', {
                                           className: 'tn-magent-txt',
                                           children: [
