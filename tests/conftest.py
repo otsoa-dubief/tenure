@@ -13,4 +13,4 @@ def _study_start(monkeypatch):
     """Most tests exercise the study rule from T1: they start in probation. Tests of the trusted start set
     ``start: trusted`` in their settings."""
     from tenure import params
-    monkeypatch.setattr(params, "DEFAULT_START", "probation")
+    monkeypatch.setattr(params, "DEFAULT_START", os.environ.get("TENURE_TEST_START", "probation"))
