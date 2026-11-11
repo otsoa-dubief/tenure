@@ -370,7 +370,15 @@ def trusted(s: TypeState, n: int | None, start: str | None) -> bool:
     """The trusted start covers the type: ``start`` is "trusted", no fault or revoke on it in the profile, low or
     medium stakes, not capped, no trial. Such a type asks nothing Hermes alone would not ask."""
     return (start == "trusted" and not s.distrusted and n is not None and s.stakes in ("low", "medium")
-            and not s.trial_left and not s.trial_wait)
+            and not s.trial_left and not s.trial_wait and trust_covers(s.key))
+
+
+def trust_covers(key: str) -> bool:
+    """The kinds of action the trusted start may cover (``params.TRUSTED_TYPES``, ``params.TRUSTED_PROGRAMS``)."""
+    if key in params.TRUSTED_TYPES:
+        return True
+    parts = key.split(":")
+    return len(parts) >= 2 and parts[0] == "shell" and parts[1] in params.TRUSTED_PROGRAMS
 
 
 def guarantee(s: TypeState, n: int | None, spot: float) -> dict:

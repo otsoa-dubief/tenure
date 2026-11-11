@@ -33,6 +33,16 @@ PRESETS = {
 DEFAULT_PRESET = "balanced"
 STARTS = ("trusted", "probation")   # trusted: no ask before a type's first fault; probation: the study's T1 start
 DEFAULT_START = "trusted"
+# What the trusted start covers: files and memory (with an undo where files are written), handing work to a subagent,
+# and the usual local development tools. Any other program (a deploy, payment or database CLI, an unknown tool,
+# deleting files) asks under the study rule from the start, whatever the start mode.
+TRUSTED_TYPES = ("file:write", "file:write-outside", "memory:write", "delegate:task")
+TRUSTED_PROGRAMS = frozenset({
+    "npm", "pnpm", "yarn", "bun", "node", "deno", "tsc", "eslint", "prettier", "jest", "vitest",
+    "python", "python3", "pytest", "uv", "poetry", "ruff", "black", "mypy", "isort",
+    "cargo", "rustc", "go", "make", "cmake", "gradle", "mvn", "swift", "dotnet",
+    "git", "mkdir", "touch", "cp", "mv", "ln", "sed", "awk", "tar", "unzip", "zip", "gzip",
+})
 DEFAULT_SPOT = 0.1          # one cleared action in ten still asks
 LEVELS = ("low", "medium", "high")
 

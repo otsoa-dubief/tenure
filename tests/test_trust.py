@@ -94,12 +94,12 @@ def test_a_fault_ends_the_trust_for_every_model_of_the_profile(plugin):
 
 def test_refusing_hermes_own_prompt_on_a_trusted_call_is_a_fault(plugin):
     mod, ctx = plugin(TRUST)
-    args = {"command": "rm -rf build"}
+    args = {"command": "git clean -fdx"}
     assert pre(mod, "terminal", args, "h1") is None                      # tenure lets it through, Hermes asks
     mod.post_approval_response(pattern_key="recursive delete", tool_call_id="h1", choice="deny",
                                surface="cli", session_id="s1")
     post(mod, "terminal", args, "h1", status="blocked", result='{"error": "denied"}')
-    s = state(mod, "shell:rm")
+    s = state(mod, "shell:git:clean")
     assert s.faults == 1 and s.distrusted
     assert ctx.call("terminal", args) == "approved"
 
@@ -177,3 +177,13 @@ def test_the_signed_passport_says_trusted_not_earned_and_verifies(plugin, tmp_pa
     t = {e["type"]: e for e in p["types"]}
     assert t["file:write"]["trusted"] is True and t["shell:npm"]["trusted"] is False
     assert mod.passport.verify(p, rows) == []
+
+
+def test_trust_covers_files_memory_and_known_dev_tools_only(plugin):
+    mod, ctx = plugin(TRUST)
+    for cmd in ("npm test", "python -m pytest", "git commit -m x", "make build", "cargo test"):
+        assert ctx.call("terminal", {"command": cmd}) == "ran", cmd
+    for cmd in ("stripe charges create", "vercel deploy --prod", "psql $DATABASE_URL -c 'drop table t'",
+                "heroku run rake db:drop", "rm -rf build"):
+        assert ctx.call("terminal", {"command": cmd}) == "approved", cmd
+    assert ctx.call("memory", {"action": "add", "content": "x"}) == "ran"
