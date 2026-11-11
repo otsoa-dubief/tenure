@@ -18,3 +18,4 @@ HERMES="$(dirname "$PY")/hermes"
 HERMES_HOME="$TMP_HOME" "$HERMES" plugins validate "$ROOT/tenure"
 HERMES_HOME="$TMP_HOME" "$HERMES" plugins doctor "$ROOT/tenure" --ci
 HERMES_AGENT_DIR="$SRC" "$PY" "$ROOT/tests/integration/run_in_hermes.py"
+TENURE_IT_START=trusted HERMES_AGENT_DIR="$SRC" "$PY" "$ROOT/tests/integration/run_in_hermes.py"

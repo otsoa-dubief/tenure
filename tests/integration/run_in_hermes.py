@@ -24,6 +24,8 @@ os.environ["TERMINAL_CWD"] = project
 for name in ("HERMES_YOLO_MODE", "HERMES_CRON_SESSION", "ANTHROPIC_API_KEY"):
     os.environ.pop(name, None)
 os.chdir(project)
+# TENURE_IT_START=trusted checks the default trusted start; otherwise the study's start (every type on probation).
+START = "trusted" if os.environ.get("TENURE_IT_START") == "trusted" else "probation"
 os.makedirs(os.path.join(home, "plugins"))
 shutil.copytree(os.path.join(REPO, "tenure"), os.path.join(home, "plugins", "tenure"),
                 ignore=shutil.ignore_patterns("__pycache__"))
@@ -32,7 +34,8 @@ shutil.copytree(os.path.join(REPO, "tenure"), os.path.join(home, "plugins", "ten
 with open(os.path.join(home, "config.yaml"), "w") as f:
     f.write("approvals:\n  cron_mode: approve\n"
             "plugins:\n  enabled: [tenure]\n  entries:\n    tenure:\n      settings:\n"
-            "        risks: {low: 1/20, medium: 1/5, high: cap}\n")
+            "        risks: {low: 1/20, medium: 1/5, high: cap}\n"
+            f"        start: {START}\n")
 
 sys.path.insert(0, os.environ.get("HERMES_AGENT_DIR") or os.path.expanduser("~/.hermes/hermes-agent"))
 from hermes_cli import plugin_messages, plugins  # noqa: E402
@@ -143,6 +146,25 @@ def since(mark):
 
 # ---------------------------------------------------------------------------------------------- loaded
 check("tenure loaded", core is not None, True)
+if START == "trusted":
+    core.ST.rng = Picks()
+    mark = len(posted)
+    check("trusted: a project file is written without a question", write("a\n"), "ran")
+    undo_lines = [p for p in since(mark) if "/tenure undo" in p]
+    check("trusted: ...and the owner is told, with an undo", len(undo_lines), 1)
+    check("trusted: a command runs without a question", run("terminal", {"command": "npm test"}, real=False), "ran")
+    check("trusted: a push still asks", run("terminal", {"command": "git push origin main"}, "once", real=False),
+          "approved")
+    uid = undo_lines[0].rsplit(" ", 1)[1] if undo_lines else "0"
+    code, out = cli("undo", uid)
+    check("trusted: the undo restores the file and counts a fault", (code, os.path.exists(os.path.join(project, "notes.md"))), (0, False))
+    check("trusted: after its first mistake, file:write asks first", write("b\n", "once"), "approved")
+    check("trusted: the other types keep their trust", run("terminal", {"command": "npm test"}, real=False), "ran")
+    print("\n" + core.cli.status_text(every=True))
+    shutil.rmtree(home, ignore_errors=True)
+    shutil.rmtree(project, ignore_errors=True)
+    print("\n" + ("ALL CHECKS PASSED" if not failures else f"{len(failures)} FAILED: {failures}"))
+    sys.exit(1 if failures else 0)
 from tools import approval_context  # noqa: E402
 check("runs under the Hermes default approvals.mode (smart): tenure's own asks still reach the owner",
       approval_context._get_approval_mode(), "smart")

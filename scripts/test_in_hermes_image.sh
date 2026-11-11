@@ -24,3 +24,4 @@ docker exec "$NAME" sh -c 'rm -rf /tmp/tenure/.venv /tmp/tenure/.git && chown -R
 h hermes plugins validate /tmp/tenure/tenure
 h hermes plugins doctor /tmp/tenure/tenure --ci
 h env HERMES_AGENT_DIR=/opt/hermes /opt/hermes/.venv/bin/python /tmp/tenure/tests/integration/run_in_hermes.py
+h env TENURE_IT_START=trusted HERMES_AGENT_DIR=/opt/hermes /opt/hermes/.venv/bin/python /tmp/tenure/tests/integration/run_in_hermes.py
