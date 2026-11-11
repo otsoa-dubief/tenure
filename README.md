@@ -104,8 +104,8 @@ Catalogs and glossaries live in [`tenure/locales/`](tenure/locales).
 
 ## The study behind the rule
 
-After a type's first mistake (or from the start with `start: probation`), tenure applies the same rule as a
-preregistered study, replayed on 6,000+ simulated agents (results pending; see [docs/the-study.md](docs/the-study.md)).
+After a type's first mistake (or from the start with `start: probation`), tenure applies
+the same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending; see [docs/the-study.md](docs/the-study.md)).
 
 > **The question.** When can an AI agent be trusted to act alone, one action type at a time, on verified evidence,
 > under an error budget fixed in advance, with a guarantee anyone can check and revoke?
