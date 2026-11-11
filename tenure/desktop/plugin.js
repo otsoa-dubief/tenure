@@ -108,6 +108,28 @@ const TENURE_LOCALES = {
     "flag.confirm": "Flag",
     "flag.desc": "This counts as a fault: {type} will drop at least one tier and climb again. Use it for an error nobody caught.",
     "flag.title": "Flag this change as an error?",
+    "help.asks_body": "Whatever the start, some actions ask you first:",
+    "help.asks_files": "File edits keep their Undo: a change made without asking can be put back.",
+    "help.asks_irreversible": "What cannot be undone, such as deleting files.",
+    "help.asks_leaves": "What leaves the machine: publishing, deploying, pushing, sending an email, a payment.",
+    "help.asks_outside": "After the agent reads outside content (a web page, an email, a downloaded file), its commands ask until you start a new session with /new.",
+    "help.asks_title": "What asks, and why",
+    "help.asks_unknown": "Programs tenure does not know: a database or cloud tool, an unknown command.",
+    "help.benchmark_body": "Your benchmark is each model's verified record on your own work, per action type, with the 95% range of its fault rate. A model is ranked once it has {n} verified outcomes on a type. A public score, when shown, is context: capability on someone else's tasks, not reliability on yours.",
+    "help.flag_body": "Flag reports an error nobody caught. It counts as a fault: the type drops at least one tier, then climbs again.",
+    "help.intro": "Tenure decides, per model and per action type, whether Hermes asks you first, acts then tells you, or acts on its own. Every decision comes from verified evidence, written in a signed ledger.",
+    "help.passport_body": "The passport is a signed summary of an agent's record: each action type's tier, its faults and verified outcomes, and the head of the hash-chained ledger. It is signed with this profile's Ed25519 key. To check it, download it from the agent's page, export the ledger, then verify:",
+    "help.passport_checks": "The check verifies the signature and the hash chain, then replays the ledger to recompute the same tiers. Nothing in it is self-declared.",
+    "help.session_body": "Some asks (code run inline, complex shell commands, local commands tenure does not cover such as rm, mv or cp, and a command after outside content) offer “Allow for this session”: that ask stays quiet until the session ends. It is your choice, not evidence: it earns nothing, and a new session asks again.",
+    "help.session_title": "Allow for this session",
+    "help.tiers_climb": "A type climbs with verified successes and no fault. From Probation, at least {low} in a row at low stakes, or {medium} at medium stakes, reach Under review (T2); only reversible types pass through T2. A longer series, spread over at least {sessions} sessions, makes it Tenured (T3).",
+    "help.tiers_drop": "One fault sends the type back down, and its series starts over.",
+    "help.tiers_title": "The tiers",
+    "help.title": "How tenure works",
+    "help.trusted_body": "By default, the action types tenure covers (file edits, memory, handing work to a subagent, the usual development tools) ask nothing until their first fault, as Hermes alone would. The first fault (an Undo, a failed check, a flag) puts that type on Probation (T1): from then on it asks first, and earns its tier back from your answers. Nothing done under the trusted start counts as earned.",
+    "help.trusted_title": "The trusted start",
+    "help.undo_body": "A change made without asking keeps its Undo for 24 hours: in the toast, under “Acted without asking” on the agent's page, or in a conversation. Undo restores the files and counts as a fault: the type goes back down.",
+    "help.undo_title": "Undo and flag",
     "hero.agent": "Agent",
     "intro.body": "Every action type of every model starts at T1: it asks first. A run of clean, approved actions moves it to T2: it acts, then tells you, with an Undo. A longer run, over two sessions, moves it to T3: it acts on its own, and 1 action in {k} still asks, as a spot check. One fault sends the type back down.",
     "intro.body_trusted": "Each action type starts trusted: until its first mistake it acts as Hermes alone would, and a reversible change acts, then tells you, with an Undo. Its first fault (an Undo, a failed check, a flag) puts it on Probation (T1): it asks first. A run of clean, approved actions moves it to T2; a longer run, over two sessions, to T3: it acts on its own, and 1 action in {k} still asks, as a spot check. Leaving the machine and money always ask.",
@@ -127,34 +149,46 @@ const TENURE_LOCALES = {
     "moment.eyebrow_down": "#Fault · {type}",
     "moment.eyebrow_up": "#Promotion · {type}",
     "moment.granted": "Tenure granted",
+    "moment.on_probation": "On probation",
     "moment.probation": "Back on probation",
     "moment.review": "Under review",
+    "moment.review_sub": "{name} now acts, then tells you, with an Undo.",
     "nav.label": "Tenure",
     "page.animations": "Animations",
     "page.animations_reduced": "Your system asks for reduced motion: animations stay off",
     "page.title": "Tenure",
     "page.view_agents": "Agents",
     "page.view_benchmark": "Your benchmark",
+    "page.view_help": "Help",
+    "page.view_settings": "Settings",
     "palette.no_current": "The current model has no record yet.",
     "palette.open": "Tenure: Open",
     "palette.passport": "Tenure: Show passport for current model",
     "palette.revoke": "Tenure: Revoke current model…",
-    "passport.copy": "Copy passport",
+    "passport.card_title": "Passport · Ed25519",
     "passport.copy_command": "Copy command",
+    "passport.download": "Download passport (.json)",
     "passport.faults_checks": {
       "one": "{n} fault / {total} verified outcomes",
       "other": "{n} faults / {total} verified outcomes"
     },
     "passport.generated": "Generated",
+    "passport.image_failed": "Could not draw the image",
     "passport.ledger": "Ledger",
+    "passport.ledger_hint": "Export the ledger, to replay it:",
     "passport.ledger_value": {
       "one": "{n} event · head {head}",
       "other": "{n} events · head {head}"
+    },
+    "passport.more_types": {
+      "one": "+{n} more action type, in the file",
+      "other": "+{n} more action types, in the file"
     },
     "passport.pending_note": "Computed under the last logged settings; the new settings apply from the next action.",
     "passport.problems": "Does not verify: {problems}",
     "passport.protocol": "Protocol",
     "passport.rule": "Rule",
+    "passport.save_image": "Save image (.png)",
     "passport.signature": "a plugin for Hermes Agent",
     "passport.title": "Signed passport",
     "passport.trusted": "Trusted (not earned)",
@@ -202,6 +236,30 @@ const TENURE_LOCALES = {
     "revoke.desc": "{name} will ask before every action again. Its record stays in the ledger.",
     "revoke.done": "{name} asks first again on every action type.",
     "revoke.title": "Revoke earned autonomy?",
+    "settings.in_force": "In force",
+    "settings.none": "This profile has no tenure record yet: the defaults apply until its first action.",
+    "settings.pending": "The last change is not in the ledger yet: it applies from the next action.",
+    "settings.preset_desc_balanced": "The default. High-stakes types always ask.",
+    "settings.preset_desc_careful": "Asks the longest. Even high-stakes types can earn their tier, after a long series.",
+    "settings.preset_desc_custom": "Your own accepted risk per stakes level, set in Hermes' config.",
+    "settings.preset_desc_fast": "Earns autonomy soonest at low and medium stakes. High-stakes types always ask.",
+    "settings.preset_help": "How much evidence an action type needs before it acts on its own, per stakes level: the series of verified successes in a row, and the share of unchecked errors it accepts.",
+    "settings.read_only": "The Desktop shows the settings in force; it cannot change them. They live in Hermes' config, which the terminal writes: each command below saves the setting and logs it in the ledger, and it applies from the next action.",
+    "settings.risk": "1 unchecked error in {k} accepted",
+    "settings.series": "{n} in a row",
+    "settings.spot_change": "Set it in Hermes' config.yaml, under plugins.entries.tenure.settings (a share between 0 and 1):",
+    "settings.spot_desc": "Once a type is tenured, 1 of its actions in {k} still asks, at random: a model that turns bad gets caught.",
+    "settings.spot_title": "Spot checks",
+    "settings.spot_value": "1 in {k}",
+    "settings.start_help": "What an action type does before its first fault.",
+    "settings.start_probation": "The study's start: every action type asks first (T1) and earns each tier from your answers.",
+    "settings.start_trusted": "Covered types (file edits, memory, subagents, known development tools) ask nothing until their first fault, as Hermes alone would. A fault puts that type on Probation (T1), and it earns its tier back. Leaving the machine and money always ask.",
+    "settings.strict_desc_off": "A new model inherits the previous model's record at low and medium stakes, halved and provisional until its own approvals confirm it. High stakes start over.",
+    "settings.strict_desc_on": "A new model starts with an empty record on every action type, as in the study.",
+    "settings.strict_help": "What a new model inherits when you switch models.",
+    "settings.strict_off": "Strict mode off",
+    "settings.strict_on": "Strict mode on",
+    "settings.strict_title": "Strict mode on model change",
     "start.change_tip": "Change it in a terminal: hermes tenure start trusted|probation",
     "start.probation": "Study start (probation)",
     "start.trusted": "Trusted start",
@@ -332,6 +390,28 @@ const TENURE_LOCALES = {
     "flag.confirm": "إبلاغ",
     "flag.desc": "يُحسب هذا إخفاقًا: سينزل {type} مستوى واحدًا على الأقل ثم يصعد من جديد. استخدمه لخطأ لم يلحظه أحد.",
     "flag.title": "الإبلاغ عن هذا التغيير كخطأ؟",
+    "help.asks_body": "أيًّا كانت البداية، تسألك بعض الإجراءات أولًا:",
+    "help.asks_files": "تعديلات الملفات تحتفظ بزر التراجع: يمكن إرجاع أي تغيير جرى دون سؤال.",
+    "help.asks_irreversible": "ما لا يمكن التراجع عنه، مثل حذف الملفات.",
+    "help.asks_leaves": "ما يغادر الجهاز: النشر، والإطلاق، والدفع إلى مستودع بعيد، وإرسال بريد، والمدفوعات.",
+    "help.asks_outside": "بعد أن يقرأ الوكيل محتوى خارجيًا (صفحة ويب، أو بريدًا، أو ملفًا منزَّلًا)، تسأل أوامره حتى تبدأ جلسة جديدة بالأمر ‎/new.",
+    "help.asks_title": "ما الذي يسأل، ولماذا",
+    "help.asks_unknown": "البرامج التي لا يعرفها tenure: أداة قاعدة بيانات أو سحابة، أو أمر مجهول.",
+    "help.benchmark_body": "مقياسك هو السجل الموثَّق لكل نموذج على عملك أنت، لكل نوع إجراء، مع نطاق 95% لمعدل إخفاقه. يدخل النموذج الترتيب عندما يبلغ {n} نتيجة موثّقة على نوع ما. النتيجة العامة، حين تظهر، للسياق فقط: قدرة على مهام غيرك، لا موثوقية على مهامك.",
+    "help.flag_body": "الإبلاغ يرصد خطأً لم يلحظه أحد. ويُحسب إخفاقًا: ينزل النوع مستوى واحدًا على الأقل، ثم يصعد من جديد.",
+    "help.intro": "يقرّر tenure، لكل نموذج ولكل نوع إجراء، هل يسألك Hermes أولًا، أم ينفّذ ثم يُبلغك، أم يعمل وحده. كل قرار ينبع من أدلة موثّقة مكتوبة في دفتر موقَّع.",
+    "help.passport_body": "الجواز ملخّص موقَّع لسجل الوكيل: مستوى كل نوع إجراء، وإخفاقاته ونتائجه الموثّقة، ورأس دفتر سلسلة التجزئة. وهو موقَّع بمفتاح Ed25519 الخاص بهذا الملف الشخصي. للتحقق منه، نزّله من صفحة الوكيل، وصدّر الدفتر، ثم تحقّق:",
+    "help.passport_checks": "يتحقق الفحص من التوقيع ومن سلسلة التجزئة، ثم يعيد تشغيل الدفتر ليحسب المستويات نفسها. لا شيء فيه مُعلَن ذاتيًا.",
+    "help.session_body": "بعض الأسئلة (شيفرة تُشغَّل مباشرة، وأوامر shell المعقدة، وأوامر محلية غير مشمولة مثل rm وmv وcp، وأمر بعد قراءة محتوى خارجي) تعرض «السماح لهذه الجلسة»: فيسكت ذلك السؤال حتى تنتهي الجلسة. إنه اختيارك، لا دليل: لا يُكسب شيئًا، والجلسة الجديدة تسأل من جديد.",
+    "help.session_title": "السماح لهذه الجلسة",
+    "help.tiers_climb": "يصعد النوع بنجاحات موثّقة دون إخفاق. من فترة الاختبار، يبلغ قيد المراجعة (T2) بعد {low} على التوالي على الأقل عند الخطورة المنخفضة، أو {medium} عند المتوسطة؛ ولا يمر بـ T2 إلا الأنواع القابلة للتراجع. وسلسلة أطول، موزّعة على {sessions} جلسات على الأقل، تجعله مُثبَّتًا (T3).",
+    "help.tiers_drop": "إخفاق واحد يُنزل النوع، وتبدأ سلسلته من جديد.",
+    "help.tiers_title": "المستويات",
+    "help.title": "كيف يعمل tenure",
+    "help.trusted_body": "افتراضيًا، أنواع الإجراءات التي يشملها tenure (تعديل الملفات، والذاكرة، وإسناد العمل إلى وكيل فرعي، وأدوات التطوير المعتادة) لا تسأل شيئًا حتى أول إخفاق لها، كما يعمل Hermes وحده. أول إخفاق (تراجع، أو فحص فاشل، أو إبلاغ) يضع ذلك النوع في فترة اختبار (T1): من بعدها يسأل أولًا ويستعيد مستواه من إجاباتك. لا شيء مما يُنجز في البداية الموثوقة يُحسب مكتسبًا.",
+    "help.trusted_title": "البداية الموثوقة",
+    "help.undo_body": "التغيير الذي جرى دون سؤال يحتفظ بزر التراجع لمدة 24 ساعة: في الإشعار، وتحت «نُفّذ دون سؤال» في صفحة الوكيل، أو في محادثة. التراجع يعيد الملفات ويُحسب إخفاقًا: ينزل النوع من جديد.",
+    "help.undo_title": "التراجع والإبلاغ",
     "hero.agent": "الوكيل",
     "intro.body": "يبدأ كل نوع إجراء لكل نموذج في T1: يسأل أولًا. سلسلة من الإجراءات السليمة الموافق عليها تنقله إلى T2: ينفّذ ثم يُبلغك، مع زر تراجع. وسلسلة أطول، على جلستين، تنقله إلى T3: يعمل وحده، ويظل إجراء واحد من كل {k} يسأل، كفحص عشوائي. إخفاق واحد يُنزل النوع من جديد.",
     "intro.body_trusted": "يبدأ كل نوع إجراء موثوقًا: حتى أول خطأ له يعمل كما يعمل Hermes وحده، والتغيير القابل للتراجع ينفّذ ثم يُبلغك، مع زر تراجع. أول إخفاق له (تراجع، أو فحص فاشل، أو إبلاغ) يضعه في فترة اختبار (T1): يسأل أولًا. سلسلة من الإجراءات السليمة الموافق عليها تنقله إلى T2، وسلسلة أطول، على جلستين، إلى T3: يعمل وحده، ويظل إجراء واحد من كل {k} يسأل، كفحص عشوائي. مغادرة الجهاز والمال يسألان دائمًا.",
@@ -351,20 +431,25 @@ const TENURE_LOCALES = {
     "moment.eyebrow_down": "#إخفاق · {type}",
     "moment.eyebrow_up": "#ترقية · {type}",
     "moment.granted": "مُنح التثبيت",
+    "moment.on_probation": "في فترة اختبار",
     "moment.probation": "العودة إلى فترة الاختبار",
     "moment.review": "قيد المراجعة",
+    "moment.review_sub": "{name} ينفّذ الآن ثم يُبلغك، مع زر تراجع.",
     "nav.label": "Tenure",
     "page.animations": "الرسوم المتحركة",
     "page.animations_reduced": "يطلب نظامك تقليل الحركة: تبقى الرسوم المتحركة متوقفة",
     "page.title": "Tenure",
     "page.view_agents": "الوكلاء",
     "page.view_benchmark": "مقياسك",
+    "page.view_help": "المساعدة",
+    "page.view_settings": "الإعدادات",
     "palette.no_current": "لا سجل للنموذج الحالي بعد.",
     "palette.open": "Tenure: فتح",
     "palette.passport": "Tenure: عرض جواز النموذج الحالي",
     "palette.revoke": "Tenure: سحب استقلالية النموذج الحالي…",
-    "passport.copy": "نسخ الجواز",
+    "passport.card_title": "جواز · Ed25519",
     "passport.copy_command": "نسخ الأمر",
+    "passport.download": "تنزيل الجواز (.json)",
     "passport.faults_checks": {
       "zero": "{n} إخفاق / {total} نتائج موثّقة",
       "one": "{n} إخفاق / {total} نتائج موثّقة",
@@ -374,7 +459,9 @@ const TENURE_LOCALES = {
       "other": "{n} إخفاق / {total} نتائج موثّقة"
     },
     "passport.generated": "أُنشئ في",
+    "passport.image_failed": "تعذّر رسم الصورة",
     "passport.ledger": "الدفتر",
+    "passport.ledger_hint": "صدّر الدفتر لإعادة تشغيله:",
     "passport.ledger_value": {
       "zero": "{n} أحداث · الرأس {head}",
       "one": "{n} حدث · الرأس {head}",
@@ -383,10 +470,19 @@ const TENURE_LOCALES = {
       "many": "{n} حدثًا · الرأس {head}",
       "other": "{n} حدث · الرأس {head}"
     },
+    "passport.more_types": {
+      "zero": "+{n} أنواع إجراءات أخرى، في الملف",
+      "one": "+{n} نوع إجراء آخر، في الملف",
+      "two": "+{n} نوعا إجراء آخران، في الملف",
+      "few": "+{n} أنواع إجراءات أخرى، في الملف",
+      "many": "+{n} نوعَ إجراء آخر، في الملف",
+      "other": "+{n} نوعِ إجراء آخر، في الملف"
+    },
     "passport.pending_note": "محسوب وفق آخر إعدادات مسجّلة؛ تسري الإعدادات الجديدة من الإجراء التالي.",
     "passport.problems": "لا يجتاز التحقق: {problems}",
     "passport.protocol": "البروتوكول",
     "passport.rule": "القاعدة",
+    "passport.save_image": "حفظ الصورة (.png)",
     "passport.signature": "إضافة لـ Hermes Agent",
     "passport.title": "جواز موقَّع",
     "passport.trusted": "موثوق (غير مكتسب)",
@@ -442,6 +538,30 @@ const TENURE_LOCALES = {
     "revoke.desc": "سيعود {name} إلى السؤال قبل كل إجراء. يبقى سجله في الدفتر.",
     "revoke.done": "يسأل {name} أولًا من جديد في كل أنواع الإجراءات.",
     "revoke.title": "سحب الاستقلالية المكتسبة؟",
+    "settings.in_force": "سارٍ",
+    "settings.none": "لا سجل tenure لهذا الملف الشخصي بعد: تسري القيم الافتراضية حتى أول إجراء له.",
+    "settings.pending": "آخر تغيير لم يُسجَّل في الدفتر بعد: يسري من الإجراء التالي.",
+    "settings.preset_desc_balanced": "الإعداد الافتراضي. الأنواع عالية الخطورة تسأل دائمًا.",
+    "settings.preset_desc_careful": "يسأل أطول مدة. حتى الأنواع عالية الخطورة يمكنها اكتساب مستواها بعد سلسلة طويلة.",
+    "settings.preset_desc_custom": "مخاطرتك المقبولة الخاصة لكل مستوى خطورة، محددة في إعدادات Hermes.",
+    "settings.preset_desc_fast": "يكتسب الاستقلالية أسرع عند الخطورة المنخفضة والمتوسطة. الأنواع عالية الخطورة تسأل دائمًا.",
+    "settings.preset_help": "مقدار الأدلة التي يحتاجها نوع الإجراء قبل أن يعمل وحده، حسب مستوى الخطورة: سلسلة النجاحات الموثّقة على التوالي، ونسبة الأخطاء غير المفحوصة المقبولة.",
+    "settings.read_only": "يعرض Desktop الإعدادات السارية ولا يستطيع تغييرها. فهي محفوظة في إعدادات Hermes التي تكتبها الطرفية: كل أمر أدناه يحفظ الإعداد ويسجّله في الدفتر، ويسري من الإجراء التالي.",
+    "settings.risk": "يُقبل خطأ واحد غير مفحوص من كل {k}",
+    "settings.series": "{n} على التوالي",
+    "settings.spot_change": "اضبطه في ملف config.yaml الخاص بـ Hermes، تحت plugins.entries.tenure.settings (نسبة بين 0 و1):",
+    "settings.spot_desc": "بعد تثبيت النوع، يظل إجراء واحد من كل {k} من إجراءاته يسأل، عشوائيًا: فيُكشف النموذج الذي يسوء أداؤه.",
+    "settings.spot_title": "الفحوص العشوائية",
+    "settings.spot_value": "1 من كل {k}",
+    "settings.start_help": "ما يفعله نوع الإجراء قبل أول إخفاق له.",
+    "settings.start_probation": "بداية الدراسة: كل نوع إجراء يسأل أولًا (T1) ويكتسب كل مستوى من إجاباتك.",
+    "settings.start_trusted": "الأنواع المشمولة (تعديل الملفات، والذاكرة، والوكلاء الفرعيون، وأدوات التطوير المعروفة) لا تسأل شيئًا حتى أول إخفاق لها، كما يعمل Hermes وحده. الإخفاق يضع ذلك النوع في فترة اختبار (T1)، ثم يستعيد مستواه. مغادرة الجهاز والمال يسألان دائمًا.",
+    "settings.strict_desc_off": "يرث النموذج الجديد سجل النموذج السابق عند الخطورة المنخفضة والمتوسطة، منصّفًا ومؤقتًا حتى تؤكده موافقاته الخاصة. الخطورة العالية تبدأ من الصفر.",
+    "settings.strict_desc_on": "يبدأ النموذج الجديد بسجل فارغ في كل نوع إجراء، كما في الدراسة.",
+    "settings.strict_help": "ما يرثه النموذج الجديد عند تبديل النماذج.",
+    "settings.strict_off": "الوضع الصارم متوقف",
+    "settings.strict_on": "الوضع الصارم مفعّل",
+    "settings.strict_title": "الوضع الصارم عند تغيير النموذج",
     "start.change_tip": "غيّره من الطرفية: hermes tenure start trusted|probation",
     "start.probation": "بداية بالدراسة (فترة اختبار)",
     "start.trusted": "بداية موثوقة",
@@ -573,6 +693,28 @@ const TENURE_LOCALES = {
     "flag.confirm": "Marcar",
     "flag.desc": "Cuenta como un fallo: {type} bajará al menos un nivel y tendrá que volver a subir. Úsalo para un error que nadie detectó.",
     "flag.title": "¿Marcar este cambio como error?",
+    "help.asks_body": "Sea cual sea el inicio, algunas acciones te preguntan antes:",
+    "help.asks_files": "La edición de archivos conserva su Deshacer: un cambio hecho sin preguntar se puede revertir.",
+    "help.asks_irreversible": "Lo que no se puede deshacer, como borrar archivos.",
+    "help.asks_leaves": "Lo que sale de la máquina: publicar, desplegar, hacer push, enviar un correo, un pago.",
+    "help.asks_outside": "Después de que el agente lea contenido externo (una página web, un correo, un archivo descargado), sus comandos preguntan hasta que abras una sesión nueva con /new.",
+    "help.asks_title": "Qué pregunta, y por qué",
+    "help.asks_unknown": "Programas que tenure no conoce: una herramienta de base de datos o de la nube, un comando desconocido.",
+    "help.benchmark_body": "Tu benchmark es el historial verificado de cada modelo sobre tu propio trabajo, por tipo de acción, con el rango del 95 % de su tasa de fallos. Un modelo entra en la clasificación cuando tiene {n} resultados verificados en un tipo. Una puntuación pública, cuando aparece, es contexto: capacidad en tareas de otros, no fiabilidad en las tuyas.",
+    "help.flag_body": "Marcar informa de un error que nadie detectó. Cuenta como fallo: el tipo baja al menos un nivel y luego vuelve a subir.",
+    "help.intro": "Tenure decide, por modelo y por tipo de acción, si Hermes te pregunta antes, actúa y luego te avisa, o actúa por su cuenta. Cada decisión sale de evidencia verificada, escrita en un registro firmado.",
+    "help.passport_body": "El pasaporte es un resumen firmado del historial de un agente: el nivel de cada tipo de acción, sus fallos y resultados verificados, y el último hash del registro encadenado. Está firmado con la clave Ed25519 de este perfil. Para comprobarlo, descárgalo desde la página del agente, exporta el registro y verifica:",
+    "help.passport_checks": "La comprobación verifica la firma y la cadena de hashes, y luego reproduce el registro para recalcular los mismos niveles. Nada en él es autodeclarado.",
+    "help.session_body": "Algunas preguntas (código ejecutado en línea, comandos de shell complejos, comandos locales no cubiertos como rm, mv o cp, y un comando tras contenido externo) ofrecen «Permitir esta sesión»: esa pregunta calla hasta que termina la sesión. Es tu elección, no evidencia: no hace ganar nada, y una sesión nueva vuelve a preguntar.",
+    "help.session_title": "Permitir esta sesión",
+    "help.tiers_climb": "Un tipo sube con éxitos verificados y sin fallos. Desde el período de prueba, al menos {low} seguidas con impacto bajo, o {medium} con impacto medio, llevan a En revisión (T2); solo los tipos reversibles pasan por T2. Una serie más larga, repartida en al menos {sessions} sesiones, lo hace Titular (T3).",
+    "help.tiers_drop": "Un solo fallo hace bajar el tipo, y su serie vuelve a empezar.",
+    "help.tiers_title": "Los niveles",
+    "help.title": "Cómo funciona tenure",
+    "help.trusted_body": "Por defecto, los tipos de acción que cubre tenure (edición de archivos, memoria, encargar trabajo a un subagente, las herramientas de desarrollo habituales) no preguntan nada hasta su primer fallo, como Hermes solo. El primer fallo (un Deshacer, una comprobación fallida, una marca) pone ese tipo en período de prueba (T1): desde entonces pregunta antes y vuelve a ganarse su nivel con tus respuestas. Nada de lo hecho con el inicio de confianza cuenta como ganado.",
+    "help.trusted_title": "El inicio de confianza",
+    "help.undo_body": "Un cambio hecho sin preguntar conserva su Deshacer durante 24 horas: en el aviso, en «Actuó sin preguntar» en la página del agente, o en una conversación. Deshacer restaura los archivos y cuenta como fallo: el tipo vuelve a bajar.",
+    "help.undo_title": "Deshacer y marcar",
     "hero.agent": "Agente",
     "intro.body": "Cada tipo de acción de cada modelo empieza en T1: pregunta antes. Una serie de acciones limpias y aprobadas lo sube a T2: actúa y luego te avisa, con opción de Deshacer. Una serie más larga, en dos sesiones, lo sube a T3: actúa por su cuenta, y 1 acción de cada {k} sigue preguntando, como control aleatorio. Un solo fallo lo hace bajar.",
     "intro.body_trusted": "Cada tipo de acción empieza de confianza: hasta su primer error actúa como lo haría Hermes solo, y un cambio reversible actúa y luego te avisa, con opción de Deshacer. Su primer fallo (un Deshacer, una comprobación fallida, una marca) lo pasa a Período de prueba (T1): pregunta antes. Una serie de acciones limpias y aprobadas lo sube a T2; una serie más larga, en dos sesiones, a T3: actúa por su cuenta, y 1 acción de cada {k} sigue preguntando, como control aleatorio. Salir de la máquina y el dinero siempre preguntan.",
@@ -592,34 +734,47 @@ const TENURE_LOCALES = {
     "moment.eyebrow_down": "#Fallo · {type}",
     "moment.eyebrow_up": "#Ascenso · {type}",
     "moment.granted": "Titularidad concedida",
+    "moment.on_probation": "En período de prueba",
     "moment.probation": "De vuelta a prueba",
     "moment.review": "En revisión",
+    "moment.review_sub": "{name} ahora actúa y luego te avisa, con opción de Deshacer.",
     "nav.label": "Tenure",
     "page.animations": "Animaciones",
     "page.animations_reduced": "Tu sistema pide reducir el movimiento: las animaciones siguen desactivadas",
     "page.title": "Tenure",
     "page.view_agents": "Agentes",
     "page.view_benchmark": "Tu benchmark",
+    "page.view_help": "Ayuda",
+    "page.view_settings": "Ajustes",
     "palette.no_current": "El modelo actual aún no tiene historial.",
     "palette.open": "Tenure: Abrir",
     "palette.passport": "Tenure: Mostrar el pasaporte del modelo actual",
     "palette.revoke": "Tenure: Revocar el modelo actual…",
-    "passport.copy": "Copiar pasaporte",
+    "passport.card_title": "Pasaporte · Ed25519",
     "passport.copy_command": "Copiar comando",
+    "passport.download": "Descargar pasaporte (.json)",
     "passport.faults_checks": {
       "one": "{n} fallo / {total} resultados verificados",
       "other": "{n} fallos / {total} resultados verificados"
     },
     "passport.generated": "Generado",
+    "passport.image_failed": "No se pudo dibujar la imagen",
     "passport.ledger": "Registro",
+    "passport.ledger_hint": "Exporta el registro para reproducirlo:",
     "passport.ledger_value": {
       "one": "{n} evento · último hash {head}",
       "other": "{n} eventos · último hash {head}"
+    },
+    "passport.more_types": {
+      "one": "+{n} tipo de acción más, en el archivo",
+      "many": "+{n} tipos de acción más, en el archivo",
+      "other": "+{n} tipos de acción más, en el archivo"
     },
     "passport.pending_note": "Calculado con los últimos ajustes registrados; los nuevos ajustes se aplican desde la próxima acción.",
     "passport.problems": "No se verifica: {problems}",
     "passport.protocol": "Protocolo",
     "passport.rule": "Regla",
+    "passport.save_image": "Guardar imagen (.png)",
     "passport.signature": "un plugin para Hermes Agent",
     "passport.title": "Pasaporte firmado",
     "passport.trusted": "De confianza (no ganado)",
@@ -667,6 +822,30 @@ const TENURE_LOCALES = {
     "revoke.desc": "{name} volverá a preguntar antes de cada acción. Su historial se queda en el registro.",
     "revoke.done": "{name} vuelve a preguntar antes en todos los tipos de acción.",
     "revoke.title": "¿Revocar la autonomía ganada?",
+    "settings.in_force": "En vigor",
+    "settings.none": "Este perfil aún no tiene historial de tenure: se aplican los valores por defecto hasta su primera acción.",
+    "settings.pending": "El último cambio aún no está en el registro: se aplica desde la siguiente acción.",
+    "settings.preset_desc_balanced": "El ajuste por defecto. Los tipos de impacto alto siempre preguntan.",
+    "settings.preset_desc_careful": "Pregunta durante más tiempo. Incluso los tipos de impacto alto pueden ganar su nivel, tras una serie larga.",
+    "settings.preset_desc_custom": "Tu propio riesgo aceptado por nivel de impacto, definido en la configuración de Hermes.",
+    "settings.preset_desc_fast": "Gana autonomía antes con impacto bajo y medio. Los tipos de impacto alto siempre preguntan.",
+    "settings.preset_help": "Cuánta evidencia necesita un tipo de acción antes de actuar por su cuenta, por nivel de impacto: la serie de éxitos verificados seguidos y la proporción de errores sin revisar que acepta.",
+    "settings.read_only": "Desktop muestra los ajustes en vigor; no puede cambiarlos. Viven en la configuración de Hermes, que escribe la terminal: cada comando de abajo guarda el ajuste y lo anota en el registro, y se aplica desde la siguiente acción.",
+    "settings.risk": "se acepta 1 error sin revisar de cada {k}",
+    "settings.series": "{n} seguidas",
+    "settings.spot_change": "Defínelo en el config.yaml de Hermes, bajo plugins.entries.tenure.settings (una proporción entre 0 y 1):",
+    "settings.spot_desc": "Cuando un tipo es titular, 1 de cada {k} de sus acciones sigue preguntando, al azar: un modelo que empeora queda al descubierto.",
+    "settings.spot_title": "Controles aleatorios",
+    "settings.spot_value": "1 de cada {k}",
+    "settings.start_help": "Lo que hace un tipo de acción antes de su primer fallo.",
+    "settings.start_probation": "El inicio del estudio: cada tipo de acción pregunta antes (T1) y gana cada nivel a partir de tus respuestas.",
+    "settings.start_trusted": "Los tipos cubiertos (edición de archivos, memoria, subagentes, herramientas de desarrollo conocidas) no preguntan nada hasta su primer fallo, como Hermes solo. Un fallo pone ese tipo en período de prueba (T1), y vuelve a ganarse su nivel. Salir de la máquina y el dinero siempre preguntan.",
+    "settings.strict_desc_off": "Un modelo nuevo hereda el historial del anterior con impacto bajo y medio, a la mitad y provisional hasta que sus propias aprobaciones lo confirmen. El impacto alto empieza de cero.",
+    "settings.strict_desc_on": "Un modelo nuevo empieza con un historial vacío en cada tipo de acción, como en el estudio.",
+    "settings.strict_help": "Lo que hereda un modelo nuevo cuando cambias de modelo.",
+    "settings.strict_off": "Modo estricto desactivado",
+    "settings.strict_on": "Modo estricto activado",
+    "settings.strict_title": "Modo estricto al cambiar de modelo",
     "start.change_tip": "Cámbialo en una terminal: hermes tenure start trusted|probation",
     "start.probation": "Inicio en estudio (período de prueba)",
     "start.trusted": "Inicio de confianza",
@@ -778,6 +957,28 @@ const TENURE_LOCALES = {
     "flag.confirm": "Signaler",
     "flag.desc": "Cela compte comme une faute : {type} descendra d'au moins un niveau et devra remonter. À utiliser pour une erreur que personne n'a repérée.",
     "flag.title": "Signaler cette modification comme une erreur ?",
+    "help.asks_body": "Quel que soit le départ, certaines actions vous sont demandées d'abord :",
+    "help.asks_files": "Les modifications de fichiers gardent leur bouton Annuler : un changement fait sans demander peut être défait.",
+    "help.asks_irreversible": "Ce qui ne s'annule pas, comme supprimer des fichiers.",
+    "help.asks_leaves": "Ce qui sort de la machine : publier, déployer, pousser, envoyer un e-mail, un paiement.",
+    "help.asks_outside": "Après que l'agent a lu un contenu extérieur (une page web, un e-mail, un fichier téléchargé), ses commandes vous sont demandées jusqu'à ce que vous ouvriez une nouvelle session avec /new.",
+    "help.asks_title": "Ce qui vous est demandé, et pourquoi",
+    "help.asks_unknown": "Les programmes que tenure ne connaît pas : un outil de base de données ou de cloud, une commande inconnue.",
+    "help.benchmark_body": "Votre benchmark est l'historique vérifié de chaque modèle sur votre propre travail, par type d'action, avec la fourchette à 95 % de son taux de fautes. Un modèle est classé dès qu'il a {n} résultats vérifiés sur un type. Un score public, quand il est affiché, sert de contexte : la capacité sur les tâches d'autres, pas la fiabilité sur les vôtres.",
+    "help.flag_body": "Signaler rapporte une erreur que personne n'a repérée. Cela compte comme une faute : le type perd au moins un niveau, puis remonte.",
+    "help.intro": "Tenure décide, par modèle et par type d'action, si Hermes vous demande d'abord, agit puis vous prévient, ou agit seul. Chaque décision vient de preuves vérifiées, inscrites dans un registre signé.",
+    "help.passport_body": "Le passeport est un résumé signé de l'historique d'un agent : le niveau de chaque type d'action, ses fautes et ses résultats vérifiés, et la tête du registre à chaîne de hachage. Il est signé avec la clé Ed25519 de ce profil. Pour le vérifier, téléchargez-le depuis la page de l'agent, exportez le registre, puis vérifiez :",
+    "help.passport_checks": "La vérification contrôle la signature et la chaîne de hachage, puis rejoue le registre pour recalculer les mêmes niveaux. Rien n'y est autodéclaré.",
+    "help.session_body": "Certaines demandes (code exécuté en ligne, commandes shell complexes, commandes locales non couvertes comme rm, mv ou cp, et une commande après du contenu extérieur) proposent « Autoriser cette session » : cette demande se tait jusqu'à la fin de la session. C'est votre choix, pas une preuve : il ne fait rien gagner, et une nouvelle session redemande.",
+    "help.session_title": "Autoriser cette session",
+    "help.tiers_climb": "Un type monte par des succès vérifiés, sans faute. Depuis la Probation, au moins {low} d'affilée à enjeu faible, ou {medium} à enjeu moyen, mènent En examen (T2) ; seuls les types réversibles passent par T2. Une série plus longue, répartie sur au moins {sessions} sessions, le rend Titulaire (T3).",
+    "help.tiers_drop": "Une seule faute fait redescendre le type, et sa série repart de zéro.",
+    "help.tiers_title": "Les niveaux",
+    "help.title": "Comment fonctionne tenure",
+    "help.trusted_body": "Par défaut, les types d'action que tenure couvre (modifications de fichiers, mémoire, travail confié à un sous-agent, outils de développement courants) ne demandent rien jusqu'à leur première faute, comme Hermes seul. La première faute (une annulation, une vérification échouée, un signalement) met ce type en Probation (T1) : dès lors il demande d'abord, et regagne son niveau à partir de vos réponses. Rien de ce qui est fait en confiance ne compte comme acquis.",
+    "help.trusted_title": "Le départ en confiance",
+    "help.undo_body": "Un changement fait sans demander garde son bouton Annuler pendant 24 heures : dans la notification, sous « A agi sans demander » sur la page de l'agent, ou dans une conversation. Annuler restaure les fichiers et compte comme une faute : le type redescend.",
+    "help.undo_title": "Annuler et signaler",
     "hero.agent": "Agent",
     "intro.body": "Chaque type d'action de chaque modèle commence en T1 : il demande d'abord. Une série d'actions approuvées sans faute le fait passer en T2 : il agit, puis vous prévient, avec un bouton Annuler. Une série plus longue, sur deux sessions, le fait passer en T3 : il agit seul, et 1 action sur {k} vous est encore demandée, par contrôle aléatoire. Une seule faute le fait redescendre.",
     "intro.body_trusted": "Chaque type d'action commence en confiance : jusqu'à sa première erreur, il agit comme Hermes seul le ferait, et une modification réversible agit, puis vous prévient, avec un bouton Annuler. Sa première faute (une annulation, une vérification échouée, un signalement) le place en Probation (T1) : il demande d'abord. Une série d'actions approuvées sans faute le fait passer en T2 ; une série plus longue, sur deux sessions, en T3 : il agit seul, et 1 action sur {k} vous est encore demandée, par contrôle aléatoire. Sortir de la machine et l'argent sont toujours demandés.",
@@ -797,34 +998,47 @@ const TENURE_LOCALES = {
     "moment.eyebrow_down": "#Faute · {type}",
     "moment.eyebrow_up": "#Promotion · {type}",
     "moment.granted": "Titularisé",
+    "moment.on_probation": "En probation",
     "moment.probation": "Retour en probation",
     "moment.review": "En examen",
+    "moment.review_sub": "{name} agit désormais, puis vous prévient, avec un bouton Annuler.",
     "nav.label": "Tenure",
     "page.animations": "Animations",
     "page.animations_reduced": "Votre système demande de réduire les animations : elles restent coupées",
     "page.title": "Tenure",
     "page.view_agents": "Agents",
     "page.view_benchmark": "Votre benchmark",
+    "page.view_help": "Aide",
+    "page.view_settings": "Paramètres",
     "palette.no_current": "Le modèle actuel n'a pas encore d'historique.",
     "palette.open": "Tenure : Ouvrir",
     "palette.passport": "Tenure : Afficher le passeport du modèle actuel",
     "palette.revoke": "Tenure : Révoquer le modèle actuel…",
-    "passport.copy": "Copier le passeport",
+    "passport.card_title": "Passeport · Ed25519",
     "passport.copy_command": "Copier la commande",
+    "passport.download": "Télécharger le passeport (.json)",
     "passport.faults_checks": {
       "one": "{n} faute / {total} résultats vérifiés",
       "other": "{n} fautes / {total} résultats vérifiés"
     },
     "passport.generated": "Généré",
+    "passport.image_failed": "Impossible de dessiner l'image",
     "passport.ledger": "Registre",
+    "passport.ledger_hint": "Exportez le registre, pour le rejouer :",
     "passport.ledger_value": {
       "one": "{n} événement · tête {head}",
       "other": "{n} événements · tête {head}"
+    },
+    "passport.more_types": {
+      "one": "+{n} type d'action de plus, dans le fichier",
+      "many": "+{n} types d'action de plus, dans le fichier",
+      "other": "+{n} types d'action de plus, dans le fichier"
     },
     "passport.pending_note": "Calculé avec les derniers réglages enregistrés ; les nouveaux réglages s'appliquent dès la prochaine action.",
     "passport.problems": "Ne se vérifie pas : {problems}",
     "passport.protocol": "Protocole",
     "passport.rule": "Règle",
+    "passport.save_image": "Enregistrer l'image (.png)",
     "passport.signature": "un plugin pour Hermes Agent",
     "passport.title": "Passeport signé",
     "passport.trusted": "De confiance (non acquis)",
@@ -872,6 +1086,30 @@ const TENURE_LOCALES = {
     "revoke.desc": "{name} demandera de nouveau avant chaque action. Son historique reste dans le registre.",
     "revoke.done": "{name} demande de nouveau avant d'agir, pour tous les types d'action.",
     "revoke.title": "Révoquer l'autonomie acquise ?",
+    "settings.in_force": "En vigueur",
+    "settings.none": "Ce profil n'a pas encore d'historique tenure : les valeurs par défaut s'appliquent jusqu'à sa première action.",
+    "settings.pending": "Le dernier changement n'est pas encore au registre : il s'applique dès l'action suivante.",
+    "settings.preset_desc_balanced": "Le réglage par défaut. Les types à enjeu élevé demandent toujours.",
+    "settings.preset_desc_careful": "Demande le plus longtemps. Même les types à enjeu élevé peuvent gagner leur niveau, après une longue série.",
+    "settings.preset_desc_custom": "Votre propre risque accepté par niveau d'enjeu, réglé dans la configuration de Hermes.",
+    "settings.preset_desc_fast": "Gagne son autonomie au plus tôt à enjeu faible et moyen. Les types à enjeu élevé demandent toujours.",
+    "settings.preset_help": "Les preuves qu'un type d'action doit réunir avant d'agir seul, par niveau d'enjeu : la série de succès vérifiés d'affilée, et la part d'erreurs non vérifiées acceptée.",
+    "settings.read_only": "Le Desktop affiche les paramètres en vigueur ; il ne peut pas les modifier. Ils vivent dans la configuration de Hermes, que le terminal écrit : chaque commande ci-dessous enregistre le paramètre et l'inscrit au registre, et il s'applique dès l'action suivante.",
+    "settings.risk": "1 erreur non vérifiée sur {k} acceptée",
+    "settings.series": "{n} d'affilée",
+    "settings.spot_change": "Réglez-le dans le config.yaml de Hermes, sous plugins.entries.tenure.settings (une part entre 0 et 1) :",
+    "settings.spot_desc": "Une fois un type titulaire, 1 de ses actions sur {k} vous est encore demandée, au hasard : un modèle qui se dégrade est repéré.",
+    "settings.spot_title": "Contrôles aléatoires",
+    "settings.spot_value": "1 sur {k}",
+    "settings.start_help": "Ce que fait un type d'action avant sa première faute.",
+    "settings.start_probation": "Le départ de l'étude : chaque type d'action demande d'abord (T1) et gagne chaque niveau à partir de vos réponses.",
+    "settings.start_trusted": "Les types couverts (modifications de fichiers, mémoire, sous-agents, outils de développement connus) ne demandent rien jusqu'à leur première faute, comme Hermes seul. Une faute met ce type en Probation (T1), et il regagne son niveau. Sortir de la machine et l'argent demandent toujours.",
+    "settings.strict_desc_off": "Un nouveau modèle hérite de l'historique du précédent à enjeu faible et moyen, divisé par deux et provisoire jusqu'à ce que ses propres validations le confirment. L'enjeu élevé repart de zéro.",
+    "settings.strict_desc_on": "Un nouveau modèle part d'un historique vide sur chaque type d'action, comme dans l'étude.",
+    "settings.strict_help": "Ce dont hérite un nouveau modèle quand vous changez de modèle.",
+    "settings.strict_off": "Mode strict désactivé",
+    "settings.strict_on": "Mode strict activé",
+    "settings.strict_title": "Mode strict au changement de modèle",
     "start.change_tip": "À changer dans un terminal : hermes tenure start trusted|probation",
     "start.probation": "Départ à l'étude (probation)",
     "start.trusted": "Départ en confiance",
@@ -977,6 +1215,28 @@ const TENURE_LOCALES = {
     "flag.confirm": "标记",
     "flag.desc": "这会记为一次失误：{type} 至少下降一个级别，之后需重新晋升。用于没人发现的错误。",
     "flag.title": "将此更改标记为错误？",
+    "help.asks_body": "无论哪种起点，有些操作都会先询问你：",
+    "help.asks_files": "文件编辑保留撤销：未询问就做出的修改可以还原。",
+    "help.asks_irreversible": "无法撤销的操作，例如删除文件。",
+    "help.asks_leaves": "离开本机的操作：发布、部署、推送、发送邮件、付款。",
+    "help.asks_outside": "智能体读取外部内容（网页、邮件、下载的文件）后，它的命令会一直询问，直到你用 /new 开始新会话。",
+    "help.asks_title": "哪些会询问，为什么",
+    "help.asks_unknown": "tenure 不认识的程序：数据库或云工具、未知命令。",
+    "help.benchmark_body": "你的基准是每个模型在你自己的工作上、按操作类型的已验证记录，以及其失误率的 95% 区间。一个模型在某类型上有 {n} 个已验证结果后才会排名。显示的公开分数只作参考：是在别人任务上的能力，不是在你任务上的可靠性。",
+    "help.flag_body": "标记用于报告一个没人发现的错误。它计为一次失误：该类型至少降一级，然后重新爬升。",
+    "help.intro": "tenure 按模型、按操作类型决定 Hermes 是先询问你、先执行后告知，还是自主执行。每个决定都来自已验证的证据，写入一个已签名的账本。",
+    "help.passport_body": "护照是智能体记录的签名摘要：每个操作类型的级别、失误和已验证结果，以及哈希链账本的头部。它由此配置文件的 Ed25519 密钥签名。要验证它，请在智能体页面下载护照，导出账本，然后验证：",
+    "help.passport_checks": "验证会检查签名和哈希链，然后重放账本，重新计算出相同的级别。其中没有任何自我声明。",
+    "help.session_body": "有些询问（内联运行的代码、复杂的 shell 命令、未覆盖的本地命令如 rm、mv、cp，以及读取外部内容之后的命令）提供「允许本会话」：该询问在会话结束前不再出现。这是你的选择，不是证据：它不会赢得任何东西，新会话会再次询问。",
+    "help.session_title": "允许本会话",
+    "help.tiers_climb": "类型凭已验证的成功且无失误来升级。从试用期开始，低风险至少连续 {low} 次，或中风险 {medium} 次，进入考察中（T2）；只有可撤销的类型会经过 T2。更长的连续记录，分布在至少 {sessions} 个会话中，使其转正（T3）。",
+    "help.tiers_drop": "一次失误就会让该类型降级，其连续记录重新开始。",
+    "help.tiers_title": "级别",
+    "help.title": "tenure 如何运作",
+    "help.trusted_body": "默认情况下，tenure 覆盖的操作类型（文件编辑、记忆、把工作交给子智能体、常用开发工具）在第一次失误之前什么都不问，与 Hermes 单独运行时一样。第一次失误（一次撤销、一次检查失败、一次标记）会让该类型进入试用期（T1）：此后它先询问，并根据你的回答重新赢得级别。信任起步期间做的任何事都不算赢得。",
+    "help.trusted_title": "信任起步",
+    "help.undo_body": "未询问就做出的修改在 24 小时内保留撤销：在通知中、在智能体页面的「未询问即执行」下，或在对话中。撤销会还原文件，并计为一次失误：该类型降级。",
+    "help.undo_title": "撤销与标记",
     "hero.agent": "智能体",
     "intro.body": "每个模型的每个操作类型都从 T1 开始：先询问。连续多次获批且无误后，它升到 T2：先执行后告知，并可撤销。跨两个会话的更长连续记录会让它升到 T3：自主执行，但每 {k} 个操作仍会抽查 1 个，先询问你。一次失误就会让该类型降级。",
     "intro.body_trusted": "每个操作类型都以信任起步：首次失误前，它像单独使用 Hermes 一样执行，可逆的更改先执行后告知，并可撤销。首次失误（一次撤销、一次检查失败、一次标记）会让它进入试用期 (T1)：先询问。连续多次获批且无误后，它升到 T2；跨两个会话的更长连续记录会让它升到 T3：自主执行，但每 {k} 个操作仍会抽查 1 个，先询问你。离开本机和涉及金钱的操作始终会询问。",
@@ -996,32 +1256,43 @@ const TENURE_LOCALES = {
     "moment.eyebrow_down": "#失误 · {type}",
     "moment.eyebrow_up": "#晋升 · {type}",
     "moment.granted": "已获转正",
+    "moment.on_probation": "进入试用期",
     "moment.probation": "重回试用期",
     "moment.review": "进入考察",
+    "moment.review_sub": "{name} 现在先执行后告知，可撤销。",
     "nav.label": "Tenure",
     "page.animations": "动画",
     "page.animations_reduced": "系统要求减少动态效果：动画保持关闭",
     "page.title": "Tenure",
     "page.view_agents": "智能体",
     "page.view_benchmark": "你的基准",
+    "page.view_help": "帮助",
+    "page.view_settings": "设置",
     "palette.no_current": "当前模型还没有记录。",
     "palette.open": "Tenure：打开",
     "palette.passport": "Tenure：显示当前模型的护照",
     "palette.revoke": "Tenure：收回当前模型的自主权…",
-    "passport.copy": "复制护照",
+    "passport.card_title": "护照 · Ed25519",
     "passport.copy_command": "复制命令",
+    "passport.download": "下载护照（.json）",
     "passport.faults_checks": {
       "other": "{n} 次失误 / {total} 次已验证结果"
     },
     "passport.generated": "生成时间",
+    "passport.image_failed": "无法绘制图片",
     "passport.ledger": "账本",
+    "passport.ledger_hint": "导出账本，以便重放：",
     "passport.ledger_value": {
       "other": "{n} 个事件 · 头部 {head}"
+    },
+    "passport.more_types": {
+      "other": "另有 {n} 个操作类型，见文件"
     },
     "passport.pending_note": "按最近记录的设置计算；新设置从下一个操作起生效。",
     "passport.problems": "验证未通过：{problems}",
     "passport.protocol": "协议",
     "passport.rule": "规则",
+    "passport.save_image": "保存图片（.png）",
     "passport.signature": "Hermes Agent 插件",
     "passport.title": "已签名护照",
     "passport.trusted": "信任中（非赢得）",
@@ -1067,6 +1338,30 @@ const TENURE_LOCALES = {
     "revoke.desc": "{name} 每次操作前都会重新询问。它的记录仍保留在账本中。",
     "revoke.done": "{name} 的所有操作类型都已恢复为先询问。",
     "revoke.title": "收回已赢得的自主权？",
+    "settings.in_force": "生效中",
+    "settings.none": "此配置文件还没有 tenure 记录：在第一个操作之前使用默认设置。",
+    "settings.pending": "最近一次修改尚未记入账本：从下一个操作起生效。",
+    "settings.preset_desc_balanced": "默认设置。高风险类型始终询问。",
+    "settings.preset_desc_careful": "询问时间最长。即使高风险类型，经过很长的连续记录后也能赢得级别。",
+    "settings.preset_desc_custom": "你自己按风险级别设定的可接受风险，写在 Hermes 的配置中。",
+    "settings.preset_desc_fast": "在低风险和中风险上最快赢得自主权。高风险类型始终询问。",
+    "settings.preset_help": "按风险级别，一个操作类型在自主执行之前需要多少证据：连续已验证成功的次数，以及可接受的未经检查错误比例。",
+    "settings.read_only": "Desktop 显示生效中的设置，但无法修改。设置保存在 Hermes 的配置中，由终端写入：下方每条命令都会保存该设置并记入账本，从下一个操作起生效。",
+    "settings.risk": "可接受 1/{k} 的未经检查错误",
+    "settings.series": "连续 {n} 次",
+    "settings.spot_change": "在 Hermes 的 config.yaml 中，于 plugins.entries.tenure.settings 下设置（0 到 1 之间的比例）：",
+    "settings.spot_desc": "类型转正后，它的操作中每 {k} 个仍会随机抽查 1 个：变差的模型会被发现。",
+    "settings.spot_title": "抽查",
+    "settings.spot_value": "每 {k} 个抽查 1 个",
+    "settings.start_help": "操作类型在第一次失误之前的行为。",
+    "settings.start_probation": "研究的起点：每个操作类型都先询问（T1），并根据你的回答赢得每个级别。",
+    "settings.start_trusted": "覆盖的类型（文件编辑、记忆、子智能体、常见开发工具）在第一次失误之前什么都不问，与 Hermes 单独运行时一样。一次失误会让该类型进入试用期（T1），之后重新赢得级别。离开本机的操作和涉及金钱的操作始终询问。",
+    "settings.strict_desc_off": "新模型继承上一个模型在低风险和中风险上的记录，减半且为暂定，直到它自己的批准加以确认。高风险从零开始。",
+    "settings.strict_desc_on": "新模型在每个操作类型上都从空记录开始，与研究中一致。",
+    "settings.strict_help": "切换模型时，新模型继承什么。",
+    "settings.strict_off": "严格模式：关",
+    "settings.strict_on": "严格模式：开",
+    "settings.strict_title": "切换模型时的严格模式",
     "start.change_tip": "在终端中更改：hermes tenure start trusted|probation",
     "start.probation": "考察起步（试用期）",
     "start.trusted": "信任起步",
@@ -1128,6 +1423,7 @@ const TENURE_LOCALES = {
 
 // Commands the user types stay out of the catalogs.
 const VERIFY_COMMAND = 'hermes tenure verify passport.json ledger.jsonl'
+const EXPORT_COMMAND = 'hermes tenure export ledger.jsonl'
 
 /* TENURE_I18N_BEGIN */
 // The host picks the locale (the app's display.language) and falls back to `en` per key; it resolves dotted keys as
@@ -1426,8 +1722,8 @@ function useRepaint(fn) {
 }
 
 /** Size a canvas to its CSS box at the device pixel ratio (capped at 2); returns the ratio. */
-function fitCanvas(cv, w, h) {
-  const dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1)
+function fitCanvas(cv, w, h, scale) {
+  const dpr = scale || Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1)
   const W = Math.max(1, Math.round(w * dpr))
   const H = Math.max(1, Math.round(h * dpr))
   if (cv.width !== W) cv.width = W
@@ -1465,15 +1761,15 @@ const TRUST_DENSITY = 0.2
  * fill: 0..1 · solid: draw the fill at full density · print: 0..1 Bayer threshold sweep (entrance) ·
  * crumble: { from, k } cells of the old fill beyond `fill` drop and fade · (the benchmark range has its own draw-in).
  */
-function paintBar(cv, { fill, solid, trust = false, print = 1, crumble = null, rows = BAR_ROWS, headroom = 4, segments = 0, notch = null }) {
-  const w = cv.clientWidth || (cv.parentElement && cv.parentElement.clientWidth) || 0
+function paintBar(cv, { fill, solid, trust = false, print = 1, crumble = null, rows = BAR_ROWS, headroom = 4, segments = 0, notch = null, width = 0, ink = null, scale = 0 }) {
+  const w = width || cv.clientWidth || (cv.parentElement && cv.parentElement.clientWidth) || 0
   if (!w) return
   const h = rows * BAR_CELL + headroom
-  const dpr = fitCanvas(cv, w, h)
+  const dpr = fitCanvas(cv, w, h, scale)
   const x = cv.getContext('2d')
   x.setTransform(dpr, 0, 0, dpr, 0, 0)
   x.clearRect(0, 0, w, h)
-  x.fillStyle = inkOf(cv)
+  x.fillStyle = ink || inkOf(cv)
   const cols = Math.floor(w / BAR_CELL)
   const dot = BAR_CELL - 0.5
   const density = solid ? 1 : 0.38 + 0.62 * clamp01(fill)
@@ -1596,21 +1892,42 @@ function emblemValue(dx, dy, rot, share) {
   return v
 }
 
-function paintEmblem(cv, { size, n, share, develop = 1, rot = 0 }) {
-  const dpr = fitCanvas(cv, size, size)
+/**
+ * crumble = { from, k }: the emblem as it was at share `from` loses cells (those the new share no longer lights, and
+ * about a quarter of the others), which drop a few cells and fade as k goes 0 -> 1; the new state prints under them.
+ */
+function paintEmblem(cv, { size, n, share, develop = 1, rot = 0, crumble = null, ink = null, scale = 0 }) {
+  const dpr = fitCanvas(cv, size, size, scale)
   const x = cv.getContext('2d')
   x.setTransform(dpr, 0, 0, dpr, 0, 0)
   x.clearRect(0, 0, size, size)
-  x.fillStyle = inkOf(cv)
+  x.fillStyle = ink || inkOf(cv)
   const cell = size / n
   const dot = Math.max(0.6, cell - 0.6)
   const c = n / 2
   for (let j = 0; j < n; j++) {
     for (let i = 0; i < n; i++) {
       const th = bayer(i, j)
+      const dx = (i - c + 0.5) / c, dy = (j - c + 0.5) / c
+      if (crumble) {
+        const was = emblemValue(dx, dy, rot, crumble.from) > th
+        const now = emblemValue(dx, dy, rot, share) > th
+        const r = ((i * 73 + j * 151) % 97) / 97
+        const falls = was && (!now || r < 0.25)
+        if (falls) {
+          const k = clamp01((crumble.k - r * 0.4) / 0.6)
+          if (k < 1) {
+            x.globalAlpha = 1 - k
+            x.fillRect(i * cell, j * cell + k * k * cell * 5 * (0.6 + r), dot, dot)
+            x.globalAlpha = 1
+          }
+        }
+        // Cells that stay are drawn; the new state's other cells print back in (develop) once the old ones fell.
+        if (now && ((was && !falls) || th < develop)) x.fillRect(i * cell, j * cell, dot, dot)
+        continue
+      }
       if (th >= develop) continue
-      const v = emblemValue((i - c + 0.5) / c, (j - c + 0.5) / c, rot, share)
-      if (v > th) x.fillRect(i * cell, j * cell, dot, dot)
+      if (emblemValue(dx, dy, rot, share) > th) x.fillRect(i * cell, j * cell, dot, dot)
     }
   }
 }
@@ -1619,12 +1936,14 @@ function paintEmblem(cv, { size, n, share, develop = 1, rot = 0 }) {
  * The emblem. develops point by point on mount (B), can turn slowly (the passport), and pulses once when `pulse`
  * changes (C: density up, then back). The turning loop stops while the emblem is off screen or the window hidden.
  */
-function Emblem({ share, size = 120, n = 60, rotate = false, pulse = 0, motion, className, label }) {
+function Emblem({ share, size = 120, n = 60, rotate = false, pulse = 0, crumble = 0, motion, className, label }) {
   const ref = useRef(null)
-  const st = useRef({ raf: 0, dev0: 0, pulse0: 0, rot: 0, rot0: 0, visible: true, share })
+  const st = useRef({ raf: 0, dev0: 0, pulse0: 0, crumble0: 0, from: share, rot: 0, rot0: 0, visible: true, share, prev: share })
+  st.current.prev = st.current.share                     // the share before this render: a crumble starts from it
   st.current.share = share
-  const paint = (develop, boost, rot) =>
-    ref.current && paintEmblem(ref.current, { size, n, share: clamp01(st.current.share + boost), develop, rot })
+  const paint = (develop, boost, rot, crumbleAt) =>
+    ref.current &&
+    paintEmblem(ref.current, { size, n, share: clamp01(st.current.share + boost), develop, rot, crumble: crumbleAt == null ? null : { from: st.current.from, k: crumbleAt } })
   useRepaint(() => paint(1, 0, st.current.rot))
   const wake = () => {
     const s = st.current
@@ -1636,18 +1955,29 @@ function Emblem({ share, size = 120, n = 60, rotate = false, pulse = 0, motion, 
       const pk = s.pulse0 ? (now - s.pulse0) / 900 : 1
       const boost = pk < 1 ? Math.sin(Math.PI * pk) * 0.35 : 0
       if (pk >= 1) s.pulse0 = 0
+      // D. A real drop: the cells it lost crumble (~600 ms), then the new state prints back in (~500 ms).
+      let ck = null
+      let cdev = 1
+      if (s.crumble0) {
+        ck = Math.min(1, (now - s.crumble0) / 600)
+        cdev = clamp01((now - s.crumble0 - 450) / 500)
+        if (ck >= 1 && cdev >= 1) {
+          s.crumble0 = 0
+          ck = null
+        }
+      }
       const turning = rotate && develop >= 1 && s.visible && !(typeof document !== 'undefined' && document.hidden)
       if (turning) {
         if (!s.rot0) s.rot0 = now - s.rot / 0.00006
         s.rot = (now - s.rot0) * 0.00006 // ~0.06 rad/s
       } else s.rot0 = 0
       // The slow turn alone needs no more than ~14 frames a second; developing and pulsing paint every frame.
-      const idle = develop >= 1 && !s.pulse0
+      const idle = develop >= 1 && !s.pulse0 && !s.crumble0
       if (!idle || now - (s.last || 0) >= 70) {
         s.last = now
-        paint(develop, boost, s.rot)
+        paint(ck == null ? develop : cdev, boost, s.rot, ck)
       }
-      if (develop < 1 || s.pulse0 || turning) s.raf = requestAnimationFrame(tick)
+      if (develop < 1 || s.pulse0 || s.crumble0 || turning) s.raf = requestAnimationFrame(tick)
     }
     s.raf = requestAnimationFrame(tick)
   }
@@ -1688,6 +2018,14 @@ function Emblem({ share, size = 120, n = 60, rotate = false, pulse = 0, motion, 
     st.current.pulse0 = performance.now()
     wake()
   }, [pulse])
+  useEffect(() => {
+    if (!crumble || !motion) return
+    const s = st.current
+    s.from = s.prev
+    s.pulse0 = 0
+    s.crumble0 = performance.now()
+    wake()
+  }, [crumble])
   return jsx('canvas', {
     'aria-hidden': label ? undefined : true,
     'aria-label': label,
@@ -1708,12 +2046,12 @@ const shareOf = agent => {
 }
 
 // ---- a seal that prints at the end of a passport that verifies.
-function paintSeal(cv, { size, print = 1 }) {
-  const dpr = fitCanvas(cv, size, size)
+function paintSeal(cv, { size, print = 1, ink = null, scale = 0 }) {
+  const dpr = fitCanvas(cv, size, size, scale)
   const x = cv.getContext('2d')
   x.setTransform(dpr, 0, 0, dpr, 0, 0)
   x.clearRect(0, 0, size, size)
-  x.fillStyle = inkOf(cv)
+  x.fillStyle = ink || inkOf(cv)
   const n = 24
   const cell = size / n
   const c = n / 2
@@ -1879,34 +2217,37 @@ const CSS = `
 .tn-intro{margin:0 1rem 0.75rem;max-width:calc(58rem + 17rem);display:flex;align-items:flex-start;gap:0.75rem;padding:0.7rem 0.85rem;border:1px solid var(--tn-line)}
 .tn-intro p{margin:0}
 .tn-intro-body{font-size:0.74rem;line-height:1.55;color:var(--tn-fg2);max-width:48rem}
-.tn-pass-wrap{perspective:900px;max-width:23rem;width:100%}
-.tn-pass-grid{display:flex;flex-direction:column;gap:0.75rem}
-.tn-pass-side{display:flex;flex-direction:column;gap:0.75rem;min-width:0;max-width:23rem}
-@media (min-width:1400px){.tn-pass-grid{display:grid;grid-template-columns:23rem minmax(0,1fr);gap:1.5rem;align-items:start}.tn-pass-side{max-width:none}}
-.tn-pass{position:relative;overflow:hidden;background:var(--tn-acc);color:var(--tn-on);padding:1.1rem 1.25rem 1rem;transform-style:preserve-3d;transition:transform 400ms cubic-bezier(.2,.7,.2,1);will-change:transform}
+.tn-pass-wrap{perspective:1400px;width:100%;max-width:46rem;container-type:inline-size}
+.tn-pass-grid{display:flex;flex-direction:column;gap:0.9rem}
+.tn-pass-side{display:flex;flex-direction:column;gap:0.75rem;min-width:0;max-width:46rem}
+.tn-pass-acts{display:flex;flex-wrap:wrap;gap:0.5rem}
+.tn-pass{position:relative;overflow:hidden;background:var(--tn-acc);color:var(--tn-on);padding:clamp(1.1rem,4.4cqi,2.1rem) clamp(1.1rem,5cqi,2.4rem) clamp(1rem,4cqi,1.8rem);transform-style:preserve-3d;transition:transform 400ms cubic-bezier(.2,.7,.2,1);will-change:transform}
 .tn-pass.tn-tilting{transition:transform 80ms linear}
-.tn-ptop{display:flex;justify-content:space-between;gap:0.5rem;font:0.62rem var(--tn-mono);letter-spacing:0.14em;text-transform:uppercase}
+.tn-ptop{display:flex;justify-content:space-between;gap:0.5rem;font:500 clamp(0.62rem,1.5cqi,0.74rem) var(--tn-mono);letter-spacing:0.14em;text-transform:uppercase}
 .tn-ok{opacity:0;transition:opacity 400ms}
 .tn-ok.tn-on{opacity:1}
-.tn-pemb{display:grid;place-items:center;margin:0.8rem 0 0.2rem}
+.tn-pemb{display:grid;place-items:center;margin:clamp(0.8rem,3cqi,1.4rem) 0 0.2rem}
 .tn-pemb .tn-emblem{color:var(--tn-on)}
-.tn-pname{font-family:var(--tn-display);font-weight:700;font-size:clamp(1.8rem,3.6vw,2.6rem);line-height:0.95;text-align:center;margin:0.2rem 0 0.8rem;min-height:1em;overflow-wrap:anywhere}
-.tn-prows{border-block-start:1px solid color-mix(in srgb,var(--tn-on) 35%,transparent);padding-block-start:0.55rem;display:flex;flex-direction:column;gap:0.35rem}
-.tn-prow{display:grid;grid-template-columns:minmax(0,1fr) 4.5rem 2.6rem;gap:0.15rem 0.75rem;align-items:center;font:0.66rem var(--tn-mono)}
+.tn-pname{font-family:var(--tn-display);font-weight:700;font-size:clamp(2.4rem,13cqi,6.2rem);line-height:0.9;letter-spacing:-0.01em;text-align:center;margin:0.35rem 0 clamp(0.8rem,3cqi,1.3rem);min-height:0.9em;overflow-wrap:anywhere}
+.tn-prows{border-block-start:1px solid color-mix(in srgb,var(--tn-on) 35%,transparent);padding-block-start:0.75rem;display:flex;flex-direction:column;gap:0.6rem}
+.tn-prow{display:grid;grid-template-columns:2rem minmax(0,1fr) minmax(5rem,11rem) 3.4rem;gap:0.15rem 0.9rem;align-items:center;font:0.8rem var(--tn-mono)}
+.tn-pnum{opacity:0.7;font-size:0.72rem;font-variant-numeric:tabular-nums}
+.tn-pmore{margin-block-start:0.5rem;font:0.7rem var(--tn-mono);opacity:0.8}
+@container (max-width:30rem){.tn-prow{grid-template-columns:1.5rem minmax(0,1fr) 4.5rem 2.6rem;gap:0.1rem 0.6rem;font-size:0.68rem}.tn-pnum{font-size:0.62rem}}
 .tn-prow[data-motion=on]{opacity:0;transform:translateY(4px);transition:opacity 400ms,transform 400ms}
 .tn-prow.tn-on{opacity:1;transform:none}
-.tn-prow .tn-pk{min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:0.4rem;overflow:hidden}
+.tn-prow .tn-pk{min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:0.7rem;overflow:hidden}
 .tn-prow .tn-pk>.tn-bdi{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .tn-prow b{font-family:var(--tn-display);font-weight:700;letter-spacing:0.06em;text-transform:uppercase;unicode-bidi:isolate;white-space:nowrap}
 .tn-prow b[data-tier=trusted]{font-weight:400;opacity:0.85}
 .tn-prow .tn-pn{direction:ltr;unicode-bidi:isolate;text-align:end;font-variant-numeric:tabular-nums}
-.tn-prow .tn-bar{height:8px;color:var(--tn-on)}
-.tn-pfoot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.25rem 0.75rem;margin-block-start:0.8rem;padding-block-start:0.55rem;border-block-start:1px solid color-mix(in srgb,var(--tn-on) 35%,transparent);font:0.58rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase}
+.tn-prow .tn-bar{height:10px;color:var(--tn-on)}
+.tn-pfoot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.25rem 0.75rem;margin-block-start:1rem;padding-block-start:0.75rem;border-block-start:1px solid color-mix(in srgb,var(--tn-on) 35%,transparent);font:500 clamp(0.58rem,1.4cqi,0.68rem) var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase}
 .tn-hash{font-family:var(--tn-mono);text-transform:none;letter-spacing:0.06em}
-.tn-psig{display:flex;align-items:center;gap:0.45rem;margin-block-start:0.6rem;font:0.56rem var(--tn-mono);letter-spacing:0.12em;opacity:0.85}
+.tn-psig{display:flex;align-items:center;gap:0.5rem;margin-block-start:0.85rem;font:clamp(0.56rem,1.3cqi,0.64rem) var(--tn-mono);letter-spacing:0.12em;opacity:0.85}
 .tn-psig b{font-family:var(--tn-display);font-weight:700;letter-spacing:0.12em}
 .tn-psig .tn-emblem{color:var(--tn-on)}
-.tn-seal{position:absolute;inset-block-start:2.6rem;inset-inline-end:0.9rem;width:44px;height:44px;color:var(--tn-on);transform:rotate(-10deg);opacity:0.92}
+.tn-seal{position:absolute;inset-block-start:clamp(2.6rem,9cqi,3.8rem);inset-inline-end:clamp(0.9rem,4cqi,2rem);width:64px;height:64px;color:var(--tn-on);transform:rotate(-10deg);opacity:0.92}
 .tn-sweep{position:absolute;inset-inline:0;height:46px;inset-block-start:-60px;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--tn-on) 16%,transparent),transparent);pointer-events:none}
 .tn-glare{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 300ms;
   background:linear-gradient(105deg,transparent 38%,color-mix(in srgb,var(--tn-on) 34%,transparent) 50%,transparent 62%);background-size:260% 100%;
@@ -1914,6 +2255,42 @@ const CSS = `
 .tn-pass[data-motion=on]:hover .tn-glare{opacity:1}
 .tn-chip.tn-out,.tn-chip.tn-in{-webkit-mask-size:8px 8px;mask-size:8px 8px}
 .tn-range{width:100%;height:10px;color:var(--tn-acc)}
+.tn-btn{display:inline-flex;align-items:center;gap:0.45rem;min-height:2rem;padding:0.3rem 0.9rem;font:500 0.66rem/1.2 var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;border:1px solid var(--tn-acc);border-radius:0;background:transparent;color:var(--tn-acc-text);cursor:pointer;outline:none;transition:background 120ms,color 120ms}
+.tn-btn:hover:not(:disabled){background:color-mix(in srgb,var(--tn-acc) 10%,transparent)}
+.tn-btn[data-kind=primary]{background:var(--tn-acc);color:var(--tn-on)}
+.tn-btn[data-kind=primary]:hover:not(:disabled){background:color-mix(in srgb,var(--tn-acc) 88%,var(--tn-fg))}
+.tn-btn:disabled{opacity:0.5;cursor:default}
+.tn-btn:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--tn-acc) 45%,transparent)}
+.tn-cmd{display:flex;align-items:flex-start;gap:0.25rem;min-width:0}
+.tn-hint{margin:0;font-size:0.7rem;line-height:1.5;color:var(--tn-mut)}
+.tn-verify{display:flex;flex-direction:column;gap:0.35rem}
+.tn-doc-wrap{min-height:0;flex:1 1 auto;overflow-y:auto}
+.tn-doc{display:flex;flex-direction:column;gap:0;max-width:58rem;padding:0.25rem 1rem 2.5rem}
+.tn-doc>.tn-hero{margin-block-end:0.25rem}
+.tn-hrow{display:grid;grid-template-columns:2.6rem minmax(0,1fr);gap:0.6rem;padding-block:1.1rem;border-block-end:1px solid var(--tn-line)}
+.tn-hbody{min-width:0;display:flex;flex-direction:column;gap:0.6rem}
+.tn-htitle{margin:0;font-family:var(--tn-display);font-weight:700;font-size:1.35rem;line-height:1;color:var(--tn-fg)}
+.tn-htext{margin:0;font-size:0.78rem;line-height:1.6;color:var(--tn-fg2);max-width:46rem}
+.tn-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:0.4rem;max-width:46rem}
+.tn-list li{position:relative;padding-inline-start:1.1rem;font-size:0.78rem;line-height:1.55;color:var(--tn-fg2)}
+.tn-list li::before{content:'';position:absolute;inset-inline-start:0.15rem;inset-block-start:0.5em;width:0.45rem;height:0.45rem;background-image:radial-gradient(var(--tn-acc) 0.7px,transparent 1px);background-size:3px 3px}
+.tn-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:0.6rem}
+.tn-opt{display:flex;flex-direction:column;gap:0.55rem;padding:0.85rem 0.95rem;border:1px solid var(--tn-line);min-width:0}
+.tn-opt[data-current=true]{border-color:var(--tn-acc);box-shadow:inset 0 2px 0 var(--tn-acc)}
+.tn-opt-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.4rem}
+.tn-opt-name{font-family:var(--tn-display);font-weight:700;font-size:1.3rem;line-height:1;color:var(--tn-fg)}
+.tn-opt-name.tn-start{cursor:default;font-size:1.05rem}
+.tn-chip-in{background:var(--tn-acc);color:var(--tn-on);font-family:var(--tn-mono);font-weight:500;font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase}
+.tn-levels{margin:0;display:flex;flex-direction:column}
+.tn-levels>div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:0.1rem 0.75rem;padding-block:0.4rem;border-block-start:1px solid var(--tn-line);font-size:0.72rem}
+.tn-levels dt{color:var(--tn-mut)}
+.tn-levels dd{margin:0;display:contents;color:var(--tn-fg2);text-align:end}
+.tn-levels dd>b{font:500 0.76rem var(--tn-mono);color:var(--tn-fg);text-align:end;font-variant-numeric:tabular-nums}
+.tn-levels dd>span{grid-column:1 / -1;font-size:0.68rem;color:var(--tn-mut);text-align:start}
+.tn-opt>.tn-cmd{margin-block-start:auto}
+.tn-tiers{display:flex;flex-direction:column}
+.tn-tier{display:flex;flex-wrap:wrap;align-items:baseline;gap:0.3rem 0.7rem;padding-block:0.5rem;border-block-start:1px solid var(--tn-line)}
+.tn-tier:last-child{border-block-end:1px solid var(--tn-line)}
 .tn-brow{position:relative;border-block-end:1px solid var(--tn-line)}
 .tn-urow{display:flex;align-items:center;gap:0.6rem;padding:0.4rem 0.25rem;font-size:0.78rem;border-block-end:1px solid var(--tn-line)}
 .tn-urow:hover{background:var(--ui-row-hover-background,color-mix(in srgb,var(--tn-fg) 5%,transparent))}
@@ -1944,7 +2321,7 @@ const CSS = `
 .tn-anim-toggle{display:inline-flex;align-items:center;gap:0.4rem;font:0.66rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--tn-fg2);white-space:nowrap}
 .tn-anim-toggle[data-off=true]{opacity:0.6}
 .tn-root:dir(rtl),.tn-root:dir(rtl) *{letter-spacing:0!important}
-.tn-root:dir(rtl) :is(.tn-eyebrow,.tn-emblem-cap,.tn-anim-toggle,.tn-ptop,.tn-pfoot,.tn-psig,.tn-preset span:first-child){font-family:var(--font-sans,system-ui),system-ui,sans-serif;text-transform:none}
+.tn-root:dir(rtl) :is(.tn-eyebrow,.tn-emblem-cap,.tn-anim-toggle,.tn-ptop,.tn-pfoot,.tn-psig,.tn-btn,.tn-chip-in,.tn-preset span:first-child){font-family:var(--font-sans,system-ui),system-ui,sans-serif;text-transform:none}
 @media (prefers-reduced-motion:reduce){.tn-uacts{transition:none}.tn-enter,.tn-scan,.tn-chip.tn-out,.tn-chip.tn-in,.tn-band-title,.tn-leaving{animation:none!important}.tn-prow,.tn-pass,.tn-ok{transition:none!important}.tn-prow{opacity:1;transform:none}}
 `
 
@@ -2298,8 +2675,14 @@ const scramble = n => Array.from({ length: n }, () => HEX[Math.floor(Math.random
  * scrambles while the passport verifies and settles on the real head (✓ only if it verifies), then a seal prints.
  * Hover tilts it (≤ 4°) with a dithered glare that follows the pointer (mouse only, motion on).
  */
-function PassportCard({ agent, doc, settled, ok, t, motion }) {
+const PASS_ROWS = 8 // rows the card shows; the rest is counted on one line (the JSON file carries every type)
+
+function PassportCard({ agent, doc, settled, ok, t, motion, outerRef }) {
   const cardRef = useRef(null)
+  const setCard = el => {
+    cardRef.current = el
+    if (outerRef) outerRef.current = el
+  }
   const nameRef = useRef(null)
   const hashRef = useRef(null)
   const okRef = useRef(null)
@@ -2312,9 +2695,10 @@ function PassportCard({ agent, doc, settled, ok, t, motion }) {
   live.current = { settled, ok, head }
   const name = displayName(agent.model)
   const types = agent.types || []
-  const shown = types.slice(0, 6)
+  const shown = types.slice(0, PASS_ROWS)
+  const more = types.length - shown.length
   const totals = types.reduce((acc, ty) => ({ f: acc.f + (ty.faults || 0), n: acc.n + (ty.successes || 0) + (ty.faults || 0) }), { f: 0, n: 0 })
-  const paintSealAt = k => sealRef.current && paintSeal(sealRef.current, { size: 44, print: k })
+  const paintSealAt = k => sealRef.current && paintSeal(sealRef.current, { size: 64, print: k })
   useRepaint(() => {
     if (live.current.ok && live.current.settled) paintSealAt(1)
   })
@@ -2409,7 +2793,7 @@ function PassportCard({ agent, doc, settled, ok, t, motion }) {
       'data-motion': motion ? 'on' : 'off',
       onPointerLeave: onLeave,
       onPointerMove: onMove,
-      ref: cardRef,
+      ref: setCard,
       children: [
         jsx('div', { 'aria-hidden': true, className: 'tn-sweep', ref: sweepRef }),
         jsx('div', { 'aria-hidden': true, className: 'tn-glare' }),
@@ -2417,11 +2801,20 @@ function PassportCard({ agent, doc, settled, ok, t, motion }) {
           className: 'tn-ptop',
           children: [
             jsx('span', { children: t('page.title') }),
-            jsxs('span', { children: [t('passport.title'), ' ', jsx('span', { 'aria-hidden': true, className: 'tn-ok', ref: okRef, children: '✓' })] })
+            jsxs('span', { children: [t('passport.card_title'), ' ', jsx('span', { 'aria-hidden': true, className: 'tn-ok', ref: okRef, children: '✓' })] })
           ]
         }),
-        jsx('div', { className: 'tn-pemb', children: jsx(Emblem, { motion, n: 88, rotate: true, share: shareOf(agent), size: 176 }) }),
-        jsx('div', { 'aria-label': name, className: 'tn-pname', ref: nameRef, role: 'heading', 'aria-level': 4, children: motion ? '' : name }),
+        jsx('div', { className: 'tn-pemb', children: jsx(Emblem, { motion, n: 96, rotate: true, share: shareOf(agent), size: 216 }) }),
+        jsx('div', {
+          'aria-label': name,
+          className: 'tn-pname',
+          ref: nameRef,
+          role: 'heading',
+          'aria-level': 4,
+          // As large as the card allows on one line: Collapse runs about half an em per character.
+          style: { fontSize: `clamp(1.6rem, ${Math.min(13, 165 / Math.max(1, name.length)).toFixed(2)}cqi, 6.2rem)` },
+          children: motion ? '' : name
+        }),
         jsx('div', {
           className: 'tn-prows',
           ref: rowsRef,
@@ -2434,15 +2827,16 @@ function PassportCard({ agent, doc, settled, ok, t, motion }) {
                 className: cn('tn-prow', !motion && 'tn-on'),
                 'data-motion': motion ? 'on' : 'off',
                 children: [
+                  jsx('span', { 'aria-hidden': true, className: 'tn-pnum', children: '#' + pad2(i + 1) }),
                   jsxs('span', {
                     className: 'tn-pk',
                     children: [
-                      jsx('span', { className: 'tn-bdi', children: `#${pad2(i + 1)} ${ty.type}` }),
+                      jsx('span', { className: 'tn-bdi tn-ptype', children: ty.type }),
                       // A trusted type is never shown as an earned tier on the passport.
                       jsx('b', { 'data-tier': tier, children: tier === 'trusted' ? t('passport.trusted') : `${TIER_SHORT[tier]} · ${tierName(tier, t)}` })
                     ]
                   }),
-                  jsx(DitherBar, { delay: 1700 + i * 200, motion, notch: geo.notch, rows: 3, segments: geo.segments, solid: tier === 'alone', track: ty.capped, trust: tier === 'trusted', value: fillOf(ty) }),
+                  jsx(DitherBar, { delay: 1700 + i * 200, motion, notch: geo.notch, rows: 4, segments: geo.segments, solid: tier === 'alone', track: ty.capped, trust: tier === 'trusted', value: fillOf(ty) }),
                   jsx('span', { className: 'tn-pn', children: ty.capped || tier === 'trusted' ? '' : `${ty.series || 0}/${ty.required || 0}` })
                 ]
               },
@@ -2450,6 +2844,7 @@ function PassportCard({ agent, doc, settled, ok, t, motion }) {
             )
           })
         }),
+        more > 0 ? jsx('div', { className: 'tn-pmore', children: t('passport.more_types', { n: more }) }) : null,
         jsxs('div', {
           className: 'tn-pfoot',
           children: [
@@ -2459,7 +2854,7 @@ function PassportCard({ agent, doc, settled, ok, t, motion }) {
         }),
         jsxs('div', {
           className: 'tn-psig',
-          children: [jsx(Emblem, { motion: false, n: 16, share: 1, size: 16 }), jsx('b', { children: 'TENURE' }), jsx('span', { children: t('passport.signature') })]
+          children: [jsx(Emblem, { motion: false, n: 18, share: 1, size: 18 }), jsx('b', { children: 'TENURE' }), jsx('span', { children: t('passport.signature') })]
         }),
         jsx('canvas', { 'aria-hidden': true, className: 'tn-seal', ref: sealRef })
       ]
@@ -2467,8 +2862,226 @@ function PassportCard({ agent, doc, settled, ok, t, motion }) {
   })
 }
 
+/** A command in a block, with the host's copy button. */
+function Cmd({ text, t }) {
+  return jsxs('div', {
+    className: 'tn-cmd',
+    children: [jsx(PanelBlock, { className: 'min-w-0 flex-1', children: text }), jsx(CopyButton, { appearance: 'icon', label: t('passport.copy_command'), text })]
+  })
+}
+
+/** `hermes tenure …`, with `-p PROFILE` for a profile other than the default one. */
+const hermesCmd = (profile, rest) => (profile && profile !== 'default' ? `hermes -p ${profile} tenure ${rest}` : `hermes tenure ${rest}`)
+
+/** A file name safe on every system, from a model name. */
+const fileSafe = name => String(name || 'agent').replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'agent'
+
+/** Hand the viewer a file: a blob URL on a temporary link, revoked once the download started. */
+function saveBlob(blob, name) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.rel = 'noopener'
+  a.style.display = 'none'
+  document.body.append(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 30_000)
+}
+
+/**
+ * The passport card drawn on a canvas, for a PNG: the same pieces as the card (emblem, name, one row per type with its
+ * dither bar, faults / verified outcomes, ledger head, signature), its colours read from the card as displayed, the
+ * host's own fonts. The seal and the ✓ only when the passport verified.
+ */
+async function passportPng({ card, agent, doc, ok, t }) {
+  const cs = getComputedStyle(card)
+  const paper = cs.backgroundColor
+  const ink = cs.color
+  const rtl = cs.direction === 'rtl'
+  // The host's faces, as the page uses them (Collapse, JetBrains Mono); loaded before drawing, fallbacks otherwise.
+  const fam = { display: "'Collapse', system-ui, sans-serif", mono: "'JetBrains Mono', ui-monospace, monospace", sans: 'system-ui, sans-serif' }
+  try {
+    await Promise.all([document.fonts.load('700 120px Collapse'), document.fonts.load("500 20px 'JetBrains Mono'")])
+  } catch (e) {
+    /* the fallback faces draw instead */
+  }
+  // Arabic: no letter spacing and the sans face for the small labels, as on the page.
+  const labelFont = rtl ? fam.sans : fam.mono
+  const S = 2
+  const W = 1200
+  const pad = 64
+  const p = doc && doc.passport
+  const name = displayName(agent.model)
+  const types = agent.types || []
+  const shown = types.slice(0, PASS_ROWS)
+  const more = types.length - shown.length
+  const totals = types.reduce((acc, ty) => ({ f: acc.f + (ty.faults || 0), n: acc.n + (ty.successes || 0) + (ty.faults || 0) }), { f: 0, n: 0 })
+  const ROW = 50
+  const EMB = 340
+  // The name fits the width: largest size up to 168 px.
+  const probe = document.createElement('canvas').getContext('2d')
+  let nameSize = 168
+  probe.font = `700 ${nameSize}px ${fam.display}`
+  while (nameSize > 48 && probe.measureText(name).width > W - pad * 2) {
+    nameSize -= 4
+    probe.font = `700 ${nameSize}px ${fam.display}`
+  }
+  const yTop = 72
+  const yEmb = 112
+  const yName = yEmb + EMB + 28 + nameSize * 0.82
+  const yRule1 = yName + 44
+  const yRows = yRule1 + 22
+  const yMore = yRows + shown.length * ROW
+  const yRule2 = yMore + (more > 0 ? 40 : 6) + 10
+  const yFoot = yRule2 + 40
+  const ySig = yFoot + 56
+  const H = Math.round(ySig + 40)
+  const cv = document.createElement('canvas')
+  cv.width = W * S
+  cv.height = H * S
+  const x = cv.getContext('2d')
+  x.setTransform(S, 0, 0, S, 0, 0)
+  x.fillStyle = paper
+  x.fillRect(0, 0, W, H)
+  x.fillStyle = ink
+  x.strokeStyle = ink
+  x.textBaseline = 'alphabetic'
+  x.direction = rtl ? 'rtl' : 'ltr'
+  const start = rtl ? W - pad : pad
+  const end = rtl ? pad : W - pad
+  const at = (dx, w = 0) => (rtl ? W - pad - dx - w : pad + dx)       // a box of width w, dx from the start edge
+  const text = (str, px, y, font, align = 'start', spacing = 0) => {
+    x.font = font
+    try { x.letterSpacing = rtl ? '0px' : `${spacing}px` } catch (e) { /* older engines: no spacing */ }
+    x.textAlign = align
+    x.fillText(str, px, y)
+  }
+  const up = str => (rtl ? str : String(str).toLocaleUpperCase())
+  const rule = y => {
+    x.globalAlpha = 0.35
+    x.fillRect(pad, y, W - pad * 2, 1.5)
+    x.globalAlpha = 1
+  }
+  // Top line: TENURE · PASSPORT · ED25519 ✓
+  text(up(t('page.title')), start, yTop, `500 17px ${labelFont}`, 'start', 2.4)
+  text(up(t('passport.card_title')) + (ok ? ' ✓' : ''), end, yTop, `500 17px ${labelFont}`, 'end', 2.4)
+  // Emblem, as a drawing of the same function the card uses.
+  const em = document.createElement('canvas')
+  paintEmblem(em, { size: EMB, n: 96, share: shareOf(agent), ink, scale: S })
+  x.drawImage(em, (W - EMB) / 2, yEmb, EMB, EMB)
+  if (ok) {
+    const seal = document.createElement('canvas')
+    paintSeal(seal, { size: 96, ink, scale: S })
+    x.save()
+    x.translate(rtl ? pad + 48 : W - pad - 48, yEmb + 40)
+    x.rotate((-10 * Math.PI) / 180)
+    x.globalAlpha = 0.92
+    x.drawImage(seal, -48, -48, 96, 96)
+    x.restore()
+  }
+  // Name: not mirrored, centred.
+  x.direction = 'ltr'
+  text(name, W / 2, yName, `700 ${nameSize}px ${fam.display}`, 'center', -nameSize * 0.01)
+  x.direction = rtl ? 'rtl' : 'ltr'
+  rule(yRule1)
+  const BAR_W = 300
+  const COUNT_W = 90
+  shown.forEach((ty, i) => {
+    const tier = tierKey(ty)
+    const y = yRows + i * ROW + 30
+    text('#' + pad2(i + 1), start, y, `400 17px ${fam.mono}`, 'start')
+    x.globalAlpha = 1
+    const label = tier === 'trusted' ? t('passport.trusted') : `${TIER_SHORT[tier]} · ${tierName(tier, t)}`
+    // Type name, then the tier in the display face; the type is cut to its room.
+    x.font = `400 20px ${fam.mono}`
+    try { x.letterSpacing = '0px' } catch (e) { /* noop */ }
+    const tierFont = tier === 'trusted' ? `400 19px ${rtl ? fam.sans : fam.display}` : `700 19px ${rtl ? fam.sans : fam.display}`
+    const room = W - pad * 2 - 56 - BAR_W - COUNT_W - 40
+    x.font = tierFont
+    try { x.letterSpacing = rtl ? '0px' : '1.4px' } catch (e) { /* noop */ }
+    const tierText = up(label)
+    const tierW = Math.min(room * 0.55, x.measureText(tierText).width)
+    x.font = `400 20px ${fam.mono}`
+    try { x.letterSpacing = '0px' } catch (e) { /* noop */ }
+    let typ = ty.type
+    while (typ.length > 4 && x.measureText(typ).width > room - tierW - 18) typ = typ.slice(0, -2)
+    if (typ !== ty.type) typ = typ.slice(0, -1) + '…'
+    x.save()
+    x.direction = 'ltr'
+    x.textAlign = rtl ? 'right' : 'left'
+    x.fillText(typ, at(56), y)
+    x.restore()
+    const typW = x.measureText(typ).width
+    x.save()
+    x.globalAlpha = tier === 'trusted' ? 0.85 : 1
+    text(tierText, at(56 + typW + 18), y, tierFont, 'start', 1.4)
+    x.restore()
+    const bar = document.createElement('canvas')
+    const geo = barGeo(ty)
+    const plain = ty.capped || tier === 'trusted' || tier === 'alone'
+    paintBar(bar, {
+      fill: ty.capped ? 0 : tier === 'trusted' ? 1 : fillOf(ty),
+      solid: tier === 'alone',
+      trust: tier === 'trusted',
+      rows: 6,
+      headroom: 0,
+      segments: plain ? 0 : geo.segments,
+      notch: plain ? null : geo.notch,
+      width: BAR_W,
+      ink,
+      scale: S
+    })
+    const bx = rtl ? pad + COUNT_W : W - pad - COUNT_W - BAR_W
+    if (rtl) {
+      x.save()
+      x.translate(bx + BAR_W, 0)
+      x.scale(-1, 1)
+      x.drawImage(bar, 0, y - 12, BAR_W, 12)
+      x.restore()
+    } else x.drawImage(bar, bx, y - 12, BAR_W, 12)
+    if (!ty.capped && tier !== 'trusted') {
+      x.save()
+      x.direction = 'ltr'
+      text(`${ty.series || 0}/${ty.required || 0}`, rtl ? pad : W - pad, y, `500 18px ${fam.mono}`, rtl ? 'left' : 'right')
+      x.restore()
+    }
+  })
+  if (more > 0) text(t('passport.more_types', { n: more }), at(56), yMore + 26, `400 16px ${labelFont}`, 'start')
+  rule(yRule2)
+  text(up(t('passport.faults_checks', { n: totals.f, total: totals.n })), start, yFoot, `500 15px ${labelFont}`, 'start', 1.6)
+  const head = p && p.ledger ? String(p.ledger.head).slice(0, 8) : '········'
+  x.font = `500 15px ${fam.mono}`
+  try { x.letterSpacing = '0.9px' } catch (e) { /* noop */ }
+  const headW = x.measureText(head).width
+  x.save()
+  x.direction = 'ltr'
+  text(head, end, yFoot, `500 15px ${fam.mono}`, rtl ? 'left' : 'right', 0.9)
+  x.restore()
+  text(up(t('passport.ledger')), rtl ? end + headW + 12 : end - headW - 12, yFoot, `500 15px ${labelFont}`, 'end', 1.6)
+  // Signature: emblem + TENURE + a plugin for Hermes Agent.
+  const sig = document.createElement('canvas')
+  paintEmblem(sig, { size: 30, n: 18, share: 1, ink, scale: S })
+  x.save()
+  x.globalAlpha = 0.85
+  x.drawImage(sig, rtl ? W - pad - 30 : pad, ySig - 22, 30, 30)
+  x.direction = 'ltr'
+  x.font = `700 17px ${fam.display}`
+  try { x.letterSpacing = '2px' } catch (e) { /* noop */ }
+  const brandW = x.measureText('TENURE').width
+  x.textAlign = rtl ? 'right' : 'left'
+  x.fillText('TENURE', rtl ? W - pad - 42 : pad + 42, ySig)
+  x.direction = rtl ? 'rtl' : 'ltr'
+  text(t('passport.signature'), rtl ? W - pad - 42 - brandW - 14 : pad + 42 + brandW + 14, ySig, `400 15px ${labelFont}`, rtl ? 'right' : 'left', 1.8)
+  x.restore()
+  return await new Promise((resolve, reject) => cv.toBlob(b => (b ? resolve(b) : reject(new Error('toBlob'))), 'image/png'))
+}
+
 function PassportSection({ agent, t, n, motion }) {
   const head = agent.totals ? agent.totals.actions : 0
+  const cardRef = useRef(null)
+  const [drawing, setDrawing] = useState(false)
   const { data: doc, error, isLoading } = useQuery({
     queryKey: ['tenure', agent.profile, 'passport', agent.agent, head],
     queryFn: () => rest(`/passport?agent=${encodeURIComponent(agent.agent)}&of=${encodeURIComponent(agent.profile)}`),
@@ -2478,69 +3091,102 @@ function PassportSection({ agent, t, n, motion }) {
   const ok = doc && Array.isArray(doc.verify) && doc.verify.length === 0
   const p = doc && doc.passport
   const pending = !!(agent.settings && agent.settings.pending)
+  const base = 'passport-' + fileSafe(displayName(agent.model))
+  const jsonName = base + '.json'
+  const exportCmd = hermesCmd(agent.profile, 'export ledger.jsonl')
+  const verifyCmd = `hermes tenure verify ${jsonName} ledger.jsonl`
+  // The file `hermes tenure verify` reads: the signed passport exactly as the agent half returned it.
+  const download = () => {
+    haptic('tap')
+    saveBlob(new Blob([JSON.stringify(p, null, 2) + '\n'], { type: 'application/json' }), jsonName)
+  }
+  const saveImage = async () => {
+    if (!cardRef.current || drawing) return
+    setDrawing(true)
+    try {
+      const blob = await passportPng({ card: cardRef.current, agent, doc, ok: !!ok, t })
+      haptic('tap')
+      saveBlob(blob, base + '.png')
+    } catch (e) {
+      host.notifyError(e, t('passport.image_failed'))
+    } finally {
+      setDrawing(false)
+    }
+  }
   return jsxs('section', {
     className: 'tn-section',
     children: [
-      jsxs('div', {
-        className: 'tn-section-head',
-        children: [
-          jsx(Eyebrow, { n, children: t('passport.title') }),
-          p ? jsx(CopyButton, { buttonSize: 'xs', label: t('passport.copy'), showLabel: true, text: JSON.stringify(p, null, 2) }) : null
-        ]
-      }),
+      jsx('div', { className: 'tn-section-head', children: jsx(Eyebrow, { n, children: t('passport.title') }) }),
       jsxs('div', {
         className: 'tn-pass-grid',
         children: [
-      jsx(PassportCard, { agent, doc, motion, ok: !!ok, settled: !!error || (!!doc && !isLoading), t }, agent.key),
-      jsxs('div', {
-        className: 'tn-pass-side',
-        children: [
-      pending ? jsx('p', { className: 'tn-note', children: t('passport.pending_note') }) : null,
-      isLoading && !doc
-        ? jsxs('p', { className: 'tn-status', style: { margin: 0 }, children: [jsx(Codicon, { name: 'loading', size: '0.8rem', spinning: true }), t('passport.verifying')] })
-        : jsxs('div', {
-            className: 'tn-status',
-            'data-ok': ok ? 'true' : 'false',
-            role: 'status',
+          jsx(PassportCard, { agent, doc, motion, ok: !!ok, outerRef: cardRef, settled: !!error || (!!doc && !isLoading), t }, agent.key),
+          jsxs('div', {
+            className: 'tn-pass-acts',
             children: [
-              jsx(Codicon, { className: 'mt-px shrink-0', name: ok ? 'verified-filled' : 'warning', size: '0.85rem' }),
-              jsx('span', {
-                className: 'min-w-0 break-words',
-                children: error
-                  ? t('passport.unavailable', { error: error.message || String(error) })
-                  : ok
-                    ? t('passport.verified')
-                    : t('passport.problems', { problems: ((doc && doc.verify) || []).join('; ') })
+              jsxs('button', {
+                className: 'tn-btn',
+                'data-kind': 'primary',
+                disabled: !p,
+                onClick: download,
+                type: 'button',
+                children: [jsx(Codicon, { name: 'desktop-download', size: '0.8rem' }), t('passport.download')]
+              }),
+              jsxs('button', {
+                'aria-busy': drawing ? 'true' : undefined,
+                className: 'tn-btn',
+                disabled: !p || drawing,
+                onClick: saveImage,
+                type: 'button',
+                children: [jsx(Codicon, { name: drawing ? 'loading' : 'file-media', size: '0.8rem', spinning: drawing }), t('passport.save_image')]
               })
             ]
           }),
-      p
-        ? jsx(PanelMeta, {
-            rows: [
-              { label: t('passport.protocol'), value: jsx('span', { className: 'font-mono', children: p.protocol }) },
-              { label: t('passport.rule'), value: jsx('span', { className: 'font-mono', children: `${p.rule.name} · ${String(p.rule.fingerprint).slice(0, 16)}` }) },
-              { label: t('passport.ledger'), value: jsx('span', { children: t('passport.ledger_value', { n: p.ledger.count, head: String(p.ledger.head).slice(0, 12) }) }) },
-              { label: t('passport.generated'), value: when(p.generated_at) }
-            ]
-          })
-        : null,
-      p
-        ? jsxs('div', {
-            className: 'space-y-1',
+          jsxs('div', {
+            className: 'tn-pass-side',
             children: [
-              jsx('p', { className: 'text-[0.7rem] text-muted-foreground/75', style: { margin: 0 }, children: t('passport.verify_hint') }),
-              jsxs('div', {
-                className: 'flex items-start gap-1',
-                children: [
-                  jsx(PanelBlock, { className: 'min-w-0 flex-1', children: VERIFY_COMMAND }),
-                  jsx(CopyButton, { appearance: 'icon', label: t('passport.copy_command'), text: VERIFY_COMMAND })
-                ]
-              })
+              pending ? jsx('p', { className: 'tn-note', children: t('passport.pending_note') }) : null,
+              isLoading && !doc
+                ? jsxs('p', { className: 'tn-status', style: { margin: 0 }, children: [jsx(Codicon, { name: 'loading', size: '0.8rem', spinning: true }), t('passport.verifying')] })
+                : jsxs('div', {
+                    className: 'tn-status',
+                    'data-ok': ok ? 'true' : 'false',
+                    role: 'status',
+                    children: [
+                      jsx(Codicon, { className: 'mt-px shrink-0', name: ok ? 'verified-filled' : 'warning', size: '0.85rem' }),
+                      jsx('span', {
+                        className: 'min-w-0 break-words',
+                        children: error
+                          ? t('passport.unavailable', { error: error.message || String(error) })
+                          : ok
+                            ? t('passport.verified')
+                            : t('passport.problems', { problems: ((doc && doc.verify) || []).join('; ') })
+                      })
+                    ]
+                  }),
+              p
+                ? jsx(PanelMeta, {
+                    rows: [
+                      { label: t('passport.protocol'), value: jsx('span', { className: 'font-mono', children: p.protocol }) },
+                      { label: t('passport.rule'), value: jsx('span', { className: 'font-mono', children: `${p.rule.name} · ${String(p.rule.fingerprint).slice(0, 16)}` }) },
+                      { label: t('passport.ledger'), value: jsx('span', { children: t('passport.ledger_value', { n: p.ledger.count, head: String(p.ledger.head).slice(0, 12) }) }) },
+                      { label: t('passport.generated'), value: when(p.generated_at) }
+                    ]
+                  })
+                : null,
+              p
+                ? jsxs('div', {
+                    className: 'tn-verify',
+                    children: [
+                      jsx('p', { className: 'tn-hint', children: t('passport.ledger_hint') }),
+                      jsx(Cmd, { t, text: exportCmd }),
+                      jsx('p', { className: 'tn-hint', children: t('passport.verify_hint') }),
+                      jsx(Cmd, { t, text: verifyCmd })
+                    ]
+                  })
+                : null
             ]
           })
-        : null
-        ]
-      })
         ]
       })
     ]
@@ -2556,6 +3202,7 @@ function useTransitions(agent) {
   const [changes, setChanges] = useState({})
   const [moment, setMoment] = useState(null)
   const [pulse, setPulse] = useState(0)
+  const [crumble, setCrumble] = useState(0)
   const timers = useRef([])
   useEffect(() => () => timers.current.forEach(clearTimeout), [])
   useEffect(() => {
@@ -2565,8 +3212,9 @@ function useTransitions(agent) {
     if (!prev) return
     const out = {}
     let best = null
+    let fault = false
     const stamp = Date.now()
-    const rankOf = m => ({ granted: 3, probation: 2, review: 1 })[m.kind]
+    const rankOf = m => ({ granted: 3, probation: 2, on_probation: 2, review: 1 })[m.kind]
     for (const ty of agent.types || []) {
       const a = prev.get(ty.type)
       const b = now.get(ty.type)
@@ -2575,7 +3223,9 @@ function useTransitions(agent) {
       if (b.faults > a.faults) {
         // A fault, and only a fault, crumbles the bar; "Back on probation" when it sent an earned type back to T1.
         out[ty.type] = { dir: 'down', token: stamp + ty.type }
-        if (b.rank === TIER_RANK.ask && a.rank > TIER_RANK.ask) m = { kind: 'probation', type: ty }
+        fault = true
+        // "On probation" for a type the trusted start covered (nothing earned to come back from), else "Back on…".
+        if (b.rank === TIER_RANK.ask && a.rank > TIER_RANK.ask) m = { kind: a.rank === TIER_RANK.trusted ? 'on_probation' : 'probation', type: ty }
       } else if (b.rank < a.rank) {
         // A drop without a fault (a revoke, stricter settings, a stakes change, a copied profile): no crumble, no band.
         out[ty.type] = { dir: 'reprint', token: stamp + ty.type }
@@ -2600,14 +3250,22 @@ function useTransitions(agent) {
           }), 950)
         )
     }
-    if (best && best.kind !== 'probation') setPulse(x => x + 1)
+    if (best && (best.kind === 'granted' || best.kind === 'review')) setPulse(x => x + 1)
+    else if (fault) setCrumble(x => x + 1)
     if (best) setMoment({ ...best, key: stamp })
   }, [agent])
-  return { changes, moment, pulse, dismiss: key => setMoment(m => (m && m.key === key ? null : m)) }
+  return { changes, moment, pulse, crumble, dismiss: key => setMoment(m => (m && m.key === key ? null : m)) }
 }
 
+const momentDown = moment => moment.kind === 'probation' || moment.kind === 'on_probation'
 const momentTitle = (moment, t) =>
-  moment.kind === 'probation' ? t('moment.probation') : moment.kind === 'granted' ? t('moment.granted') : t('moment.review')
+  moment.kind === 'probation'
+    ? t('moment.probation')
+    : moment.kind === 'on_probation'
+      ? t('moment.on_probation')
+      : moment.kind === 'granted'
+        ? t('moment.granted')
+        : t('moment.review')
 
 /** C / D. The big moment, once: a filled accent band for a promotion, a quiet card for a fault (the repair path). */
 function MomentBand({ moment, agent, t, motion, onClose }) {
@@ -2627,7 +3285,7 @@ function MomentBand({ moment, agent, t, motion, onClose }) {
       clearTimeout(leave.current)
     }
   }, [moment.key])
-  const down = moment.kind === 'probation'
+  const down = momentDown(moment)
   const paintFade = k => {
     const cv = ref.current
     if (!cv) return
@@ -2654,7 +3312,12 @@ function MomentBand({ moment, agent, t, motion, onClose }) {
   }, [moment.key, motion])
   const ty = moment.type
   const title = momentTitle(moment, t)
-  const sub = down ? nextLine(ty, t, (agent.settings || {}).spot) : `${displayName(agent.model)} · ${TierLabel(tierKey(ty), t)}`
+  // T2: it acts again, then tells you (the band says so in words); T3: the tier's own line.
+  const sub = down
+    ? nextLine(ty, t, (agent.settings || {}).spot)
+    : moment.kind === 'review'
+      ? t('moment.review_sub', { name: displayName(agent.model) })
+      : `${displayName(agent.model)} · ${TierLabel(tierKey(ty), t)}`
   const geo = barGeo(ty)
   return jsxs('div', {
     className: cn(down ? 'tn-fault' : 'tn-band', leaving && 'tn-leaving', motion && 'tn-enter'),
@@ -2682,7 +3345,7 @@ function AgentDetail({ agent, t, onRevoke }) {
   const tot = agent.totals || {}
   const s = agent.settings || {}
   const types = agent.types || []
-  const { changes, moment, pulse, dismiss } = useTransitions(agent)
+  const { changes, moment, pulse, crumble, dismiss } = useTransitions(agent)
   const t3 = types.filter(ty => tierKey(ty) === 'alone').length
   const t2 = types.filter(ty => tierKey(ty) === 'notify').length
   const nTrusted = types.filter(ty => tierKey(ty) === 'trusted').length
@@ -2708,7 +3371,7 @@ function AgentDetail({ agent, t, onRevoke }) {
         'aria-live': 'polite',
         className: 'tn-sr',
         role: 'status',
-        children: moment ? `${momentTitle(moment, t)} · ${moment.type.type} · ${moment.kind === 'probation' ? nextLine(moment.type, t, s.spot) : TierLabel(tierKey(moment.type), t)}` : ''
+        children: moment ? `${momentTitle(moment, t)} · ${moment.type.type} · ${momentDown(moment) ? nextLine(moment.type, t, s.spot) : TierLabel(tierKey(moment.type), t)}` : ''
       }),
       jsxs('header', {
         className: 'tn-hero',
@@ -2784,7 +3447,7 @@ function AgentDetail({ agent, t, onRevoke }) {
             className: 'tn-hero-side',
             children: [
               jsx('div', { style: { alignSelf: 'flex-end' }, children: jsx(PanelAction, { icon: 'circle-slash', onClick: onRevoke, children: t('revoke.action') }) }),
-              jsx(Emblem, { label: caption, motion, n: 60, pulse, share: shareOf(agent), size: 120 }, agent.key),
+              jsx(Emblem, { crumble, label: caption, motion, n: 60, pulse, rotate: true, share: shareOf(agent), size: 120 }, agent.key),
               jsx('div', { 'aria-hidden': true, className: 'tn-emblem-cap', children: caption })
             ]
           })
@@ -3031,6 +3694,284 @@ function BenchmarkView({ t }) {
   })
 }
 
+// ------------------------------------------------------------------------------------------------ settings & help
+// params.PRESETS (tenure/params.py): the accepted share of unchecked errors per stakes level; null = capped (always asks).
+const PRESETS = {
+  careful: { low: 1 / 100, medium: 1 / 200, high: 1 / 1000 },
+  balanced: { low: 1 / 50, medium: 1 / 100, high: null },
+  fast: { low: 1 / 20, medium: 1 / 50, high: null }
+}
+const LEVELS = ['low', 'medium', 'high']
+// params.study_n: the series T3 needs, N = ceil(1 / (DETECTION * bar)) - 1 with DETECTION = 0.95 (rounded to 9 places
+// first, so a float a hair above a whole number does not add one).
+const studyN = bar => Math.ceil(Number((1 / (0.95 * bar)).toFixed(9))) - 1
+// params.DEFAULT_PRESET / DEFAULT_START / DEFAULT_SPOT: what applies before a profile logged any settings.
+const DEFAULTS = { preset: 'balanced', start: 'trusted', spot: 0.1, strict: false }
+
+/** One option of a setting: its name, "In force" when it is, what it means, and the command that picks it. */
+function Option({ current, head, children, cmd, t }) {
+  return jsxs('div', {
+    className: 'tn-opt',
+    'data-current': current ? 'true' : 'false',
+    children: [
+      jsxs('div', { className: 'tn-opt-head', children: [head, current ? jsx('span', { className: 'tn-chip tn-chip-in', children: t('settings.in_force') }) : null] }),
+      children,
+      cmd && !current ? jsx(Cmd, { t, text: cmd }) : null
+    ]
+  })
+}
+
+function SettingRow({ n, title, help, children }) {
+  return jsxs('section', {
+    className: 'tn-hrow',
+    children: [
+      jsx('div', { 'aria-hidden': true, className: 'tn-tnum', children: '#' + pad2(n) }),
+      jsxs('div', {
+        className: 'tn-hbody',
+        children: [jsx('h4', { className: 'tn-htitle', children: title }), help ? jsx('p', { className: 'tn-htext', children: help }) : null, children]
+      })
+    ]
+  })
+}
+
+function riskLines(risks, t) {
+  return jsx('dl', {
+    className: 'tn-levels',
+    children: LEVELS.map(level => {
+      const bar = risks ? risks[level] : null
+      return jsxs(
+        'div',
+        {
+          children: [
+            jsx('dt', { children: t('type.stakes_' + level) }),
+            bar == null || !(bar > 0)
+              ? jsx('dd', { children: t('type.always_asks') })
+              : jsxs('dd', { children: [jsx('b', { children: t('settings.series', { n: studyN(bar) }) }), jsx('span', { children: t('settings.risk', { k: Math.round(1 / bar) }) })] })
+          ]
+        },
+        level
+      )
+    })
+  })
+}
+
+/**
+ * The settings in force in the current profile, each option explained, and the command that changes it. The Desktop
+ * cannot write tenure's settings (they live in Hermes' config.yaml, which only `hermes tenure …` writes, and the agent
+ * half's POST /settings answers 501 outside the agent process): it shows them, it never pretends to save one.
+ */
+function SettingsView({ data, t }) {
+  const here = ((data && data.profiles) || []).find(p => p.current) || null
+  const s = here && !here.error ? here.settings : null
+  const profile = (here && here.profile) || (data && data.current) || 'default'
+  const types = here && here.agents ? here.agents.flatMap(a => a.types || []) : []
+  const preset = (s && s.preset) || DEFAULTS.preset
+  const start = startOf(s, types) || DEFAULTS.start
+  const spot = s && s.spot > 0 && s.spot < 1 ? s.spot : DEFAULTS.spot
+  const strict = s ? !!s.strict : DEFAULTS.strict
+  const k = Math.round(1 / spot)
+  const presetCard = id =>
+    jsx(
+      Option,
+      {
+        cmd: hermesCmd(profile, 'setup ' + id),
+        current: preset === id,
+        head: jsx('span', { className: 'tn-opt-name', children: presetName(t, id) }),
+        t,
+        children: [jsx('p', { className: 'tn-htext', children: t('settings.preset_desc_' + id) }, 'd'), jsx('div', { children: riskLines(id === 'custom' ? s && s.risks : PRESETS[id], t) }, 'r')]
+      },
+      id
+    )
+  const startHead = trusted =>
+    jsxs('span', { className: 'tn-opt-name tn-start', 'data-start': trusted ? 'trusted' : 'probation', children: [jsx('i', { 'aria-hidden': true }), t(trusted ? 'start.trusted' : 'start.probation')] })
+  const trustedStart = start === 'trusted'
+  return jsx('div', {
+    className: 'tn-root tn-doc-wrap',
+    children: jsxs('div', {
+      className: 'tn-doc',
+      children: [
+        jsxs('header', {
+          className: 'tn-hero',
+          style: { display: 'block' },
+          children: [
+            jsxs('div', {
+              className: 'tn-eyebrow',
+              children: ['#' + t('page.view_settings'), jsx('span', { className: 'tn-dim', children: ' · ' }), `${t('meta.profile')} `, jsx('span', { className: 'tn-bdi', children: profile })]
+            }),
+            jsx('h3', { className: 'tn-name', children: presetName(t, preset) }),
+            jsx('p', {
+              className: 'tn-hint',
+              style: { margin: '0 0 0.6rem' },
+              children: t(trustedStart ? 'start.trusted' : 'start.probation') + ' · ' + t('settings.spot_title') + ' ' + t('settings.spot_value', { k }) + ' · ' + t(strict ? 'settings.strict_on' : 'settings.strict_off')
+            }),
+            jsx('p', { className: 'tn-note', children: t('settings.read_only') }),
+            s && s.pending ? jsx('p', { className: 'tn-note', style: { marginBlockStart: '0.4rem' }, children: t('settings.pending') }) : null,
+            !s ? jsx('p', { className: 'tn-note', style: { marginBlockStart: '0.4rem' }, children: t('settings.none') }) : null
+          ]
+        }),
+        jsx(SettingRow, {
+          help: t('settings.preset_help'),
+          n: 1,
+          title: t('meta.preset'),
+          children: jsx('div', { className: 'tn-opts', children: [...['careful', 'balanced', 'fast'].map(presetCard), preset === 'custom' ? presetCard('custom') : null] })
+        }),
+        jsx(SettingRow, {
+          help: t('settings.start_help'),
+          n: 2,
+          title: t('meta.start'),
+          children: jsx('div', {
+            className: 'tn-opts',
+            children: [true, false].map(trusted =>
+              jsx(
+                Option,
+                {
+                  cmd: hermesCmd(profile, trusted ? 'start trusted' : 'start probation'),
+                  current: (start === 'trusted') === trusted,
+                  head: startHead(trusted),
+                  t,
+                  children: jsx('p', { className: 'tn-htext', children: t(trusted ? 'settings.start_trusted' : 'settings.start_probation') })
+                },
+                trusted ? 'trusted' : 'probation'
+              )
+            )
+          })
+        }),
+        jsx(SettingRow, {
+          n: 3,
+          title: t('settings.spot_title'),
+          children: jsxs('div', {
+            className: 'tn-opt',
+            'data-current': 'true',
+            children: [
+              jsxs('div', { className: 'tn-opt-head', children: [jsx('span', { className: 'tn-opt-name', children: t('settings.spot_value', { k }) }), jsx('span', { className: 'tn-chip tn-chip-in', children: t('settings.in_force') })] }),
+              jsx('p', { className: 'tn-htext', children: t('settings.spot_desc', { k }) }),
+              jsx('p', { className: 'tn-hint', children: t('settings.spot_change') }),
+              jsx(Cmd, { t, text: `spot_check: ${spot}` })
+            ]
+          })
+        }),
+        jsx(SettingRow, {
+          help: t('settings.strict_help'),
+          n: 4,
+          title: t('settings.strict_title'),
+          children: jsx('div', {
+            className: 'tn-opts',
+            children: [false, true].map(on =>
+              jsx(
+                Option,
+                {
+                  cmd: hermesCmd(profile, on ? 'strict on' : 'strict off'),
+                  current: strict === on,
+                  head: jsx('span', { className: 'tn-opt-name', children: t(on ? 'settings.strict_on' : 'settings.strict_off') }),
+                  t,
+                  children: jsx('p', { className: 'tn-htext', children: t(on ? 'settings.strict_desc_on' : 'settings.strict_desc_off') })
+                },
+                on ? 'on' : 'off'
+              )
+            )
+          })
+        })
+      ]
+    })
+  })
+}
+
+/** Plain words on how tenure decides, what asks and why, the tiers, the passport and the benchmark. */
+function HelpView({ data, t }) {
+  const motion = useMotion()
+  const here = ((data && data.profiles) || []).find(p => p.current) || null
+  const spot = here && here.settings && here.settings.spot > 0 ? here.settings.spot : DEFAULTS.spot
+  const k = Math.round(1 / spot)
+  // From a fresh Wald score (no fault yet): the fewest verified successes that reach T2, per stakes.
+  const low = toT2({ stakes: 'low', reversible: true, wald: 0, capped: false })
+  const medium = toT2({ stakes: 'medium', reversible: true, wald: 0, capped: false })
+  const tiers = ['ask', 'notify', 'alone']
+  return jsx('div', {
+    className: 'tn-root tn-doc-wrap',
+    children: jsxs('div', {
+      className: 'tn-doc',
+      children: [
+        jsxs('header', {
+          className: 'tn-hero',
+          style: { display: 'block' },
+          children: [
+            jsx('div', { className: 'tn-eyebrow', children: '#' + t('page.view_help') }),
+            jsx('h3', { className: 'tn-name', children: t('help.title') }),
+            jsx('p', { className: 'tn-intro-body', style: { margin: 0 }, children: t('help.intro') })
+          ]
+        }),
+        jsx(SettingRow, { n: 1, title: t('help.trusted_title'), children: jsx('p', { className: 'tn-htext', children: t('help.trusted_body') }) }),
+        jsx(SettingRow, {
+          n: 2,
+          title: t('help.asks_title'),
+          help: t('help.asks_body'),
+          children: jsx('ul', {
+            className: 'tn-list',
+            children: [
+              jsx('li', { children: t('help.asks_leaves') }, 'a'),
+              jsx('li', { children: t('help.asks_irreversible') }, 'b'),
+              jsx('li', { children: t('help.asks_unknown') }, 'c'),
+              jsx('li', { children: t('help.asks_outside') }, 'd'),
+              jsx('li', { children: t('help.asks_files') }, 'e')
+            ]
+          })
+        }),
+        jsx(SettingRow, { n: 3, title: t('help.session_title'), children: jsx('p', { className: 'tn-htext', children: t('help.session_body') }) }),
+        jsx(SettingRow, {
+          n: 4,
+          title: t('help.undo_title'),
+          children: [
+            jsx('p', { className: 'tn-htext', children: t('help.undo_body') }, 'u'),
+            jsx(Cmd, { t, text: '/tenure undo N' }, 'uc'),
+            jsx('p', { className: 'tn-htext', children: t('help.flag_body') }, 'f'),
+            jsx(Cmd, { t, text: '/tenure flag TYPE' }, 'fc')
+          ]
+        }),
+        jsx(SettingRow, {
+          n: 5,
+          title: t('help.tiers_title'),
+          children: [
+            jsx(
+              'div',
+              {
+                className: 'tn-tiers',
+                children: tiers.map(tier =>
+                  jsxs(
+                    'div',
+                    {
+                      className: 'tn-tier',
+                      children: [
+                        jsx(TierChip, { motion, t, tier }),
+                        jsx('span', { className: 'tn-tname', 'data-tier': tier, children: tierName(tier, t) }),
+                        jsx('span', { className: 'tn-htext', children: tier === 'alone' ? t('type.tenured_line', { k }) : TierLabel(tier, t) })
+                      ]
+                    },
+                    tier
+                  )
+                )
+              },
+              'tiers'
+            ),
+            jsx('p', { className: 'tn-htext', children: t('help.tiers_climb', { low, medium, sessions: SERIES_SESSIONS }) }, 'c'),
+            jsx('p', { className: 'tn-htext', children: t('help.tiers_drop') }, 'd')
+          ]
+        }),
+        jsx(SettingRow, {
+          n: 6,
+          title: t('passport.title'),
+          children: [
+            jsx('p', { className: 'tn-htext', children: t('help.passport_body') }, 'b'),
+            jsx(Cmd, { t, text: EXPORT_COMMAND }, 'e'),
+            jsx(Cmd, { t, text: VERIFY_COMMAND }, 'v'),
+            jsx('p', { className: 'tn-htext', children: t('help.passport_checks') }, 'c')
+          ]
+        }),
+        jsx(SettingRow, { n: 7, title: t('page.view_benchmark'), children: jsx('p', { className: 'tn-htext', children: t('help.benchmark_body', { n: RANK_MIN }) }) })
+      ]
+    })
+  })
+}
+
 let focusKey = null
 let focusRevoke = false
 
@@ -3084,6 +4025,8 @@ function TenurePage() {
       title: t('backend.title'),
       children: jsx(Button, { onClick: () => refetch(), size: 'sm', children: t('common.retry') })
     })
+  else if (view === 'settings') body = jsx(SettingsView, { data, t })
+  else if (view === 'help') body = jsx(HelpView, { data, t })
   else if (!agents.length) body = jsx(PanelEmpty, { description: t(trustedStart ? 'empty.desc_trusted' : 'empty.desc'), icon: 'shield', title: t('empty.title') })
   else if (view === 'benchmark') body = jsx(BenchmarkView, { t })
   else body = jsx(AgentsView, { data, t })
@@ -3102,7 +4045,7 @@ function TenurePage() {
                 : null
             ]
           }),
-          agents.length
+          data
             ? jsxs('div', {
                 className: 'tn-head-ctl',
                 children: [
@@ -3110,7 +4053,9 @@ function TenurePage() {
                     onChange: setView,
                     options: [
                       { id: 'agents', label: t('page.view_agents') },
-                      { id: 'benchmark', label: t('page.view_benchmark') }
+                      { id: 'benchmark', label: t('page.view_benchmark') },
+                      { id: 'settings', label: t('page.view_settings') },
+                      { id: 'help', label: t('page.view_help') }
                     ],
                     sizing: 'content',
                     value: view
@@ -3121,7 +4066,7 @@ function TenurePage() {
             : null
         ]
       }),
-      agents.length ? jsx(Intro, { t, spot: (here.settings || {}).spot, start }) : null,
+      agents.length && (view === 'agents' || view === 'benchmark') ? jsx(Intro, { t, spot: (here.settings || {}).spot, start }) : null,
       body
     ]
   })
