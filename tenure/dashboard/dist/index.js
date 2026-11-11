@@ -4905,7 +4905,7 @@ const TENURE_LOCALES = {
                 h("td", null, h(Flag, { kind: st.tone }, statusLabel(ty.status))),
                 h("td", null, h(TierChip, { tier: shownTier(ty.old), capped: ty.old.capped }), " ",
                   h("span", { className: "tnr-mono" }, ty.old.capped ? t("common.capped") : num(ty.old.series) + "/" + num(ty.old.required))),
-                h("td", null, h(TierChip, { tier: shownTier(ty.new), capped: ty.new.capped, label: true }), " ",
+                h("td", null, h(TierChip, { tier: shownTier(ty.new), capped: ty.new.capped }), " ",
                   h("span", { className: "tnr-mono" }, ty.new.capped ? t("common.capped") : num(ty.new.series) + "/" + num(ty.new.required)),
                   ty.new.provisional ? h("div", { className: "tnr-small tnr-tone--prov" }, t("switch.provisional", { n: ty.new.provisional })) : null),
                 h("td", null, c.benchmark ? h(Fragment, null,
