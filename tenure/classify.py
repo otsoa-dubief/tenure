@@ -1392,6 +1392,33 @@ PUBLISH = {("npm", "publish"), ("pnpm", "publish"), ("yarn", "publish"), ("twine
 CLOUD = {"aws", "gcloud", "az"}
 CLOUD_WRITE = {"create", "delete", "put", "update", "deploy", "rm", "cp", "mv", "sync", "mb", "rb", "set", "add",
                "remove", "attach", "detach", "start", "stop", "terminate", "run", "invoke", "publish", "send"}
+OUTBOUND_VERBS = {"publish", "deploy", "unpublish", "yank", "login", "logout", "adduser", "token", "owner",
+                  "dist-tag", "deprecate", "send-email", "upload", "release"}
+# Package runners that start another program: npm exec/x, pnpm dlx/exec, yarn dlx/exec, bun x, uv run / uv tool run,
+# poetry run; () = the program itself is the runner (uvx, bunx, pipx run handled as its verb).
+PACKAGE_RUNNERS = {"npm": {"exec", "x"}, "pnpm": {"dlx", "exec"}, "yarn": {"dlx", "exec"}, "bun": {"x"},
+                   "uv": {"run", "tool"}, "poetry": {"run"}, "pipx": {"run"}, "uvx": (), "bunx": ()}
+
+
+def _git_discards(sub: str, args: list[str]) -> bool:
+    """git commands that throw away uncommitted work: checkout -- <paths> / checkout ., restore, stash drop|clear,
+    reset --hard, clean -f, branch -D."""
+    rest = [a for a in args if a != sub]
+    if sub == "checkout":
+        return "--" in rest or "." in rest
+    if sub == "restore":
+        return True
+    if sub == "stash":
+        return any(a in ("drop", "clear") for a in rest)
+    if sub == "reset":
+        return "--hard" in rest
+    if sub == "clean":
+        return any(a.startswith("-") and "f" in a.lstrip("-") for a in rest if not a.startswith("--")) or "--force" in rest
+    if sub == "branch":
+        return "-D" in rest or ("--delete" in rest and "--force" in rest)
+    return False
+
+
 CLOUD_READ = {"describe", "list", "get", "show", "ls", "help", "wait", "version", "info", "search", "lookup", "whoami"}
 
 
@@ -2808,6 +2835,8 @@ def _segment_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, st
         return "file:unknown", HIGH
     if own[1] == FREE and any(not HARMLESS_VARS.fullmatch(n) for n in _assigned(tokens)):
         own = (own[0], MEDIUM)                               # a read-only command, under an environment it chose
+    if RANK[own[1]] < RANK[HIGH] and any(os.path.basename(t) in ("sudo", "doas") for t in tokens[:4]):
+        own = (own[0], HIGH)                                 # root rights: beyond the project, never trusted
     return floor if floor and RANK[floor[1]] > RANK[own[1]] else own
 
 
@@ -3099,6 +3128,16 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
         sub = plain[0] if plain else ""
     if (prog, sub) in PUBLISH:
         return f"shell:{prog}:{sub}", HIGH
+    words = [a.lower() for a in args if not a.startswith("-")][:2]
+    runner = PACKAGE_RUNNERS.get(prog)
+    if runner is not None and (runner == () or (words and words[0] in runner)):
+        rest = [a for a in args if not a.startswith("-")][(0 if runner == () else 1):]
+        if rest and rest[0] == "run" and prog == "uv" and words[:1] == ["tool"]:
+            rest = rest[1:]
+        target = os.path.basename(rest[0]) if rest else "default"
+        return f"shell:{prog}:exec:{target}", MEDIUM         # runs another program: judged by that program
+    if prog == "git" and _git_discards(sub, args):
+        return "shell:git:discard", HIGH                     # throws away uncommitted work: no undo
     if prog in RUNNERS and sub == "run":
         plain = [a for a in args if not a.startswith("-")]
         script = plain[1] if len(plain) > 1 else ""
@@ -3108,6 +3147,11 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     if prog in MAKES:
         plain = _strip(args, {"-C", "-f", "-j", "--directory", "--file", "--jobs"})
         return f"shell:{prog}:{plain[0] if plain else 'default'}", MEDIUM
+    verb = next((w for w in words if w in OUTBOUND_VERBS), None)
+    if verb:
+        return f"shell:{prog}:{verb}", HIGH                  # publish, deploy, a registry login: leaves the machine
+    if prog == "dotnet" and sub == "nuget" and "push" in args:
+        return "shell:dotnet:nuget:push", HIGH
     if prog in ("curl", "wget"):
         joined = " ".join(args)
         sends = (re.search(r"(^|\s)(-d|--data\S*|--json|-F|--form\S*|-T|--upload-file|--post-data|--post-file)"

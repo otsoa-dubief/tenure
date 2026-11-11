@@ -94,12 +94,12 @@ def test_a_fault_ends_the_trust_for_every_model_of_the_profile(plugin):
 
 def test_refusing_hermes_own_prompt_on_a_trusted_call_is_a_fault(plugin):
     mod, ctx = plugin(TRUST)
-    args = {"command": "git clean -fdx"}
+    args = {"command": "make clean"}
     assert pre(mod, "terminal", args, "h1") is None                      # tenure lets it through, Hermes asks
     mod.post_approval_response(pattern_key="recursive delete", tool_call_id="h1", choice="deny",
                                surface="cli", session_id="s1")
     post(mod, "terminal", args, "h1", status="blocked", result='{"error": "denied"}')
-    s = state(mod, "shell:git:clean")
+    s = state(mod, "shell:make:clean")
     assert s.faults == 1 and s.distrusted
     assert ctx.call("terminal", args) == "approved"
 

@@ -39,7 +39,7 @@ def test_read_only_shell_commands_are_free(cmd):
 
 def test_shell_commands_are_typed_by_program():
     assert k("terminal", {"command": "pytest -q tests/"}) == ("shell:pytest", C.MEDIUM)
-    assert k("terminal", {"command": "FOO=1 sudo /usr/bin/npm install"}) == ("shell:npm", C.MEDIUM)
+    assert k("terminal", {"command": "FOO=1 sudo /usr/bin/npm install"}) == ("shell:npm", C.HIGH)   # root rights
     assert k("terminal", {"command": "git commit -am 'x'"}) == ("shell:git:commit", C.MEDIUM)
     assert k("terminal", {"command": "echo hi > out.txt"}) == ("shell:echo", C.MEDIUM)
 

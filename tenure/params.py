@@ -37,6 +37,9 @@ DEFAULT_START = "trusted"
 # and the usual local development tools. Any other program (a deploy, payment or database CLI, an unknown tool,
 # deleting files) asks under the study rule from the start, whatever the start mode.
 TRUSTED_TYPES = ("file:write", "file:write-outside", "memory:write", "delegate:task")
+# Subcommands that leave the machine are never covered, whatever classify made of them (e.g. `bun publish`).
+UNTRUSTED_VERBS = frozenset({"publish", "deploy", "unpublish", "yank", "login", "logout", "adduser", "token", "owner",
+                             "dist-tag", "deprecate", "send-email", "upload", "release", "push", "discard"})
 TRUSTED_PROGRAMS = frozenset({
     "npm", "pnpm", "yarn", "bun", "node", "deno", "tsc", "eslint", "prettier", "jest", "vitest",
     "python", "python3", "pytest", "uv", "poetry", "ruff", "black", "mypy", "isort",

@@ -378,6 +378,10 @@ def trust_covers(key: str) -> bool:
     if key in params.TRUSTED_TYPES:
         return True
     parts = key.split(":")
+    if any(p in params.UNTRUSTED_VERBS for p in parts[2:]):
+        return False
+    if len(parts) >= 4 and parts[0] == "shell" and parts[2] == "exec":
+        return parts[3] in params.TRUSTED_PROGRAMS           # a package runner: covered only for a covered program
     return len(parts) >= 2 and parts[0] == "shell" and parts[1] in params.TRUSTED_PROGRAMS
 
 
