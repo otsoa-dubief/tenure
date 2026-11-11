@@ -335,7 +335,7 @@ const TENURE_LOCALES = {
       "other": "{n} suspended: external content read"
     },
     "profile.this_dashboard": " · this dashboard",
-    "settings.about.body": "The same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending). On top of the rule, for tiers earned on evidence: spot checks (once a type is cleared, {spot} of its actions still asks), two distinct sessions in the series that reaches T3, and suspension after a session reads external content.",
+    "settings.about.body": "After a type's first mistake (or with the study's start), the same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending). On top of the rule, for tiers earned on evidence: spot checks (once a type is cleared, {spot} of its actions still asks), two distinct sessions in the series that reaches T3, and suspension after a session reads external content.",
     "settings.about.carry": "Carry-over is our addition; strict mode is the study.",
     "settings.about.title": "About the rule",
     "settings.apply": "Apply",
@@ -933,7 +933,7 @@ const TENURE_LOCALES = {
       "other": "{n} معلّقة: قُرئ محتوى خارجي"
     },
     "profile.this_dashboard": " · هذه اللوحة",
-    "settings.about.body": "القاعدة نفسها كما في دراسة مسجّلة مسبقًا، أُعيد تشغيلها على أكثر من 6,000 وكيل محاكى (النتائج قيد الانتظار). فوق القاعدة، للمستويات المكتسبة بالأدلة: فحوص عشوائية (بعد اعتماد النوع، يظل {spot} من إجراءاته يسأل)، وجلستان مختلفتان في السلسلة التي تبلغ T3، وتعليق بعد أن تقرأ جلسة محتوى خارجيًا.",
+    "settings.about.body": "بعد أول خطأ لنوع ما (أو مع بداية الدراسة)، القاعدة نفسها كما في دراسة مسجّلة مسبقًا، أُعيد تشغيلها على أكثر من 6,000 وكيل محاكى (النتائج قيد الانتظار). فوق القاعدة، للمستويات المكتسبة بالأدلة: فحوص عشوائية (بعد اعتماد النوع، يظل {spot} من إجراءاته يسأل)، وجلستان مختلفتان في السلسلة التي تبلغ T3، وتعليق بعد أن تقرأ جلسة محتوى خارجيًا.",
     "settings.about.carry": "النقل إضافة منا؛ الوضع الصارم هو الدراسة.",
     "settings.about.title": "عن القاعدة",
     "settings.apply": "تطبيق",
@@ -1487,7 +1487,7 @@ const TENURE_LOCALES = {
       "other": "{n} suspendidas: contenido externo leído"
     },
     "profile.this_dashboard": " · este panel",
-    "settings.about.body": "La misma regla que un estudio prerregistrado, reproducida en más de 6000 agentes simulados (resultados pendientes). Además de la regla, para los niveles ganados con pruebas: controles aleatorios (una vez autorizado un tipo, sigue preguntando en {spot} acciones), dos sesiones distintas en la serie que llega a T3, y suspensión cuando una sesión lee contenido externo.",
+    "settings.about.body": "Tras el primer error de un tipo (o con el inicio del estudio), la misma regla que un estudio prerregistrado, reproducida en más de 6000 agentes simulados (resultados pendientes). Además de la regla, para los niveles ganados con pruebas: controles aleatorios (una vez autorizado un tipo, sigue preguntando en {spot} acciones), dos sesiones distintas en la serie que llega a T3, y suspensión cuando una sesión lee contenido externo.",
     "settings.about.carry": "La herencia es un añadido nuestro; el modo estricto es el estudio.",
     "settings.about.title": "Sobre la regla",
     "settings.apply": "Aplicar",
@@ -1985,7 +1985,7 @@ const TENURE_LOCALES = {
       "other": "{n} suspendues : ont lu du contenu externe"
     },
     "profile.this_dashboard": " · ce tableau de bord",
-    "settings.about.body": "La règle d'une étude préenregistrée, rejouée sur plus de 6 000 agents simulés (résultats à venir). Par-dessus la règle, pour les paliers gagnés sur preuves : contrôles aléatoires (une fois un type validé, {spot} de ses actions vous est encore demandée), deux sessions distinctes dans la série qui mène à T3, et suspension dès qu'une session lit du contenu externe.",
+    "settings.about.body": "Après la première erreur d'un type (ou avec le départ de l'étude), la règle d'une étude préenregistrée, rejouée sur plus de 6 000 agents simulés (résultats à venir). Par-dessus la règle, pour les paliers gagnés sur preuves : contrôles aléatoires (une fois un type validé, {spot} de ses actions vous est encore demandée), deux sessions distinctes dans la série qui mène à T3, et suspension dès qu'une session lit du contenu externe.",
     "settings.about.carry": "L'héritage vient de nous ; le mode strict suit l'étude.",
     "settings.about.title": "À propos de la règle",
     "settings.apply": "Appliquer",
@@ -2458,7 +2458,7 @@ const TENURE_LOCALES = {
       "other": "{n} 个已暂停：读取了外部内容"
     },
     "profile.this_dashboard": " · 此仪表盘",
-    "settings.about.body": "与一项预注册研究相同的规则，在 6,000 多个模拟智能体上重放（结果待定）。在此规则之上，对凭证据赢得的层级：抽查（类型放行后，仍有 {spot} 的操作会先询问）、晋升到 T3 的连续记录须来自两个不同会话，以及会话读取外部内容后暂停。",
+    "settings.about.body": "在某类操作第一次失误之后（或使用研究起步时），采用与一项预注册研究相同的规则，在 6,000 多个模拟智能体上重放（结果待定）。在此规则之上，对凭证据赢得的层级：抽查（类型放行后，仍有 {spot} 的操作会先询问）、晋升到 T3 的连续记录须来自两个不同会话，以及会话读取外部内容后暂停。",
     "settings.about.carry": "继承是我们的补充；严格模式即研究原规则。",
     "settings.about.title": "关于规则",
     "settings.apply": "应用",

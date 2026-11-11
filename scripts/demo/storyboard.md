@@ -50,8 +50,8 @@ The step answers and patterns now match the real screens. Rules found on the way
   BEFORE the plugin message: `1. Allow once / 2. Allow for this session / 3. Add to permanent allowlist / 4. Deny`,
   then `tenure — <summary>` and the reason. Spot check: `4. Deny` ... `tenure spot check — <summary>`; Deny = three
   `<down>` then `<enter>`.
-- Tenure's own messages are posted at the end of the turn, not when they happen: `tenure: file:write acted on its own
-  · /tenure undo N` (one per action), `now acts, then notifies you with an undo, after a run of verified successes`,
+- Tenure's own messages are posted at the end of the turn, not when they happen: `tenure: file:write acted, then told
+  you · /tenure undo N` (one per action), `now acts, then notifies you with an undo, after a run of verified successes`,
   `now acts alone, after 21 verified successes in a row from 2 sessions. 1 action in 10 is still spot-checked ...`,
   `is back at T2, acting then notifying you with an undo, after a fault`, `new agent openai/gpt-5.5@nous (was
   anthropic/claude-sonnet-5.5@nous). Action types: 1 carried over on trial ... half the old series, provisional ...`.

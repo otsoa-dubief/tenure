@@ -44,7 +44,8 @@ Tenure keeps Hermes' speed and adds what is missing:
 | **T3 · Tenured** (acts on its own) | Earned on a series of verified successes over two sessions, under a risk you set. One in ten is still spot-checked. |
 
 What tenure asks that Hermes alone would not: what leaves your machine (pushes, publishing, deploys, registry logins,
-messages, uploads, cloud writes, payments), deleting files or discarding uncommitted git work, anything under `sudo`,
+messages, uploads, cloud writes, payments), deleting files or discarding uncommitted git work, commands that change files without an undo (`sed -i`, `cp`, `mv`),
+anything under `sudo`,
 programs outside the list above (database and unknown CLIs, or a package runner starting one, until they earn it),
 shell constructs it cannot read safely (`for`, `if`, `python -c`), the agent's own skills, plugins and secrets, and a
 session that just read outside content (web, mail, downloads). Prefer the preregistered study's start, where every type begins on probation?
@@ -103,7 +104,8 @@ Catalogs and glossaries live in [`tenure/locales/`](tenure/locales).
 
 ## The study behind the rule
 
-tenure uses the same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending; see [docs/the-study.md](docs/the-study.md)).
+After a type's first mistake (or from the start with `start: probation`), tenure applies the same rule as a
+preregistered study, replayed on 6,000+ simulated agents (results pending; see [docs/the-study.md](docs/the-study.md)).
 
 > **The question.** When can an AI agent be trusted to act alone, one action type at a time, on verified evidence,
 > under an error budget fixed in advance, with a guarantee anyone can check and revoke?
@@ -252,6 +254,7 @@ Settings, in `config.yaml` under `plugins.entries.tenure.settings`:
 preset: balanced            # careful | balanced | fast
 risks: {low: 1/50, medium: 1%, high: cap}   # your own, over the preset
 spot_check: 0.1             # share of a cleared type's actions that still ask
+start: trusted              # trusted | probation (the study's start: every type asks until it earns autonomy)
 strict: false
 types: {"mcp:notion:*": medium, "shell:git:push": cap}   # reclassify action types
 enabled: true
