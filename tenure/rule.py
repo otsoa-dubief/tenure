@@ -60,6 +60,7 @@ from . import params
 VERSION = "study-rule-B/1"    # the rule named in settings events and in the passport's rule fingerprint
 T1, T2, T3 = "ask", "notify", "alone"                            # tiers
 ASK, NOTIFY, ALLOW, SPOT = "ask", "notify", "allow", "spot"      # decisions
+WATCH = "watch"        # trusted start: act like Hermes alone, with an undo when the files can be saved
 
 LENGTHEN = 1.25        # the climb after a medium or high fault needs ceil(1.25 n); 1.25 is exact in binary
 TRIAL = 3              # actions in a trial, all of which must succeed
@@ -92,6 +93,7 @@ class TypeState:
     trial_wait: int = 0                # actions still to count before a failed trial reopens
     unresolved_fault: bool = False     # a medium or high fault in memory: kept when its trial is passed, erased
                                        # only by the trial a model change opens
+    distrusted: bool = False           # a fault or a revoke happened: the trusted start no longer covers the type
     # carry-over
     provisional: int = 0               # carried-over successes not yet matched by the agent's own series successes
     # counters (the agent's own)
@@ -242,6 +244,7 @@ def on_fault(s: TypeState, n: int | None, *, session: str, source: str) -> list[
     type too.
     """
     s.faults += 1
+    s.distrusted = True
     if source == "spot":
         s.spot_checks += 1
     grave, in_trial, old, borrowed = s.stakes in GRAVE, s.trial_left > 0, s.tier, s.provisional > 0
@@ -299,7 +302,8 @@ def carry_over(old: TypeState, *, n_new: int | None, veto: bool, strict: bool) -
     agent, with the fault still in memory until that trial is passed; low-stakes faults disappear. The new state's
     counters start at zero: they belong to the new agent.
     """
-    new = TypeState(key=old.key, stakes=old.stakes, reversible=old.reversible, changed_at=time.time())
+    new = TypeState(key=old.key, stakes=old.stakes, reversible=old.reversible, changed_at=time.time(),
+                    distrusted=old.distrusted)    # a fault on the type in this profile outlives the model
     if old.unresolved_fault:
         new.trial_left, new.unresolved_fault = TRIAL, True
     if strict or veto or old.stakes == "high" or n_new is None:
@@ -347,6 +351,7 @@ def revoke(s: TypeState) -> list[dict]:
     old = s.tier
     s.tier, s.series, s.sessions, s.provisional = T1, 0, [], 0
     s.wald = max(s.wald, 0.0)
+    s.distrusted = True
     return [_move(s, "revoked", old, T1, "owner")]
 
 

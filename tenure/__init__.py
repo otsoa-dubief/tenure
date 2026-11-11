@@ -381,15 +381,17 @@ def settings() -> dict:
                 risks[level] = parse_risk(custom[level], risks[level])
     spot = parse_risk(_get("spot_check", params.DEFAULT_SPOT), params.DEFAULT_SPOT)
     overrides = _get("types")
+    start = str(_get("start", params.DEFAULT_START) or params.DEFAULT_START).strip().lower()
     return dict(preset=preset, risks=risks, spot=params.DEFAULT_SPOT if spot is None else spot,
                 strict=_truthy(_get("strict", False)), overrides=overrides if isinstance(overrides, dict) else {},
-                enabled=_truthy(_get("enabled", True)))
+                enabled=_truthy(_get("enabled", True)),
+                start=start if start in params.STARTS else params.DEFAULT_START)
 
 
 def settings_event(cfg: dict) -> dict:
     """The settings as the ledger records them: what a replay needs to recompute the tiers."""
     return {"event": "settings", "risks": dict(cfg["risks"]), "spot": cfg["spot"], "strict": bool(cfg["strict"]),
-            "rule": RULE}
+            "start": cfg.get("start", "probation"), "rule": RULE}
 
 
 def settings_fingerprint(cfg: dict) -> str:
@@ -814,6 +816,13 @@ def _earned(recorded: rule.TypeState | None, act, s: rule.TypeState, n, decision
     return n is not None and s.series >= rule.required(s, n) and len(s.sessions) >= rule.SESSIONS
 
 
+def trusted(cfg: dict, s: rule.TypeState, n, stakes: str) -> bool:
+    """The trusted start covers the type: ``start: trusted``, no fault or revoke on it yet, low or medium stakes and
+    not capped. Such a type asks nothing Hermes alone would not ask; its first fault puts it under the study rule."""
+    return (cfg.get("start") == "trusted" and not s.distrusted and n is not None and stakes in ("low", "medium")
+            and not s.trial_left and not s.trial_wait)
+
+
 def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody, rng):
     """(recorded state, state at today's stakes, decision, suspended) for one call."""
     recorded = st.recorded(agent, act.type)
@@ -824,6 +833,8 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
         decision = rule.ALLOW                           # nobody can answer a spot check: the earned tier runs
     if not _earned(recorded, act, s, n, decision) or ST.copy_unchecked:
         decision = rule.ASK                             # copy_unchecked: this record may be a copy, not yet settled
+    if decision in (rule.ASK, rule.SPOT) and not suspended and not ST.copy_unchecked and trusted(cfg, s, n, act.stakes):
+        decision = rule.WATCH                           # trusted start: run as Hermes would, with an undo if possible
     return recorded, s, decision, suspended
 
 
@@ -992,7 +1003,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         if call:                                            # an undo is only wired through a call id
             with _locked(deadline):
                 preview = _decide(store_(), agent, act, n, cfg, session, nobody, _NoSpot)[2]
-            if preview == rule.NOTIFY:
+            if preview in (rule.NOTIFY, rule.WATCH):
                 paths = classify.files_written(tool, args, cwd)
                 taken = (undo.snapshot(paths, data_dir(), key=undo_key(deadline), cwd=cwd,
                                        home=os.path.expanduser("~")) if paths else None)
@@ -1001,6 +1012,8 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             posts += _say(sync_settings(st, cfg), cfg["spot"])
             posts += _say(_expire(st, cfg), cfg["spot"])
             recorded, s, decision, suspended = _decide(st, agent, act, n, cfg, session, nobody, ST.rng)
+            if decision == rule.WATCH:                      # files saved: act then tell, with an undo; else run alone
+                decision = rule.NOTIFY if snap else rule.ALLOW
             if decision != rule.NOTIFY:
                 snap = None                                 # the record changed since the preview: no undo needed
             unsaved = decision == rule.NOTIFY and snap is None

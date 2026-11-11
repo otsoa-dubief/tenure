@@ -31,6 +31,8 @@ PRESETS = {
     "fast": {"low": 1 / 20, "medium": 1 / 50, "high": None},
 }
 DEFAULT_PRESET = "balanced"
+STARTS = ("trusted", "probation")   # trusted: no ask before a type's first fault; probation: the study's T1 start
+DEFAULT_START = "trusted"
 DEFAULT_SPOT = 0.1          # one cleared action in ten still asks
 LEVELS = ("low", "medium", "high")
 

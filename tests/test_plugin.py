@@ -660,7 +660,7 @@ def test_first_settings_are_logged_before_any_outcome(plugin):
     ctx.call("write_file", write("b"))
     rows = ledger(mod)
     assert rows[0] == {"event": "settings", "risks": {"low": 0.25, "medium": 0.2, "high": None}, "spot": 0.1,
-                       "strict": False, "rule": "study-rule-B/1"}
+                       "strict": False, "start": "probation", "rule": "study-rule-B/1"}
     assert len(ledger(mod, "settings")) == 1
 
 
