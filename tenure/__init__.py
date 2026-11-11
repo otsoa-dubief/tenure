@@ -889,7 +889,8 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     action that ran, even one nobody answered. A background launch (``launched``) is neutral: the command's own
     outcome is not known when the call returns. Returns the owner's messages."""
     phase, agent, key = p["phase"], p["agent"], p["type"]
-    decided = phase in ("approved", "notify", "alone")      # approved by a person, or run by an earned tier
+    acted = phase in ("notify", "unwatched")                # T2 acted, then told the owner (who may not be there)
+    decided = acted or phase in ("approved", "alone")       # approved by a person, or run by an earned tier
     spot = phase == "approved" and p["decision"] == rule.SPOT
     if blocked:                                             # never ran
         result_source = ("neutral", "blocked" if decided else "nobody")
@@ -903,6 +904,8 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         result_source = ("success", "spot" if spot else "approval")
     elif phase == "notify":
         result_source = ("success", "notify")
+    elif phase == "unwatched":                              # T2 acted under cron or --yolo: nobody could undo it
+        result_source = ("neutral", "nobody")
     elif phase == "alone":
         result_source = ("neutral", "alone")
     else:                                                   # nobody answered (cron, yolo, approvals off), or no hook
@@ -910,9 +913,9 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     events = record_outcome(st, cfg, agent=agent, type_key=key, stakes=p["stakes"], reversible=p["reversible"],
                             result=result_source[0], source=result_source[1], session=p["session"])
     _bump(st, agent, result_source[0], checked=phase == "approved",
-          alone=not blocked and phase in ("notify", "alone"))
+          alone=not blocked and (acted or phase == "alone"))
     posts = []
-    if phase == "notify" and not blocked and not failed:    # the files were written: the owner can revert them
+    if acted and not blocked and not failed:    # the files were written: the owner can revert them
         undo_id = st.add_undo(agent, key, p["snap_id"], fault=bool(reason))
         _push("acted", {"agent": agent, "type": key, "undo_id": undo_id, "fault": bool(reason),
                         "profile": _profile_name()})
@@ -1006,7 +1009,8 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             row = dict(call=call, agent=agent, type=act.type, stakes=act.stakes, reversible=act.reversible,
                        decision=decision, session=session)
             if decision in (rule.ALLOW, rule.NOTIFY):
-                st.add_pending(uid, phase="alone" if decision == rule.ALLOW else "notify", rule_key="",
+                st.add_pending(uid, phase="alone" if decision == rule.ALLOW else "unwatched" if nobody else "notify",
+                               rule_key="",
                                snap_id=snap, **row)
             else:
                 kind = ("ask" if nobody else "spot" if decision == rule.SPOT else "capped" if n is None

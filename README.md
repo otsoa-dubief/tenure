@@ -168,18 +168,20 @@ restored backup, a renamed folder) keeps everything.
 
 ## The guarantee
 
-You pick the risk you accept per stakes level. tenure picks the smallest number of approvals in a row that keeps
-the share of unapproved errors under it (Dodge's continuous sampling plan CSP-1, with one spot check in ten). The
+You pick the risk you accept per stakes level. tenure turns it into a number of verified successes in a row with
+the study's formula (Dodge's continuous sampling plan CSP-1, with one spot check in ten); the exact guarantee that
+number gives is in the table, and can sit slightly above the risk you picked (2.1% for a 1-in-50 risk). The
 table is generated from the same code that decides (`params.describe`), and a test checks it.
 
-Cell: approvals in a row, guarantee (errors that run unapproved, as a share of all actions of the type, for a
+Cell: verified successes in a row (the first ones approved by you, the rest acted on at T2 while you could undo
+them), guarantee (errors that run unapproved, as a share of all actions of the type, for a
 stable agent), worst case (for an agent that turns bad after tenure, until a caught error revokes it).
 
 | Preset | Low stakes (files in the project, memory) | Medium (commands, code, files elsewhere) | High (leaves the machine, money) |
 |---|---|---|---|
-| careful | 105 approvals · 1.0% · worst 7.8% | 210 approvals · 0.5% · worst 4.1% | 1052 approvals · 0.1% · worst 0.8% |
-| **balanced** (default) | 52 approvals · 2.1% · worst 14.5% | 105 approvals · 1.0% · worst 7.8% | always asks |
-| fast | 21 approvals · 5.0% · worst 29.0% | 52 approvals · 2.1% · worst 14.5% | always asks |
+| careful | 105 in a row · 1.0% · worst 7.8% | 210 in a row · 0.5% · worst 4.1% | 1052 in a row · 0.1% · worst 0.8% |
+| **balanced** (default) | 52 in a row · 2.1% · worst 14.5% | 105 in a row · 1.0% · worst 7.8% | always asks |
+| fast | 21 in a row · 5.0% · worst 29.0% | 52 in a row · 2.1% · worst 14.5% | always asks |
 
 Errors you catch never run: a refused action is blocked. `hermes tenure explain` prints the numbers for your own
 settings.
@@ -239,7 +241,7 @@ enabled: true
 
 - **A copied profile is caught only inside one install, and only once the original has run this version.** The
   check compares the database file with the other profiles of the same Hermes root. A copy made before the
-  original ever ran tenure 2026-11-10 or later, a copy whose original was deleted before the copy first started,
+  original ever ran tenure 1.0.0 or later, a copy whose original was deleted before the copy first started,
   or a copy placed outside the install (another `HERMES_HOME`, another machine) keeps the original's record. Until
   a copy starts, the dashboard shows it at T1 with "copied from another profile" and signs no passport for it.
 - **It over-asks by design.** Shell constructs outside the supported grammar (`if`, `for`, functions, globs in a
@@ -273,7 +275,8 @@ enabled: true
   counts for nothing.
 - **Git hooks.** `git config core.hooksPath .husky` (the husky set-up) is capped: it always asks.
   Turning a pager on or off (`pager.log false`) is ordinary.
-- Approvals count only when a person answers. Records are per model and per Hermes profile.
+- Only a person teaches: approvals count when a person answers, and a T2 action counts only when someone could
+  undo it (under cron or `--yolo` it still acts and keeps its undo, but counts for nothing). Records are per model and per Hermes profile.
 - The guarantee covers errors you would refuse when asked. An error nobody would notice cannot be counted.
 
 ## Privacy

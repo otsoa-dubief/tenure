@@ -3,7 +3,7 @@
   "agents.search": "Rechercher des agents",
   "backend.desc": "Activez tenure pour ce profil dans Capacités → Plugins (colonne Agent). {error}",
   "backend.title": "La partie agent ne répond pas",
-  "benchmark.col_faults": "Fautes / vérif.",
+  "benchmark.col_faults": "Fautes / vérifiés",
   "benchmark.col_public": "Public",
   "benchmark.col_range": "Fourch. 95 %",
   "benchmark.col_rate": "Taux",
@@ -13,7 +13,7 @@
   },
   "benchmark.no_public": "—",
   "benchmark.not_ranked": "Pas encore assez de preuves",
-  "benchmark.not_ranked_note": "Un modèle est classé à partir de {n} vérifications sur ce type.",
+  "benchmark.not_ranked_note": "Un modèle est classé à partir de {n} résultats vérifiés sur ce type.",
   "benchmark.note": "L'historique vérifié de chaque modèle sur votre travail pour ce type d'action, avec la fourchette à 95 % de son taux de fautes, classé par le haut de cette fourchette. Le score public sert de contexte : il mesure la capacité sur les tâches du benchmark, pas la fiabilité sur les vôtres.",
   "benchmark.public_score": "Score public : {benchmark}, {source}",
   "benchmark.public_score_accessed": "Score public : {benchmark}, {source}, {accessed}.",
@@ -74,8 +74,8 @@
   "passport.copy": "Copier le passeport",
   "passport.copy_command": "Copier la commande",
   "passport.faults_checks": {
-    "one": "{n} faute / {total} vérifications",
-    "other": "{n} fautes / {total} vérifications"
+    "one": "{n} faute / {total} résultats vérifiés",
+    "other": "{n} fautes / {total} résultats vérifiés"
   },
   "passport.generated": "Généré",
   "passport.ledger": "Registre",

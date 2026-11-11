@@ -3,7 +3,7 @@
   "agents.search": "搜索智能体",
   "backend.desc": "请在「能力 → 插件」（智能体列）中为此配置文件启用 tenure。{error}",
   "backend.title": "智能体端没有响应",
-  "benchmark.col_faults": "失误 / 检查",
+  "benchmark.col_faults": "失误 / 已验证",
   "benchmark.col_public": "公开",
   "benchmark.col_range": "95% 区间",
   "benchmark.col_rate": "失误率",
@@ -12,7 +12,7 @@
   },
   "benchmark.no_public": "—",
   "benchmark.not_ranked": "证据尚不足",
-  "benchmark.not_ranked_note": "模型在此类型上有 {n} 次检查后才参与排名。",
+  "benchmark.not_ranked_note": "模型在此类型上有 {n} 次已验证结果后才参与排名。",
   "benchmark.note": "每个模型在你的工作中、针对此操作类型的已验证记录，附失误率的 95% 区间，按区间上限排名。公开分数仅供参考：它衡量的是模型在别人任务上的能力，而不是在你的工作上的可靠性。",
   "benchmark.public_score": "公开分数：{benchmark}，{source}",
   "benchmark.public_score_accessed": "公开分数：{benchmark}，{source}，{accessed}。",
@@ -70,7 +70,7 @@
   "passport.copy": "复制护照",
   "passport.copy_command": "复制命令",
   "passport.faults_checks": {
-    "other": "{n} 次失误 / {total} 次检查"
+    "other": "{n} 次失误 / {total} 次已验证结果"
   },
   "passport.generated": "生成时间",
   "passport.ledger": "账本",

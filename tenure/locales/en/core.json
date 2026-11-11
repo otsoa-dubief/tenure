@@ -80,8 +80,8 @@
     "other": "{n} agents"
   },
   "cli.count.checks": {
-    "one": "{n} check",
-    "other": "{n} checks"
+    "one": "{n} verified outcome",
+    "other": "{n} verified outcomes"
   },
   "cli.count.events": {
     "one": "{n} event",
@@ -131,14 +131,14 @@
   "cli.list.joiner": "; ",
   "cli.list.separator": ", ",
   "cli.models.few": {
-    "one": "under {n} check: too few to compare",
-    "other": "under {n} checks: too few to compare"
+    "one": "under {n} verified outcome: too few to compare",
+    "other": "under {n} verified outcomes: too few to compare"
   },
   "cli.models.no_check": "no check yet",
   "cli.models.none": "No record yet.",
   "cli.models.none_type": "No record yet for {type}.",
   "cli.models.rate": "{rate} (95% range {low} to {high})",
-  "cli.models.title": "Verified record per model, on your own work (faults / checks):",
+  "cli.models.title": "Verified record per model, on your own work (faults / verified outcomes):",
   "cli.none_yet": "none yet",
   "cli.passport.check": "Anyone can check it: {command} {path} <exported ledger>",
   "cli.passport.none": "No record for {agent}: nothing to put in a passport.",

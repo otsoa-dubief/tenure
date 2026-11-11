@@ -406,10 +406,23 @@ def test_nobody_answers_earned_tiers_run_and_the_rest_falls_to_hermes(plugin):
     assert (s.successes, s.faults, s.neutrals) == (0, 0, 1)
     assert outcomes(mod, type="shell:npm")[-1]["source"] == "nobody"
     assert ctx.call("write_file", write("cron")) == "ran"   # T2 still acts, with its snapshot and undo
-    assert outcomes(mod)[-1]["source"] == "notify" and "/tenure undo" in ctx.posted[-1]
+    assert "/tenure undo" in ctx.posted[-1]
+    last = outcomes(mod)[-1]                                 # but nobody watched it: it teaches nothing
+    assert (last["result"], last["source"]) == ("neutral", "nobody")
     mod.ST.rng = Picks([0.0])                                # a spot check would have been drawn: nobody answers
     assert pre(mod, "memory", {"action": "add", "content": "c"}, "m1") is None
     assert row(mod, "m1")["phase"] == "alone"
+
+
+def test_unwatched_t2_actions_never_climb_to_t3(plugin):
+    mod, ctx = plugin()
+    climb(ctx, 12)                                           # 12 approvals by a person: file:write at T2
+    assert state(mod, "file:write").tier == mod.rule.T2
+    ctx.cron = True
+    for i in range(40):
+        assert ctx.call("write_file", write(f"cron{i}")) == "ran"
+    s = state(mod, "file:write")
+    assert s.tier == mod.rule.T2 and s.successes == 12 and ctx.prompts[12:] == []
 
 
 def test_yolo_learns_nothing(plugin, monkeypatch):

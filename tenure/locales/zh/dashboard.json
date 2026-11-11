@@ -64,7 +64,7 @@
   "drawer.flag.confirm": "标记？",
   "drawer.flag.done": "已在 {type} 上记录失误：现为 {tier}。",
   "drawer.flag.title": "事后为此类型记录一次失误",
-  "drawer.mobile_summary": "{sessions} · {faults} / {checks} 失误 / 检查 · ",
+  "drawer.mobile_summary": "{sessions} · {faults} / {checks} 失误 / 已验证 · ",
   "drawer.own_profile_only": "操作仅作用于此仪表盘的配置文件",
   "drawer.revoke.button": "收回",
   "drawer.revoke.confirm": "收回？",
@@ -193,7 +193,7 @@
   "models.no_public": "此操作类型没有公开测评。",
   "models.not_enough": "证据不足",
   "models.not_ranked": "证据尚不足",
-  "models.not_ranked_note": "模型在此类型上有 {n} 次检查后才参与排名。",
+  "models.not_ranked_note": "模型在此类型上有 {n} 次已验证结果后才参与排名。",
   "models.personal_title": "在你的工作上",
   "models.public_note": "衡量的是在别人任务上的能力，而不是在你的工作上的可靠性。",
   "models.public_title": "公开测评",
@@ -229,7 +229,7 @@
   "passport.empty.body": "护照汇总智能体的记录；第一个已验证的操作出现后才会生成。",
   "passport.empty.title": "还没有护照",
   "passport.faults_checks": {
-    "other": "{n} 次失误 / {total} 次检查"
+    "other": "{n} 次失误 / {total} 次已验证结果"
   },
   "passport.field.agent": "智能体",
   "passport.field.generated": "生成时间",
@@ -347,7 +347,7 @@
   "tabs.aria": "Tenure 视图",
   "th.after_switch": "切换后",
   "th.agent": "智能体",
-  "th.faults_checks": "失误 / 检查",
+  "th.faults_checks": "失误 / 已验证",
   "th.file": "文件",
   "th.guarantee": "保证",
   "th.now": "当前",

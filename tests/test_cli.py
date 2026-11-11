@@ -34,8 +34,8 @@ def test_status_shows_the_effective_tier_series_sessions_and_guarantee(plugin):
     climb(ctx, 3)
     to_t3(ctx, tool="memory")
     text = mod.cli.slash("status")
-    assert re.search(r"file:write\s+low\s+T1 asks first\s+3/4\s+1/2\s+0 faults / 3 checks", text)
-    assert re.search(r"memory:write\s+low\s+T3 acts on its own\s+4/4\s+2/2\s+0 faults / 4 checks\s+unchecked errors under "
+    assert re.search(r"file:write\s+low\s+T1 asks first\s+3/4\s+1/2\s+0 faults / 3 verified outcomes", text)
+    assert re.search(r"memory:write\s+low\s+T3 acts on its own\s+4/4\s+2/2\s+0 faults / 4 verified outcomes\s+unchecked errors under "
                      r"\d+\.\d\d% of its actions", text)
     assert "Evidence:" in text and "chain intact" in text
 
@@ -142,8 +142,8 @@ def test_explain_speaks_the_tiers_of_the_screens(plugin):
 def test_models_lists_each_model_with_its_denominator(plugin):
     mod, ctx = two_models(plugin)
     out = mod.cli.slash("models")
-    assert re.search(r"file:write\s+model-a\s+nous\s+0 faults / 3 checks\s+0\.0% \(95% range 0\.0% to", out)
-    assert "under 20 checks: too few to compare" in out
+    assert re.search(r"file:write\s+model-a\s+nous\s+0 faults / 3 verified outcomes\s+0\.0% \(95% range 0\.0% to", out)
+    assert "under 20 verified outcomes: too few to compare" in out
     assert "model-b" in out
     assert "No record yet for shell:npm." == mod.cli.slash("models --type shell:npm")
 
@@ -483,7 +483,7 @@ def test_card_is_a_short_text_card_with_a_bar_per_type(plugin):
     assert lines[0] == "TENURE · model-a@nous"
     assert re.search(r"^█{12} file:write\s+T3 Tenured$", out, re.M), out
     assert re.search(r"^█[█░]{11} memory:write\s+T1 Probation$", out, re.M), out
-    assert lines[-1].endswith("a plugin for Hermes Agent") and "0 faults / 5 checks" in lines[-1]
+    assert lines[-1].endswith("a plugin for Hermes Agent") and "0 faults / 5 verified outcomes" in lines[-1]
     assert mod.cli.slash("card --model nothing").startswith("No agent starts with 'nothing'")
 
 

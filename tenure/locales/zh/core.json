@@ -69,7 +69,7 @@
     "other": "{n} 个智能体"
   },
   "cli.count.checks": {
-    "other": "{n} 次检查"
+    "other": "{n} 次已验证结果"
   },
   "cli.count.events": {
     "other": "{n} 个事件"
@@ -113,13 +113,13 @@
   "cli.list.joiner": "；",
   "cli.list.separator": "、",
   "cli.models.few": {
-    "other": "少于 {n} 次检查：太少，无法比较"
+    "other": "少于 {n} 次已验证结果：太少，无法比较"
   },
   "cli.models.no_check": "还没有检查",
   "cli.models.none": "还没有记录。",
   "cli.models.none_type": "{type} 还没有记录。",
   "cli.models.rate": "{rate}（95% 区间 {low} 至 {high}）",
-  "cli.models.title": "各模型在你自己工作上的已验证记录（失误 / 检查）：",
+  "cli.models.title": "各模型在你自己工作上的已验证记录（失误 / 已验证结果）：",
   "cli.none_yet": "暂无",
   "cli.passport.check": "任何人都可以验证：{command} {path} <导出的账本>",
   "cli.passport.none": "{agent} 没有记录：没有可写入护照的内容。",

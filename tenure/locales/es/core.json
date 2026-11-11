@@ -80,8 +80,8 @@
     "other": "{n} agentes"
   },
   "cli.count.checks": {
-    "one": "{n} comprobación",
-    "other": "{n} comprobaciones"
+    "one": "{n} resultado verificado",
+    "other": "{n} resultados verificados"
   },
   "cli.count.events": {
     "one": "{n} evento",
@@ -131,14 +131,14 @@
   "cli.list.joiner": "; ",
   "cli.list.separator": ", ",
   "cli.models.few": {
-    "one": "menos de {n} comprobación: muy pocas para comparar",
-    "other": "menos de {n} comprobaciones: muy pocas para comparar"
+    "one": "menos de {n} resultado verificado: muy pocos para comparar",
+    "other": "menos de {n} resultados verificados: muy pocos para comparar"
   },
   "cli.models.no_check": "sin comprobaciones todavía",
   "cli.models.none": "Sin historial todavía.",
   "cli.models.none_type": "Sin historial todavía para {type}.",
   "cli.models.rate": "{rate} (rango del 95 %: de {low} a {high})",
-  "cli.models.title": "Historial verificado por modelo, en tu propio trabajo (fallos / comprobaciones):",
+  "cli.models.title": "Historial verificado por modelo, en tu propio trabajo (fallos / resultados verificados):",
   "cli.none_yet": "ninguno todavía",
   "cli.passport.check": "Cualquiera puede comprobarlo: {command} {path} <registro exportado>",
   "cli.passport.none": "No hay historial para {agent}: nada que poner en un pasaporte.",

@@ -80,8 +80,8 @@
     "other": "{n} agents"
   },
   "cli.count.checks": {
-    "one": "{n} vérification",
-    "other": "{n} vérifications"
+    "one": "{n} résultat vérifié",
+    "other": "{n} résultats vérifiés"
   },
   "cli.count.events": {
     "one": "{n} événement",
@@ -131,14 +131,14 @@
   "cli.list.joiner": " ; ",
   "cli.list.separator": ", ",
   "cli.models.few": {
-    "one": "moins de {n} vérification : trop peu pour comparer",
-    "other": "moins de {n} vérifications : trop peu pour comparer"
+    "one": "moins de {n} résultat vérifié : trop peu pour comparer",
+    "other": "moins de {n} résultats vérifiés : trop peu pour comparer"
   },
   "cli.models.no_check": "aucune vérification pour l'instant",
   "cli.models.none": "Aucun historique pour l'instant.",
   "cli.models.none_type": "Pas encore d'historique pour {type}.",
   "cli.models.rate": "{rate} (fourchette à 95 % : {low} à {high})",
-  "cli.models.title": "Historique vérifié par modèle, sur votre propre travail (fautes / vérifications) :",
+  "cli.models.title": "Historique vérifié par modèle, sur votre propre travail (fautes / résultats vérifiés) :",
   "cli.none_yet": "aucun pour l'instant",
   "cli.passport.check": "Tout le monde peut le vérifier : {command} {path} <registre exporté>",
   "cli.passport.none": "Aucun historique pour {agent} : rien à mettre dans un passeport.",

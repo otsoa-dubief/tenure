@@ -8,7 +8,7 @@ and announced as such on screen. Every number on screen comes from the recorded 
 
 1. `bash scripts/demo/setup.sh --dry-run`, then without the flag.
 2. Owner logs in to his own subscription: `HERMES_HOME=/tmp/acme/.hermes hermes setup`. Then
-   `hermes config set approvals.mode manual` (in `smart` mode the plugin pauses: "learning is paused") and
+   `hermes config set approvals.mode manual` (`smart` works too; manual keeps every Hermes prompt visible for the cast) and
    `hermes tenure setup balanced` on an empty ledger; the cast types `/tenure setup fast` itself.
    Stop the demo's gateway first (`hermes gateway stop`, same HERMES_HOME): it keeps the plugin store open
    and caches the record, so a reset of `plugin-data/tenure` is not seen by a running one.

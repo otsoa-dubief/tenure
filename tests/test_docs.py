@@ -12,7 +12,7 @@ CLAIM = "the same rule as a preregistered study, replayed on 6,000+ simulated ag
 def _cell(d):
     if d["capped"]:
         return "always asks"
-    return f"{d['n']} approvals · {d['aoql'] * 100:.1f}% · worst {d['worst_case'] * 100:.1f}%"
+    return f"{d['n']} in a row · {d['aoql'] * 100:.1f}% · worst {d['worst_case'] * 100:.1f}%"
 
 
 def test_guarantee_table_matches_params():

@@ -64,7 +64,7 @@ const TENURE_LOCALES = {
     "agents.search": "Search agents",
     "backend.desc": "Enable tenure for this profile in Capabilities → Plugins (Agent column). {error}",
     "backend.title": "The agent half is not answering",
-    "benchmark.col_faults": "Faults / checks",
+    "benchmark.col_faults": "Faults / verified",
     "benchmark.col_public": "Public",
     "benchmark.col_range": "95% range",
     "benchmark.col_rate": "Rate",
@@ -74,7 +74,7 @@ const TENURE_LOCALES = {
     },
     "benchmark.no_public": "—",
     "benchmark.not_ranked": "Not enough evidence yet",
-    "benchmark.not_ranked_note": "A model is ranked once it has {n} checks on this type.",
+    "benchmark.not_ranked_note": "A model is ranked once it has {n} verified outcomes on this type.",
     "benchmark.note": "Each model's verified record on your work for this action type, with the 95% range of its fault rate, ranked by the top of that range. The public score is context: capability on their tasks, not reliability on yours.",
     "benchmark.public_score": "Public score: {benchmark}, {source}",
     "benchmark.public_score_accessed": "Public score: {benchmark}, {source}, {accessed}.",
@@ -135,8 +135,8 @@ const TENURE_LOCALES = {
     "passport.copy": "Copy passport",
     "passport.copy_command": "Copy command",
     "passport.faults_checks": {
-      "one": "{n} fault / {total} checks",
-      "other": "{n} faults / {total} checks"
+      "one": "{n} fault / {total} verified outcomes",
+      "other": "{n} faults / {total} verified outcomes"
     },
     "passport.generated": "Generated",
     "passport.ledger": "Ledger",
@@ -250,7 +250,7 @@ const TENURE_LOCALES = {
     "agents.search": "البحث في الوكلاء",
     "backend.desc": "فعّل tenure لهذا الملف الشخصي من المهارات ← الإضافات (عمود «الوكيل»). {error}",
     "backend.title": "جزء الوكيل لا يستجيب",
-    "benchmark.col_faults": "إخفاقات / فحوص",
+    "benchmark.col_faults": "إخفاقات / نتائج موثّقة",
     "benchmark.col_public": "عام",
     "benchmark.col_range": "نطاق 95%",
     "benchmark.col_rate": "المعدل",
@@ -264,7 +264,7 @@ const TENURE_LOCALES = {
     },
     "benchmark.no_public": "—",
     "benchmark.not_ranked": "لا أدلة كافية بعد",
-    "benchmark.not_ranked_note": "يدخل النموذج الترتيب عندما يبلغ {n} فحصًا على هذا النوع.",
+    "benchmark.not_ranked_note": "يدخل النموذج الترتيب عندما يبلغ {n} نتيجة موثّقة على هذا النوع.",
     "benchmark.note": "السجل الموثَّق لكل نموذج على عملك لنوع الإجراء هذا، مع نطاق 95% لمعدل إخفاقه، مرتبًا حسب الحد الأعلى لهذا النطاق. النتيجة العامة للسياق فقط: قدرة على مهامهم، لا موثوقية على مهامك.",
     "benchmark.public_score": "النتيجة العامة: {benchmark}، {source}",
     "benchmark.public_score_accessed": "النتيجة العامة: {benchmark}، {source}، {accessed}.",
@@ -337,12 +337,12 @@ const TENURE_LOCALES = {
     "passport.copy": "نسخ الجواز",
     "passport.copy_command": "نسخ الأمر",
     "passport.faults_checks": {
-      "zero": "{n} إخفاق / {total} فحوص",
-      "one": "{n} إخفاق / {total} فحوص",
-      "two": "{n} إخفاق / {total} فحوص",
-      "few": "{n} إخفاق / {total} فحوص",
-      "many": "{n} إخفاق / {total} فحوص",
-      "other": "{n} إخفاق / {total} فحوص"
+      "zero": "{n} إخفاق / {total} نتائج موثّقة",
+      "one": "{n} إخفاق / {total} نتائج موثّقة",
+      "two": "{n} إخفاق / {total} نتائج موثّقة",
+      "few": "{n} إخفاق / {total} نتائج موثّقة",
+      "many": "{n} إخفاق / {total} نتائج موثّقة",
+      "other": "{n} إخفاق / {total} نتائج موثّقة"
     },
     "passport.generated": "أُنشئ في",
     "passport.ledger": "الدفتر",
@@ -488,7 +488,7 @@ const TENURE_LOCALES = {
     "agents.search": "Buscar agentes",
     "backend.desc": "Activa tenure para este perfil en Capacidades → Plugins (columna Agente). {error}",
     "backend.title": "La mitad del agente no responde",
-    "benchmark.col_faults": "Fallos / comprob.",
+    "benchmark.col_faults": "Fallos / verificados",
     "benchmark.col_public": "Pública",
     "benchmark.col_range": "Rango 95 %",
     "benchmark.col_rate": "Tasa",
@@ -498,7 +498,7 @@ const TENURE_LOCALES = {
     },
     "benchmark.no_public": "—",
     "benchmark.not_ranked": "Aún no hay evidencia suficiente",
-    "benchmark.not_ranked_note": "Un modelo entra en la clasificación cuando tiene {n} comprobaciones en este tipo.",
+    "benchmark.not_ranked_note": "Un modelo entra en la clasificación cuando tiene {n} resultados verificados en este tipo.",
     "benchmark.note": "El historial verificado de cada modelo en tu trabajo para este tipo de acción, con el rango del 95 % de su tasa de fallos, ordenado por el extremo superior de ese rango. La puntuación pública es contexto: capacidad en sus tareas, no fiabilidad en las tuyas.",
     "benchmark.public_score": "Puntuación pública: {benchmark}, {source}",
     "benchmark.public_score_accessed": "Puntuación pública: {benchmark}, {source}, {accessed}.",
@@ -559,8 +559,8 @@ const TENURE_LOCALES = {
     "passport.copy": "Copiar pasaporte",
     "passport.copy_command": "Copiar comando",
     "passport.faults_checks": {
-      "one": "{n} fallo / {total} comprobaciones",
-      "other": "{n} fallos / {total} comprobaciones"
+      "one": "{n} fallo / {total} resultados verificados",
+      "other": "{n} fallos / {total} resultados verificados"
     },
     "passport.generated": "Generado",
     "passport.ledger": "Registro",
@@ -674,7 +674,7 @@ const TENURE_LOCALES = {
     "agents.search": "Rechercher des agents",
     "backend.desc": "Activez tenure pour ce profil dans Capacités → Plugins (colonne Agent). {error}",
     "backend.title": "La partie agent ne répond pas",
-    "benchmark.col_faults": "Fautes / vérif.",
+    "benchmark.col_faults": "Fautes / vérifiés",
     "benchmark.col_public": "Public",
     "benchmark.col_range": "Fourch. 95 %",
     "benchmark.col_rate": "Taux",
@@ -684,7 +684,7 @@ const TENURE_LOCALES = {
     },
     "benchmark.no_public": "—",
     "benchmark.not_ranked": "Pas encore assez de preuves",
-    "benchmark.not_ranked_note": "Un modèle est classé à partir de {n} vérifications sur ce type.",
+    "benchmark.not_ranked_note": "Un modèle est classé à partir de {n} résultats vérifiés sur ce type.",
     "benchmark.note": "L'historique vérifié de chaque modèle sur votre travail pour ce type d'action, avec la fourchette à 95 % de son taux de fautes, classé par le haut de cette fourchette. Le score public sert de contexte : il mesure la capacité sur les tâches du benchmark, pas la fiabilité sur les vôtres.",
     "benchmark.public_score": "Score public : {benchmark}, {source}",
     "benchmark.public_score_accessed": "Score public : {benchmark}, {source}, {accessed}.",
@@ -745,8 +745,8 @@ const TENURE_LOCALES = {
     "passport.copy": "Copier le passeport",
     "passport.copy_command": "Copier la commande",
     "passport.faults_checks": {
-      "one": "{n} faute / {total} vérifications",
-      "other": "{n} fautes / {total} vérifications"
+      "one": "{n} faute / {total} résultats vérifiés",
+      "other": "{n} fautes / {total} résultats vérifiés"
     },
     "passport.generated": "Généré",
     "passport.ledger": "Registre",
@@ -860,7 +860,7 @@ const TENURE_LOCALES = {
     "agents.search": "搜索智能体",
     "backend.desc": "请在「能力 → 插件」（智能体列）中为此配置文件启用 tenure。{error}",
     "backend.title": "智能体端没有响应",
-    "benchmark.col_faults": "失误 / 检查",
+    "benchmark.col_faults": "失误 / 已验证",
     "benchmark.col_public": "公开",
     "benchmark.col_range": "95% 区间",
     "benchmark.col_rate": "失误率",
@@ -869,7 +869,7 @@ const TENURE_LOCALES = {
     },
     "benchmark.no_public": "—",
     "benchmark.not_ranked": "证据尚不足",
-    "benchmark.not_ranked_note": "模型在此类型上有 {n} 次检查后才参与排名。",
+    "benchmark.not_ranked_note": "模型在此类型上有 {n} 次已验证结果后才参与排名。",
     "benchmark.note": "每个模型在你的工作中、针对此操作类型的已验证记录，附失误率的 95% 区间，按区间上限排名。公开分数仅供参考：它衡量的是模型在别人任务上的能力，而不是在你的工作上的可靠性。",
     "benchmark.public_score": "公开分数：{benchmark}，{source}",
     "benchmark.public_score_accessed": "公开分数：{benchmark}，{source}，{accessed}。",
@@ -927,7 +927,7 @@ const TENURE_LOCALES = {
     "passport.copy": "复制护照",
     "passport.copy_command": "复制命令",
     "passport.faults_checks": {
-      "other": "{n} 次失误 / {total} 次检查"
+      "other": "{n} 次失误 / {total} 次已验证结果"
     },
     "passport.generated": "生成时间",
     "passport.ledger": "账本",

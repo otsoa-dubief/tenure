@@ -71,7 +71,7 @@
   "drawer.flag.confirm": "Signaler ?",
   "drawer.flag.done": "Faute enregistrée sur {type} : désormais {tier}.",
   "drawer.flag.title": "Enregistrer une faute sur ce type, après coup",
-  "drawer.mobile_summary": "{sessions} · {faults} / {checks} fautes / vérifications · ",
+  "drawer.mobile_summary": "{sessions} · {faults} / {checks} fautes / vérifiés · ",
   "drawer.own_profile_only": "Les actions ne s'appliquent qu'au profil de ce tableau de bord",
   "drawer.revoke.button": "Révoquer",
   "drawer.revoke.confirm": "Révoquer ?",
@@ -214,7 +214,7 @@
   "models.no_public": "Aucune mesure publique pour ce type d'action.",
   "models.not_enough": "pas assez de preuves",
   "models.not_ranked": "Pas encore assez de preuves",
-  "models.not_ranked_note": "Un modèle est classé à partir de {n} vérifications sur ce type.",
+  "models.not_ranked_note": "Un modèle est classé à partir de {n} résultats vérifiés sur ce type.",
   "models.personal_title": "Sur votre travail",
   "models.public_note": "Capacité sur les tâches du benchmark, pas fiabilité sur les vôtres.",
   "models.public_title": "Mesure publique",
@@ -250,8 +250,8 @@
   "passport.empty.body": "Un passeport couvre l'historique d'un agent ; il apparaît dès la première action vérifiée.",
   "passport.empty.title": "Pas encore de passeport",
   "passport.faults_checks": {
-    "one": "{n} faute / {total} vérifications",
-    "other": "{n} fautes / {total} vérifications"
+    "one": "{n} faute / {total} résultats vérifiés",
+    "other": "{n} fautes / {total} résultats vérifiés"
   },
   "passport.field.agent": "Agent",
   "passport.field.generated": "Généré",
@@ -378,7 +378,7 @@
   "tabs.aria": "Vues de Tenure",
   "th.after_switch": "après le changement",
   "th.agent": "agent",
-  "th.faults_checks": "fautes / vérif.",
+  "th.faults_checks": "fautes / vérifiés",
   "th.file": "fichier",
   "th.guarantee": "garantie",
   "th.now": "actuel",

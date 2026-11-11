@@ -71,7 +71,7 @@
   "drawer.flag.confirm": "Flag?",
   "drawer.flag.done": "Fault recorded on {type}: now {tier}.",
   "drawer.flag.title": "Record a fault on this type, after the fact",
-  "drawer.mobile_summary": "{sessions} · {faults} / {checks} faults / checks · ",
+  "drawer.mobile_summary": "{sessions} · {faults} / {checks} faults / verified · ",
   "drawer.own_profile_only": "Actions apply to this dashboard's profile only",
   "drawer.revoke.button": "Revoke",
   "drawer.revoke.confirm": "Revoke?",
@@ -214,7 +214,7 @@
   "models.no_public": "No public measure for this action type.",
   "models.not_enough": "not enough evidence",
   "models.not_ranked": "Not enough evidence yet",
-  "models.not_ranked_note": "A model is ranked once it has {n} checks on this type.",
+  "models.not_ranked_note": "A model is ranked once it has {n} verified outcomes on this type.",
   "models.personal_title": "On your work",
   "models.public_note": "Public capability on their tasks, not reliability on yours.",
   "models.public_title": "Public measure",
@@ -250,8 +250,8 @@
   "passport.empty.body": "A passport covers an agent's record; it appears with the first verified action.",
   "passport.empty.title": "No passport yet",
   "passport.faults_checks": {
-    "one": "{n} fault / {total} checks",
-    "other": "{n} faults / {total} checks"
+    "one": "{n} fault / {total} verified outcomes",
+    "other": "{n} faults / {total} verified outcomes"
   },
   "passport.field.agent": "Agent",
   "passport.field.generated": "Generated",
@@ -378,7 +378,7 @@
   "tabs.aria": "Tenure views",
   "th.after_switch": "after the switch",
   "th.agent": "agent",
-  "th.faults_checks": "faults / checks",
+  "th.faults_checks": "faults / verified",
   "th.file": "file",
   "th.guarantee": "guarantee",
   "th.now": "now",

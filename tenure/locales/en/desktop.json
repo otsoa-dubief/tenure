@@ -3,7 +3,7 @@
   "agents.search": "Search agents",
   "backend.desc": "Enable tenure for this profile in Capabilities → Plugins (Agent column). {error}",
   "backend.title": "The agent half is not answering",
-  "benchmark.col_faults": "Faults / checks",
+  "benchmark.col_faults": "Faults / verified",
   "benchmark.col_public": "Public",
   "benchmark.col_range": "95% range",
   "benchmark.col_rate": "Rate",
@@ -13,7 +13,7 @@
   },
   "benchmark.no_public": "—",
   "benchmark.not_ranked": "Not enough evidence yet",
-  "benchmark.not_ranked_note": "A model is ranked once it has {n} checks on this type.",
+  "benchmark.not_ranked_note": "A model is ranked once it has {n} verified outcomes on this type.",
   "benchmark.note": "Each model's verified record on your work for this action type, with the 95% range of its fault rate, ranked by the top of that range. The public score is context: capability on their tasks, not reliability on yours.",
   "benchmark.public_score": "Public score: {benchmark}, {source}",
   "benchmark.public_score_accessed": "Public score: {benchmark}, {source}, {accessed}.",
@@ -74,8 +74,8 @@
   "passport.copy": "Copy passport",
   "passport.copy_command": "Copy command",
   "passport.faults_checks": {
-    "one": "{n} fault / {total} checks",
-    "other": "{n} faults / {total} checks"
+    "one": "{n} fault / {total} verified outcomes",
+    "other": "{n} faults / {total} verified outcomes"
   },
   "passport.generated": "Generated",
   "passport.ledger": "Ledger",

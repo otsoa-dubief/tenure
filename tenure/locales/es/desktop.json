@@ -3,7 +3,7 @@
   "agents.search": "Buscar agentes",
   "backend.desc": "Activa tenure para este perfil en Capacidades → Plugins (columna Agente). {error}",
   "backend.title": "La mitad del agente no responde",
-  "benchmark.col_faults": "Fallos / comprob.",
+  "benchmark.col_faults": "Fallos / verificados",
   "benchmark.col_public": "Pública",
   "benchmark.col_range": "Rango 95 %",
   "benchmark.col_rate": "Tasa",
@@ -13,7 +13,7 @@
   },
   "benchmark.no_public": "—",
   "benchmark.not_ranked": "Aún no hay evidencia suficiente",
-  "benchmark.not_ranked_note": "Un modelo entra en la clasificación cuando tiene {n} comprobaciones en este tipo.",
+  "benchmark.not_ranked_note": "Un modelo entra en la clasificación cuando tiene {n} resultados verificados en este tipo.",
   "benchmark.note": "El historial verificado de cada modelo en tu trabajo para este tipo de acción, con el rango del 95 % de su tasa de fallos, ordenado por el extremo superior de ese rango. La puntuación pública es contexto: capacidad en sus tareas, no fiabilidad en las tuyas.",
   "benchmark.public_score": "Puntuación pública: {benchmark}, {source}",
   "benchmark.public_score_accessed": "Puntuación pública: {benchmark}, {source}, {accessed}.",
@@ -74,8 +74,8 @@
   "passport.copy": "Copiar pasaporte",
   "passport.copy_command": "Copiar comando",
   "passport.faults_checks": {
-    "one": "{n} fallo / {total} comprobaciones",
-    "other": "{n} fallos / {total} comprobaciones"
+    "one": "{n} fallo / {total} resultados verificados",
+    "other": "{n} fallos / {total} resultados verificados"
   },
   "passport.generated": "Generado",
   "passport.ledger": "Registro",
