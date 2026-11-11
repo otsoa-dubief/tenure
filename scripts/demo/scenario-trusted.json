@@ -32,8 +32,23 @@
       "delay": 3.0
     },
     {
-      "label": "undo-mistake",
+      "label": "rm-file",
       "wait": "(?ms)edited [0-9]+ files?.*^ *❯[^\\n]*\\n─+ *\\n ☤",
+      "keys": [
+        "Using the terminal tool, run exactly this command and nothing else: rm notes/n06.txt",
+        "<enter>"
+      ],
+      "delay": 1.0
+    },
+    {
+      "label": "rm-acted",
+      "wait": "file:shell acted, then told you · /tenure undo [0-9]+",
+      "keys": [],
+      "delay": 3.0
+    },
+    {
+      "label": "undo-mistake",
+      "wait": "(?ms)file:shell acted.*^ *❯[^\\n]*\\n─+ *\\n ☤",
       "keys": [
         "/tenure undo 3",
         "<enter>"
