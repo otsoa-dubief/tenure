@@ -1360,8 +1360,8 @@ def undoable_shell(command: str, cwd: str | None, home: str) -> list[str] | None
     folder), not a link, not under .git, low stakes for ``_file``, and all of them can be saved; else None. No glob,
     variable, substitution, chain, pipe or second redirect: anything Tenure cannot be sure of keeps today's question."""
     text = str(command or "").strip()
-    if not text or not cwd:
-        return None
+    if not text or not cwd or os.name == "nt":
+        return None                                      # POSIX shells only: on Windows a file command keeps asking
     if "\n" in text:
         return _undo_checked(_undo_heredoc(text, cwd, home), cwd, home)
     if any(_undo_odd(c) for c in text):

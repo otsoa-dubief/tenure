@@ -2,7 +2,13 @@
 calls, the trusted start asks only about a glob delete, a push, and a command after outside content. Measured on
 2026-11-11: 8 questions before plain file commands kept an undo, 3 after; the study start asks 23. With the web page read
 fourth: 11 questions answered once, 3 with one "Allow for this session"."""
+import sys
+
+import pytest
+
 from friction import SED, SESSION, replay
+
+pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="the session uses POSIX file commands")
 
 
 def _asked(start):

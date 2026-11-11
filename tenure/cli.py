@@ -268,9 +268,10 @@ def card_text(model: str | None = None, redact: bool = True) -> str:
     for _, s in sorted(rows, key=lambda r: r[1].key):
         n = params.required_n(cfg["risks"], s.stakes)
         eff = effective_tier(s, n)
+        rank_key = f"tier.rank.{_RANK_KEY[eff]}"
         label = (f"CAP {tr('tier.rank.cap')}" if n is None else
                  tr("cli.tier.trusted") if eff != rule.T3 and core.trusted(cfg, s, n, s.stakes) else
-                 f"{_CODE[eff]} {tr(f"tier.rank.{_RANK_KEY[eff]}")}")
+                 f"{_CODE[eff]} {tr(rank_key)}")
         lines.append(f"{_card_bar(s, n, eff)} {ljust(shown[s.key], width_k)}  {label}")
         faults, successes = faults + s.faults, successes + s.successes
     lines.append(tr("cli.card.foot", record=_record(faults, successes)))

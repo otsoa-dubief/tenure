@@ -1,6 +1,6 @@
 <h1 align="center">tenure</h1>
 
-<p align="center"><strong>Hermes trusts your agent blindly. Tenure makes that trust revocable.</strong></p>
+<p align="center"><strong>Revocable trust for your Hermes agent: given by default, taken back on a mistake, earned back on evidence.</strong></p>
 
 <p align="center">
   A plugin for <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>. No extra question for everyday
@@ -13,6 +13,7 @@
   <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB">
   <img alt="License Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-2563eb">
   <img alt="No network, no LLM call" src="https://img.shields.io/badge/network-none-16a34a">
+  <img alt="5 languages: English, French, Spanish, Chinese, Arabic" src="https://img.shields.io/badge/languages-EN%20%C2%B7%20FR%20%C2%B7%20ES%20%C2%B7%20ZH%20%C2%B7%20AR-0053fd">
   <a href="https://osf.io/vycge/"><img alt="Preregistered study" src="https://img.shields.io/badge/study-preregistered%20on%20OSF-7c3aed"></a>
 </p>
 

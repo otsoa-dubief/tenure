@@ -6,6 +6,7 @@ import sys
 from test_plugin import A, FAST, NPM, climb, ledger, outcomes, plugin, post, pre, state, write  # noqa: F401
 
 TRUST = {**FAST, "start": "trusted"}
+POSIX_ONLY = __import__("pytest").mark.skipif(sys.platform == "win32", reason="undoable file commands are POSIX only")
 
 
 def test_a_reversible_type_acts_then_tells_from_the_first_action(plugin):
@@ -368,6 +369,7 @@ def _mk(ctx, name, text="old\n"):
     return path
 
 
+@POSIX_ONLY
 def test_a_plain_rm_of_a_project_file_runs_with_an_undo(plugin):
     mod, ctx = plugin(TRUST)
     path = _mk(ctx, "notes.txt")
@@ -379,6 +381,7 @@ def test_a_plain_rm_of_a_project_file_runs_with_an_undo(plugin):
     assert state(mod, "file:shell").distrusted                          # an undo is a fault, as for any write
 
 
+@POSIX_ONLY
 def test_an_undone_mv_puts_both_files_back(plugin):
     mod, ctx = plugin(TRUST)
     a = _mk(ctx, "a.txt")
@@ -389,6 +392,7 @@ def test_an_undone_mv_puts_both_files_back(plugin):
     assert os.path.exists(a) and not os.path.exists(b)
 
 
+@POSIX_ONLY
 def test_sed_in_place_and_a_redirect_run_with_an_undo(plugin):
     mod, ctx = plugin(TRUST)
     _mk(ctx, "app.py", "a = 1\n")
@@ -407,6 +411,7 @@ def test_a_recursive_rm_or_a_glob_still_asks(plugin):
     assert state(mod, "file:shell") is None
 
 
+@POSIX_ONLY
 def test_after_outside_content_a_file_command_keeps_going_with_its_undo(plugin):
     mod, ctx = plugin(TRUST)
     path = _mk(ctx, "notes.txt")
@@ -418,6 +423,7 @@ def test_after_outside_content_a_file_command_keeps_going_with_its_undo(plugin):
     assert open(path).read() == "old\n"
 
 
+@POSIX_ONLY
 def test_a_session_answer_after_outside_content_never_runs_a_file_command_without_its_undo(plugin):
     mod, ctx = plugin(TRUST)
     _mk(ctx, "keep.txt")
@@ -433,6 +439,7 @@ def test_the_study_start_asks_for_a_file_command(plugin):
     assert ctx.call("terminal", {"command": "rm notes.txt"}) == "approved"
 
 
+@POSIX_ONLY
 def test_classify_reads_a_plain_rm_as_an_undoable_file_change(plugin):
     mod, ctx = plugin(TRUST)
     _mk(ctx, "notes.txt")
@@ -443,6 +450,7 @@ def test_classify_reads_a_plain_rm_as_an_undoable_file_change(plugin):
     assert mod.classify.classify("terminal", {"command": "rm -r notes.txt"}, cwd=ctx.cwd).type == "shell:rm"
 
 
+@POSIX_ONLY
 def test_a_heredoc_whose_body_reads_like_commands_is_still_a_file_change(plugin):
     mod, ctx = plugin(TRUST)
     for body in ("- item one\n- item two\n", "console.log('hi');\nprocess.exit(1)\n", "#!/bin/sh\necho start\nnpm test\n"):
@@ -454,6 +462,7 @@ def test_a_heredoc_whose_body_reads_like_commands_is_still_a_file_change(plugin)
     assert a.stakes == "cap"                                             # self-protection still reads the body
 
 
+@POSIX_ONLY
 def test_a_chain_of_plain_file_commands_runs_with_one_undo(plugin):
     mod, ctx = plugin(TRUST)
     _mk(ctx, "a.txt")

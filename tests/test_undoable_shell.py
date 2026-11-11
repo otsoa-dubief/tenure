@@ -3,7 +3,11 @@ it can be saved first and undone. Anything Tenure cannot be sure of gives None a
 import os
 import sys
 
+import pytest
+
 from tenure.classify import undoable_shell
+
+pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="plain file commands are undoable on POSIX shells only")
 
 HOME = os.path.expanduser("~")
 

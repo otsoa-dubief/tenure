@@ -17,7 +17,7 @@ import tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 home = tempfile.mkdtemp(prefix="tenure-it-")
-project = os.path.realpath(tempfile.mkdtemp(prefix="tenure-project-"))
+project = os.path.realpath(tempfile.mkdtemp(prefix="tenure-project-", dir=os.environ.get("HERMES_WRITE_SAFE_ROOT") or None))
 os.environ["HERMES_HOME"] = home
 os.environ["HERMES_INTERACTIVE"] = "1"          # a person at the CLI answers approvals
 os.environ["TERMINAL_CWD"] = project
