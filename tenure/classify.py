@@ -93,6 +93,14 @@ def _norm(p: str) -> str:
     return p.replace("\\", "/")
 
 
+_DRIVE_ROOT = re.compile(r"[A-Za-z]:/?")
+
+
+def _is_root(p: str) -> bool:
+    """The file system root: `/`, or a drive's root on Windows (`C:/`)."""
+    return p == "/" or bool(_DRIVE_ROOT.fullmatch(p))
+
+
 def _expand(path: str, home: str) -> str:
     """`~`, `$HOME` and `${HOME}` at the start of a path; `$HERMES_HOME` and `${HERMES_HOME}` too (Hermes' home)."""
     for pre in ("${HOME}", "$HOME"):
@@ -129,20 +137,23 @@ def _abs(path: str, cwd: str | None, home: str | None = None, physical: bool = T
 def _physical(joined: str, lexical: str) -> str:
     """``joined`` (absolute, not normalised) with each `..` applied to the resolved folder before it, when that
     folder is reached through a link; ``lexical`` when no link changes where a `..` leads."""
-    if not joined.startswith("/") or "\0" in joined:
+    joined = _norm(joined)
+    drive = _DRIVE_ROOT.match(joined)
+    top = joined[:2] + "/" if drive and joined[2:3] == "/" else "/"
+    if not joined.startswith(top) or "\0" in joined:
         return lexical
-    cur, changed = "/", False
-    for comp in joined.split("/"):
+    cur, changed = top, False
+    for comp in joined[len(top):].split("/"):
         if comp in ("", "."):
             continue
         if comp != "..":
             cur = cur.rstrip("/") + "/" + comp
             continue
-        parent = os.path.dirname(cur) or "/"
-        if cur != "/":
+        parent = _norm(os.path.dirname(cur)) or top
+        if cur != top:
             real = _resolved(cur)
             if real != cur:
-                up = os.path.dirname(real.rstrip("/")) or "/"
+                up = _norm(os.path.dirname(real.rstrip("/"))) or top
                 if up != _resolved(parent):                 # the link leads elsewhere: `..` is its target's parent
                     parent, changed = up, True
         cur = parent
@@ -511,7 +522,7 @@ def _holds_hermes(full: str) -> bool:
         holders: set = set()
         for t in itertools.chain(exes, dirs, {os.path.dirname(f) + "/x" for f in files}):
             d = os.path.dirname(t.rstrip("/"))
-            while d and d != "/" and d not in holders:
+            while d and not _is_root(d) and d not in holders:
                 holders.add(d)
                 d = os.path.dirname(d)
         cached = (found, holders)
@@ -1135,7 +1146,7 @@ def _word_hit(word: str, base: str, cwd, home: str, text_tool: bool = False,
                 hit = _glob_hit(_abs(alt, base, home), home, named=False, above=above)
             else:
                 full = _abs(alt, base, home)
-                root = full == "/"
+                root = _is_root(full)
                 hit = _path_hit(full, home, above and not (root and (text_tool or cand is not word)))
             if hit:
                 return hit
@@ -4512,6 +4523,16 @@ def _windows_slashes(command: str) -> str:
 
 
 def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str, bool]:
+    """On Windows a backslash may be a path separator (C:\\Users\\me\\.hermes) or a shell escape ("git\\x20push"):
+    the command is read both ways and the stricter reading wins, so neither can lower what the other sees."""
+    if getattr(os, "name", "") == "nt" and "\\" in (command or ""):
+        as_typed = _shell_read(command, cwd, home, depth)
+        as_paths = _shell_read(_windows_slashes(command), cwd, home, depth)
+        return as_paths if RANK[as_paths[1]] > RANK[as_typed[1]] else as_typed
+    return _shell_read(command, cwd, home, depth)
+
+
+def _shell_read(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str, bool]:
     """The precise reading (typed twice, the riskier wins: by lines, then the whole command tokenised) may lower
     stakes only for commands it fully understands. Two floors are checked independently of it: a sensitive name
     (cap) and constructs outside the grammar (shell:complex, high). A command of MAX_COMMAND characters or more is
@@ -4529,8 +4550,6 @@ def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str,
         return head if head[1] == CAP else ("shell:complex", HIGH, False)
     home = _norm(home or os.path.expanduser("~"))
     command = _join_lines(command)
-    if getattr(os, "name", "") == "nt":
-        command = _windows_slashes(command)
     start = cwd or os.getcwd()
     by_lines = _run(_glue_find(_build(_tokens_lines(command))), start, home, depth)
     whole = _run(_glue_find(_build(_tokens_whole(command))), start, home, depth)
@@ -4788,7 +4807,7 @@ def _code_levels(code: str, cwd, home: str) -> tuple[str, str] | None:
                 full = _abs(cand, cwd, home)
                 # a folder above a home counts in code that writes, for a path (never the lone `/` of a join or
                 # a split, never a bare word)
-                hit = _path_hit(full, home, above=writes and full != "/" and ("/" in piece or piece == ".."))
+                hit = _path_hit(full, home, above=writes and not _is_root(full) and ("/" in piece or piece == ".."))
                 if not hit and "/" in piece and CODE_REMOVES.search(code) and _holds_hermes(full):
                     hit = SELF_HERMES                        # the folder that holds the program or its package
             if hit and hit[1] == CAP:

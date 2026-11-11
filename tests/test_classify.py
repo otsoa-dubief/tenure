@@ -910,3 +910,13 @@ def test_windows_backslash_paths_are_read_as_paths(monkeypatch):
     assert C._windows_slashes(r"echo a\ b") == r"echo a\ b"
     assert cmd(r"rm -rf ~\.hermes\config.yaml")[1] == C.CAP
     assert C.undoable_shell("rm src/a.py", CWD, HOME) is None
+
+
+def test_windows_escapes_keep_their_reading(monkeypatch):
+    import types
+    real = C.os
+    fake = types.SimpleNamespace(**{k: getattr(real, k) for k in dir(real) if not k.startswith("__")})
+    fake.name = "nt"
+    monkeypatch.setattr(C, "os", fake)
+    assert cmd(r"""awk 'BEGIN{system("git\x20push")}'""") == ("shell:complex", C.HIGH)
+    assert cmd(r"rm -rf ~\.hermes\config.yaml")[1] == C.CAP

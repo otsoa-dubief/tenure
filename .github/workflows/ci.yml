@@ -39,7 +39,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install pytest fastapi httpx    # without cryptography: unsigned passports
+      - run: pip install pytest fastapi httpx cryptography
       - run: python -m pytest -q -rs tests
         env:
           TENURE_PERF_SLACK: "3"
