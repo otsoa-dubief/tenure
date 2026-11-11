@@ -744,11 +744,13 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
     stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
     cfg = settings()
     sync_settings(st, cfg)
-    record_outcome(st, cfg, agent=agent, type_key=key, stakes=stakes, reversible=reversible,
-                   result="fault", source="undo")
+    events = record_outcome(st, cfg, agent=agent, type_key=key, stakes=stakes, reversible=reversible,
+                            result="fault", source="undo")
     st.bump(agent, "faults")
     s = st.get_state(agent, key, stakes, reversible)
-    return UndoMessage(tr("undo.done", id=id, type=key, agent=agent, tier=tier_name(s.tier)), True, entry["snap_id"])
+    text = "\n\n".join([tr("undo.done", id=id, type=key, agent=agent, tier=tier_name(s.tier))]
+                       + _say(events, cfg["spot"]))       # e.g. "On probation" when it ends the trusted start
+    return UndoMessage(text, True, entry["snap_id"])
 
 
 def _bump(st: store.Store, agent: str, result: str, *, checked: bool = False, alone: bool = False) -> None:

@@ -93,7 +93,8 @@ def test_the_first_fault_says_so_in_the_chat(plugin):
     mod, ctx = plugin(TRUST)
     ctx.call("write_file", write("n1"))
     uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
-    assert "T1" in mod.cli.slash(f"undo {uid}")
+    out = mod.cli.slash(f"undo {uid}")
+    assert "T1" in out and "On probation · file:write" in out
     tiers = [e for e in ledger(mod, "tier") if e.get("from") == "trusted"]
     assert len(tiers) == 1 and tiers[0]["to"] == mod.rule.T1
     assert mod._say(tiers, 0.1)[0].startswith("tenure · ↓ On probation · file:write")
