@@ -703,7 +703,7 @@
   .tnr-agent-card.is-focus { border-top-color: var(--tnr-acc); }
   .tnr-card-types { margin-top: 10px; border-top: 1px solid var(--tnr-line); }
   .tnr-card-type {
-    display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; grid-template-areas: "tier name ev" "tier bar bar" "tier miss miss";
+    display: grid; grid-template-columns: minmax(38px, max-content) minmax(0, 1fr) auto; grid-template-areas: "tier name ev" "tier bar bar" "tier miss miss";
     gap: 3px 8px; padding: 8px 0; border-bottom: 1px solid var(--tnr-line); align-items: center;
   }
   .tnr-card-type:last-child { border-bottom: 0; }
