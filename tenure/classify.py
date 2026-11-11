@@ -1405,7 +1405,9 @@ PACKAGE_RUNNERS = {"npm": {"exec", "x"}, "pnpm": {"dlx", "exec"}, "yarn": {"dlx"
 # Programs the trusted start may cover (kept in step with params.TRUSTED_PROGRAMS) plus the runners that start them:
 # only these need the scan below, since anything else asks under the study rule anyway.
 TRUSTABLE = set(params.TRUSTED_PROGRAMS) | {"uvx", "bunx", "pipx"}
-OUTBOUND_ANY = OUTBOUND_VERBS | {"push", "dcommit", "imap-send", "uploadarchives", "perform"}
+OUTBOUND_ANY = OUTBOUND_VERBS | {"push", "dcommit", "imap-send", "uploadarchives", "perform", "flush", "drop",
+                                 "reset", "truncate", "migrate", "seed"}
+GIT_OUTBOUND = {"push", "dcommit", "imap-send", "send-email"}
 
 
 def _outbound_word(typ: str, tokens: list[str]) -> str | None:
@@ -1419,11 +1421,17 @@ def _outbound_word(typ: str, tokens: list[str]) -> str | None:
     if prog == "git" and len(words) > 1:
         sub, rest = words[1], set(tokens[2:])
         forced = bool(rest & {"-f", "--force"}) or any(re.fullmatch(r"-[a-zA-Z]*f[a-zA-Z]*", t) for t in rest)
-        if (sub in ("checkout", "switch") and forced) or (sub == "worktree" and "remove" in rest and forced) \
-                or (sub == "reset" and rest & {"--merge", "--keep"}) or (sub == "reflog" and rest & {"expire", "delete"}):
+        if (sub in ("checkout", "switch", "branch") and forced) or (sub == "worktree" and "remove" in rest and forced) \
+                or (sub == "reset" and rest & {"--merge", "--keep"}) or (sub == "reflog" and rest & {"expire", "delete"}) \
+                or (sub == "update-ref" and rest & {"-d", "--stdin"}):
             return "discard"
+        if any(t == "--remote" or t.startswith("--remote=") for t in tokens):
+            return "remote"
         if sub == "stash":
             return None
+        return next((w for w in words[2:] if w in GIT_OUTBOUND), None)    # lfs push, subtree push, svn dcommit
+    if "--prod" in tokens or "--production" in tokens and prog in ("vercel", "netlify"):
+        return "prod"
     if any(t == "--remote" or t.startswith("--remote=") for t in tokens):
         return "remote"
     for w in words[1:]:

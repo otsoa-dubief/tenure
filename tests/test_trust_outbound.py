@@ -15,10 +15,14 @@ OUT = ["uv publish", "poetry publish", "bun publish", "mvn deploy", "gradle publ
        "gradle uploadArchives", "mvn release:perform", "bun run deploy", "bun x vercel", "go run ./cmd/deploy",
        "deno run -A deploy.ts", "npm run deploy", "make release",
        "git checkout -f main", "git switch -f main", "git reset --merge", "git worktree remove --force x",
-       "git reflog expire --expire=now --all", "mv src /tmp/gone", "sed -i s/a/b/ src/x.py", "cp a.py b.py"]
+       "git reflog expire --expire=now --all", "mv src /tmp/gone", "sed -i s/a/b/ src/x.py", "cp a.py b.py",
+       # fifth review
+       "yarn vercel --prod", "pnpm vercel --prod", "node node_modules/.bin/vercel --prod", "python manage.py flush --noinput",
+       "npm run db:reset", "git branch -f main HEAD~5", "git update-ref -d refs/heads/x", "npm run db:drop"]
 IN = ["uv run pytest", "npm run test", "make build", "git checkout main", "poetry run pytest", "npm install",
       "git stash push -m wip", "git commit -m 'deploy notes'", "pytest tests/test_deploy.py", "cargo build",
-      "go test ./...", "git switch main", "git reset --soft HEAD~1", "mkdir out"]
+      "go test ./...", "git switch main", "git reset --soft HEAD~1", "mkdir out", "npx jest", "npx tsc --noEmit",
+      "npx eslint .", "git reset HEAD~1", "git branch feature"]
 
 
 @pytest.mark.parametrize("cmd", OUT)

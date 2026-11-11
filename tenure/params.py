@@ -135,4 +135,6 @@ def trust_covers(key: str) -> bool:
         return False
     if len(parts) >= 4 and parts[0] == "shell" and parts[2] == "exec":
         return parts[3] in TRUSTED_PROGRAMS
+    if len(parts) >= 3 and parts[:2] == ["shell", "npx"]:
+        return parts[2] in TRUSTED_PROGRAMS                  # npx runs a package: covered only for a covered tool
     return len(parts) >= 2 and parts[0] == "shell" and parts[1] in TRUSTED_PROGRAMS
