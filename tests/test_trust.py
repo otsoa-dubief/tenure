@@ -357,3 +357,72 @@ def test_a_never_faulted_uncovered_type_is_not_called_probation(plugin):
     text = mod.cli.slash("status")
     row = [ln for ln in text.splitlines() if "shell:rm" in ln][0]
     assert "asks (not covered)" in row and "T1" not in row
+
+
+def _mk(ctx, name, text="old\n"):
+    path = os.path.join(ctx.cwd, name)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(text)
+    return path
+
+
+def test_a_plain_rm_of_a_project_file_runs_with_an_undo(plugin):
+    mod, ctx = plugin(TRUST)
+    path = _mk(ctx, "notes.txt")
+    assert ctx.call("terminal", {"command": "rm notes.txt"}) == "ran" and ctx.prompts == []
+    assert "/tenure undo" in ctx.posted[-1]
+    os.remove(path)                                                      # what the command did
+    mod.cli.slash(f"undo {int(ctx.posted[-1].rsplit(' ', 1)[1])}")
+    assert open(path).read() == "old\n"
+    assert state(mod, "file:shell").distrusted                          # an undo is a fault, as for any write
+
+
+def test_an_undone_mv_puts_both_files_back(plugin):
+    mod, ctx = plugin(TRUST)
+    a = _mk(ctx, "a.txt")
+    b = os.path.join(ctx.cwd, "b.txt")
+    assert ctx.call("terminal", {"command": "mv a.txt b.txt"}) == "ran" and ctx.prompts == []
+    os.rename(a, b)
+    mod.cli.slash(f"undo {int(ctx.posted[-1].rsplit(' ', 1)[1])}")
+    assert os.path.exists(a) and not os.path.exists(b)
+
+
+def test_sed_in_place_and_a_redirect_run_with_an_undo(plugin):
+    mod, ctx = plugin(TRUST)
+    _mk(ctx, "app.py", "a = 1\n")
+    assert ctx.call("terminal", {"command": "sed -i 's/a/b/' app.py"}) == "ran"
+    assert ctx.call("terminal", {"command": "echo hi > out.txt"}) == "ran"
+    assert ctx.prompts == []
+
+
+def test_a_recursive_rm_or_a_glob_still_asks(plugin):
+    mod, ctx = plugin(TRUST)
+    _mk(ctx, "build/x.o")
+    _mk(ctx, "a.log")
+    assert ctx.call("terminal", {"command": "rm -r build"}) == "approved"
+    assert ctx.call("terminal", {"command": "rm *.log"}) == "approved"
+    assert state(mod, "file:shell") is None
+
+
+def test_after_outside_content_a_file_command_asks(plugin):
+    mod, ctx = plugin(TRUST)
+    _mk(ctx, "notes.txt")
+    ctx.call("web_search", {"query": "x"})
+    assert ctx.call("terminal", {"command": "rm notes.txt"}) == "approved"
+
+
+def test_the_study_start_asks_for_a_file_command(plugin):
+    mod, ctx = plugin({**FAST, "start": "probation"})
+    _mk(ctx, "notes.txt")
+    assert ctx.call("terminal", {"command": "rm notes.txt"}) == "approved"
+
+
+def test_classify_reads_a_plain_rm_as_an_undoable_file_change(plugin):
+    mod, ctx = plugin(TRUST)
+    _mk(ctx, "notes.txt")
+    a = mod.classify.classify("terminal", {"command": "rm notes.txt"}, cwd=ctx.cwd)
+    assert (a.type, a.stakes, a.reversible) == ("file:shell", "low", True)
+    assert mod.classify.files_written("terminal", {"command": "rm notes.txt"}, ctx.cwd) == [
+        os.path.join(ctx.cwd, "notes.txt")]
+    assert mod.classify.classify("terminal", {"command": "rm -r notes.txt"}, cwd=ctx.cwd).type == "shell:rm"

@@ -49,7 +49,7 @@ def test_p5_a_profile_workspace_writes_are_ordinary(tmp_path, monkeypatch, no_hc
     monkeypatch.setenv("HERMES_HOME", str(home))
     for tool, args in _workspace_cases(ws, home):
         t, stakes = kind(tool, args, str(ws))
-        assert stakes == (c.LOW if tool != "terminal" else c.MEDIUM), (tool, args, t)
+        assert stakes == (c.LOW if tool != "terminal" or t == "file:shell" else c.MEDIUM), (tool, args, t)
     assert sh("rm -rf build", str(ws)) == ("shell:rm", c.MEDIUM)
     for path in (home / "config.yaml", home / "plugin-data" / "tenure" / "tenure.db", root / "config.yaml",
                  root / ".env", home / "auth.json", root / "profiles" / "other" / "config.yaml",
@@ -67,7 +67,7 @@ def test_p5_b_default_home_workspace_writes_are_ordinary(tmp_path, monkeypatch, 
     monkeypatch.delenv("HERMES_HOME", raising=False)
     for tool, args in _workspace_cases(ws, user / ".hermes"):
         t, stakes = kind(tool, args, str(ws))
-        assert stakes == (c.LOW if tool != "terminal" else c.MEDIUM), (tool, args, t)
+        assert stakes == (c.LOW if tool != "terminal" or t == "file:shell" else c.MEDIUM), (tool, args, t)
     assert kind("write_file", {"path": str(user / ".hermes" / "config.yaml")}, str(ws))[1] == c.CAP
     assert kind("write_file", {"path": "~/.hermes/plugin-data/tenure/x"}, str(ws))[1] == c.CAP
     assert sh("cd ~ && rm -rf .hermes", str(ws))[1] == c.CAP

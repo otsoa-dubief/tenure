@@ -895,7 +895,7 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
     if not _earned(recorded, act, s, n, decision) or ST.copy_unchecked:
         decision = rule.ASK                             # copy_unchecked: this record may be a copy, not yet settled
     if (decision == rule.ASK and not ST.copy_unchecked and trusted(cfg, s, n, act.stakes)
-            and (not suspended or (act.reversible and act.type.startswith("file:")))):
+            and (not suspended or (act.reversible and act.type.startswith("file:") and act.type != "file:shell"))):
         decision = rule.WATCH                           # after outside content: undoable file writes only                           # trusted start: run as Hermes would, with an undo if possible
     return recorded, s, decision, suspended
 

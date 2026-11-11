@@ -1330,7 +1330,10 @@ def _v4a_unreadable(patch: str) -> bool:
 
 
 def files_written(tool_name: str, args: dict, cwd: str | None, home: str | None = None) -> list[str]:
-    """Absolute paths a write_file or patch call touches (the `path` argument and every V4A header); else []."""
+    """Absolute paths a write_file or patch call touches (the `path` argument and every V4A header), or a plain file
+    command changes (``undoable_shell``); else []."""
+    if tool_name == "terminal" and isinstance(args, dict):
+        return undoable_shell(str(args.get("command", "")), cwd, home or os.path.expanduser("~")) or []
     if tool_name not in ("write_file", "patch") or not isinstance(args, dict):
         return []
     raw = [str(args.get("path") or args.get("file_path") or "")]
@@ -1453,14 +1456,14 @@ def _undo_target_ok(p: str, cwd: str, home: str) -> bool:
     """A file the command changes: not a link, not a folder, not under .git, its folder exists, low stakes."""
     if os.path.islink(p) or os.path.isdir(p) or not os.path.isdir(os.path.dirname(p)):
         return False
-    if ".git" in _norm(p).split("/"):
-        return False
+    if {".git", ".hermes"} & set(_norm(p).split("/")):
+        return False                                     # git's own data, a project's Hermes settings: keep asking
     return _file(p, cwd, home)[1] == LOW
 
 
 def _undo_source_ok(p: str, cwd: str, home: str) -> bool:
     """A file the command only reads: a regular project file (what it holds stays inside the project)."""
-    return (os.path.isfile(p) and not os.path.islink(p) and ".git" not in _norm(p).split("/")
+    return (os.path.isfile(p) and not os.path.islink(p) and not {".git", ".hermes"} & set(_norm(p).split("/"))
             and _file(p, cwd, home)[1] == LOW)
 
 
@@ -4983,6 +4986,9 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         t, stakes, rev = _files(tool_name, args, cwd, home)
     elif tool_name == "terminal":
         t, stakes, rev = _shell(str(args.get("command", "")), cwd, home)
+        if (stakes in (LOW, MEDIUM) and t.split(":")[0] == "shell" and t.split(":")[1:2] and t.split(":")[1] in
+                UNDOABLE_PROGRAMS and undoable_shell(str(args.get("command", "")), cwd, home)):
+            t, stakes, rev = "file:shell", LOW, True    # every file it changes can be saved first: a file change
     elif tool_name == "execute_code":
         t, stakes, rev = _code(str(args.get("code") or ""), cwd, home)
     elif tool_name in TOOLS:
@@ -5020,5 +5026,5 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         if stakes == FREE and _saves_to_disk(args):
             stakes = MEDIUM                              # a "read" told where to write
     stakes = _override(t, stakes, overrides)
-    rev = rev and t == "file:write"                 # only a write inside the project can be undone
+    rev = rev and t in ("file:write", "file:shell")  # only a change inside the project can be undone
     return Action(type=t, stakes=stakes, reversible=rev, summary=_summary(tool_name, args, t))

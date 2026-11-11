@@ -40,7 +40,7 @@ SESSION_TYPES = frozenset({"shell:python:inline", "shell:python3:inline", "shell
 # What the trusted start covers: files and memory (with an undo where files are written), handing work to a subagent,
 # and the usual local development tools. Any other program (a deploy, payment or database CLI, an unknown tool,
 # deleting files) asks under the study rule from the start, whatever the start mode.
-TRUSTED_TYPES = ("file:write", "file:write-outside", "memory:write", "delegate:task")
+TRUSTED_TYPES = ("file:write", "file:write-outside", "file:shell", "memory:write", "delegate:task")
 # Subcommands that leave the machine are never covered, whatever classify made of them (e.g. `bun publish`).
 UNTRUSTED_VERBS = frozenset({"publish", "deploy", "unpublish", "yank", "login", "logout", "adduser", "token", "owner",
                              "dist-tag", "deprecate", "send-email", "upload", "release", "push", "discard",
