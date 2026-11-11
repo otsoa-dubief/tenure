@@ -780,3 +780,10 @@
 /* Display and wide faces are Latin-only: Arabic text in them falls back to the system face at a readable size. */
 [dir="rtl"] .tnr-profile-name bdi, [dir="rtl"] .tnr-agent-model bdi { direction: ltr; }
 [dir="rtl"] .tnr-tier-label, [dir="rtl"] .tnr-pass-tier, [dir="rtl"] .tnr-start-row b { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 11px; }
+
+/* ---- community board ------------------------------------------------------------------------------------------ */
+.tnr-community .tnr-empty-body p { margin: 0 0 10px; max-width: 640px; }
+.tnr-community .tnr-empty-body .tnr-cmd { margin: 4px 0 14px; }
+.tnr-community-where { font-size: 12px; overflow-wrap: anywhere; }
+.tnr-community-meta { margin: -8px 0 18px; font-family: var(--tnr-mono); }
+.tnr-community-table { padding-inline: 0; }

@@ -23,6 +23,14 @@
   "common.one_in": "1 de cada {k}",
   "common.percent": "{v} %",
   "common.profile": "perfil {profile}",
+  "community.empty.how": "Para contribuir, escribe tu registro con este comando, lee lo que contiene y abre una pull request que añada el archivo al repositorio comunitario ({repo}).",
+  "community.empty.title": "Todavía no hay registros compartidos",
+  "community.empty.what": "El benchmark comunitario reúne los registros que usuarios de Tenure decidieron publicar: por modelo y por familia de acciones, los éxitos verificados y los fallos, firmados con la clave de su pasaporte. No se comparte nada automáticamente: Tenure no hace ninguna llamada de red.",
+  "community.empty.where": "Para ver la clasificación aquí, descarga el community-board.json que publica el repositorio y guárdalo como {path}.",
+  "community.generated": "{records} · clasificación generada el {date}",
+  "community.lede": "Declarado por quienes contribuyen, con firmas comprobadas: cada registro va firmado con la clave del pasaporte de su autor, y cuenta un solo registro por clave. ",
+  "community.lede_bold": "Esto no impide que una misma persona tenga varias claves.",
+  "community.ranking": "Por familia de acciones, los modelos se ordenan por el extremo superior del rango del 95 % de su tasa de fallos, nunca por una sola puntuación.",
   "confirm.again": "Haz clic otra vez para confirmar",
   "confirm.default": "Confirmar",
   "confirm.flag.desc": "Cuenta como fallo: {type} baja al menos un nivel y vuelve a subir. Úsalo para un error que nadie detectó.",
@@ -41,6 +49,16 @@
   "count.faults": {
     "one": "{n} fallo",
     "other": "{n} fallos"
+  },
+  "count.models": {
+    "one": "{n} modelo",
+    "many": "{n} modelos",
+    "other": "{n} modelos"
+  },
+  "count.records": {
+    "one": "{n} registro",
+    "many": "{n} registros",
+    "other": "{n} registros"
   },
   "count.sessions": {
     "one": "{n} sesión",
@@ -394,9 +412,11 @@
   "tabs.aria": "Vistas de Tenure",
   "th.after_switch": "tras el cambio",
   "th.agent": "agente",
+  "th.contributors": "contribuyentes",
   "th.faults_checks": "fallos / verificados",
   "th.file": "archivo",
   "th.guarantee": "garantía",
+  "th.model": "modelo",
   "th.now": "ahora",
   "th.outcome": "resultado",
   "th.public_measure": "medida pública",
@@ -492,6 +512,7 @@
   "verdict.unsigned.no_key": "Aún no hay clave de firma: {cmd} crea una",
   "verdict.unsigned.replay": "La reproducción da los mismos niveles",
   "verdict.unsigned.title": "Sin firmar, por lo demás verificado",
+  "view.community": "Comunidad",
   "view.map": "Mapa",
   "view.models": "Tu benchmark",
   "view.passport": "Pasaporte",

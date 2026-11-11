@@ -21,6 +21,14 @@
   "common.one_in": "1/{k}",
   "common.percent": "{v}%",
   "common.profile": "配置文件 {profile}",
+  "community.empty.how": "如要贡献，请用这条命令写出你的记录，查看其中内容，然后提交一个 pull request，把文件加入社区仓库（{repo}）。",
+  "community.empty.title": "还没有共享记录",
+  "community.empty.what": "社区基准汇总 Tenure 用户自愿发布的记录：按模型和操作类别统计的已验证成功次数与失误次数，并用各自的护照密钥签名。不会自动共享任何内容：Tenure 不进行任何网络调用。",
+  "community.empty.where": "如要在这里查看排行，请下载仓库发布的 community-board.json，并保存为 {path}。",
+  "community.generated": "{records} · 排行生成于 {date}",
+  "community.lede": "由贡献者自行申报，签名已核验：每份记录都用作者的护照密钥签名，每个密钥只计一份记录。",
+  "community.lede_bold": "这无法阻止一个人拥有多个密钥。",
+  "community.ranking": "按操作类别，模型按失误率 95% 区间的上限排序，从不按单一分数排序。",
   "confirm.again": "再次点击以确认",
   "confirm.default": "确认",
   "confirm.flag.desc": "这会记为一次失误：{type} 至少降一级，需要重新晋升。用于没人发现的错误。",
@@ -37,6 +45,12 @@
   },
   "count.faults": {
     "other": "{n} 次失误"
+  },
+  "count.models": {
+    "other": "{n} 个模型"
+  },
+  "count.records": {
+    "other": "{n} 份记录"
   },
   "count.sessions": {
     "other": "{n} 个会话"
@@ -363,9 +377,11 @@
   "tabs.aria": "Tenure 视图",
   "th.after_switch": "切换后",
   "th.agent": "智能体",
+  "th.contributors": "贡献者",
   "th.faults_checks": "失误 / 已验证",
   "th.file": "文件",
   "th.guarantee": "保证",
+  "th.model": "模型",
   "th.now": "当前",
   "th.outcome": "结果",
   "th.public_measure": "公开测评",
@@ -453,6 +469,7 @@
   "verdict.unsigned.no_key": "还没有签名密钥：运行 {cmd} 创建",
   "verdict.unsigned.replay": "重放得到相同的级别",
   "verdict.unsigned.title": "未签名，其余均已验证",
+  "view.community": "社区",
   "view.map": "总览",
   "view.models": "你的基准",
   "view.passport": "护照",

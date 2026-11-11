@@ -56,6 +56,14 @@ const TENURE_LOCALES = {
     "common.one_in": "1 in {k}",
     "common.percent": "{v}%",
     "common.profile": "profile {profile}",
+    "community.empty.how": "To contribute, write your record with this command, read what it holds, then open a pull request adding the file to the community repository ({repo}).",
+    "community.empty.title": "No shared records yet",
+    "community.empty.what": "The community benchmark pools records that Tenure users chose to publish: per model and per action family, verified successes and faults, signed with their passport key. Nothing is shared automatically: Tenure makes no network call.",
+    "community.empty.where": "To see the board here, download the community-board.json the repository publishes and save it as {path}.",
+    "community.generated": "{records} · board generated on {date}",
+    "community.lede": "Self-reported by contributors, and signature-checked: each record is signed with its owner's passport key, and one record per key counts. ",
+    "community.lede_bold": "This does not stop one person with many keys.",
+    "community.ranking": "Per action family, models ranked by the top of the 95% range of their fault rate, never by one score.",
     "confirm.again": "Click again to confirm",
     "confirm.default": "Confirm",
     "confirm.flag.desc": "This counts as a fault: {type} drops at least one tier and climbs again. Use it for an error nobody caught.",
@@ -74,6 +82,14 @@ const TENURE_LOCALES = {
     "count.faults": {
       "one": "{n} fault",
       "other": "{n} faults"
+    },
+    "count.models": {
+      "one": "{n} model",
+      "other": "{n} models"
+    },
+    "count.records": {
+      "one": "{n} record",
+      "other": "{n} records"
     },
     "count.sessions": {
       "one": "{n} session",
@@ -427,9 +443,11 @@ const TENURE_LOCALES = {
     "tabs.aria": "Tenure views",
     "th.after_switch": "after the switch",
     "th.agent": "agent",
+    "th.contributors": "contributors",
     "th.faults_checks": "faults / verified",
     "th.file": "file",
     "th.guarantee": "guarantee",
+    "th.model": "model",
     "th.now": "now",
     "th.outcome": "outcome",
     "th.public_measure": "public measure",
@@ -525,6 +543,7 @@ const TENURE_LOCALES = {
     "verdict.unsigned.no_key": "No signing key yet: {cmd} creates one",
     "verdict.unsigned.replay": "Replay gives the same tiers",
     "verdict.unsigned.title": "Unsigned, otherwise verified",
+    "view.community": "Community",
     "view.map": "Map",
     "view.models": "Your benchmark",
     "view.passport": "Passport",
@@ -565,6 +584,14 @@ const TENURE_LOCALES = {
     "common.one_in": "1 من كل {k}",
     "common.percent": "{v}%",
     "common.profile": "الملف الشخصي {profile}",
+    "community.empty.how": "للمساهمة، اكتب سجلك بهذا الأمر، واقرأ ما يحتويه، ثم افتح طلب دمج (pull request) يضيف الملف إلى المستودع المجتمعي ({repo}).",
+    "community.empty.title": "لا توجد سجلات مشتركة بعد",
+    "community.empty.what": "يجمع المقياس المجتمعي السجلات التي اختار مستخدمو Tenure نشرها: لكل نموذج ولكل فئة إجراءات، النجاحات المُتحقَّق منها والإخفاقات، موقَّعة بمفتاح جوازهم. لا يُشارَك شيء تلقائيًا: لا يُجري Tenure أي اتصال بالشبكة.",
+    "community.empty.where": "لعرض الترتيب هنا، نزّل ملف community-board.json الذي ينشره المستودع واحفظه باسم {path}.",
+    "community.generated": "{records} · أُنشئ الترتيب في {date}",
+    "community.lede": "مُصرَّح به من المساهمين، مع التحقق من التوقيعات: كل سجل موقَّع بمفتاح جواز صاحبه، ويُحتسب سجل واحد لكل مفتاح. ",
+    "community.lede_bold": "هذا لا يمنع شخصًا واحدًا من امتلاك عدة مفاتيح.",
+    "community.ranking": "لكل فئة إجراءات، تُرتَّب النماذج حسب الحد الأعلى لنطاق 95% لمعدل إخفاقها، وليس أبدًا حسب نتيجة واحدة.",
     "confirm.again": "انقر مرة أخرى للتأكيد",
     "confirm.default": "تأكيد",
     "confirm.flag.desc": "يُحتسب هذا إخفاقًا: ينزل {type} مستوى واحدًا على الأقل ويصعد من جديد. استخدمه لخطأ لم يلاحظه أحد.",
@@ -591,6 +618,22 @@ const TENURE_LOCALES = {
       "few": "{n} إخفاقات",
       "many": "{n} إخفاقًا",
       "other": "{n} إخفاق"
+    },
+    "count.models": {
+      "zero": "{n} نماذج",
+      "one": "{n} نموذج",
+      "two": "{n} نموذجان",
+      "few": "{n} نماذج",
+      "many": "{n} نموذجًا",
+      "other": "{n} نموذج"
+    },
+    "count.records": {
+      "zero": "{n} سجلات",
+      "one": "{n} سجل",
+      "two": "{n} سجلّان",
+      "few": "{n} سجلات",
+      "many": "{n} سجلًّا",
+      "other": "{n} سجل"
     },
     "count.sessions": {
       "zero": "{n} جلسات",
@@ -1052,9 +1095,11 @@ const TENURE_LOCALES = {
     "tabs.aria": "عروض Tenure",
     "th.after_switch": "بعد التبديل",
     "th.agent": "الوكيل",
+    "th.contributors": "المساهمون",
     "th.faults_checks": "إخفاقات / نتائج موثّقة",
     "th.file": "الملف",
     "th.guarantee": "الضمان",
+    "th.model": "النموذج",
     "th.now": "الآن",
     "th.outcome": "النتيجة",
     "th.public_measure": "المقياس العام",
@@ -1182,6 +1227,7 @@ const TENURE_LOCALES = {
     "verdict.unsigned.no_key": "لا مفتاح توقيع بعد: {cmd} ينشئ واحدًا",
     "verdict.unsigned.replay": "إعادة التشغيل تعطي المستويات نفسها",
     "verdict.unsigned.title": "غير موقَّع، وما عدا ذلك سليم",
+    "view.community": "المجتمع",
     "view.map": "الخريطة",
     "view.models": "مقياسك",
     "view.passport": "الجواز",
@@ -1214,6 +1260,14 @@ const TENURE_LOCALES = {
     "common.one_in": "1 de cada {k}",
     "common.percent": "{v} %",
     "common.profile": "perfil {profile}",
+    "community.empty.how": "Para contribuir, escribe tu registro con este comando, lee lo que contiene y abre una pull request que añada el archivo al repositorio comunitario ({repo}).",
+    "community.empty.title": "Todavía no hay registros compartidos",
+    "community.empty.what": "El benchmark comunitario reúne los registros que usuarios de Tenure decidieron publicar: por modelo y por familia de acciones, los éxitos verificados y los fallos, firmados con la clave de su pasaporte. No se comparte nada automáticamente: Tenure no hace ninguna llamada de red.",
+    "community.empty.where": "Para ver la clasificación aquí, descarga el community-board.json que publica el repositorio y guárdalo como {path}.",
+    "community.generated": "{records} · clasificación generada el {date}",
+    "community.lede": "Declarado por quienes contribuyen, con firmas comprobadas: cada registro va firmado con la clave del pasaporte de su autor, y cuenta un solo registro por clave. ",
+    "community.lede_bold": "Esto no impide que una misma persona tenga varias claves.",
+    "community.ranking": "Por familia de acciones, los modelos se ordenan por el extremo superior del rango del 95 % de su tasa de fallos, nunca por una sola puntuación.",
     "confirm.again": "Haz clic otra vez para confirmar",
     "confirm.default": "Confirmar",
     "confirm.flag.desc": "Cuenta como fallo: {type} baja al menos un nivel y vuelve a subir. Úsalo para un error que nadie detectó.",
@@ -1232,6 +1286,16 @@ const TENURE_LOCALES = {
     "count.faults": {
       "one": "{n} fallo",
       "other": "{n} fallos"
+    },
+    "count.models": {
+      "one": "{n} modelo",
+      "many": "{n} modelos",
+      "other": "{n} modelos"
+    },
+    "count.records": {
+      "one": "{n} registro",
+      "many": "{n} registros",
+      "other": "{n} registros"
     },
     "count.sessions": {
       "one": "{n} sesión",
@@ -1585,9 +1649,11 @@ const TENURE_LOCALES = {
     "tabs.aria": "Vistas de Tenure",
     "th.after_switch": "tras el cambio",
     "th.agent": "agente",
+    "th.contributors": "contribuyentes",
     "th.faults_checks": "fallos / verificados",
     "th.file": "archivo",
     "th.guarantee": "garantía",
+    "th.model": "modelo",
     "th.now": "ahora",
     "th.outcome": "resultado",
     "th.public_measure": "medida pública",
@@ -1683,6 +1749,7 @@ const TENURE_LOCALES = {
     "verdict.unsigned.no_key": "Aún no hay clave de firma: {cmd} crea una",
     "verdict.unsigned.replay": "La reproducción da los mismos niveles",
     "verdict.unsigned.title": "Sin firmar, por lo demás verificado",
+    "view.community": "Comunidad",
     "view.map": "Mapa",
     "view.models": "Tu benchmark",
     "view.passport": "Pasaporte",
@@ -1715,6 +1782,14 @@ const TENURE_LOCALES = {
     "common.one_in": "1 sur {k}",
     "common.percent": "{v} %",
     "common.profile": "profil {profile}",
+    "community.empty.how": "Pour contribuer, écrivez votre relevé avec cette commande, lisez ce qu'il contient, puis ouvrez une pull request qui ajoute le fichier au dépôt communautaire ({repo}).",
+    "community.empty.title": "Aucun relevé partagé pour l'instant",
+    "community.empty.what": "Le benchmark communautaire rassemble les relevés que des utilisateurs de Tenure ont choisi de publier : par modèle et par famille d'actions, les succès vérifiés et les fautes, signés avec la clé de leur passeport. Rien n'est partagé automatiquement : Tenure ne fait aucun appel réseau.",
+    "community.empty.where": "Pour voir le classement ici, téléchargez le community-board.json publié par le dépôt et enregistrez-le sous {path}.",
+    "community.generated": "{records} · classement généré le {date}",
+    "community.lede": "Déclaré par les contributeurs, et signatures vérifiées : chaque relevé est signé avec la clé du passeport de son auteur, et un seul relevé compte par clé. ",
+    "community.lede_bold": "Cela n'empêche pas une même personne d'avoir plusieurs clés.",
+    "community.ranking": "Par famille d'actions, les modèles sont classés par le haut de la fourchette à 95 % de leur taux de fautes, jamais par un score unique.",
     "confirm.again": "Cliquez de nouveau pour confirmer",
     "confirm.default": "Confirmer",
     "confirm.flag.desc": "Cela compte comme une faute : {type} perd au moins un niveau et doit remonter. À utiliser pour une erreur que personne n'a repérée.",
@@ -1733,6 +1808,16 @@ const TENURE_LOCALES = {
     "count.faults": {
       "one": "{n} faute",
       "other": "{n} fautes"
+    },
+    "count.models": {
+      "one": "{n} modèle",
+      "many": "{n} modèles",
+      "other": "{n} modèles"
+    },
+    "count.records": {
+      "one": "{n} relevé",
+      "many": "{n} relevés",
+      "other": "{n} relevés"
     },
     "count.sessions": {
       "one": "{n} session",
@@ -2086,9 +2171,11 @@ const TENURE_LOCALES = {
     "tabs.aria": "Vues de Tenure",
     "th.after_switch": "après le changement",
     "th.agent": "agent",
+    "th.contributors": "contributeurs",
     "th.faults_checks": "fautes / vérifiés",
     "th.file": "fichier",
     "th.guarantee": "garantie",
+    "th.model": "modèle",
     "th.now": "actuel",
     "th.outcome": "résultat",
     "th.public_measure": "mesure publique",
@@ -2184,6 +2271,7 @@ const TENURE_LOCALES = {
     "verdict.unsigned.no_key": "Pas encore de clé de signature : {cmd} en crée une",
     "verdict.unsigned.replay": "Le registre rejoué redonne les mêmes niveaux",
     "verdict.unsigned.title": "Non signé, vérifié par ailleurs",
+    "view.community": "Communauté",
     "view.map": "Carte",
     "view.models": "Votre benchmark",
     "view.passport": "Passeport",
@@ -2214,6 +2302,14 @@ const TENURE_LOCALES = {
     "common.one_in": "1/{k}",
     "common.percent": "{v}%",
     "common.profile": "配置文件 {profile}",
+    "community.empty.how": "如要贡献，请用这条命令写出你的记录，查看其中内容，然后提交一个 pull request，把文件加入社区仓库（{repo}）。",
+    "community.empty.title": "还没有共享记录",
+    "community.empty.what": "社区基准汇总 Tenure 用户自愿发布的记录：按模型和操作类别统计的已验证成功次数与失误次数，并用各自的护照密钥签名。不会自动共享任何内容：Tenure 不进行任何网络调用。",
+    "community.empty.where": "如要在这里查看排行，请下载仓库发布的 community-board.json，并保存为 {path}。",
+    "community.generated": "{records} · 排行生成于 {date}",
+    "community.lede": "由贡献者自行申报，签名已核验：每份记录都用作者的护照密钥签名，每个密钥只计一份记录。",
+    "community.lede_bold": "这无法阻止一个人拥有多个密钥。",
+    "community.ranking": "按操作类别，模型按失误率 95% 区间的上限排序，从不按单一分数排序。",
     "confirm.again": "再次点击以确认",
     "confirm.default": "确认",
     "confirm.flag.desc": "这会记为一次失误：{type} 至少降一级，需要重新晋升。用于没人发现的错误。",
@@ -2230,6 +2326,12 @@ const TENURE_LOCALES = {
     },
     "count.faults": {
       "other": "{n} 次失误"
+    },
+    "count.models": {
+      "other": "{n} 个模型"
+    },
+    "count.records": {
+      "other": "{n} 份记录"
     },
     "count.sessions": {
       "other": "{n} 个会话"
@@ -2556,9 +2658,11 @@ const TENURE_LOCALES = {
     "tabs.aria": "Tenure 视图",
     "th.after_switch": "切换后",
     "th.agent": "智能体",
+    "th.contributors": "贡献者",
     "th.faults_checks": "失误 / 已验证",
     "th.file": "文件",
     "th.guarantee": "保证",
+    "th.model": "模型",
     "th.now": "当前",
     "th.outcome": "结果",
     "th.public_measure": "公开测评",
@@ -2646,6 +2750,7 @@ const TENURE_LOCALES = {
     "verdict.unsigned.no_key": "还没有签名密钥：运行 {cmd} 创建",
     "verdict.unsigned.replay": "重放得到相同的级别",
     "verdict.unsigned.title": "未签名，其余均已验证",
+    "view.community": "社区",
     "view.map": "总览",
     "view.models": "你的基准",
     "view.passport": "护照",
@@ -3464,6 +3569,7 @@ const TENURE_LOCALES = {
   var VIEWS = [
     { id: "map", key: "m" },            // label: the catalog key view.<id>
     { id: "models", key: "b" },
+    { id: "community", key: "c" },
     { id: "switch", key: "w" },
     { id: "passport", key: "p" },
     { id: "undo", key: "u" },
@@ -4029,6 +4135,62 @@ const TENURE_LOCALES = {
       }));
   }
 
+  // --------------------------------------------------------------------------------------------------- community
+  var COMMUNITY_REPO = "github.com/otsoa-dubief/tenure-community";   // tenure/community.py REPO
+
+  /** The community board the owner downloaded into the plugin's data folder (GET /community), never fetched from
+   *  the network. Without one: what it is, that nothing is shared automatically, and how to contribute. */
+  function CommunityView(props) {
+    var res = usePoll(function () { return apiGet("/community"); }, [props.version], true, PASSPORT_MS);
+    var fresh = useFresh(!!res.data);
+    if (res.error && !res.data) return h("div", { className: "tnr-error" }, errText(res.error));
+    if (!res.data) return h("div", { className: "tnr-dim tnr-pad" }, t("common.loading"));
+    var board = res.data.board;
+    if (!board || !(board.families || []).length) {
+      return h("div", { className: "tnr-community" }, h(Stale, { res: res }),
+        h(Empty, { title: t("community.empty.title") },
+          h("p", null, t("community.empty.what")),
+          h("p", null, t("community.empty.how", { repo: COMMUNITY_REPO })),
+          h(CopyCmd, { cmd: "hermes tenure share" }),
+          h("p", { className: "tnr-community-where" }, t("community.empty.where", { path: res.data.path || "community-board.json" }))));
+    }
+    return h("div", { className: "tnr-models tnr-community" }, h(Stale, { res: res }),
+      h("p", { className: "tnr-lede" }, t("community.lede"), h("b", null, t("community.lede_bold")), " ", t("community.ranking")),
+      h("div", { className: "tnr-dim tnr-small tnr-community-meta" },
+        t("community.generated", { records: t("count.records", { n: board.records || 0 }), date: board.generated || "—" })),
+      board.families.map(function (g, gi) {
+        var ranked = g.models.filter(function (r) { return r.checks >= RANK_MIN; });
+        var waiting = g.models.filter(function (r) { return r.checks < RANK_MIN; });
+        var max = Math.max.apply(null, ranked.map(function (r) { return r.high; }).concat([0.05]));
+        max = Math.min(1, Math.ceil(max * 20) / 20);
+        return h("section", { key: g.family, className: "tnr-model-block" },
+          h("div", { className: "tnr-model-head" }, h("span", { className: "tnr-eyebrow-n" }, nth(gi + 1)), h("code", null, g.family),
+            h("span", { className: "tnr-dim" }, t("count.models", { n: g.models.length }))),
+          h("div", { className: "tnr-model-personal tnr-community-table" },
+            ranked.length ? h("table", { className: "tnr-dtable tnr-dtable--models" },
+              h("thead", null, h("tr", null,
+                h("th", { className: "tnr-num" }, "#"), h("th", null, t("th.model")), h("th", { className: "tnr-num" }, t("th.faults_checks")),
+                h("th", { className: "tnr-num" }, t("th.rate")), h("th", null, t("th.range", { max: pct(max) })), h("th", { className: "tnr-num" }, t("th.contributors")))),
+              h("tbody", null, ranked.map(function (r, i) {
+                return h("tr", { key: r.model + "@" + r.provider, className: fresh ? "tnr-in" : undefined, style: { "--i": i } },
+                  h("td", { className: "tnr-num tnr-dim tnr-mono" }, nth(i + 1)),
+                  h("td", null, h("div", null, r.model, h("bdi", { className: "tnr-dim" }, "@" + r.provider))),
+                  h("td", { className: "tnr-num" }, num(r.faults) + " / " + num(r.checks)),
+                  h("td", { className: "tnr-num" }, pct(r.rate)),
+                  h("td", null, h("div", { className: "tnr-interval-cell" }, h(Interval, { low: r.low, high: r.high, rate: r.rate, max: max, delay: 150 + i * 60 }),
+                    h("span", { className: "tnr-mono tnr-small" }, pct(r.low) + "–" + pct(r.high)))),
+                  h("td", { className: "tnr-num" }, num(r.contributors)));
+              }))) : null,
+            waiting.length ? h("div", { className: "tnr-waiting" },
+              h("div", { className: "tnr-waiting-title" }, t("models.not_ranked")),
+              h("div", { className: "tnr-dim tnr-small" }, t("models.not_ranked_note", { n: RANK_MIN })),
+              h("ul", null, waiting.map(function (r) {
+                return h("li", { key: r.model + "@" + r.provider }, r.model, h("bdi", { className: "tnr-dim" }, "@" + r.provider),
+                  h("span", { className: "tnr-dim tnr-small" }, " · " + num(r.faults) + " / " + num(r.checks)));
+              }))) : null));
+      }));
+  }
+
   // ---------------------------------------------------------------------------------------------- switch preview
   // Labels and texts: catalog keys switch.status.<id>.label and switch.status.<id>.text.
   var STATUS = { carried: { tone: "prov" }, reset: { tone: "muted" }, vetoed: { tone: "fault" }, kept: { tone: "ok" } };
@@ -4520,7 +4682,7 @@ const TENURE_LOCALES = {
   // ------------------------------------------------------------------------------------------------------ help
   function Help(props) {
     // The keys stay as they are; only their descriptions are translated.
-    var keys = [["m", t("view.map")], ["b", t("view.models")], ["w", t("view.switch")], ["p", t("view.passport")], ["u", t("view.undo")],
+    var keys = [["m", t("view.map")], ["b", t("view.models")], ["c", t("view.community")], ["w", t("view.switch")], ["p", t("view.passport")], ["u", t("view.undo")],
       ["s", t("view.settings")], ["a", t("help.agent")], ["j / k", t("help.next_prev")], ["↵", t("help.open")],
       ["r", t("help.raw")], ["esc", t("help.close")], ["?", t("help.help")]];
     return h("div", { className: "tnr-drawer-wrap", onClick: props.onClose },
@@ -4712,6 +4874,7 @@ const TENURE_LOCALES = {
       body = h(MapView, { profiles: profiles, rows: rows, settings: current && current.settings, focus: focus, onFocus: setFocus,
         onOpen: function (r) { setDrawer(r.key); }, transitions: transitions });
     } else if (view === "models") body = h(ModelsView, { raw: raw, version: version });
+    else if (view === "community") body = h(CommunityView, { version: version });
     else if (view === "switch") body = h(SwitchView, { rows: rows, raw: raw, version: version });
     else if (view === "passport") body = h(PassportView, { rows: rows, raw: raw, version: version });
     else if (view === "undo") body = h(UndoView, { undoable: activity && activity.undoable, current: currentProfile, onDone: done, raw: raw });

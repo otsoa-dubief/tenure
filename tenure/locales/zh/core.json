@@ -154,6 +154,16 @@
   "cli.setup.paused": "学习已暂停：{setting} 已关闭。将 {setting} 设为 smart 或 manual，tenure 才能学习。",
   "cli.setup.save_failed": "无法保存预设（{error}）。请设置 {setting}: {name}",
   "cli.setup.unknown": "未知预设 {name}。",
+  "cli.share.contains": "其中只包含：按模型和操作类别统计的已验证成功次数与失误次数（{rows}）；日期 {date}，不含时间；tenure {version}，规则 {rule}，预设 {preset}；你的护照公钥和一个签名。",
+  "cli.share.how": "如要贡献，请提交一个 pull request，把这个文件加入社区仓库（{repo}）。每个密钥只计一份记录：较新的记录会替换旧的。",
+  "cli.share.never": "绝不包含：路径、脚本或项目名称、配置文件名称、提示词、会话 ID。模型名称按 Hermes 提供的原样显示。",
+  "cli.share.none": "还没有已验证的结果：没有可分享的内容。",
+  "cli.share.not_sent": "没有发送任何内容：文件留在这里，直到你自己发布。",
+  "cli.share.rows": {
+    "other": "{n} 行"
+  },
+  "cli.share.unsigned": "无法签名记录：缺少 cryptography 包。未签名的记录会被丢弃，因此没有写入任何记录。",
+  "cli.share.written": "社区记录已写入：{path}",
   "cli.start.probation": "研究起步：每类操作都会先征求你的同意，直到赢得自主权（预注册研究的规则）。",
   "cli.start.save_failed": "无法保存起步模式（{error}）。请设置 {setting}: {value}",
   "cli.start.trusted": "信任起步：每类操作在第一次失误之前，都像只有 Hermes 时一样运行；之后会先征求你的同意，并重新赢得自主权。",
@@ -205,7 +215,7 @@
   "cli.undo.title": {
     "other": "过去 {n} 小时内自主执行的操作（撤销任一个都记为失误）："
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    undo [ID]                                  恢复一个先执行后告知的操作写入的文件（记为失误）；不带参数时列出清单\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    start trusted|probation                    trusted：某类操作第一次失误前不提问；probation：研究起步\n    strict on|off                              严格模式：新模型从空记录开始\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    undo [ID]                                  恢复一个先执行后告知的操作写入的文件（记为失误）；不带参数时列出清单\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    start trusted|probation                    trusted：某类操作第一次失误前不提问；probation：研究起步\n    strict on|off                              严格模式：新模型从空记录开始\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n    share [--out FILE]                         写出一份签名的计数记录，用于社区基准（自愿参与，不会发送任何内容）\n",
   "cli.verify.after": {
     "other": "注意：此护照之后账本中有 {n} 个事件；级别没有变化。"
   },

@@ -226,6 +226,7 @@ The full rules, every protected entry and every known gap: [docs/self-protection
 | `hermes tenure start trusted\|probation` | Trusted start (default: no question before a type's first mistake) or the study's start (every type on probation) |
 | `hermes tenure strict on\|off` | Strict mode: a new model starts with an empty record |
 | `hermes tenure cleanup` | List dead tenure keys in Hermes' permanent allowlist (prints, never edits) |
+| `hermes tenure share [--out FILE]` | Write a signed record of your counts for the community benchmark, to publish yourself (nothing is sent) |
 
 Settings, in `config.yaml` under `plugins.entries.tenure.settings`:
 
@@ -238,6 +239,13 @@ strict: false
 types: {"mcp:notion:*": medium, "shell:git:push": cap}   # reclassify action types
 enabled: true
 ```
+
+## Community benchmark (opt-in)
+
+`hermes tenure share` writes a file, signed with your passport key, holding only counts: per model and per coarse
+action family (`file:write`, `shell:git:commit`), verified successes and faults, plus the date, versions and preset.
+Nothing is sent: you publish the file yourself, by a pull request to the community repository. The dashboard's
+Community tab shows the board once you save it as `plugin-data/tenure/community-board.json`; format, privacy and limits in [docs/community.md](docs/community.md).
 
 ## Limits
 

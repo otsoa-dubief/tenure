@@ -23,6 +23,14 @@
   "common.one_in": "1 sur {k}",
   "common.percent": "{v} %",
   "common.profile": "profil {profile}",
+  "community.empty.how": "Pour contribuer, écrivez votre relevé avec cette commande, lisez ce qu'il contient, puis ouvrez une pull request qui ajoute le fichier au dépôt communautaire ({repo}).",
+  "community.empty.title": "Aucun relevé partagé pour l'instant",
+  "community.empty.what": "Le benchmark communautaire rassemble les relevés que des utilisateurs de Tenure ont choisi de publier : par modèle et par famille d'actions, les succès vérifiés et les fautes, signés avec la clé de leur passeport. Rien n'est partagé automatiquement : Tenure ne fait aucun appel réseau.",
+  "community.empty.where": "Pour voir le classement ici, téléchargez le community-board.json publié par le dépôt et enregistrez-le sous {path}.",
+  "community.generated": "{records} · classement généré le {date}",
+  "community.lede": "Déclaré par les contributeurs, et signatures vérifiées : chaque relevé est signé avec la clé du passeport de son auteur, et un seul relevé compte par clé. ",
+  "community.lede_bold": "Cela n'empêche pas une même personne d'avoir plusieurs clés.",
+  "community.ranking": "Par famille d'actions, les modèles sont classés par le haut de la fourchette à 95 % de leur taux de fautes, jamais par un score unique.",
   "confirm.again": "Cliquez de nouveau pour confirmer",
   "confirm.default": "Confirmer",
   "confirm.flag.desc": "Cela compte comme une faute : {type} perd au moins un niveau et doit remonter. À utiliser pour une erreur que personne n'a repérée.",
@@ -41,6 +49,16 @@
   "count.faults": {
     "one": "{n} faute",
     "other": "{n} fautes"
+  },
+  "count.models": {
+    "one": "{n} modèle",
+    "many": "{n} modèles",
+    "other": "{n} modèles"
+  },
+  "count.records": {
+    "one": "{n} relevé",
+    "many": "{n} relevés",
+    "other": "{n} relevés"
   },
   "count.sessions": {
     "one": "{n} session",
@@ -394,9 +412,11 @@
   "tabs.aria": "Vues de Tenure",
   "th.after_switch": "après le changement",
   "th.agent": "agent",
+  "th.contributors": "contributeurs",
   "th.faults_checks": "fautes / vérifiés",
   "th.file": "fichier",
   "th.guarantee": "garantie",
+  "th.model": "modèle",
   "th.now": "actuel",
   "th.outcome": "résultat",
   "th.public_measure": "mesure publique",
@@ -492,6 +512,7 @@
   "verdict.unsigned.no_key": "Pas encore de clé de signature : {cmd} en crée une",
   "verdict.unsigned.replay": "Le registre rejoué redonne les mêmes niveaux",
   "verdict.unsigned.title": "Non signé, vérifié par ailleurs",
+  "view.community": "Communauté",
   "view.map": "Carte",
   "view.models": "Votre benchmark",
   "view.passport": "Passeport",

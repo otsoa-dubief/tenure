@@ -23,6 +23,14 @@
   "common.one_in": "1 in {k}",
   "common.percent": "{v}%",
   "common.profile": "profile {profile}",
+  "community.empty.how": "To contribute, write your record with this command, read what it holds, then open a pull request adding the file to the community repository ({repo}).",
+  "community.empty.title": "No shared records yet",
+  "community.empty.what": "The community benchmark pools records that Tenure users chose to publish: per model and per action family, verified successes and faults, signed with their passport key. Nothing is shared automatically: Tenure makes no network call.",
+  "community.empty.where": "To see the board here, download the community-board.json the repository publishes and save it as {path}.",
+  "community.generated": "{records} · board generated on {date}",
+  "community.lede": "Self-reported by contributors, and signature-checked: each record is signed with its owner's passport key, and one record per key counts. ",
+  "community.lede_bold": "This does not stop one person with many keys.",
+  "community.ranking": "Per action family, models ranked by the top of the 95% range of their fault rate, never by one score.",
   "confirm.again": "Click again to confirm",
   "confirm.default": "Confirm",
   "confirm.flag.desc": "This counts as a fault: {type} drops at least one tier and climbs again. Use it for an error nobody caught.",
@@ -41,6 +49,14 @@
   "count.faults": {
     "one": "{n} fault",
     "other": "{n} faults"
+  },
+  "count.models": {
+    "one": "{n} model",
+    "other": "{n} models"
+  },
+  "count.records": {
+    "one": "{n} record",
+    "other": "{n} records"
   },
   "count.sessions": {
     "one": "{n} session",
@@ -394,9 +410,11 @@
   "tabs.aria": "Tenure views",
   "th.after_switch": "after the switch",
   "th.agent": "agent",
+  "th.contributors": "contributors",
   "th.faults_checks": "faults / verified",
   "th.file": "file",
   "th.guarantee": "guarantee",
+  "th.model": "model",
   "th.now": "now",
   "th.outcome": "outcome",
   "th.public_measure": "public measure",
@@ -492,6 +510,7 @@
   "verdict.unsigned.no_key": "No signing key yet: {cmd} creates one",
   "verdict.unsigned.replay": "Replay gives the same tiers",
   "verdict.unsigned.title": "Unsigned, otherwise verified",
+  "view.community": "Community",
   "view.map": "Map",
   "view.models": "Your benchmark",
   "view.passport": "Passport",

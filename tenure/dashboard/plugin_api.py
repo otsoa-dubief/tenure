@@ -231,6 +231,7 @@ def _agents(raw: bool) -> dict:
                             "settings": {"preset": cfg["preset"], "risks": cfg["risks"], "spot": cfg["spot"],
                                          "strict": cfg["strict"], "pending": cfg["pending"],
                                          "start": cfg.get("start", "probation"),
+                                         "enabled": cfg.get("enabled", True),
                                          "copy_pending": cfg["copy_pending"]},
                             "agents": _agent_rows(core, st, cfg, suspended, raw)})
         except (_Unreadable, sqlite3.Error):
@@ -390,6 +391,15 @@ def _timeline(agent: str, profile: str | None, raw: bool) -> dict:
     return {"profile": p["name"], "agent": agent, "events": events}
 
 
+def _community() -> dict:
+    """The community board the owner saved in this profile's data folder, else ``board: null``; never fetched from
+    anywhere (tenure makes no network call). ``path`` says where the file goes."""
+    core = _core()
+    community = importlib.import_module(core.__name__ + ".community")     # not imported by the package itself
+    path = community.board_path(core.data_dir())
+    return {"board": community.load_board(path), "path": path}
+
+
 def _get(fn, *args):
     """A GET's work, in a worker thread: an unreadable profile answers 503 instead of an error page."""
     try:
@@ -418,6 +428,11 @@ async def activity(since: float | None = Query(None, description="epoch seconds;
 @router.get("/models")
 async def models(type: str | None = Query(None), raw: bool = _RAW):
     return await asyncio.to_thread(_get, _models, type, raw)
+
+
+@router.get("/community")
+async def community():
+    return await asyncio.to_thread(_get, _community)
 
 
 @router.get("/preview")

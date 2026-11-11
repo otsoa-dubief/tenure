@@ -175,6 +175,17 @@
   "cli.setup.paused": "learning is paused: {setting} is off. Set {setting}: smart or manual to let tenure learn.",
   "cli.setup.save_failed": "Could not save the preset ({error}). Set {setting}: {name}",
   "cli.setup.unknown": "Unknown preset {name}.",
+  "cli.share.contains": "What it holds, and nothing else: per model and per action family, verified successes and faults ({rows}); the date {date}, no time; tenure {version}, rule {rule}, preset {preset}; your passport's public key and a signature.",
+  "cli.share.how": "To contribute, open a pull request adding this file to the community repository ({repo}). One record per key counts: a newer record of yours replaces the older one.",
+  "cli.share.never": "Never in it: a path, a script or project name, a profile name, a prompt, a session id. Model names appear as Hermes reports them.",
+  "cli.share.none": "No verified outcome yet: nothing to share.",
+  "cli.share.not_sent": "Nothing was sent: the file stays here until you publish it yourself.",
+  "cli.share.rows": {
+    "one": "{n} row",
+    "other": "{n} rows"
+  },
+  "cli.share.unsigned": "Cannot sign the record: the cryptography package is missing. An unsigned record would be dropped, so none was written.",
+  "cli.share.written": "Community record written: {path}",
   "cli.start.probation": "Study start: every type of action asks you first until it has earned its autonomy (the preregistered study's rule).",
   "cli.start.save_failed": "Could not save the start mode ({error}). Set {setting}: {value}",
   "cli.start.trusted": "Trusted start: each type of action works as with Hermes alone until its first mistake; then it asks you first and earns its autonomy back.",
@@ -235,7 +246,7 @@
     "one": "Actions taken alone in the last {n} hour (undoing one counts as a fault):",
     "other": "Actions taken alone in the last {n} hours (undoing one counts as a fault):"
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   what each agent has earned, per action type\n    setup [careful|balanced|fast]              the three recommendations; with a name, use it\n    explain                                    how tenure decides, and what the numbers guarantee\n    models [--type T]                          each model's verified record on your own work\n    undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list\n    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked\n    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error\n    passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)\n    verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay\n    anchor                                     one line to publish: the ledger's head, date and length\n    export [PATH]                              write the evidence ledger (hash-chained JSON lines)\n    start trusted|probation                    trusted: no question before a type's first mistake; probation: the study's start\n    strict on|off                              strict mode: a new model starts with an empty record\n    cleanup                                    list dead tenure keys in Hermes' permanent allowlist\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   what each agent has earned, per action type\n    setup [careful|balanced|fast]              the three recommendations; with a name, use it\n    explain                                    how tenure decides, and what the numbers guarantee\n    models [--type T]                          each model's verified record on your own work\n    undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list\n    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked\n    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error\n    passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)\n    verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay\n    anchor                                     one line to publish: the ledger's head, date and length\n    export [PATH]                              write the evidence ledger (hash-chained JSON lines)\n    start trusted|probation                    trusted: no question before a type's first mistake; probation: the study's start\n    strict on|off                              strict mode: a new model starts with an empty record\n    cleanup                                    list dead tenure keys in Hermes' permanent allowlist\n    share [--out FILE]                         write a signed record of counts for the community benchmark (opt-in, nothing is sent)\n",
   "cli.verify.after": {
     "one": "Note: the ledger has {n} event after this passport; the tiers are unchanged.",
     "other": "Note: the ledger has {n} events after this passport; the tiers are unchanged."

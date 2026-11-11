@@ -16,6 +16,7 @@
     export [PATH]                              write the evidence ledger (hash-chained JSON lines)
     strict on|off                              strict mode: a new model starts with an empty record
     cleanup                                    list dead tenure keys in Hermes' permanent allowlist
+    share [--out FILE]                         write a signed record of counts for the community benchmark (opt-in)
 """
 from __future__ import annotations
 
@@ -28,7 +29,7 @@ import shlex
 import sys
 import time
 
-from . import i18n, params, passport, personal, rule, store, undo
+from . import community, i18n, params, passport, personal, rule, store, undo
 from .i18n import ljust, tr, width
 
 ENOUGH = 20                                     # checks before a rate is called measured
@@ -496,6 +497,35 @@ def export(path: str = "") -> str:
     return tr("cli.export.written", path=path, n=n, command="hermes tenure verify PASSPORT")
 
 
+def share(out: str = "") -> tuple[str, int]:
+    """Write the signed community record to a file the owner publishes himself: nothing is sent."""
+    core = _core()
+    cfg = core.settings()
+    st = core.store_()
+    rows = community.counts(st)
+    if not rows:
+        return tr("cli.share.none"), 0
+    try:
+        rec = community.share_record(st, cfg, core.data_dir())
+    except RuntimeError:
+        return tr("cli.share.unsigned"), 1
+    out = out or os.path.join(os.getcwd(), f"tenure-record-{rec['date']}.json")
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    with open(out, "w", encoding="utf-8") as f:
+        json.dump(rec, f, indent=2, sort_keys=True, ensure_ascii=False)
+        f.write("\n")
+    table = _table(_cols("model", "provider", "type", "record"),
+                   [[r["model"], r["provider"], r["family"], _record(r["faults"], r["successes"])] for r in rec["rows"]])
+    lines = [tr("cli.share.written", path=out), "",
+             tr("cli.share.contains", rows=tr("cli.share.rows", n=len(rec["rows"])), date=rec["date"],
+                version=rec["tenure"], rule=rec["rule"], preset=rec["preset"]), "",
+             *["  " + x for x in table], "",
+             tr("cli.share.never"),
+             tr("cli.share.not_sent"),
+             tr("cli.share.how", repo=f"github.com/{community.REPO}")]
+    return "\n".join(lines), 0
+
+
 def _save_setting(core, key: str, value) -> str | None:
     """Write one plugin setting through Hermes, then log it in the ledger: None on success, else the reason."""
     if core.ST.ctx is None:
@@ -638,6 +668,8 @@ def _add_subcommands(subparser) -> None:
     p = subs.add_parser("strict", help="Strict mode: a new model starts with an empty record")
     p.add_argument("value", choices=("on", "off"))
     subs.add_parser("cleanup", help="List dead tenure keys in Hermes' permanent allowlist")
+    p = subs.add_parser("share", help="Write a signed record of counts for the community benchmark (nothing is sent)")
+    p.add_argument("--out", default="", help="Output file (default: tenure-record-<date>.json here)")
 
 
 def _usage() -> str:
@@ -683,6 +715,8 @@ def execute(ns) -> tuple[str, int]:
             return strict(g("value")), 0
         if cmd == "cleanup":
             return cleanup(), 0
+        if cmd == "share":
+            return share(g("out", "") or "")
     except CliError as e:
         return str(e), 1
     return _usage(), 1
