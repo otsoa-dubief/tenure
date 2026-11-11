@@ -26,6 +26,7 @@
     "other": "{type} no superó su periodo de prueba: cada acción pregunta, y se abre uno nuevo tras {n} acciones más de este tipo."
   },
   "ask.why.unsaved": "{type} actuaría y luego te avisaría, pero no se puede preparar el deshacer de esta acción (un archivo demasiado grande, binario o ilegible): pregunta en su lugar.",
+  "ask.why.untrusted": "{type} (impacto {stakes}) no está cubierto por el inicio con confianza.",
   "benchmarks.note.no_model": "No hay medida pública para {model} en {benchmark}.",
   "benchmarks.note.no_previous": "No hay modelo anterior con el que comparar.",
   "benchmarks.note.no_type": "No hay medida pública para este tipo de acción.",
@@ -261,6 +262,7 @@
     "one": "{n} éxito verificado seguido",
     "other": "{n} éxitos verificados seguidos"
   },
+  "notice.suspended": "tenure: esta sesión leyó contenido externo. A partir de ahora sus comandos preguntan hasta una sesión nueva (/new); las ediciones de archivos siguen, con su deshacer.",
   "notice.tier.fault": "tenure: {type} vuelve a {tier}, tras un fallo.",
   "notice.tier.fault_probation": "tenure · ↓ De vuelta a prueba · {type}\nUn fallo: vuelve a preguntar antes de actuar. Su historial se conserva y vuelve a subir desde aquí.",
   "notice.tier.series": "tenure · 🎓 Titularidad concedida · {type}\n████████████ T3 · titular\nAhora actúa por su cuenta, tras {successes} en {sessions}. 1 acción de cada {spot} sigue pasando un control aleatorio; un fallo lo hace bajar.",

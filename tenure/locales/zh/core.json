@@ -22,6 +22,7 @@
     "other": "{type} 未通过考察期：每次操作都会询问，再执行 {n} 个此类型的操作后将开启新的考察期。"
   },
   "ask.why.unsaved": "{type} 本可先执行后告知你，但无法为此操作准备撤销（文件过大、为二进制或无法读取）：改为询问。",
+  "ask.why.untrusted": "{type}（{stakes}风险）不在信任起步的范围内。",
   "benchmarks.note.no_model": "{model} 在 {benchmark} 上没有公开测评。",
   "benchmarks.note.no_previous": "没有可比较的上一个模型。",
   "benchmarks.note.no_type": "此操作类型没有公开测评。",
@@ -226,6 +227,7 @@
   "notice.count.successes_in_a_row": {
     "other": "连续 {n} 次已验证的成功"
   },
+  "notice.suspended": "tenure：本会话读取了外部内容。从现在起，在新会话（/new）之前，命令都会先询问；文件修改照常进行，并可撤销。",
   "notice.tier.fault": "tenure：{type} 因失误退回 {tier}。",
   "notice.tier.fault_probation": "tenure · ↓ 重回试用期 · {type}\n一次失误：它会重新先询问你。记录会保留，并从这里重新晋升。",
   "notice.tier.series": "tenure · 🎓 已获转正 · {type}\n████████████ T3 · 已转正\n在 {sessions}中取得{successes}后，现可自主执行。每 {spot} 个操作仍会随机抽查 1 个；一次失误就会让它降级。",

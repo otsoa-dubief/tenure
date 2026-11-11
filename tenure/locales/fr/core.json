@@ -26,6 +26,7 @@
     "other": "{type} a échoué à son essai : chaque action vous est demandée, et un nouvel essai s'ouvrira après encore {n} actions de ce type."
   },
   "ask.why.unsaved": "{type} agirait puis vous préviendrait, mais l'annulation ne peut pas être préparée pour cette action (fichier trop gros, binaire ou illisible) : il vous demande donc.",
+  "ask.why.untrusted": "{type} (enjeu {stakes}) n'est pas couvert par le départ en confiance.",
   "benchmarks.note.no_model": "Aucune mesure publique pour {model} sur {benchmark}.",
   "benchmarks.note.no_previous": "Aucun modèle précédent avec lequel comparer.",
   "benchmarks.note.no_type": "Aucune mesure publique pour ce type d'action.",
@@ -261,6 +262,7 @@
     "one": "{n} succès vérifié d'affilée",
     "other": "{n} succès vérifiés d'affilée"
   },
+  "notice.suspended": "tenure : cette session a lu du contenu extérieur. Désormais, ses commandes demandent jusqu'à une nouvelle session (/new) ; les modifications de fichiers continuent, avec leur annulation.",
   "notice.tier.fault": "tenure : {type} est revenu en {tier}, après une faute.",
   "notice.tier.fault_probation": "tenure · ↓ Retour en probation · {type}\nUne faute : il vous demande de nouveau avant d'agir. Son historique reste, et il remonte à partir d'ici.",
   "notice.tier.series": "tenure · 🎓 Titularisé · {type}\n████████████ T3 · titulaire\nAgit désormais seul, après {successes}, répartis sur {sessions}. 1 action sur {spot} reste contrôlée au hasard ; une faute le fait redescendre.",

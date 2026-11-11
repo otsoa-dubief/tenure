@@ -52,8 +52,8 @@ What tenure asks that Hermes alone would not:
 - every command, for the rest of a session that just read outside content (web, mail, downloads, `git pull`);
   file writes keep going with their undo, and `/new` starts afresh;
 - writing through the shell (`echo … > file`, `tee`; a covered tool's own output, `pytest > log`, is fine), local
-  scripts (`./run.sh`, `bash x.sh`) and `docker`. For inline code (`python -c`, `for`, `if`), "Allow for this
-  session" stops the questions until the session ends.
+  scripts (`./run.sh`, `bash x.sh`) and `docker`. For these and inline code (`python -c`, `for`, `if`), "Allow
+  for this session" stops the questions for that kind of command until the session ends (never counted as evidence).
 
 Prefer the preregistered study's start, where every type begins on probation? `hermes tenure start probation`.
 
@@ -237,6 +237,8 @@ enabled: true
 
 ## Limits
 
+<details><summary>14 known limits, stated plainly (click to open)</summary>
+
 - **A copied profile is caught only inside one install, and only once the original has run this version.** The
   check compares the database file with the other profiles of the same Hermes root. A copy made before the
   original ever ran tenure 1.0.0 or later, a copy whose original was deleted before the copy first started,
@@ -277,7 +279,11 @@ enabled: true
   undo it (under cron or `--yolo` it still acts and keeps its undo, but counts for nothing). Records are per model and per Hermes profile.
 - The guarantee covers errors you would refuse when asked. An error nobody would notice cannot be counted.
 
+</details>
+
 ## Privacy
+
+<details><summary>What stays on your machine, and what a passport shows</summary>
 
 Stored, in `plugin-data/tenure/tenure.db` of each Hermes profile: action types and stakes, outcomes, tiers,
 the agent string `model@provider`, sessions as `sha256(session id)[:12]`, timestamps, and a hash chain over all of
@@ -292,6 +298,8 @@ no network access, no LLM call, no telemetry. tenure does not read `.env`, `auth
 store. Reads outside the plugin folder, as the catalog asks: the dashboard tab reads, read-only, the
 `plugin-data/tenure/tenure.db` of the Hermes root and of each `profiles/*` folder; act-then-notify reads the
 project files an action is about to change, to snapshot them for undo (24 hours, 5 MB per action).
+
+</details>
 
 ## License
 

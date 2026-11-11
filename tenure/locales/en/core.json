@@ -26,6 +26,7 @@
     "other": "{type} failed its trial: every action asks, and a new trial opens after {n} more actions of this type."
   },
   "ask.why.unsaved": "{type} would act and then tell you, but an undo cannot be prepared for this action (a file too large, binary or unreadable): asking instead.",
+  "ask.why.untrusted": "{type} ({stakes} stakes) is not covered by the trusted start.",
   "benchmarks.note.no_model": "No public measure for {model} on {benchmark}.",
   "benchmarks.note.no_previous": "No previous model to compare with.",
   "benchmarks.note.no_type": "No public measure for this action type.",
@@ -261,6 +262,7 @@
     "one": "{n} verified success in a row",
     "other": "{n} verified successes in a row"
   },
+  "notice.suspended": "tenure: this session read outside content. From now on its commands ask until a new session (/new); file edits continue, with their undo.",
   "notice.tier.fault": "tenure: {type} is back at {tier}, after a fault.",
   "notice.tier.fault_probation": "tenure · ↓ Back on probation · {type}\nA fault: it asks first again. Its record stays, and it climbs again from here.",
   "notice.tier.series": "tenure · 🎓 Tenure granted · {type}\n████████████ T3 · tenured\nNow acts on its own, after {successes} over {sessions}. 1 action in {spot} is still spot-checked; a fault sends it back down.",

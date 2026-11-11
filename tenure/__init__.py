@@ -855,6 +855,13 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
     return recorded, s, decision, suspended
 
 
+def _uncovered_local(act, s: rule.TypeState, n) -> bool:
+    """A local action the trusted start does not cover (rm, mv, cp, a heredoc...), at low or medium stakes, never
+    faulted: the owner may allow it for the session. Not what leaves the machine (high), not a type on probation."""
+    return (act.stakes in ("low", "medium") and n is not None and not s.faults and not s.distrusted
+            and not s.trial_left and not s.trial_wait and not rule.trust_covers(act.type))
+
+
 def _to_t2(s: rule.TypeState) -> int:
     """Verified successes the type still needs to act again, then tell (the middle tier's Wald score)."""
     a, step, ln_b = params.wald_steps(s.stakes)
@@ -881,6 +888,8 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
         why = tr("ask.why.other_stakes", type=act.type, earned=stakes_name(earned_at), stakes=stakes)
     elif unsaved:
         why = tr("ask.why.unsaved", type=act.type)
+    elif trusted_start and _uncovered_local(act, s, n):
+        why = tr("ask.why.untrusted", type=act.type, stakes=stakes)
     elif s.tier == rule.T1 and s.faults and act.reversible and act.stakes in params.WALD:
         why = tr("ask.why.climb", type=act.type, stakes=stakes, n=_to_t2(s))   # the next step, not the far one
     else:
@@ -1069,7 +1078,8 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 # Under the trusted start, an ask for inline code, or one only the suspension causes, has a key stable
                 # for the session: "Allow for this session" then covers that type until the session ends.
                 per_session = (cfg.get("start") == "trusted" and not nobody and decision == rule.ASK
-                               and (act.type in params.SESSION_TYPES or (suspended and trusted(cfg, s, n, act.stakes))))
+                               and (act.type in params.SESSION_TYPES or (suspended and trusted(cfg, s, n, act.stakes))
+                                    or _uncovered_local(act, s, n)))
                 key = f"{PREFIX}:session:{act.type}:{session}" if per_session else f"{PREFIX}:{kind}:{act.type}:{uid}"
                 st.add_pending(uid, phase="nobody" if nobody else "asked", rule_key=key, **row)
                 directive = {"action": "approve", "rule_key": key,
@@ -1159,7 +1169,11 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         _follow_cwd(tool, args, result, session_id, task_id)
         session = anon(session_id or task_id)
         if tool == "execute_code" or classify.reads_external(tool, args, cwd):
+            with ST.mem:
+                first = session not in ST.tainted
             _taint(session)
+            if first and settings().get("start") == "trusted":
+                _announce(tr("notice.suspended"))           # said once: the asks that follow stay short
         call = str(tool_call_id or "")
         if not call:
             return None

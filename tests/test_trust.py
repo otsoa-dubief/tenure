@@ -287,3 +287,25 @@ def test_everyday_diagnostics_and_money(plugin):
     assert ctx.call("terminal", {"command": "chmod +x run.sh"}) == "ran"
     assert mod.classify.classify("terminal", {"command": "stripe charges create"}, cwd="/p", home="/h").stakes == "high"
     assert mod.classify.classify("terminal", {"command": "env"}, cwd="/p", home="/h").type == "shell:env"
+
+
+def test_session_answer_covers_local_uncovered_commands_but_not_probation(plugin):
+    mod, ctx = plugin(TRUST)
+    assert ctx.call("terminal", {"command": "rm old.py"}, answer="session") == "approved"
+    assert "not covered by the trusted start" in ctx.prompts[-1]["message"]
+    assert "/105" not in ctx.prompts[-1]["message"]
+    assert ctx.call("terminal", {"command": "rm old2.py"}) == "ran"
+    ctx.call("write_file", write("pb"))
+    mod.cli.slash(f"undo {int(ctx.posted[-1].rsplit(' ', 1)[1])}")      # file:write on probation: each answer counts
+    assert ctx.call("write_file", write("pb2"), answer="session") == "approved"
+    assert ctx.call("write_file", write("pb3")) == "approved"
+    assert ctx.call("terminal", {"command": "git push origin main"}, answer="session") == "approved"
+    assert ctx.call("terminal", {"command": "git push origin main"}) == "approved"   # what leaves the machine: each time
+
+
+def test_the_first_outside_read_is_explained_once(plugin):
+    mod, ctx = plugin(TRUST)
+    ctx.call("web_search", {"query": "x"})
+    ctx.call("web_search", {"query": "y"})
+    said = [p for p in ctx.posted if "/new" in p]
+    assert len(said) == 1 and "commands ask" in said[0]
