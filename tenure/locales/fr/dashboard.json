@@ -242,7 +242,7 @@
   "page.raw_on": "noms bruts",
   "page.raw_title": "Afficher les noms bruts des types d'action (r)",
   "page.retrying": "nouvelle tentative · ",
-  "page.subtitle": "Autonomie acquise par type d'action, sur preuves vérifiées",
+  "page.subtitle": "Une confiance révocable : retirée à la première erreur, regagnée sur preuves vérifiées",
   "page.title": "Tenure",
   "page.unreadable": "Illisible : {profiles}. La base de données existe mais ne s'ouvre pas ; les autres profils sont affichés.",
   "passport.agent": "Agent",

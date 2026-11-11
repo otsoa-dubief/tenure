@@ -56,6 +56,17 @@ not have asked. Prefer the preregistered study's start, where every type begins 
 | Trust earned back on evidence | no | no | by hand | **yes, under a risk you choose** |
 | Evidence someone else can check | no | no | no | **signed passport** |
 
+## Install in 60 seconds
+
+```bash
+hermes plugins install otsoa-dubief/tenure/tenure
+hermes gateway restart          # if a gateway is running
+hermes tenure setup          # the three presets side by side
+```
+
+Requires Hermes 0.23.0 or later and Python 3.11 or later. No network, no LLM call, nothing to configure to start.
+Work as usual: `hermes tenure` shows where each action type stands.
+
 ## Three pillars
 
 **1. Your own benchmark.** Public leaderboards say how a model does on someone else's tasks. tenure keeps a
@@ -87,17 +98,6 @@ record as a short text card to paste anywhere.
 English, French, Spanish, Simplified Chinese and Arabic (right to left), and follows Hermes' own language setting
 (`display.language`). The words are Hermes' own in each language; commands, tier codes and model ids stay as typed.
 Catalogs and glossaries live in [`tenure/locales/`](tenure/locales).
-
-## Install in 60 seconds
-
-```bash
-hermes plugins install otsoa-dubief/tenure/tenure
-hermes gateway restart          # if a gateway is running
-hermes tenure setup          # the three presets side by side
-```
-
-Requires Hermes 0.23.0 or later and Python 3.11 or later. No network, no LLM call, nothing to configure to start.
-Work as usual: `hermes tenure` shows where each action type stands.
 
 ## The study behind the rule
 

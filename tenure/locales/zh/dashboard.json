@@ -221,7 +221,7 @@
   "page.raw_on": "原始名称",
   "page.raw_title": "显示原始操作类型名（r）",
   "page.retrying": "正在重试 · ",
-  "page.subtitle": "基于已验证的证据，按操作类型赢得自主权",
+  "page.subtitle": "可撤销的信任：一次失误即收回，凭已验证的证据重新赢得",
   "page.title": "Tenure",
   "page.unreadable": "无法读取：{profiles}。其数据库存在但无法打开；已显示其他配置文件。",
   "passport.agent": "智能体",
