@@ -26,6 +26,7 @@ provides_hooks:
 config_schema:
   preset:
     type: str
+    choices: [careful, balanced, fast]
     default: balanced
     description: "careful, balanced or fast: the accepted risk per stakes level (see `hermes tenure setup`)"
     required: false
@@ -41,6 +42,7 @@ config_schema:
     required: false
   start:
     type: str
+    choices: [trusted, probation]
     default: trusted
     description: "trusted: no question before a type's first mistake; probation: every type asks until it earns autonomy (the study's start)"
     required: false

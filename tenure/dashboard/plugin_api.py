@@ -19,6 +19,7 @@ import contextlib
 import hashlib
 import importlib.util
 import json
+import pathlib
 import os
 import sqlite3
 import sys
@@ -456,6 +457,8 @@ class SettingsBody(BaseModel):
     risks: dict | None = None
     spot: float | None = None
     strict: bool | None = None
+    start: str | None = None
+    enabled: bool | None = None
 
 
 def _mine(core, of: str | None) -> None:
@@ -547,10 +550,10 @@ def _undo(body: UndoBody, raw: bool) -> dict:
 def _set_settings(body: SettingsBody, raw: bool) -> dict:
     core = _core()
     ctx = core.ST.ctx
-    if ctx is None or not callable(getattr(ctx, "set_config", None)):
-        raise HTTPException(501, "this process cannot write settings (Hermes offers plugins no other public writer): "
-                                 "run `hermes tenure setup`, or set plugins.entries.tenure.settings in "
-                                 "config.yaml")
+    write = _settings_writer(ctx)
+    if write is None:
+        raise HTTPException(501, "this process cannot write settings: run `hermes tenure setup`, or use Hermes' "
+                                 "Settings > Plugins > Tenure")
     changes = {}
     if body.preset is not None:
         if body.preset.strip().lower() not in core.params.PRESETS:
@@ -568,18 +571,40 @@ def _set_settings(body: SettingsBody, raw: bool) -> dict:
         changes["spot_check"] = body.spot
     if body.strict is not None:
         changes["strict"] = body.strict
+    if body.start is not None:
+        if body.start not in core.params.STARTS:
+            raise HTTPException(422, f"start must be one of {', '.join(core.params.STARTS)}")
+        changes["start"] = body.start
+    if body.enabled is not None:
+        changes["enabled"] = body.enabled
     if not changes:
-        raise HTTPException(422, "give preset, risks, spot or strict")
+        raise HTTPException(422, "give preset, risks, spot, strict, start or enabled")
     try:
-        for k, v in changes.items():
-            ctx.set_config(k, v)
+        write(changes)
+    except PermissionError as e:
+        raise HTTPException(403, f"Hermes refuses to change plugin settings here ({e})")
     except Exception as e:
         raise HTTPException(501, f"could not save the settings ({type(e).__name__})")
     cfg = core.settings()
     with core.txn() as st:
         core.sync_settings(st, cfg)           # logs the settings event now, as the next hook would
     return {"saved": sorted(changes), "settings": {"preset": cfg["preset"], "risks": cfg["risks"],
-                                                    "spot": cfg["spot"], "strict": cfg["strict"]}}
+                                                    "spot": cfg["spot"], "strict": cfg["strict"],
+                                                    "start": cfg.get("start"), "enabled": cfg.get("enabled", True)}}
+
+
+def _settings_writer(ctx):
+    """How this process writes the plugin's settings: the plugin context when the agent loaded it, else Hermes'
+    public plugin-settings writer (``hermes_cli.plugins_settings.save_plugin_settings``, the one Hermes' own Settings
+    page uses: schema-checked, locked, refuses managed installs). None when neither exists."""
+    if ctx is not None and callable(getattr(ctx, "set_config", None)):
+        return lambda changes: [ctx.set_config(k, v) for k, v in changes.items()]
+    try:
+        from hermes_cli.plugins_settings import save_plugin_settings
+    except Exception:
+        return None
+    plugin_dir = pathlib.Path(__file__).resolve().parent.parent
+    return lambda changes: save_plugin_settings("tenure", plugin_dir, changes)
 
 
 @router.post("/revoke")
