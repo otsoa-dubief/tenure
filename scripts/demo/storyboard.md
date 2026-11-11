@@ -26,16 +26,18 @@ Notes:
 - Review every cast and frames file before publishing: they record everything Hermes drew on screen. Both are written owner-only (umask 077).
 - The demo project holds a real bug planted for the agent to fix (`discount` in `shop.py`, caught by `test_shop.py`); no fake data or numbers are shown.
 
-## Beats
+## Beats (trusted start, `--scenario scripts/demo/scenario-trusted.json`)
 
-| Target | Beat | Cast mark (scenario label) | Dashboard shot |
+| Target | Beat | Cast mark (scenario label) | Desktop / dashboard shot |
 |---|---|---|---|
-| 0-5 s | Hook with the session's real totals ("N actions, M checked"), then title | end of recording (totals read from the ledger afterwards) | Overview totals |
-| 5-15 s | Install command, tab appears; "same rule as a preregistered study, replayed on 6,000+ simulated agents" | `welcome` | Tab appearing in the dashboard |
-| 15-45 s | Agent works, tiers light up: 12 approvals, then act-then-notify with Undo; 21 in a row from 2 sessions, then alone; refused spot check drops the type back to T2 | `setup-fast` (on screen: preset fast), `approve-build-up`, `act-then-notify`, `undo-once`, `new-session`, `task-2`, `spot-check-deny`, `status-after-deny` | Live card: tiers, then the type back to notify |
-| 45-65 s | Chain of 4 models (typed `/model <id> --provider nous`): sonnet-5.5 earns, then opus-5.5, gpt-6-astra-pro, deepseek-v4-pro each carry half the record on trial and ask again on a short task; the cast ends on `/tenure models` | `model-opus`, `approve-opus`, `carry-opus` (the first `half-trial`), `model-astra`..., `model-deepseek`..., `models-table` | Model card + carry-over banner |
-| 65-80 s | Passport: export, then `verify` finds the same tiers | not in the cast; run `/tenure passport` and `verify` in a second short recording | Passport page |
-| 80-90 s | Install command, link, @NousResearch | end card | none |
+| 0-6 s | Hook: "Hermes trusts your agent blindly." The agent writes files, no question, each one "acted, then told you · /tenure undo N" | `trusted-work`, `acted-then-told` | Agent page: types "Trusted" |
+| 6-20 s | "It made one mistake." `/tenure undo 3`: files restored, then "On probation · file:write" | `undo-mistake`, `on-probation` | "On probation" moment, bar crumbles |
+| 20-40 s | "Now it asks first, for that kind of action only." Approval prompts for file:write; other types keep their trust | `asks-now`, `approve-after-fault`, `status`, `status-shown` | Agent page: file:write Probation, others Trusted |
+| 40-60 s | "It earns its autonomy back, on evidence." The Wald climb to T2 (sped up), then the series to T3 | optional second recording | "Tenure granted" moment |
+| 60-75 s | Passport: animated card, then `hermes tenure verify` OK | second short recording | Passport page |
+| 75-90 s | "Tenure — revocable trust for Hermes Agent", install command, @NousResearch | end card | none |
+
+The older probation-start scenario (`scenario.json`, 2026-11-09) is kept for the study's start.
 
 ## Patterns (scenario.json), checked on a real run (Hermes 0.23.0, tenure v2, 2026-11-09)
 
