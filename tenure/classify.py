@@ -374,6 +374,9 @@ def _marker_at_home(text: str, at: int) -> bool:
     j = at
     while j > 0 and text[j - 1] not in PATH_START and not text[j - 1].isspace():
         j -= 1
+    if j >= 2 and text[j - 1] == ":" and text[j - 2].isalpha() and (j == 2 or text[j - 3] in PATH_START
+                                                                    or text[j - 3].isspace()):
+        j -= 2                                           # a Windows drive (c:/users/me/.hermes): part of the path
     prefix = text[j:at]
     for pre in ("${home}/", "$home/", "~/"):
         if prefix.startswith(pre):
@@ -385,7 +388,7 @@ def _marker_at_home(text: str, at: int) -> bool:
     if base == UNKNOWN:
         return True
     base = _norm(os.path.normpath(base)).rstrip("/")
-    if not prefix.startswith("/"):
+    if not (prefix.startswith("/") or _DRIVE_ROOT.match(prefix[:3])):
         prefix = base.casefold() + "/" + prefix
     cand = _norm(os.path.normpath(prefix + ".hermes"))
     if _dot_hermes(cand):

@@ -279,8 +279,10 @@ Community tab shows the board once you save it as `plugin-data/tenure/community-
 
 <details><summary>15 known limits, stated plainly (click to open)</summary>
 
-- **Windows is not supported yet.** The shell classification assumes POSIX paths and shells; the Windows CI job runs
-  but does not gate. Use tenure on Linux or macOS (or WSL).
+- **On Windows, plain `rm`, `mv`, `cp` or `sed -i` keep asking.** They are not snapshotted for an undo there, so
+  they ask first instead of acting then telling; file writes through Hermes' own tools are saved and undoable as
+  everywhere else. Windows paths (`C:\\Users\\...`) are read as paths by every check, and the full suite runs on
+  Windows in CI.
 - **A copied profile is caught only inside one install, and only once the original has run this version.** The
   check compares the database file with the other profiles of the same Hermes root. A copy made before the
   original ever ran tenure 1.0.0 or later, a copy whose original was deleted before the copy first started,
