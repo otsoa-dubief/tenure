@@ -60,8 +60,11 @@ What tenure asks that Hermes alone would not:
 
 **In practice.** In one ordinary coding session of 30 calls (writing files, npm, pytest, git, `rm`, `mv`, `sed -i`,
 `echo >>`, a web page, a push), the trusted start asks 3 questions Hermes would not: `rm *.log`, `git push`, and a
-command right after the web page. Hermes asks 2 more by itself. The study start asks 23. Replay it:
-`python scripts/friction.py` (the session is in `tests/friction.py`).
+command right after the web page. Hermes asks 2 more by itself; the study start asks 23. Put the web page fourth
+instead and every later command asks until `/new`: 17 questions if you allow each once, 3 if you pick "Allow for this
+session" the first time. Replay it: `HERMES_AGENT_DIR=<Hermes source> python scripts/friction.py` (the session is in
+`tests/friction.py`; without Hermes' source, Hermes' own questions count as tenure's). The undo covers text files up
+to 5 MB per action: a binary or larger file asks.
 
 Prefer the preregistered study's start, where every type begins on probation? `hermes tenure start probation`.
 

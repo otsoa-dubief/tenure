@@ -9,6 +9,9 @@ import tempfile
 sys.path.insert(0, os.path.dirname(__file__))
 from test_plugin import PKG, FakeCtx, Picks  # noqa: E402
 
+# The in-place edit as each system's sed spells it (BSD sed on macOS takes the suffix as the next word).
+SED = ("sed -i '' " if sys.platform == "darwin" else "sed -i ") + "'s/old/new/' src/app.py"
+
 SESSION = [
     ("write_file", {"path": "src/app.py", "content": "old = 1\n"}),
     ("write_file", {"path": "src/util.py", "content": "def f():\n    return 1\n"}),
@@ -23,7 +26,7 @@ SESSION = [
     ("write_file", {"path": "notes.txt", "content": "todo\n"}),
     ("terminal", {"command": "rm notes.txt"}),
     ("terminal", {"command": "mv src/util.py src/helpers.py"}),
-    ("terminal", {"command": "sed -i 's/old/new/' src/app.py"}),
+    ("terminal", {"command": SED}),
     ("terminal", {"command": "echo 'node_modules/' >> .gitignore"}),
     ("terminal", {"command": "cp src/app.py src/app_backup.py"}),
     ("terminal", {"command": "touch src/__init__.py"}),
@@ -55,8 +58,18 @@ def _hermes_detect():
     return lambda cmd: bool(detect_dangerous_command(cmd)[0])
 
 
-def replay(start: str) -> list[dict]:
-    """One row per call: the call, whether tenure asked, whether Hermes alone would ask (None: unknown)."""
+def session(early_web: bool = False) -> list:
+    """The session; early_web moves the web page from the end to the fourth call."""
+    if not early_web:
+        return list(SESSION)
+    web = [c for c in SESSION if c[1].get("command", "").startswith("curl")]
+    rest = [c for c in SESSION if c not in web]
+    return rest[:3] + web + rest[3:]
+
+
+def replay(start: str, early_web: bool = False, answer: str = "once") -> list[dict]:
+    """One row per call: the call, whether tenure asked, whether Hermes alone would ask (None: unknown). answer: what
+    the owner picks when tenure asks ("once", or "session" for "Allow for this session")."""
     detect = _hermes_detect()
     old = os.environ.get("HERMES_HOME")
     with tempfile.TemporaryDirectory() as tmp:
@@ -71,9 +84,9 @@ def replay(start: str) -> list[dict]:
             mod.ST.rng = Picks()
             mod.pre_api_request(model="model-a", provider="nous", session_id="s1")
             rows = []
-            for tool, args in SESSION:
+            for tool, args in session(early_web):
                 before = len(ctx.prompts)
-                ctx.call(tool, args)
+                ctx.call(tool, args, answer=answer)
                 cmd = args.get("command") if tool == "terminal" else None
                 rows.append({"tool": tool, "what": cmd or args.get("path"), "tenure": len(ctx.prompts) > before,
                              "hermes": (detect(cmd) if cmd and detect else False if not cmd else None)})

@@ -23,6 +23,7 @@ import re
 from . import params
 import shlex
 import stat as _stat
+import sys
 import threading
 from dataclasses import dataclass
 
@@ -1359,7 +1360,13 @@ def undoable_shell(command: str, cwd: str | None, home: str) -> list[str] | None
     folder), not a link, not under .git, low stakes for ``_file``, and all of them can be saved; else None. No glob,
     variable, substitution, chain, pipe or second redirect: anything Tenure cannot be sure of keeps today's question."""
     text = str(command or "").strip()
-    masked = _undo_mask(text) if text and cwd else None
+    if not text or not cwd:
+        return None
+    if "\n" in text:
+        return _undo_checked(_undo_heredoc(text, cwd, home), cwd, home)
+    if any(_undo_odd(c) for c in text):
+        return None                                      # a control character or an unusual space: read differently
+    masked = _undo_mask(text)
     if masked is None or any(c in _UNDOABLE_BAD for c in masked.replace(">", "")):
         return None
     redirect = None
@@ -1393,6 +1400,15 @@ def undoable_shell(command: str, cwd: str | None, home: str) -> list[str] | None
         out = _undo_touch(args, cwd, home)
     else:
         out = None
+    return _undo_checked(out, cwd, home)
+
+
+def _undo_odd(c: str) -> bool:
+    return ord(c) < 32 or ord(c) == 127 or (c.isspace() and c != " ") or c in "\u200b\u200c\u200d\u2060\ufeff"
+
+
+def _undo_checked(out: list[str] | None, cwd: str, home: str) -> list[str] | None:
+    """The files, once each, when every one is a target ``_undo_target_ok`` accepts and all can be saved; else None."""
     if not out or len(out) > UNDOABLE_MAX_FILES:
         return None
     seen: list[str] = []
@@ -1406,6 +1422,34 @@ def undoable_shell(command: str, cwd: str | None, home: str) -> list[str] | None
         if os.path.lexists(p):
             size += os.path.getsize(p)
     return seen if size <= UNDOABLE_MAX_BYTES else None
+
+
+_HEREDOC_DELIM = r"(?:'\w+'|\"\w+\"|\w+)"
+_HEREDOC_TARGET = r"[\w./@+-]+"
+_HEREDOC_HEAD = re.compile(
+    rf"cat[ ]+(?:<<(?P<dash1>-?)[ ]*(?P<d1>{_HEREDOC_DELIM})[ ]*>>?[ ]*(?P<t1>{_HEREDOC_TARGET})"
+    rf"|>>?[ ]*(?P<t2>{_HEREDOC_TARGET})[ ]*<<(?P<dash2>-?)[ ]*(?P<d2>{_HEREDOC_DELIM}))[ ]*")
+
+
+def _undo_heredoc(text: str, cwd: str, home: str) -> list[str] | None:
+    """`cat <<'EOF' > file` (or `cat > file <<'EOF'`), a body, then the delimiter alone on the last line: writes the one
+    file. An unquoted delimiter is accepted only for a body with no `$`, backtick or backslash (nothing expanded)."""
+    lines = text.split("\n")
+    if len(lines) < 2 or any(_undo_odd(c) for c in lines[0]):
+        return None
+    m = _HEREDOC_HEAD.fullmatch(lines[0])
+    if not m:
+        return None
+    delim, target = m.group("d1") or m.group("d2"), m.group("t1") or m.group("t2")
+    dash = bool(m.group("dash1") or m.group("dash2"))
+    name, quoted = delim.strip("'\""), delim[0] in "'\""
+    body, last = lines[1:-1], lines[-1]
+    end = (lambda ln: ln.lstrip("\t")) if dash else (lambda ln: ln)
+    if end(last) != name or any(end(ln) == name for ln in body):
+        return None                                      # the heredoc must end on the last line, nothing after it
+    if not quoted and any(c in "\n".join(body) for c in "$`\\"):
+        return None
+    return [_undo_path(target, cwd, home)]
 
 
 def _undo_mask(text: str) -> str | None:
@@ -1456,6 +1500,11 @@ def _undo_target_ok(p: str, cwd: str, home: str) -> bool:
     """A file the command changes: not a link, not a folder, not under .git, its folder exists, low stakes."""
     if os.path.islink(p) or os.path.isdir(p) or not os.path.isdir(os.path.dirname(p)):
         return False
+    try:
+        if os.path.lexists(p) and os.stat(p).st_nlink > 1:
+            return False                                 # a hard link: the other names would keep the change
+    except OSError:
+        return False
     if {".git", ".hermes"} & set(_norm(p).split("/")):
         return False                                     # git's own data, a project's Hermes settings: keep asking
     return _file(p, cwd, home)[1] == LOW
@@ -1488,8 +1537,8 @@ def _undo_mv_cp(prog: str, args: list[str], cwd: str, home: str) -> list[str] | 
         targets = [dest]
     else:
         return None
-    if any(t in srcs for t in targets):
-        return None                                      # a file onto itself: let the program say no
+    if any(t.casefold() == s_.casefold() for t in targets for s_ in srcs):
+        return None                                      # onto itself, or a change of case only: let it ask
     return (srcs + targets) if prog == "mv" else targets
 
 
@@ -1501,10 +1550,16 @@ def _undo_sed(args: list[str], cwd: str, home: str) -> list[str] | None:
         a = rest.pop(0)
         if a == "-i" and not in_place:
             in_place = True
-            if rest and (rest[0] == "" or re.fullmatch(r"\.[\w.-]+", rest[0])) and len(rest) > 2:
-                suffix = rest.pop(0) or None             # BSD: the next word is the suffix ('' for none)
+            if sys.platform == "darwin":                 # BSD sed: the next word is always the suffix
+                if not rest or not (rest[0] == "" or re.fullmatch(r"\.[\w.-]+", rest[0])):
+                    return None                          # `-i -e`, `-i p`: it would write f-e or fp, unsaved
+                suffix = rest.pop(0) or None
+            elif rest and rest[0] == "":
+                return None                              # GNU reads '' as the script: not what was meant
         elif a.startswith("-i") and not in_place and re.fullmatch(r"-i\.[\w.-]+", a):
             in_place, suffix = True, a[2:]
+        elif a in ("-E", "-r"):
+            continue                                     # extended regular expressions: same reading
         elif a == "-e" and script is None and rest:
             script = rest.pop(0)
         else:
@@ -1540,8 +1595,8 @@ def _undo_redirect(prog: str, args: list[str], target: str, cwd: str, home: str)
         return None
     if prog == "cat":
         got = _undo_opts(args, "")
-        if got is None or not all(_undo_source_ok(_undo_path(a, cwd, home), cwd, home) for a in got[0]):
-            return None
+        if not got or not got[0] or not all(_undo_source_ok(_undo_path(a, cwd, home), cwd, home) for a in got[0]):
+            return None                                  # cat with no file reads its input: not ours to read
     elif prog == "printf" and args and args[0].startswith("-"):
         return None                                      # printf -v writes a variable: not ours to read
     return [_undo_path(target, cwd, home)]

@@ -1,6 +1,7 @@
 """A plain file command (rm, mv, cp, sed -i, touch, a redirect) on project files: every file it changes is listed, so
 it can be saved first and undone. Anything Tenure cannot be sure of gives None and keeps today's question."""
 import os
+import sys
 
 from tenure.classify import undoable_shell
 
@@ -126,20 +127,39 @@ def test_cp_recursive_or_outside_source_is_none(tmp_path):
     assert undoable_shell("cp ../x.txt y.txt", str(proj), HOME) is None
 
 
+BSD = sys.platform == "darwin"
+
+
 def test_sed_in_place(tmp_path):
     _files(tmp_path, "app.py")
-    assert _u("sed -i 's/a/b/' app.py", tmp_path) == _p(tmp_path, "app.py")
-    assert _u("sed -i '' 's/a/b/' app.py", tmp_path) == _p(tmp_path, "app.py")
-    assert _u("sed -i -e 's/a/b/g' app.py", tmp_path) == _p(tmp_path, "app.py")
+    if BSD:                                              # BSD sed: -i takes the next word as its suffix
+        assert _u("sed -i '' 's/a/b/' app.py", tmp_path) == _p(tmp_path, "app.py")
+        assert _u("sed -i '' -e 's/a/b/g' app.py", tmp_path) == _p(tmp_path, "app.py")
+        assert _u("sed -i .bak 's/a/b/' app.py", tmp_path) == _p(tmp_path, "app.py", "app.py.bak")
+        assert _u("sed -E -i '' 's/a+/b/' app.py", tmp_path) == _p(tmp_path, "app.py")
+    else:
+        assert _u("sed -i 's/a/b/' app.py", tmp_path) == _p(tmp_path, "app.py")
+        assert _u("sed -i -e 's/a/b/g' app.py", tmp_path) == _p(tmp_path, "app.py")
+        assert _u("sed -E -i 's/a+/b/' app.py", tmp_path) == _p(tmp_path, "app.py")
     assert _u("sed -i.bak 's/a/b/' app.py", tmp_path) == _p(tmp_path, "app.py", "app.py.bak")
+
+
+def test_sed_ambiguous_suffix_readings_are_none(tmp_path):
+    _files(tmp_path, "f", "d")
+    if BSD:                                              # each would write f-e, fp or fx, unsaved
+        for cmd in ("sed -i -e s/x/y/ f", "sed -i p d f", "sed -i x d f", "sed -i 's/a/b/' f"):
+            assert _u(cmd, tmp_path) is None, cmd
+    else:                                                # GNU reads '' as an empty script, then the files
+        assert _u("sed -i '' 's/a/b/' f", tmp_path) is None
 
 
 def test_sed_with_w_or_e_or_no_i_is_none(tmp_path):
     _files(tmp_path, "app.py")
-    assert _u("sed -i 'w out' app.py", tmp_path) is None
-    assert _u("sed -i 's/a/b/w out' app.py", tmp_path) is None
-    assert _u("sed -i 'e ls' app.py", tmp_path) is None
-    assert _u("sed -i 's/a/b/e' app.py", tmp_path) is None
+    i = "-i ''" if BSD else "-i"
+    assert _u(f"sed {i} 'w out' app.py", tmp_path) is None
+    assert _u(f"sed {i} 's/a/b/w out' app.py", tmp_path) is None
+    assert _u(f"sed {i} 'e ls' app.py", tmp_path) is None
+    assert _u(f"sed {i} 's/a/b/e' app.py", tmp_path) is None
     assert _u("sed 's/a/b/' app.py", tmp_path) is None
     assert _u("sed -i -f script.sed app.py", tmp_path) is None
 
@@ -193,4 +213,51 @@ def test_other_programs_are_none(tmp_path):
     _files(tmp_path, "a.txt")
     for cmd in ("python a.txt", "chmod 644 a.txt", "ln -s a.txt b", "dd if=a.txt of=b.txt", "truncate -s 0 a.txt",
                 "shred a.txt", "unlink a.txt", "sudo rm a.txt", "env rm a.txt", "/bin/rm a.txt", ""):
+        assert _u(cmd, tmp_path) is None, cmd
+
+
+def test_hard_link_is_none(tmp_path):
+    outside = tmp_path / "store"
+    outside.mkdir()
+    (outside / "pkg.js").write_text("x")
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    os.link(outside / "pkg.js", proj / "hl")             # pnpm links node_modules to its global store
+    assert undoable_shell("echo x >> hl", str(proj), HOME) is None
+    assert undoable_shell("rm hl", str(proj), HOME) is None
+    assert undoable_shell("sed -i.bak 's/x/y/' hl", str(proj), HOME) is None
+
+
+def test_control_and_unusual_spaces_are_none(tmp_path):
+    _files(tmp_path, "a", "b")
+    for cmd in ("rm a\rb", "echo x >\xa0a", "rm a\u2003b", "rm a\x0bb", "rm a\tb"):
+        assert _u(cmd.encode().decode("unicode_escape"), tmp_path) is None, repr(cmd)
+
+
+def test_case_only_rename_is_none(tmp_path):
+    _files(tmp_path, "a.txt")
+    assert _u("mv a.txt A.txt", tmp_path) is None
+
+
+def test_cat_without_a_source_is_none(tmp_path):
+    assert _u("cat > new.txt", tmp_path) is None
+
+
+def test_quoted_heredoc_into_a_file(tmp_path):
+    body = "x = $HOME `ls` $(rm -rf /)\n"
+    assert _u(f"cat <<'EOF' > out.py\n{body}EOF", tmp_path) == _p(tmp_path, "out.py")
+    assert _u(f"cat > out.py << 'EOF'\n{body}EOF\n", tmp_path) == _p(tmp_path, "out.py")
+    assert _u(f'cat <<"END" >> out.py\n{body}END', tmp_path) == _p(tmp_path, "out.py")
+
+
+def test_unquoted_heredoc_only_without_expansions(tmp_path):
+    assert _u("cat <<EOF > out.txt\nplain text\nEOF", tmp_path) == _p(tmp_path, "out.txt")
+    for body in ("$HOME", "`ls`", "$(id)", "a\\b"):
+        assert _u(f"cat <<EOF > out.txt\n{body}\nEOF", tmp_path) is None, body
+
+
+def test_heredoc_forms_that_stay_asking(tmp_path):
+    for cmd in ("cat <<'EOF' > out.py\nx\n", "cat <<'EOF' > out.py\nx\nEOF\nrm -rf /", "cat <<'EOF' | sh\nx\nEOF",
+                "cat <<'EOF' > $F\nx\nEOF", "python <<'EOF' > out.py\nx\nEOF", "cat <<'EOF' > ../out.py\nx\nEOF",
+                "cat <<'EOF'\nx\nEOF"):
         assert _u(cmd, tmp_path) is None, cmd

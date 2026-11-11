@@ -1,6 +1,7 @@
 """The trusted start: no question Hermes would not ask, until a type makes its first fault. Then the study rule
 applies to that type, from T1. Actions that leave the machine, self-protection and suspended sessions still ask."""
 import os
+import sys
 
 from test_plugin import A, FAST, NPM, climb, ledger, outcomes, plugin, post, pre, state, write  # noqa: F401
 
@@ -391,7 +392,8 @@ def test_an_undone_mv_puts_both_files_back(plugin):
 def test_sed_in_place_and_a_redirect_run_with_an_undo(plugin):
     mod, ctx = plugin(TRUST)
     _mk(ctx, "app.py", "a = 1\n")
-    assert ctx.call("terminal", {"command": "sed -i 's/a/b/' app.py"}) == "ran"
+    sed = "sed -i '' 's/a/b/' app.py" if sys.platform == "darwin" else "sed -i 's/a/b/' app.py"
+    assert ctx.call("terminal", {"command": sed}) == "ran"
     assert ctx.call("terminal", {"command": "echo hi > out.txt"}) == "ran"
     assert ctx.prompts == []
 
