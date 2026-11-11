@@ -112,6 +112,8 @@ class TypeState:
         kw = {k: v for k, v in d.items() if k in known}
         if "sessions" in kw:
             kw["sessions"] = list(kw["sessions"] or [])
+        if "distrusted" not in kw:         # a state stored before the trusted start: a fault on record ends it
+            kw["distrusted"] = bool(kw.get("faults"))
         return cls(**kw)
 
 

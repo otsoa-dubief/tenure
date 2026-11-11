@@ -56,6 +56,7 @@
   "tier.label.ask": "Display name of tier T1, shown next to the code in small capitals: the agent is on probation, it asks first. Short (max ~16 chars).",
   "tier.label.cap": "Display name of a capped type: it never earns autonomy and always asks. Short.",
   "tier.label.notify": "Display name of tier T2: the agent acts then tells you, under review. Short.",
+  "tier.trusted.chip": "Text inside the small tier chip for a type the trusted start covers (where T1/T2/T3 appear). Short uppercase word.",
   "time.ago": "{duration} is one of time.seconds/minutes/hours_minutes/days.",
   "time.days": "Short duration unit, as in a compact table cell (\"3d\").",
   "time.hours_minutes": "Short duration (\"2h 05m\"); {mm} is two-digit minutes.",

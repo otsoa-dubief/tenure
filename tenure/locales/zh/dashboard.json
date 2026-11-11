@@ -143,6 +143,7 @@
   "guarantee.plain": "其操作中最多约每 {k} 个就有 1 个带着无人批准的错误运行。",
   "guarantee.text": "未经检查的错误不超过此类型操作的 {aoql}；若智能体在获得自主权后变差，在第一次发现错误之前最多 {worst}。",
   "guarantee.text_conditional": "未经检查的错误不超过此类型操作的 {aoql}；若智能体在获得自主权后变差，在第一次发现错误之前最多 {worst}。前提是上一个模型的证据依然成立。",
+  "guarantee.trusted": "暂无保证：只有凭证据赢得的级别才有保证。",
   "help.agent": "当前行的智能体详情",
   "help.aria": "键盘快捷键",
   "help.close": "关闭",
@@ -158,6 +159,7 @@
   "legend.carried": "继承自上一个模型，暂定",
   "legend.notify": "先执行后告知，可撤销（可逆类型）",
   "legend.series": "连续成功次数，共需 N 次",
+  "legend.trusted": "信任起步：首次失误前像单独使用 Hermes 一样执行，未赢得任何级别",
   "map.aria": "按操作类型列出的智能体",
   "map.empty.after": " 开始，且只凭已验证的成功晋升：可逆类型在连续若干次无失误的已验证成功后升到中间级别，在来自两个会话的完整 N 次连续成功后升到 T3。",
   "map.empty.before": "tenure 从智能体请求运行的第一个操作开始计数。读取从不询问。每个操作类型都从 ",
@@ -186,6 +188,8 @@
   "missing.trial_wait": {
     "other": "考察未通过 · 等 {n} 个操作"
   },
+  "missing.trusted": "首次失误前保持信任 · 像单独使用 Hermes 一样执行",
+  "missing.trusted_undo": "首次失误前保持信任 · 先执行后告知，可撤销",
   "models.empty.body": "每个已验证的操作都会计入模型在该类型上的记录，显示在这里和 {cmd} 中。",
   "models.empty.title": "还没有记录",
   "models.lede": "你自己的基准：每个模型在你的工作中、按操作类型的已验证记录，附失误率的 95% 区间。按区间上限排名，从不只看单一分数。旁边是公开测评，仅供参考：",
@@ -243,6 +247,7 @@
   "passport.field.type_names": "类型名",
   "passport.note": "已签名且可发现篡改：签名或锚定后的任何改动都会在验证时显示出来。较早的护照对照更长的账本依然能通过验证；验证器会说明此后的变化。",
   "passport.pending_note": "按最近记录的设置计算；新设置从下一个操作起生效。",
+  "passport.trusted": "信任中（非赢得）",
   "passport.types_title": "已证实的类型",
   "passport.value.hashed": "{profile}（已哈希）",
   "passport.value.ledger": {
@@ -265,6 +270,8 @@
     "other": "{n} 个会话已暂停：读取了外部内容"
   },
   "profile.spot": "抽查率 {rate}",
+  "profile.start_probation": "考察起步（试用期）",
+  "profile.start_trusted": "信任起步",
   "profile.strict": "严格",
   "profile.suspended": {
     "other": "{n} 个已暂停：读取了外部内容"
@@ -298,6 +305,12 @@
   "settings.stakes_risk.high": "高风险的可接受风险",
   "settings.stakes_risk.low": "低风险的可接受风险",
   "settings.stakes_risk.medium": "中风险的可接受风险",
+  "settings.start.change": "此处只读。如需更改，请在终端中运行：",
+  "settings.start.probation": "考察起步（试用期）",
+  "settings.start.probation_body": "每个操作类型都从试用期 (T1) 开始：先询问，并凭证据赢得级别，与研究一致。",
+  "settings.start.title": "起点",
+  "settings.start.trusted": "信任起步",
+  "settings.start.trusted_body": "在首次失误或被收回之前，每个操作类型都像单独使用 Hermes 一样执行：可逆的更改先执行后告知，可撤销。首次失误会让它进入试用期 (T1)，此后凭证据赢得级别。离开本机和涉及金钱的操作仍会询问。",
   "settings.strict": "严格模式",
   "settings.strict_off": "关闭：新模型以暂定方式继承上一个模型的部分记录",
   "settings.strict_on": "开启：新模型从空记录开始（研究原规则）",
@@ -372,6 +385,10 @@
   "tier.name.alone": "自主执行",
   "tier.name.ask": "先询问",
   "tier.name.notify": "先执行后告知",
+  "tier.trusted.chip": "信任",
+  "tier.trusted.label": "信任中",
+  "tier.trusted.name": "像单独使用 Hermes 一样执行",
+  "tier.trusted.title": "首次失误前保持信任：像单独使用 Hermes 一样执行。尚未赢得任何级别。",
   "time.ago": "{duration}前",
   "time.days": {
     "other": "{n} 天"

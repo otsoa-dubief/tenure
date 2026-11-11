@@ -192,6 +192,7 @@ const TENURE_LOCALES = {
     "guarantee.plain": "At most about 1 in {k} of its actions runs with an error nobody approved.",
     "guarantee.text": "Unchecked errors stay under {aoql} of its actions of this type; for an agent that turns bad after tenure, at most {worst} until the first caught error.",
     "guarantee.text_conditional": "Unchecked errors stay under {aoql} of its actions of this type; for an agent that turns bad after tenure, at most {worst} until the first caught error. Conditional on the previous model's evidence still holding.",
+    "guarantee.trusted": "No guarantee yet: it comes only with a tier earned on evidence.",
     "help.agent": "Agent drawer of the focused row",
     "help.aria": "Keyboard shortcuts",
     "help.close": "Close",
@@ -207,6 +208,7 @@ const TENURE_LOCALES = {
     "legend.carried": "from the previous model, provisional",
     "legend.notify": "acts, then tells you, with an undo (reversible types)",
     "legend.series": "clean runs in a row, of the N needed",
+    "legend.trusted": "trusted start: acts like Hermes alone until its first mistake, nothing earned",
     "map.aria": "Agents by action type",
     "map.empty.after": ", and climbs only on verified successes: reversible types reach the middle tier after a run of verified successes without a fault, and T3 after a full series of N from two sessions.",
     "map.empty.before": "tenure starts counting at the first action an agent asks to run. Reads never ask. Every action type starts at ",
@@ -240,6 +242,8 @@ const TENURE_LOCALES = {
       "one": "trial failed · wait {n}",
       "other": "trial failed · wait {n}"
     },
+    "missing.trusted": "trusted until its first mistake · acts like Hermes alone",
+    "missing.trusted_undo": "trusted until its first mistake · acts, then tells you, with an undo",
     "models.empty.body": "Each verified action adds to the model's record on that type, here and in {cmd}.",
     "models.empty.title": "No record yet",
     "models.lede": "Your own benchmark: each model's verified record on your work, per action type, with the 95% range of its fault rate. Ranked by the top of its range, never by one score. Beside it, the public measure, as information: ",
@@ -298,6 +302,7 @@ const TENURE_LOCALES = {
     "passport.field.type_names": "Type names",
     "passport.note": "Signed and tamper-evident: a change after it is signed or anchored shows on verification. An older passport still verifies against a longer ledger; the verifier says what changed since.",
     "passport.pending_note": "Computed under the last logged settings; the new settings apply from the next action.",
+    "passport.trusted": "Trusted (not earned)",
     "passport.types_title": "Attested types",
     "passport.value.hashed": "{profile} (hashed)",
     "passport.value.ledger": {
@@ -322,6 +327,8 @@ const TENURE_LOCALES = {
       "other": "{n} sessions suspended: external content read"
     },
     "profile.spot": "spot checks {rate}",
+    "profile.start_probation": "study start (probation)",
+    "profile.start_trusted": "trusted start",
     "profile.strict": "strict",
     "profile.suspended": {
       "one": "{n} suspended: external content read",
@@ -357,6 +364,12 @@ const TENURE_LOCALES = {
     "settings.stakes_risk.high": "high stakes risk",
     "settings.stakes_risk.low": "low stakes risk",
     "settings.stakes_risk.medium": "medium stakes risk",
+    "settings.start.change": "Read-only here. To change it, run in a terminal:",
+    "settings.start.probation": "Study start (probation)",
+    "settings.start.probation_body": "Each action type starts on Probation (T1): it asks first and earns its tier on evidence, as in the study.",
+    "settings.start.title": "Start",
+    "settings.start.trusted": "Trusted start",
+    "settings.start.trusted_body": "Each action type acts as Hermes alone would until its first fault or revoke: a reversible change acts, then tells you, with an undo. Its first fault puts it on Probation (T1), and from there it earns its tier on evidence. Leaving the machine and money still ask.",
     "settings.strict": "Strict mode",
     "settings.strict_off": "Off: a new model inherits part of the previous record, provisionally",
     "settings.strict_on": "On: a new model starts with an empty record (the study's rule)",
@@ -436,6 +449,10 @@ const TENURE_LOCALES = {
     "tier.name.alone": "acts on its own",
     "tier.name.ask": "asks first",
     "tier.name.notify": "acts, then tells you",
+    "tier.trusted.chip": "TRUSTED",
+    "tier.trusted.label": "Trusted",
+    "tier.trusted.name": "acts like Hermes alone",
+    "tier.trusted.title": "Trusted until its first mistake: acts like Hermes alone. Nothing earned yet.",
     "time.ago": "{duration} ago",
     "time.days": {
       "one": "{n}d",
@@ -737,6 +754,7 @@ const TENURE_LOCALES = {
     "guarantee.plain": "على الأكثر نحو إجراء واحد من كل {k} من إجراءاته يُنفَّذ بخطأ لم يوافق عليه أحد.",
     "guarantee.text": "تبقى الأخطاء غير المفحوصة دون {aoql} من إجراءاته من هذا النوع؛ ولوكيل يسوء بعد اكتساب الاستقلالية، {worst} على الأكثر حتى أول خطأ يُكتشف.",
     "guarantee.text_conditional": "تبقى الأخطاء غير المفحوصة دون {aoql} من إجراءاته من هذا النوع؛ ولوكيل يسوء بعد اكتساب الاستقلالية، {worst} على الأكثر حتى أول خطأ يُكتشف. بشرط أن تظل أدلة النموذج السابق صالحة.",
+    "guarantee.trusted": "لا ضمان بعد: الضمان يأتي فقط مع مستوى مكتسب بالأدلة.",
     "help.agent": "لوحة وكيل الصف المحدد",
     "help.aria": "اختصارات لوحة المفاتيح",
     "help.close": "إغلاق",
@@ -752,6 +770,7 @@ const TENURE_LOCALES = {
     "legend.carried": "من النموذج السابق، مؤقت",
     "legend.notify": "ينفّذ ثم يُبلغ مع إمكانية التراجع (الأنواع القابلة للتراجع)",
     "legend.series": "نجاحات سليمة على التوالي، من أصل N مطلوبة",
+    "legend.trusted": "بداية موثوقة: يعمل مثل Hermes وحده حتى أول خطأ له، دون أي اكتساب",
     "map.aria": "الوكلاء حسب نوع الإجراء",
     "map.empty.after": "، ولا يصعد إلا بنجاحات موثّقة: تبلغ الأنواع القابلة للتراجع المستوى الأوسط بعد سلسلة من النجاحات الموثّقة دون إخفاق، وT3 بعد سلسلة كاملة من N على جلستين.",
     "map.empty.before": "يبدأ tenure العدّ عند أول إجراء يطلب الوكيل تنفيذه. القراءة لا تسأل أبدًا. يبدأ كل نوع إجراء في ",
@@ -805,6 +824,8 @@ const TENURE_LOCALES = {
       "many": "فشل الاختبار · انتظر {n}",
       "other": "فشل الاختبار · انتظر {n}"
     },
+    "missing.trusted": "موثوق حتى أول خطأ له · يعمل مثل Hermes وحده",
+    "missing.trusted_undo": "موثوق حتى أول خطأ له · ينفّذ ثم يُبلغ مع إمكانية التراجع",
     "models.empty.body": "كل إجراء موثّق يُضاف إلى سجل النموذج على ذلك النوع، هنا وفي {cmd}.",
     "models.empty.title": "لا سجل بعد",
     "models.lede": "مقياسك الخاص: السجل الموثّق لكل نموذج على عملك، لكل نوع إجراء، مع نطاق 95% لمعدل إخفاقه. الترتيب حسب الحد الأعلى للنطاق، لا حسب نتيجة واحدة. وبجانبه المقياس العام، للعلم فقط: ",
@@ -867,6 +888,7 @@ const TENURE_LOCALES = {
     "passport.field.type_names": "أسماء الأنواع",
     "passport.note": "موقَّع ويكشف التلاعب: أي تغيير بعد توقيعه أو تثبيته يظهر عند التحقق. يظل الجواز الأقدم صالحًا مقابل دفتر أطول؛ ويذكر المتحقِّق ما تغيّر منذ ذلك.",
     "passport.pending_note": "محسوب وفق آخر إعدادات مسجّلة؛ تسري الإعدادات الجديدة من الإجراء التالي.",
+    "passport.trusted": "موثوق (غير مكتسب)",
     "passport.types_title": "الأنواع المشهود لها",
     "passport.value.hashed": "{profile} (مجزَّأ)",
     "passport.value.ledger": {
@@ -899,6 +921,8 @@ const TENURE_LOCALES = {
       "other": "{n} جلسة معلّقة: قُرئ محتوى خارجي"
     },
     "profile.spot": "فحوص عشوائية {rate}",
+    "profile.start_probation": "بداية بالدراسة (فترة اختبار)",
+    "profile.start_trusted": "بداية موثوقة",
     "profile.strict": "صارم",
     "profile.suspended": {
       "zero": "{n} معلّقة: قُرئ محتوى خارجي",
@@ -942,6 +966,12 @@ const TENURE_LOCALES = {
     "settings.stakes_risk.high": "مخاطرة الخطورة العالية",
     "settings.stakes_risk.low": "مخاطرة الخطورة المنخفضة",
     "settings.stakes_risk.medium": "مخاطرة الخطورة المتوسطة",
+    "settings.start.change": "للقراءة فقط هنا. لتغييره، شغّل في الطرفية:",
+    "settings.start.probation": "بداية بالدراسة (فترة اختبار)",
+    "settings.start.probation_body": "يبدأ كل نوع إجراء في فترة اختبار (T1): يسأل أولًا ويكتسب مستواه بالأدلة، كما في الدراسة.",
+    "settings.start.title": "البداية",
+    "settings.start.trusted": "بداية موثوقة",
+    "settings.start.trusted_body": "يعمل كل نوع إجراء كما يعمل Hermes وحده حتى أول إخفاق أو سحب: التغيير القابل للتراجع ينفّذ ثم يُبلغك مع إمكانية التراجع. أول إخفاق له يضعه في فترة اختبار (T1)، ومن هناك يكتسب مستواه بالأدلة. مغادرة الجهاز والمال يسألان دائمًا.",
     "settings.strict": "الوضع الصارم",
     "settings.strict_off": "معطّل: يرث النموذج الجديد جزءًا من السجل السابق، مؤقتًا",
     "settings.strict_on": "مفعّل: يبدأ النموذج الجديد بسجل فارغ (قاعدة الدراسة)",
@@ -1041,6 +1071,10 @@ const TENURE_LOCALES = {
     "tier.name.alone": "يعمل وحده",
     "tier.name.ask": "يسأل أولًا",
     "tier.name.notify": "ينفّذ ثم يُبلغ",
+    "tier.trusted.chip": "موثوق",
+    "tier.trusted.label": "موثوق",
+    "tier.trusted.name": "يعمل مثل Hermes وحده",
+    "tier.trusted.title": "موثوق حتى أول خطأ له: يعمل مثل Hermes وحده. لم يُكتسب شيء بعد.",
     "time.ago": "قبل {duration}",
     "time.days": {
       "zero": "{n} ي",
@@ -1310,6 +1344,7 @@ const TENURE_LOCALES = {
     "guarantee.plain": "Como máximo, aproximadamente 1 de cada {k} de sus acciones se ejecuta con un error que nadie aprobó.",
     "guarantee.text": "Los errores sin comprobar se mantienen por debajo del {aoql} de sus acciones de este tipo; para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado.",
     "guarantee.text_conditional": "Los errores sin comprobar se mantienen por debajo del {aoql} de sus acciones de este tipo; para un agente que empeora tras ganar autonomía, como máximo el {worst} hasta el primer error detectado. Siempre que la evidencia del modelo anterior siga siendo válida.",
+    "guarantee.trusted": "Aún sin garantía: solo llega con un nivel ganado con evidencia.",
     "help.agent": "Panel del agente de la fila seleccionada",
     "help.aria": "Atajos de teclado",
     "help.close": "Cerrar",
@@ -1325,6 +1360,7 @@ const TENURE_LOCALES = {
     "legend.carried": "del modelo anterior, provisional",
     "legend.notify": "actúa y luego avisa, con opción de deshacer (tipos reversibles)",
     "legend.series": "acciones limpias seguidas, de las N necesarias",
+    "legend.trusted": "inicio de confianza: actúa como Hermes solo hasta su primer error, nada ganado",
     "map.aria": "Agentes por tipo de acción",
     "map.empty.after": ", y solo sube con éxitos verificados: los tipos reversibles llegan al nivel intermedio tras una serie de éxitos verificados sin fallos, y a T3 tras una serie completa de N en dos sesiones.",
     "map.empty.before": "tenure empieza a contar en la primera acción que un agente pide ejecutar. Las lecturas nunca preguntan. Cada tipo de acción empieza en ",
@@ -1358,6 +1394,8 @@ const TENURE_LOCALES = {
       "one": "prueba fallida · esperar {n}",
       "other": "prueba fallida · esperar {n}"
     },
+    "missing.trusted": "de confianza hasta su primer error · actúa como Hermes solo",
+    "missing.trusted_undo": "de confianza hasta su primer error · actúa y luego avisa, con opción de deshacer",
     "models.empty.body": "Cada acción verificada suma al historial del modelo en ese tipo, aquí y en {cmd}.",
     "models.empty.title": "Sin historial todavía",
     "models.lede": "Tu propio benchmark: el historial verificado de cada modelo en tu trabajo, por tipo de acción, con el rango del 95 % de su tasa de fallos. Ordenado por el extremo superior de su rango, nunca por una sola puntuación. Al lado, la medida pública, como información: ",
@@ -1416,6 +1454,7 @@ const TENURE_LOCALES = {
     "passport.field.type_names": "Nombres de tipo",
     "passport.note": "Firmado y a prueba de manipulaciones: cualquier cambio tras firmarlo o anclarlo se ve al verificarlo. Un pasaporte antiguo sigue verificándose frente a un registro más largo; el verificador indica qué ha cambiado desde entonces.",
     "passport.pending_note": "Calculado con los últimos ajustes registrados; los nuevos ajustes se aplican desde la próxima acción.",
+    "passport.trusted": "De confianza (no ganado)",
     "passport.types_title": "Tipos certificados",
     "passport.value.hashed": "{profile} (hash)",
     "passport.value.ledger": {
@@ -1440,6 +1479,8 @@ const TENURE_LOCALES = {
       "other": "{n} sesiones suspendidas: contenido externo leído"
     },
     "profile.spot": "controles aleatorios {rate}",
+    "profile.start_probation": "inicio en estudio (período de prueba)",
+    "profile.start_trusted": "inicio de confianza",
     "profile.strict": "estricto",
     "profile.suspended": {
       "one": "{n} suspendida: contenido externo leído",
@@ -1475,6 +1516,12 @@ const TENURE_LOCALES = {
     "settings.stakes_risk.high": "riesgo con impacto alto",
     "settings.stakes_risk.low": "riesgo con impacto bajo",
     "settings.stakes_risk.medium": "riesgo con impacto medio",
+    "settings.start.change": "Solo lectura aquí. Para cambiarlo, ejecuta en una terminal:",
+    "settings.start.probation": "Inicio en estudio (período de prueba)",
+    "settings.start.probation_body": "Cada tipo de acción empieza en Período de prueba (T1): pregunta antes y se gana su nivel con evidencia, como en el estudio.",
+    "settings.start.title": "Inicio",
+    "settings.start.trusted": "Inicio de confianza",
+    "settings.start.trusted_body": "Cada tipo de acción actúa como lo haría Hermes solo hasta su primer fallo o revocación: un cambio reversible actúa y luego te avisa, con opción de deshacer. Su primer fallo lo pasa a Período de prueba (T1), y desde ahí se gana su nivel con evidencia. Salir de la máquina y el dinero siguen preguntando.",
     "settings.strict": "Modo estricto",
     "settings.strict_off": "Desactivado: un modelo nuevo hereda parte del historial anterior, de forma provisional",
     "settings.strict_on": "Activado: un modelo nuevo empieza con un historial vacío (la regla del estudio)",
@@ -1554,6 +1601,10 @@ const TENURE_LOCALES = {
     "tier.name.alone": "actúa por su cuenta",
     "tier.name.ask": "pregunta antes",
     "tier.name.notify": "actúa y luego avisa",
+    "tier.trusted.chip": "CONFIANZA",
+    "tier.trusted.label": "De confianza",
+    "tier.trusted.name": "actúa como Hermes solo",
+    "tier.trusted.title": "De confianza hasta su primer error: actúa como Hermes solo. Nada ganado todavía.",
     "time.ago": "hace {duration}",
     "time.days": {
       "one": "{n} d",
@@ -1791,6 +1842,7 @@ const TENURE_LOCALES = {
     "guarantee.plain": "Au plus environ 1 action sur {k} s'exécute avec une erreur que personne n'a approuvée.",
     "guarantee.text": "Les erreurs que personne n'a vérifiées restent sous {aoql} de ses actions de ce type ; si l'agent se dégrade une fois son autonomie acquise, {worst} au plus, jusqu'à la première erreur repérée.",
     "guarantee.text_conditional": "Les erreurs que personne n'a vérifiées restent sous {aoql} de ses actions de ce type ; si l'agent se dégrade une fois son autonomie acquise, {worst} au plus, jusqu'à la première erreur repérée. À condition que les preuves du modèle précédent restent valables.",
+    "guarantee.trusted": "Pas encore de garantie : elle ne vient qu'avec un niveau acquis sur preuves.",
     "help.agent": "Volet de l'agent sélectionné",
     "help.aria": "Raccourcis clavier",
     "help.close": "Fermer",
@@ -1806,6 +1858,7 @@ const TENURE_LOCALES = {
     "legend.carried": "hérité du modèle précédent, provisoire",
     "legend.notify": "agit, puis prévient, annulable (types réversibles)",
     "legend.series": "succès d'affilée, sur les N requis",
+    "legend.trusted": "départ en confiance : agit comme Hermes seul jusqu'à sa première erreur, rien d'acquis",
     "map.aria": "Agents par type d'action",
     "map.empty.after": ", et ne monte que sur des succès vérifiés : les types réversibles atteignent le niveau intermédiaire après une série de succès vérifiés sans faute, et T3 après une série complète de N sur deux sessions.",
     "map.empty.before": "tenure commence à compter dès la première action qu'un agent demande à exécuter. Les lectures ne demandent jamais. Chaque type d'action commence en ",
@@ -1839,6 +1892,8 @@ const TENURE_LOCALES = {
       "one": "essai échoué · attendre {n}",
       "other": "essai échoué · attendre {n}"
     },
+    "missing.trusted": "de confiance jusqu'à sa première erreur · agit comme Hermes seul",
+    "missing.trusted_undo": "de confiance jusqu'à sa première erreur · agit, puis prévient, annulable",
     "models.empty.body": "Chaque action vérifiée s'ajoute à l'historique du modèle pour ce type, ici et dans {cmd}.",
     "models.empty.title": "Aucun historique pour l'instant",
     "models.lede": "Votre propre benchmark : l'historique vérifié de chaque modèle sur votre travail, par type d'action, avec la fourchette à 95 % de son taux de fautes. Classé par le haut de sa fourchette, jamais par un score unique. À côté, la mesure publique, pour information : ",
@@ -1897,6 +1952,7 @@ const TENURE_LOCALES = {
     "passport.field.type_names": "Noms de types",
     "passport.note": "Signé et scellé : toute modification faite après la signature ou l'ancrage apparaît à la vérification. Un ancien passeport se vérifie encore avec un registre plus long ; le vérificateur indique ce qui a changé depuis.",
     "passport.pending_note": "Calculé avec les derniers réglages enregistrés ; les nouveaux réglages s'appliquent dès la prochaine action.",
+    "passport.trusted": "De confiance (non acquis)",
     "passport.types_title": "Types attestés",
     "passport.value.hashed": "{profile} (haché)",
     "passport.value.ledger": {
@@ -1921,6 +1977,8 @@ const TENURE_LOCALES = {
       "other": "{n} sessions suspendues : elles ont lu du contenu externe"
     },
     "profile.spot": "contrôles aléatoires {rate}",
+    "profile.start_probation": "départ à l'étude (probation)",
+    "profile.start_trusted": "départ en confiance",
     "profile.strict": "strict",
     "profile.suspended": {
       "one": "{n} suspendue : a lu du contenu externe",
@@ -1956,6 +2014,12 @@ const TENURE_LOCALES = {
     "settings.stakes_risk.high": "risque à enjeu élevé",
     "settings.stakes_risk.low": "risque à enjeu faible",
     "settings.stakes_risk.medium": "risque à enjeu moyen",
+    "settings.start.change": "En lecture seule ici. Pour le changer, lancez dans un terminal :",
+    "settings.start.probation": "Départ à l'étude (probation)",
+    "settings.start.probation_body": "Chaque type d'action commence en Probation (T1) : il demande d'abord et gagne son niveau sur preuves, comme dans l'étude.",
+    "settings.start.title": "Départ",
+    "settings.start.trusted": "Départ en confiance",
+    "settings.start.trusted_body": "Chaque type d'action agit comme Hermes seul le ferait jusqu'à sa première faute ou révocation : une modification réversible agit, puis vous prévient, avec un bouton Annuler. Sa première faute le place en Probation (T1), puis il gagne son niveau sur preuves. Sortir de la machine et l'argent restent demandés.",
     "settings.strict": "Mode strict",
     "settings.strict_off": "Désactivé : un nouveau modèle hérite d'une partie de l'historique précédent, à titre provisoire",
     "settings.strict_on": "Activé : un nouveau modèle démarre avec un historique vide (la règle de l'étude)",
@@ -2035,6 +2099,10 @@ const TENURE_LOCALES = {
     "tier.name.alone": "agit seul",
     "tier.name.ask": "demande d'abord",
     "tier.name.notify": "agit, puis prévient",
+    "tier.trusted.chip": "CONFIANCE",
+    "tier.trusted.label": "De confiance",
+    "tier.trusted.name": "agit comme Hermes seul",
+    "tier.trusted.title": "De confiance jusqu'à sa première erreur : agit comme Hermes seul. Rien d'acquis pour l'instant.",
     "time.ago": "il y a {duration}",
     "time.days": {
       "one": "{n} j",
@@ -2256,6 +2324,7 @@ const TENURE_LOCALES = {
     "guarantee.plain": "其操作中最多约每 {k} 个就有 1 个带着无人批准的错误运行。",
     "guarantee.text": "未经检查的错误不超过此类型操作的 {aoql}；若智能体在获得自主权后变差，在第一次发现错误之前最多 {worst}。",
     "guarantee.text_conditional": "未经检查的错误不超过此类型操作的 {aoql}；若智能体在获得自主权后变差，在第一次发现错误之前最多 {worst}。前提是上一个模型的证据依然成立。",
+    "guarantee.trusted": "暂无保证：只有凭证据赢得的级别才有保证。",
     "help.agent": "当前行的智能体详情",
     "help.aria": "键盘快捷键",
     "help.close": "关闭",
@@ -2271,6 +2340,7 @@ const TENURE_LOCALES = {
     "legend.carried": "继承自上一个模型，暂定",
     "legend.notify": "先执行后告知，可撤销（可逆类型）",
     "legend.series": "连续成功次数，共需 N 次",
+    "legend.trusted": "信任起步：首次失误前像单独使用 Hermes 一样执行，未赢得任何级别",
     "map.aria": "按操作类型列出的智能体",
     "map.empty.after": " 开始，且只凭已验证的成功晋升：可逆类型在连续若干次无失误的已验证成功后升到中间级别，在来自两个会话的完整 N 次连续成功后升到 T3。",
     "map.empty.before": "tenure 从智能体请求运行的第一个操作开始计数。读取从不询问。每个操作类型都从 ",
@@ -2299,6 +2369,8 @@ const TENURE_LOCALES = {
     "missing.trial_wait": {
       "other": "考察未通过 · 等 {n} 个操作"
     },
+    "missing.trusted": "首次失误前保持信任 · 像单独使用 Hermes 一样执行",
+    "missing.trusted_undo": "首次失误前保持信任 · 先执行后告知，可撤销",
     "models.empty.body": "每个已验证的操作都会计入模型在该类型上的记录，显示在这里和 {cmd} 中。",
     "models.empty.title": "还没有记录",
     "models.lede": "你自己的基准：每个模型在你的工作中、按操作类型的已验证记录，附失误率的 95% 区间。按区间上限排名，从不只看单一分数。旁边是公开测评，仅供参考：",
@@ -2356,6 +2428,7 @@ const TENURE_LOCALES = {
     "passport.field.type_names": "类型名",
     "passport.note": "已签名且可发现篡改：签名或锚定后的任何改动都会在验证时显示出来。较早的护照对照更长的账本依然能通过验证；验证器会说明此后的变化。",
     "passport.pending_note": "按最近记录的设置计算；新设置从下一个操作起生效。",
+    "passport.trusted": "信任中（非赢得）",
     "passport.types_title": "已证实的类型",
     "passport.value.hashed": "{profile}（已哈希）",
     "passport.value.ledger": {
@@ -2378,6 +2451,8 @@ const TENURE_LOCALES = {
       "other": "{n} 个会话已暂停：读取了外部内容"
     },
     "profile.spot": "抽查率 {rate}",
+    "profile.start_probation": "考察起步（试用期）",
+    "profile.start_trusted": "信任起步",
     "profile.strict": "严格",
     "profile.suspended": {
       "other": "{n} 个已暂停：读取了外部内容"
@@ -2411,6 +2486,12 @@ const TENURE_LOCALES = {
     "settings.stakes_risk.high": "高风险的可接受风险",
     "settings.stakes_risk.low": "低风险的可接受风险",
     "settings.stakes_risk.medium": "中风险的可接受风险",
+    "settings.start.change": "此处只读。如需更改，请在终端中运行：",
+    "settings.start.probation": "考察起步（试用期）",
+    "settings.start.probation_body": "每个操作类型都从试用期 (T1) 开始：先询问，并凭证据赢得级别，与研究一致。",
+    "settings.start.title": "起点",
+    "settings.start.trusted": "信任起步",
+    "settings.start.trusted_body": "在首次失误或被收回之前，每个操作类型都像单独使用 Hermes 一样执行：可逆的更改先执行后告知，可撤销。首次失误会让它进入试用期 (T1)，此后凭证据赢得级别。离开本机和涉及金钱的操作仍会询问。",
     "settings.strict": "严格模式",
     "settings.strict_off": "关闭：新模型以暂定方式继承上一个模型的部分记录",
     "settings.strict_on": "开启：新模型从空记录开始（研究原规则）",
@@ -2485,6 +2566,10 @@ const TENURE_LOCALES = {
     "tier.name.alone": "自主执行",
     "tier.name.ask": "先询问",
     "tier.name.notify": "先执行后告知",
+    "tier.trusted.chip": "信任",
+    "tier.trusted.label": "信任中",
+    "tier.trusted.name": "像单独使用 Hermes 一样执行",
+    "tier.trusted.title": "首次失误前保持信任：像单独使用 Hermes 一样执行。尚未赢得任何级别。",
     "time.ago": "{duration}前",
     "time.days": {
       "other": "{n} 天"
@@ -2598,7 +2683,18 @@ const TENURE_LOCALES = {
   // ----------------------------------------------------------------------------------------- pinned rule values
   // Mirrors of tenure/params.py and rule.py, used only to say what evidence is still missing and to preview N.
   var TIER = { ask: "T1", notify: "T2", alone: "T3" };
-  function tierName(tier) { return t("tier.name." + tier); }
+  // The trusted start has no tier code: its chip word is translated (a live event's "from" can be "trusted").
+  Object.defineProperty(TIER, "trusted", { enumerable: false, get: function () { return t("tier.trusted.chip"); } });
+  function tierName(tier) { return tier === "trusted" ? t("tier.trusted.name") : t("tier.name." + tier); }
+  /** The tier a type shows: "trusted" while the trusted start covers it (no fault or revoke yet, not at an earned
+   *  T3). Nothing about such a type is earned: it never counts as autonomy, never carries a guarantee. */
+  function shownTier(ty) { return ty && ty.trusted && !ty.capped ? "trusted" : ty ? ty.effective_tier || ty.tier : "ask"; }
+  /** A profile's start mode: from its settings, else inferred from a type the trusted start covers; null if unknown. */
+  function startOf(info) {
+    var st = info && info.settings;
+    if (st && (st.start === "trusted" || st.start === "probation")) return st.start;
+    return info && (info.agents || []).some(function (a) { return (a.types || []).some(function (ty) { return ty.trusted; }); }) ? "trusted" : null;
+  }
   var STAKES = ["low", "medium", "high"];
   var TRIAL = 3;            // rule.TRIAL
   var SESSIONS = 2;         // rule.SESSIONS
@@ -2888,6 +2984,7 @@ const TENURE_LOCALES = {
    *  T3 otherwise (series / required); T3 is full; capped is null (a faint track only). */
   function progress(ty) {
     if (!ty || ty.capped || (ty.guarantee && ty.guarantee.capped)) return null;
+    if (ty.trusted) return "trust";                  // no progress to show: an even, light texture, nothing earned
     var eff = ty.effective_tier || ty.tier;
     if (eff === "alone") return 1;
     return ty.required ? clamp01((ty.series || 0) / ty.required) : 0;
@@ -2905,15 +3002,15 @@ const TENURE_LOCALES = {
     return at < ty.required ? at / ty.required : null;
   }
   function barProps(ty, wald) {
-    return { value: progress(ty), segments: ty && !ty.capped ? ty.required || 0 : 0, notch: notchOf(ty, wald), faults: ty ? ty.faults : null };
+    return { value: progress(ty), segments: ty && !ty.capped && !ty.trusted ? ty.required || 0 : 0, notch: ty && ty.trusted ? null : notchOf(ty, wald), faults: ty ? ty.faults : null };
   }
-  /** Share of earned autonomy: (T2 x 0.5 + T3) / types. */
+  /** Share of earned autonomy: (T2 x 0.5 + T3) / types; a trusted type counts for nothing. */
   function autonomyShare(types) {
     if (!types || !types.length) return 0;
     var s = 0;
     types.forEach(function (ty) {
       var eff = ty.effective_tier || ty.tier;
-      if (ty.capped || (ty.guarantee && ty.guarantee.capped)) return;
+      if (ty.capped || ty.trusted || (ty.guarantee && ty.guarantee.capped)) return;
       s += eff === "alone" ? 1 : eff === "notify" ? 0.5 : 0;
     });
     return s / types.length;
@@ -2921,13 +3018,14 @@ const TENURE_LOCALES = {
 
   /** Paint a progress bar: ``p`` 0..1 (or -1 for capped), ``dev`` the print sweep (cells whose Bayer threshold is
    *  below it), ``crumble`` 0..1 (dots drop and fade). Cells of 2 CSS px. */
+  var TRUST_BAR = -2;       // paintBar's p for a trusted type: an even 20% texture end to end
   function paintBar(cv, p, dev, crumble, geo) {
     var w = cv.clientWidth, hgt = cv.clientHeight;
     if (!w || !hgt) return false;
     var x = prep(cv, w, hgt);
     if (!x) return false;
     var c = 2, cols = Math.ceil(w / c), rows = Math.max(1, Math.floor(hgt / c));
-    var edge = p < 0 ? 0 : p * w, fade = Math.min(6, w * 0.03), track = p < 0 ? 0.07 : 0.1;
+    var edge = p < 0 ? 0 : p * w, fade = Math.min(6, w * 0.03), track = p === TRUST_BAR ? 0.2 : p < 0 ? 0.07 : 0.1;
     var d = dev == null ? 1 : dev, k = crumble || 0;
     var segs = geo && p >= 0 && p < 1 ? geo.segments || 0 : 0, per = segs ? cols / segs : 0;
     var segW = per ? per * Math.max(1, Math.ceil(3 / per)) : 0;        // a gap every k successes, k cells >= 3
@@ -2954,7 +3052,7 @@ const TENURE_LOCALES = {
   function DitherBar(props) {
     var ref = useRef(null);
     var st = useRef({ v: null, color: "", w: 0, dpr: 0, raf: 0, faults: null, geo: "" });
-    var target = props.value == null ? -1 : clamp01(props.value);
+    var target = props.value == null ? -1 : props.value === "trust" ? TRUST_BAR : clamp01(props.value);
     var geo = { segments: props.segments || 0, notch: props.notch == null ? null : props.notch };
     var gk = geo.segments + "|" + geo.notch;
     useEffect(function () {
@@ -2970,6 +3068,9 @@ const TENURE_LOCALES = {
       if (!motion() || (!first && from === target)) { cancelAnimationFrame(s.raf); paintBar(cv, target, 1, 0, geo); return; }
       if (first) {
         tween(s, 600, props.delay || 0, function (k) { paintBar(cv, target, easeOut(k), 0, geo); });
+      } else if (from === TRUST_BAR || target === TRUST_BAR) {
+        // Into or out of the trusted texture (its first fault, a revoke): nothing grows, the bar prints again.
+        tween(s, 420, 0, function (k) { paintBar(cv, target, easeOut(k), 0, geo); });
       } else if (faulted && target < from) {
         var start = from < 0 ? 0 : from;
         tween(s, 500, 0, function (k) { paintBar(cv, start, 1, k, geo); }, function () {
@@ -3134,6 +3235,7 @@ const TENURE_LOCALES = {
   /** The tier's display name next to its code: Probation, Under review, Tenured, Always asks. */
   function tierLabel(tier, capped) {
     if (capped) return t("tier.label.cap");
+    if (tier === "trusted") return t("tier.trusted.label");
     if (tier === "alone") return t("tier.label.alone");
     if (tier === "notify") return t("tier.label.notify");
     return t("tier.label.ask");
@@ -3165,7 +3267,8 @@ const TENURE_LOCALES = {
       var cap = which === "cap";
       return h("span", Object.assign({
         ref: ref, className: cx("tnr-tier", "tnr-tier--" + which, extra),
-        title: cap ? t("tier.capped.title") : t("tier.chip.title", { tier: TIER[which], name: tierLabel(which) + " · " + tierName(which) })
+        title: cap ? t("tier.capped.title") : which === "trusted" ? t("tier.trusted.title") :
+          t("tier.chip.title", { tier: TIER[which], name: tierLabel(which) + " · " + tierName(which) })
       }, extra ? { "aria-hidden": true } : null), cap ? t("tier.capped.chip") : TIER[which]);
     }
     return h("span", { className: cx("tnr-tierwrap", props.label && "has-label") },
@@ -3264,6 +3367,7 @@ const TENURE_LOCALES = {
   /** What a type still needs, said as missing evidence (never a gauge). */
   function missing(ty) {
     if (ty.capped) return { text: t("missing.always_asks"), tone: "muted" };
+    if (ty.trusted) return { text: t(ty.reversible ? "missing.trusted_undo" : "missing.trusted"), tone: "muted" };
     if (ty.trial_wait) return { text: t("missing.trial_wait", { n: ty.trial_wait }), tone: "warn" };
     if (ty.trial_left) return { text: t("missing.trial_left", { n: String(ty.trial_left), total: String(TRIAL) }), tone: "warn" };
     var eff = ty.effective_tier;
@@ -3294,8 +3398,10 @@ const TENURE_LOCALES = {
 
   var PRESET_IDS = ["careful", "balanced", "fast", "custom"];
   function presetName(p) { return PRESET_IDS.indexOf(p) >= 0 ? t("preset." + p) : p; }
-  function profileSettings(st) {
+  function profileSettings(st, info) {
     var parts = [t("profile.preset", { preset: presetName(st.preset) }), t("profile.spot", { rate: oneIn(st.spot) })];
+    var start = startOf(info || { settings: st });
+    if (start) parts.push(start === "trusted" ? t("profile.start_trusted") : t("profile.start_probation"));
     if (st.strict) parts.push(t("profile.strict"));
     if (st.pending) parts.push(t("profile.pending"));
     if (st.copy_pending) parts.push(t("profile.copy_pending"));
@@ -3304,9 +3410,10 @@ const TENURE_LOCALES = {
 
   function cellTitle(ty) {
     var stakes = t("stakes.group." + ty.stakes);
-    var tierNow = t("cell.tier_now", { tier: TIER[ty.effective_tier], name: tierName(ty.effective_tier) });
+    var tierNow = ty.trusted && !ty.capped ? t("tier.trusted.title") :
+      t("cell.tier_now", { tier: TIER[ty.effective_tier], name: tierName(ty.effective_tier) });
     var lines = [t(ty.reversible ? "cell.kind_reversible" : "cell.kind_irreversible", { type: ty.type, stakes: stakes }),
-      ty.tier !== ty.effective_tier ? tierNow + " · " + t("cell.held", { tier: TIER[ty.tier] }) : tierNow,
+      ty.tier !== ty.effective_tier && !ty.trusted ? tierNow + " · " + t("cell.held", { tier: TIER[ty.tier] }) : tierNow,
       ty.capped ? t("cell.capped_by_settings") : t("cell.series", { series: String(ty.series), required: String(ty.required) }) +
         " · " + t("cell.sessions", { n: ty.sessions, count: String(ty.sessions) }),
       t("cell.record", { successes: String(ty.successes), faults: String(ty.faults), neutrals: String(ty.neutrals),
@@ -3422,7 +3529,8 @@ const TENURE_LOCALES = {
     var scan = useClimb(ty ? ty.spot_checks || 0 : null);
     if (!ty) return h("td", { className: "tnr-cell tnr-cell--none" }, h("span", { className: "tnr-none" }, "—"));
     var miss = missing(ty);
-    var held = ty.tier !== ty.effective_tier;
+    var shown = shownTier(ty);
+    var held = ty.tier !== ty.effective_tier && !ty.trusted;
     var flags = [];
     if (ty.provisional) {
       flags.push(h(Flag, { key: "p", kind: "prov", title: t("flag.carried_over_title", { n: ty.provisional, count: String(ty.provisional) }) },
@@ -3430,14 +3538,14 @@ const TENURE_LOCALES = {
     }
     if (ty.unresolved_fault) flags.push(h(Flag, { key: "f", kind: "fault", title: t("flag.fault_on_record_title") }, t("flag.fault_on_record")));
     return h("td", {
-      className: cx("tnr-cell", "tnr-cell--" + (ty.capped ? "cap" : ty.effective_tier), ty.provisional && "is-prov",
+      className: cx("tnr-cell", "tnr-cell--" + (ty.capped ? "cap" : shown), ty.provisional && "is-prov",
         (ty.trial_left || ty.trial_wait) && "is-trial"),
       title: cellTitle(ty)
     },
       h("div", { className: "tnr-cell-top" },
-        h(TierChip, { tier: ty.effective_tier, capped: ty.capped }),
+        h(TierChip, { tier: shown, capped: ty.capped }),
         ty.capped ? h("span", { className: "tnr-cell-ev" }, num(ty.successes + ty.faults), h("span", { className: "tnr-dim" }, t("cell.asked_suffix")))
-          : h("span", { className: "tnr-cell-ev" }, num(ty.series), h("span", { className: "tnr-dim" }, "/" + num(ty.required)))),
+          : ty.trusted ? null : h("span", { className: "tnr-cell-ev" }, num(ty.series), h("span", { className: "tnr-dim" }, "/" + num(ty.required)))),
       h(DitherBar, Object.assign(barProps(ty), { delay: 120 + (props.row || 0) * 40 })),
       h("div", { className: "tnr-cell-mid" },
         ty.capped ? h("span", null, t("count.faults", { n: ty.faults })) : h("span", null, t("count.sessions", { n: ty.sessions })),
@@ -3498,7 +3606,7 @@ const TENURE_LOCALES = {
                   t("profile.name", { profile: "\u0001" }).split("\u0001")[1] || ""),
                 h("span", { className: "tnr-dim" }, grp.info.current ? t("profile.this_dashboard") : t("profile.read_only")),
                 grp.info.suspended ? h(Flag, { kind: "warn" }, t("profile.sessions_suspended", { n: grp.info.suspended })) : null,
-                grp.info.settings ? h("span", { className: "tnr-dim tnr-profile-preset" }, profileSettings(grp.info.settings)) : null)),
+                grp.info.settings ? h("span", { className: "tnr-dim tnr-profile-preset" }, profileSettings(grp.info.settings, grp.info)) : null)),
             grp.rows.map(function (x) {
               var r = x.r, a = r.agent;
               var byType = {};
@@ -3549,12 +3657,12 @@ const TENURE_LOCALES = {
                 }).map(function (ty) {
                   var miss = missing(ty);
                   return h("div", { key: ty.type, className: "tnr-card-type" },
-                    h(TierChip, { tier: ty.effective_tier, capped: ty.capped }),
+                    h(TierChip, { tier: shownTier(ty), capped: ty.capped }),
                     h("code", { className: "tnr-card-type-name" }, ty.type),
-                    h("span", { className: "tnr-card-type-ev" }, ty.capped ? t("common.capped") : num(ty.series) + "/" + num(ty.required)),
+                    h("span", { className: "tnr-card-type-ev" }, ty.capped ? t("common.capped") : ty.trusted ? "" : num(ty.series) + "/" + num(ty.required)),
                     h(DitherBar, Object.assign(barProps(ty), { className: "tnr-card-type-bar", delay: 120 + x.i * 40 })),
                     h("span", { className: "tnr-card-type-miss tnr-tone--" + miss.tone },
-                      ty.tier !== ty.effective_tier ? t("cell.held", { tier: TIER[ty.tier] }) :
+                      ty.tier !== ty.effective_tier && !ty.trusted ? t("cell.held", { tier: TIER[ty.tier] }) :
                         ty.provisional ? t("flag.carried_over_n", { n: ty.provisional }) + " · " + miss.text :
                           ty.unresolved_fault ? t("flag.fault_on_record") + " · " + miss.text : miss.text));
                 })));
@@ -3563,12 +3671,14 @@ const TENURE_LOCALES = {
 
     return h("div", { className: "tnr-mapview" },
       table, cards,
-      h(Legend, { spot: props.settings && props.settings.spot }),
+      h(Legend, { spot: props.settings && props.settings.spot,
+        trusted: rows.some(function (r) { return r.agent.types.some(function (ty) { return ty.trusted && !ty.capped; }); }) }),
       h(Transitions, { items: props.transitions }));
   }
 
   function Legend(props) {
     return h("div", { className: "tnr-legend" },
+      props.trusted ? h("span", null, h(TierChip, { tier: "trusted", label: true }), " " + t("legend.trusted")) : null,
       h("span", null, h(TierChip, { tier: "ask", label: true }), " " + t("legend.ask")),
       h("span", null, h(TierChip, { tier: "notify", label: true }), " " + t("legend.notify")),
       h("span", null, h(TierChip, { tier: "alone", label: true }), " " + t("legend.alone", { share: props.spot ? oneIn(props.spot) : t("legend.a_share") })),
@@ -3733,8 +3843,8 @@ const TENURE_LOCALES = {
                     h("div", { className: "tnr-dim tnr-small" },
                       ty.reversible ? t("drawer.stakes_reversible", { stakes: t("stakes." + ty.stakes) }) : t("stakes." + ty.stakes)),
                     h(DitherBar, Object.assign(barProps(ty), { className: "tnr-drawer-bar", delay: 200 + ti * 40 }))),
-                  h("td", null, h(TierChip, { tier: ty.effective_tier, capped: ty.capped, label: true }),
-                    ty.tier !== ty.effective_tier ? h("div", { className: "tnr-held" }, t("cell.held", { tier: TIER[ty.tier] })) : null),
+                  h("td", null, h(TierChip, { tier: shownTier(ty), capped: ty.capped, label: true }),
+                    ty.tier !== ty.effective_tier && !ty.trusted ? h("div", { className: "tnr-held" }, t("cell.held", { tier: TIER[ty.tier] })) : null),
                   h("td", { className: "tnr-num" }, ty.capped ? "—" : num(ty.series) + "/" + num(ty.required)),
                   h("td", { className: "tnr-num" }, ty.capped ? "—" : num(ty.sessions) + "/" + SESSIONS),
                   h("td", { className: "tnr-num" }, num(ty.faults) + " / " + num(ty.successes + ty.faults)),
@@ -3765,7 +3875,8 @@ const TENURE_LOCALES = {
                     h("span", { className: "tnr-tone--" + miss.tone }, miss.text),
                     ty.provisional ? h("span", null, " · " + t("flag.carried_over_provisional", { n: ty.provisional })) : null,
                     ty.unresolved_fault ? h("span", { className: "tnr-tone--fault" }, " · " + t("flag.fault_on_record")) : null,
-                    ty.effective_tier === "alone" ? h("div", { className: "tnr-guarantee" }, h(Guarantee, { g: ty.guarantee })) : null)));
+                    ty.trusted && !ty.capped ? h("div", { className: "tnr-guarantee tnr-dim" }, t("guarantee.trusted")) :
+                      ty.effective_tier === "alone" ? h("div", { className: "tnr-guarantee" }, h(Guarantee, { g: ty.guarantee })) : null)));
             }))),
           h("div", { className: "tnr-drawer-revoke" },
             h(ConfirmBtn, {
@@ -3975,9 +4086,9 @@ const TENURE_LOCALES = {
               return h("tr", { key: ty.type, className: fresh ? "tnr-in" : undefined, style: { "--i": ri } },
                 h("td", null, h("code", null, ty.type), h("div", { className: "tnr-dim tnr-small" }, t("stakes." + ty.stakes))),
                 h("td", null, h(Flag, { kind: st.tone }, statusLabel(ty.status))),
-                h("td", null, h(TierChip, { tier: ty.old.effective_tier, capped: ty.old.capped }), " ",
+                h("td", null, h(TierChip, { tier: shownTier(ty.old), capped: ty.old.capped }), " ",
                   h("span", { className: "tnr-mono" }, ty.old.capped ? t("common.capped") : num(ty.old.series) + "/" + num(ty.old.required))),
-                h("td", null, h(TierChip, { tier: ty.new.effective_tier, capped: ty.new.capped, label: true }), " ",
+                h("td", null, h(TierChip, { tier: shownTier(ty.new), capped: ty.new.capped, label: true }), " ",
                   h("span", { className: "tnr-mono" }, ty.new.capped ? t("common.capped") : num(ty.new.series) + "/" + num(ty.new.required)),
                   ty.new.provisional ? h("div", { className: "tnr-small tnr-tone--prov" }, t("switch.provisional", { n: ty.new.provisional })) : null),
                 h("td", null, c.benchmark ? h(Fragment, null,
@@ -4026,15 +4137,24 @@ const TENURE_LOCALES = {
    *  footer, the real ledger head) and the animation plays over it: the emblem develops (600 ms) then turns slowly,
    *  a sweep passes once, and the check mark and seal print only when the passport verifies. Pointer tilt and a
    *  dithered glare on hover (mouse only). Everything that can change after mount is read from a live ref. */
+  /** Passport types the live record says the trusted start covers: marked, so they show "Trusted (not earned)", never
+   *  an earned tier (the passport signs the recorded tiers; an earned T3 stays T3). */
+  function trustedMarks(types, byType) {
+    return types.map(function (ty) {
+      var m = byType[ty.type];
+      return m && m.trusted && (ty.effective_tier || ty.tier) !== "alone" ? Object.assign({}, ty, { trusted: true }) : ty;
+    });
+  }
   function PassportCard(props) {
     var d = props.doc, ok = props.ok;
     var cardRef = useRef(null), okRef = useRef(null), sealRef = useRef(null), sweepRef = useRef(null);
     var st = useRef({ raf: 0, done: false, color: "" });
-    var name = d.agent.model, head = short(d.ledger.head, 8), types = d.types || [];
+    var name = d.agent.model, head = short(d.ledger.head, 8);
     var live = useRef(null);
     live.current = { ok: !!ok };
     var byType = {};
     (props.mapTypes || []).forEach(function (ty) { byType[ty.type] = ty; });
+    var types = trustedMarks(d.types || [], byType);
     // Faults and checks are not in the passport: they come from the live record of the same types.
     var totals = types.reduce(function (acc, ty) {
       var m = byType[ty.type] || {};
@@ -4097,12 +4217,14 @@ const TENURE_LOCALES = {
           types.map(function (ty, i) {
             var cap = !!(ty.guarantee && ty.guarantee.capped);
             var eff = ty.effective_tier || ty.tier;
+            var trust = ty.trusted && !cap;
             var bp = barProps(Object.assign({}, ty, { capped: cap }), byType[ty.type]);
-            return h("div", { key: ty.type, className: "tnr-pass-row" },
+            return h("div", { key: ty.type, className: cx("tnr-pass-row", trust && "is-trusted") },
               h("span", { className: "tnr-pass-k" }, h("bdi", null, h("span", { className: "tnr-pass-n" }, nth(i + 1)), " ", h("code", null, ty.type)),
-                h("span", { className: "tnr-pass-tier" }, h("b", null, cap ? t("tier.capped.chip") : TIER[eff]), " " + tierLabel(eff, cap))),
+                trust ? h("span", { className: "tnr-pass-tier" }, h("b", null, t("passport.trusted")))
+                  : h("span", { className: "tnr-pass-tier" }, h("b", null, cap ? t("tier.capped.chip") : TIER[eff]), " " + tierLabel(eff, cap))),
               h(DitherBar, Object.assign(bp, { className: "tnr-pass-bar", delay: 120 + i * 80 })),
-              h("span", { className: "tnr-pass-count" }, cap || ty.required == null ? "" : num(ty.series) + "/" + num(ty.required)));
+              h("span", { className: "tnr-pass-count" }, cap || trust || ty.required == null ? "" : num(ty.series) + "/" + num(ty.required)));
           })),
         h("div", { className: "tnr-pass-foot", "aria-hidden": true },
           h("span", null, t("passport.faults_checks", { n: totals.f, total: totals.n })),
@@ -4126,6 +4248,8 @@ const TENURE_LOCALES = {
     var v = d ? verdict(res.data.verify, d) : null;
     var verified = !!(d && res.data.verify && !res.data.verify.length);
     var pending = !!(row && row.info && row.info.settings && row.info.settings.pending);
+    var liveTypes = {};
+    ((row && row.agent.types) || []).forEach(function (ty) { liveTypes[ty.type] = ty; });
     function download() {
       if (!d) return;
       var blob = new Blob([JSON.stringify(d, null, 2) + "\n"], { type: "application/json" });
@@ -4169,14 +4293,17 @@ const TENURE_LOCALES = {
           h("table", { className: "tnr-dtable" },
             h("thead", null, h("tr", null, h("th", null, t("th.type")), h("th", null, t("th.tier")), h("th", { className: "tnr-num" }, t("th.series")),
               h("th", { className: "tnr-num" }, t("th.sessions")), h("th", null, t("th.guarantee")))),
-            h("tbody", null, d.types.map(function (ty, pi) {
+            h("tbody", null, trustedMarks(d.types, liveTypes).map(function (ty, pi) {
               var g = ty.guarantee || {};
+              var trust = ty.trusted && !g.capped;
               return h("tr", { key: ty.type, className: fresh ? "tnr-in" : undefined, style: { "--i": pi } },
                 h("td", null, h("code", null, ty.type), h("div", { className: "tnr-dim tnr-small" }, t("stakes." + ty.stakes))),
-                h("td", null, h(TierChip, { tier: ty.effective_tier || ty.tier, capped: !!g.capped, label: true })),
+                h("td", null, trust ? h(Fragment, null, h(TierChip, { tier: "trusted", still: true }),
+                  h("div", { className: "tnr-dim tnr-small" }, t("passport.trusted")))
+                  : h(TierChip, { tier: ty.effective_tier || ty.tier, capped: !!g.capped, label: true })),
                 h("td", { className: "tnr-num" }, ty.required == null ? "—" : num(ty.series) + "/" + num(ty.required)),
                 h("td", { className: "tnr-num" }, num(ty.sessions)),
-                h("td", { className: "tnr-small" }, g.capped ? t("legend.capped") : h(Guarantee, { g: g })));
+                h("td", { className: "tnr-small" }, g.capped ? t("legend.capped") : trust ? h("span", { className: "tnr-dim" }, t("guarantee.trusted")) : h(Guarantee, { g: g })));
             }))))));
   }
 
@@ -4301,6 +4428,7 @@ const TENURE_LOCALES = {
       });
     }
     var commands = cmds();
+    var startTrusted = props.start === "trusted";
     var shownCmds = commands.length ? commands : ["hermes tenure setup " + (cur.preset === "custom" ? "balanced" : cur.preset)];
     return h("div", { className: "tnr-settings" },
       h("section", { className: "tnr-dial" },
@@ -4350,8 +4478,16 @@ const TENURE_LOCALES = {
             h("span", { className: "tnr-dim tnr-small" }, dirty ? t("settings.same_as", { cmds: commands.join("  &&  ") }) :
               t("settings.in_force_profile", { profile: props.profile })))),
       msg ? h("div", { className: "tnr-msg tnr-tone--" + msg.tone }, msg.text) : null,
+      props.start ? h("section", { className: "tnr-start", "data-start": props.start },
+        h(Eyebrow, { n: 2 }, t("settings.start.title")),
+        h("div", { className: "tnr-start-row" },
+          h(TierChip, { tier: startTrusted ? "trusted" : "ask", still: true }),
+          h("b", null, startTrusted ? t("settings.start.trusted") : t("settings.start.probation"))),
+        h("p", { className: "tnr-small" }, startTrusted ? t("settings.start.trusted_body") : t("settings.start.probation_body")),
+        h("div", { className: "tnr-dim tnr-small" }, t("settings.start.change")),
+        h(CopyCmd, { cmd: "hermes tenure start " + (startTrusted ? "probation" : "trusted") })) : null,
       h("section", { className: "tnr-about" },
-        h(Eyebrow, { n: 2 }, t("settings.about.title")),
+        h(Eyebrow, { n: props.start ? 3 : 2 }, t("settings.about.title")),
         h("p", null, t("settings.about.body", { spot: oneIn(cur.spot) })),
         h("p", { className: "tnr-dim" }, t("settings.about.carry"))));
   }
@@ -4455,13 +4591,14 @@ const TENURE_LOCALES = {
       if (!data) return;
       var now = {};
       rows.forEach(function (r) {
-        r.agent.types.forEach(function (ty) { now[r.key + "\u0000" + ty.type] = { tier: ty.effective_tier, r: r, t: ty }; });
+        r.agent.types.forEach(function (ty) { now[r.key + "\u0000" + ty.type] = { tier: shownTier(ty), r: r, t: ty }; });
       });
       var before = prev.current;
       prev.current = now;
       if (!before) return;
       var found = [];
-      var RANK = { ask: 0, notify: 1, alone: 2 };
+      // Trusted ranks just above T1: its first fault (trusted -> T1) is a drop, and plays "Back on probation".
+      var RANK = { ask: 0, trusted: 0.5, notify: 1, alone: 2 };
       Object.keys(now).forEach(function (k) {
         var b = before[k], n = now[k];
         if (b && b.tier !== n.tier) {
@@ -4553,7 +4690,7 @@ const TENURE_LOCALES = {
     else if (view === "switch") body = h(SwitchView, { rows: rows, raw: raw, version: version });
     else if (view === "passport") body = h(PassportView, { rows: rows, raw: raw, version: version });
     else if (view === "undo") body = h(UndoView, { undoable: activity && activity.undoable, current: currentProfile, onDone: done, raw: raw });
-    else body = h(SettingsView, { settings: current && current.settings, profile: currentProfile, raw: raw, onDone: done,
+    else body = h(SettingsView, { settings: current && current.settings, start: startOf(current), profile: currentProfile, raw: raw, onDone: done,
       readOnly: settingsRO, onReadOnly: setSettingsRO });
 
     var moving = animOn && !reduced;

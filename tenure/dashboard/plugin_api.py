@@ -229,6 +229,7 @@ def _agents(raw: bool) -> dict:
                 out.append({"profile": p["name"], "current": p["name"] == current, "suspended": suspended,
                             "settings": {"preset": cfg["preset"], "risks": cfg["risks"], "spot": cfg["spot"],
                                          "strict": cfg["strict"], "pending": cfg["pending"],
+                                         "start": cfg.get("start", "probation"),
                                          "copy_pending": cfg["copy_pending"]},
                             "agents": _agent_rows(core, st, cfg, suspended, raw)})
         except (_Unreadable, sqlite3.Error):

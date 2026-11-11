@@ -112,3 +112,9 @@ def test_the_start_command_saves_the_setting(plugin):
     assert mod.cli.slash("start probation").startswith("Study start")
     assert ctx.settings["start"] == "probation"
     assert ctx.call("write_file", write("st")) == "approved"
+
+
+def test_a_state_stored_before_the_trusted_start_keeps_its_faults():
+    from tenure import rule
+    assert rule.TypeState.from_dict({"key": "file:write", "stakes": "low", "faults": 2}).distrusted
+    assert not rule.TypeState.from_dict({"key": "file:write", "stakes": "low"}).distrusted
