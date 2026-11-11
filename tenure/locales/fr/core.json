@@ -35,6 +35,10 @@
   },
   "carry.new_agent": "tenure : nouvel agent {new} (auparavant {old}). Types d'action : {carried} hérités à l'essai, {reset} remis à zéro, {vetoed} bloqués par un benchmark public.",
   "carry.strict": "Mode strict : chaque type repart de zéro, et une faute à l'historique devient un essai.",
+  "carry.trusted": {
+    "one": "{n} type garde le départ en confiance (rien de gagné à reporter).",
+    "other": "{n} types gardent le départ en confiance (rien de gagné à reporter)."
+  },
   "cli.ago.h": {
     "one": "il y a {n} h",
     "other": "il y a {n} h"

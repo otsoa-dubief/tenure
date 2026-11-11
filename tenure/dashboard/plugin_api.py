@@ -499,7 +499,8 @@ def _revoke(body: RevokeBody, raw: bool) -> dict:
         for key in keys:
             s = known[key]
             if (every and s.tier == core.rule.T1 and not s.series and not s.provisional and s.wald >= 0
-                    and s.distrusted):
+                    and not core.trusted(core.settings(), s, core.params.required_n(core.settings()["risks"], s.stakes),
+                                         s.stakes)):
                 continue                                       # nothing earned or trusted to take back
             events = core.rule.revoke(s)
             st.put_state(body.agent, s)

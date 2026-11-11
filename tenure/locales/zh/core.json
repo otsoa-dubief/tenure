@@ -30,6 +30,9 @@
   },
   "carry.new_agent": "tenure：新智能体 {new}（原为 {old}）。操作类型：{carried} 个继承并进入考察期，{reset} 个重置，{vetoed} 个被公开基准否决。",
   "carry.strict": "严格模式：每个类型都从头开始，记录中的失误转为考察期。",
+  "carry.trusted": {
+    "other": "{n} 类操作保留信任起步（没有可转移的已赢得记录）。"
+  },
   "cli.ago.h": {
     "other": "{n} 小时前"
   },

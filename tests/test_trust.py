@@ -187,3 +187,47 @@ def test_trust_covers_files_memory_and_known_dev_tools_only(plugin):
                 "heroku run rake db:drop", "rm -rf build"):
         assert ctx.call("terminal", {"command": cmd}) == "approved", cmd
     assert ctx.call("memory", {"action": "add", "content": "x"}) == "ran"
+
+
+def test_a_start_switch_mid_call_gives_no_study_credit(plugin):
+    mod, ctx = plugin(TRUST)
+    assert pre(mod, "write_file", write("mid"), "m1") is None             # trusted: acts, then tells
+    ctx.settings["start"] = "probation"
+    post(mod, "write_file", write("mid"), "m1")
+    s = state(mod, "file:write")
+    assert (s.series, s.successes) == (0, 0) and outcomes(mod)[-1]["source"] == "alone"
+    replayed = mod.passport.replay(mod.store_().ledger())[A]["file:write"].to_dict()
+    live = s.to_dict()
+    live.pop("changed_at"), replayed.pop("changed_at")
+    assert live == replayed
+
+
+def test_a_trusted_write_that_cannot_be_saved_asks(plugin, monkeypatch):
+    mod, ctx = plugin(TRUST)
+    monkeypatch.setattr(mod.undo, "snapshot", lambda *a, **k: None)
+    assert ctx.call("write_file", write("big")) == "approved"
+
+
+def test_trusted_messages_match_status(plugin):
+    mod, ctx = plugin(TRUST)
+    ctx.call("write_file", write("c1"))
+    ctx.call("terminal", NPM)
+    assert "Trusted (until a mistake)" in mod.cli.slash("card")
+    mod.pre_api_request(model="model-b", provider="nous", session_id="s1")
+    ctx.call("terminal", NPM)
+    said = "\n".join(ctx.posted)
+    assert "0 carried over on trial" in said and "2 types keep the trusted start" in said
+
+
+def test_revoke_all_takes_back_trust_but_skips_what_has_nothing(plugin):
+    mod, ctx = plugin({**FAST, "start": "probation"})
+    ctx.call("terminal", {"command": "docker run x"}, answer="deny")
+    assert mod.cli.slash("revoke all").startswith(mod.i18n.tr("cli.revoke.nothing")[:10])
+
+
+def test_under_cron_trusted_actions_run_keep_their_undo_and_teach_nothing(plugin):
+    mod, ctx = plugin(TRUST)
+    ctx.cron = True
+    assert ctx.call("write_file", write("cr")) == "ran" and "/tenure undo" in ctx.posted[-1]
+    assert ctx.call("terminal", NPM) == "ran"
+    assert state(mod, "file:write").successes == 0 and ctx.prompts == []

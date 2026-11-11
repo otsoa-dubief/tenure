@@ -264,7 +264,9 @@ def card_text(model: str | None = None, redact: bool = True) -> str:
     for _, s in sorted(rows, key=lambda r: r[1].key):
         n = params.required_n(cfg["risks"], s.stakes)
         eff = effective_tier(s, n)
-        label = (f"CAP {tr('tier.rank.cap')}" if n is None else f"{_CODE[eff]} {tr(f"tier.rank.{_RANK_KEY[eff]}")}")
+        label = (f"CAP {tr('tier.rank.cap')}" if n is None else
+                 tr("cli.tier.trusted") if eff != rule.T3 and core.trusted(cfg, s, n, s.stakes) else
+                 f"{_CODE[eff]} {tr(f"tier.rank.{_RANK_KEY[eff]}")}")
         lines.append(f"{_card_bar(s, n, eff)} {ljust(shown[s.key], width_k)}  {label}")
         faults, successes = faults + s.faults, successes + s.successes
     lines.append(tr("cli.card.foot", record=_record(faults, successes)))
@@ -336,6 +338,7 @@ def flag(type_key: str, note: str = "", agent: str | None = None, model: str | N
 
 def revoke(type_key: str, agent: str | None = None, model: str | None = None, every: bool = False) -> str:
     core = _core()
+    cfg = core.settings()
     done = []
     with core.txn() as st:
         agents = _targets(core, st, agent=agent, model=model, every=every)
@@ -344,7 +347,7 @@ def revoke(type_key: str, agent: str | None = None, model: str | None = None, ev
                 if type_key not in ("all", s.key):
                     continue
                 if (type_key == "all" and s.tier == rule.T1 and not s.series and not s.provisional and s.wald >= 0
-                        and s.distrusted):
+                        and not core.trusted(cfg, s, params.required_n(cfg["risks"], s.stakes), s.stakes)):
                     continue                                       # nothing earned or trusted to take back
                 events = rule.revoke(s)
                 st.put_state(ag, s)

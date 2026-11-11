@@ -35,6 +35,10 @@
   },
   "carry.new_agent": "tenure: new agent {new} (was {old}). Action types: {carried} carried over on trial, {reset} reset, {vetoed} vetoed by a public benchmark.",
   "carry.strict": "Strict mode: every type starts over, and a fault on record becomes a trial.",
+  "carry.trusted": {
+    "one": "{n} type keeps the trusted start (nothing earned to carry).",
+    "other": "{n} types keep the trusted start (nothing earned to carry)."
+  },
   "cli.ago.h": {
     "one": "{n} h ago",
     "other": "{n} h ago"

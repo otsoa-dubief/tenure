@@ -786,7 +786,7 @@ def _carry(st: store.Store, cfg: dict, old: str, new: str) -> str:
     strict = bool(cfg["strict"])
     old_model, new_model = personal.split_agent(old)[0], personal.split_agent(new)[0]
     have = {s.key for _, s in st.states(new)}
-    carried = reset = kept = 0
+    carried = reset = kept = trusting = 0
     vetoed = []
     for _, s in st.states(old):
         if s.key in have:                    # the new agent's own evidence on a type is never overwritten
@@ -795,17 +795,22 @@ def _carry(st: store.Store, cfg: dict, old: str, new: str) -> str:
         n_new = params.required_n(cfg["risks"], s.stakes)
         eligible = not strict and s.stakes != "high" and n_new is not None
         veto = eligible and benchmarks.veto(old_model, new_model, s.key)
-        st.put_state(new, rule.carry_over(s, n_new=n_new, veto=veto, strict=strict))
+        made = rule.carry_over(s, n_new=n_new, veto=veto, strict=strict)
+        st.put_state(new, made)
         if veto:
             vetoed.append(s.key)
-        elif eligible:
+        elif eligible and (made.provisional > 0 or made.wald < 0):
             carried += 1
+        elif trusted(cfg, made, n_new, made.stakes):
+            trusting += 1                    # nothing earned to carry: it keeps the trusted start
         else:
             reset += 1
     st.log({"event": "agent", "old": old, "new": new, "mode": "strict" if strict else "carry", "vetoed": vetoed})
     parts = [tr("carry.new_agent", new=new, old=old, carried=carried, reset=reset, vetoed=len(vetoed))]
     if kept:
         parts.append(tr("carry.kept", n=kept))
+    if trusting:
+        parts.append(tr("carry.trusted", n=trusting))
     if strict:
         parts.append(tr("carry.strict"))
     elif carried:
@@ -932,6 +937,10 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         result_source = ("neutral", "alone")
     else:                                                   # nobody answered (cron, yolo, approvals off), or no hook
         result_source = ("neutral", "nobody")
+    if p["decision"] == rule.WATCH and result_source[0] == "success":
+        now = st.get_state(agent, key, p["stakes"], p["reversible"])
+        if not trusted(cfg, now, params.required_n(cfg["risks"], p["stakes"]), p["stakes"]):
+            result_source = ("neutral", "alone")            # trusted when it ran, not now (start changed): no credit
     events = record_outcome(st, cfg, agent=agent, type_key=key, stakes=p["stakes"], reversible=p["reversible"],
                             result=result_source[0], source=result_source[1], session=p["session"])
     _bump(st, agent, result_source[0], checked=phase == "approved",
@@ -1023,15 +1032,18 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             posts += _say(sync_settings(st, cfg), cfg["spot"])
             posts += _say(_expire(st, cfg), cfg["spot"])
             recorded, s, decision, suspended = _decide(st, agent, act, n, cfg, session, nobody, ST.rng)
-            if decision == rule.WATCH:                      # files saved: act then tell, with an undo; else run alone
-                decision = rule.NOTIFY if snap else rule.ALLOW
+            watched = decision == rule.WATCH
+            if watched:                                     # files saved: act then tell, with an undo; else run alone
+                files = bool(snap) or bool(classify.files_written(tool, args, cwd))
+                decision = rule.NOTIFY if files else rule.ALLOW   # files that could not be saved: ask (below)
             if decision != rule.NOTIFY:
                 snap = None                                 # the record changed since the preview: no undo needed
             unsaved = decision == rule.NOTIFY and snap is None
             if unsaved:
                 decision = rule.ASK                         # no undo can be prepared: ask instead
             row = dict(call=call, agent=agent, type=act.type, stakes=act.stakes, reversible=act.reversible,
-                       decision=decision, session=session)
+                       decision=rule.WATCH if watched and decision in (rule.ALLOW, rule.NOTIFY) else decision,
+                       session=session)
             if decision in (rule.ALLOW, rule.NOTIFY):
                 st.add_pending(uid, phase="alone" if decision == rule.ALLOW else "unwatched" if nobody else "notify",
                                rule_key="",

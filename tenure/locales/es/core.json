@@ -35,6 +35,10 @@
   },
   "carry.new_agent": "tenure: nuevo agente {new} (antes {old}). Tipos de acción: {carried} heredados a prueba, {reset} reiniciados, {vetoed} vetados por un benchmark público.",
   "carry.strict": "Modo estricto: cada tipo empieza de cero, y un fallo en el historial se convierte en un periodo de prueba.",
+  "carry.trusted": {
+    "one": "{n} tipo mantiene el inicio con confianza (nada ganado que trasladar).",
+    "other": "{n} tipos mantienen el inicio con confianza (nada ganado que trasladar)."
+  },
   "cli.ago.h": {
     "one": "hace {n} h",
     "other": "hace {n} h"
