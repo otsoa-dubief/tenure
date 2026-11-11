@@ -302,7 +302,7 @@
     "other": "{n} suspended: external content read"
   },
   "profile.this_dashboard": " · this dashboard",
-  "settings.about.body": "The same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending). Added layers make it stricter: spot checks (once a type is cleared, {spot} of its actions still asks), two distinct sessions in the series that reaches T3, and suspension after a session reads external content.",
+  "settings.about.body": "The same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending). On top of the rule, for tiers earned on evidence: spot checks (once a type is cleared, {spot} of its actions still asks), two distinct sessions in the series that reaches T3, and suspension after a session reads external content.",
   "settings.about.carry": "Carry-over is our addition; strict mode is the study.",
   "settings.about.title": "About the rule",
   "settings.apply": "Apply",

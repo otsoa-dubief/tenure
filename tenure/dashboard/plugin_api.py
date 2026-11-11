@@ -498,10 +498,12 @@ def _revoke(body: RevokeBody, raw: bool) -> dict:
             raise HTTPException(409, f"{body.type} names {len(keys)} action types: use the raw names (raw=1)")
         for key in keys:
             s = known[key]
-            if every and s.tier == core.rule.T1 and not s.series and not s.provisional and s.wald >= 0:
-                continue                                       # nothing earned to take back
+            if (every and s.tier == core.rule.T1 and not s.series and not s.provisional and s.wald >= 0
+                    and s.distrusted):
+                continue                                       # nothing earned or trusted to take back
             events = core.rule.revoke(s)
             st.put_state(body.agent, s)
+            st.distrust(s.key)
             st.log({"event": "revoke", "agent": body.agent, "type": s.key})
             for ev in events:
                 st.log({**ev, "agent": body.agent})

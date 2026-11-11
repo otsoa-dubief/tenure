@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS ledger (seq INTEGER PRIMARY KEY AUTOINCREMENT, at REAL, event TEXT, prev TEXT, hash TEXT);
 """
 INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke", "copy"})
+DISTRUST = "distrust:"     # meta key prefix: a type that lost the trusted start in this profile
 DERIVED_KINDS = frozenset({"tier", "trial", "confirmed", "revoked", "neutral_expired"})   # display only
 STAT_FIELDS = ("actions", "checked", "alone", "faults")
 PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible", "decision", "phase", "rule_key",
@@ -207,11 +208,23 @@ class Store:
     def get_state(self, agent: str, key: str, stakes: str, reversible: bool = False) -> TypeState:
         """The state with today's stakes and reversibility (the owner may have reclassified the type since)."""
         s = self.recorded(agent, key)
-        if s is None:
-            return TypeState(key=key, stakes=stakes, reversible=bool(reversible))
+        if s is None:                       # a type faulted under another model of this profile is not trusted
+            return TypeState(key=key, stakes=stakes, reversible=bool(reversible),
+                             distrusted=bool(self.get_meta(DISTRUST + key)))
         s.stakes = stakes
         s.reversible = bool(reversible)
         return s
+
+    def distrust(self, key: str) -> None:
+        """A fault or a revoke on a type ends the trusted start for that type in this profile, for every model: the
+        ones that have a record now, and the ones that come later (``get_state``)."""
+        if self.get_meta(DISTRUST + key):
+            return                          # already ended: every state of the type carries it
+        self.set_meta(DISTRUST + key, "1")
+        for agent, s in self.states():
+            if s.key == key and not s.distrusted:
+                s.distrusted = True
+                self.put_state(agent, s)
 
     def put_state(self, agent: str, s: TypeState) -> None:
         self._write()

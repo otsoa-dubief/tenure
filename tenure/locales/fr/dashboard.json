@@ -302,7 +302,7 @@
     "other": "{n} suspendues : ont lu du contenu externe"
   },
   "profile.this_dashboard": " · ce tableau de bord",
-  "settings.about.body": "La règle d'une étude préenregistrée, rejouée sur plus de 6 000 agents simulés (résultats à venir). Nos ajouts la rendent plus stricte : contrôles aléatoires (une fois un type validé, {spot} de ses actions vous est encore demandée), deux sessions distinctes dans la série qui mène à T3, et suspension dès qu'une session lit du contenu externe.",
+  "settings.about.body": "La règle d'une étude préenregistrée, rejouée sur plus de 6 000 agents simulés (résultats à venir). Par-dessus la règle, pour les paliers gagnés sur preuves : contrôles aléatoires (une fois un type validé, {spot} de ses actions vous est encore demandée), deux sessions distinctes dans la série qui mène à T3, et suspension dès qu'une session lit du contenu externe.",
   "settings.about.carry": "L'héritage vient de nous ; le mode strict suit l'étude.",
   "settings.about.title": "À propos de la règle",
   "settings.apply": "Appliquer",

@@ -357,6 +357,13 @@ def revoke(s: TypeState) -> list[dict]:
     return [_move(s, "revoked", old, T1, "owner")]
 
 
+def trusted(s: TypeState, n: int | None, start: str | None) -> bool:
+    """The trusted start covers the type: ``start`` is "trusted", no fault or revoke on it in the profile, low or
+    medium stakes, not capped, no trial. Such a type asks nothing Hermes alone would not ask."""
+    return (start == "trusted" and not s.distrusted and n is not None and s.stakes in ("low", "medium")
+            and not s.trial_left and not s.trial_wait)
+
+
 def guarantee(s: TypeState, n: int | None, spot: float) -> dict:
     """The type's guarantee for its series length and the spot-check rate, from ``params`` only."""
     if n is None:

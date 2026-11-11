@@ -4,11 +4,12 @@ manifest_version: 2
 api_version: 1
 label: tenure
 description: >-
-  Everything covered, autonomy earned. Every action that changes something asks you through Hermes' own approval
-  prompt; each action type of each model earns its way to acting then notifying (with undo), then to acting alone
-  with random spot checks, from verified evidence and a guarantee you choose (Dodge's CSP-1). Your own per-model
-  benchmark, a live dashboard map, and a signed, tamper-evident autonomy passport. Sessions that read external
-  content are suspended. Local only: no network, no LLM call.
+  Revocable trust for Hermes agents. No extra question on day one: what the agent changes can be undone for 24 hours,
+  and anything can be flagged. Its first mistake on a kind of action (an undo, a flag, a refusal, a failed check)
+  puts that kind on probation: it asks first, then earns its way back to acting then notifying (with undo) and to
+  acting alone with random spot checks, from verified evidence and a guarantee you choose (Dodge's CSP-1). What
+  leaves the machine always asks. Your own per-model benchmark, a live dashboard map, and a signed, tamper-evident
+  autonomy passport. Local only: no network, no LLM call.
 author: Otsoa Dubief
 license: Apache-2.0
 homepage: https://github.com/otsoa-dubief/tenure
@@ -37,6 +38,11 @@ config_schema:
     type: float
     default: 0.1
     description: "Share of a cleared type's actions that still ask, at random (default one in ten)"
+    required: false
+  start:
+    type: str
+    default: trusted
+    description: "trusted: no question before a type's first mistake; probation: every type asks until it earns autonomy (the study's start)"
     required: false
   strict:
     type: bool

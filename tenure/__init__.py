@@ -684,6 +684,8 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
     if (result, source) in store.COUNTED and not failed_trial:
         events += rule.count_action(s)
     st.put_state(agent, s)
+    if result == "fault":
+        st.distrust(type_key)
     st.log({"event": "outcome", "agent": agent, "type": type_key, "stakes": stakes, "reversible": bool(reversible),
             "result": result, "source": source, "session": session})
     for ev in events:
@@ -825,10 +827,9 @@ def _earned(recorded: rule.TypeState | None, act, s: rule.TypeState, n, decision
 
 
 def trusted(cfg: dict, s: rule.TypeState, n, stakes: str) -> bool:
-    """The trusted start covers the type: ``start: trusted``, no fault or revoke on it yet, low or medium stakes and
-    not capped. Such a type asks nothing Hermes alone would not ask; its first fault puts it under the study rule."""
-    return (cfg.get("start") == "trusted" and not s.distrusted and n is not None and stakes in ("low", "medium")
-            and not s.trial_left and not s.trial_wait)
+    """The trusted start covers the type (``rule.trusted``) at these stakes. Such a type asks nothing Hermes alone
+    would not ask; its first fault puts it under the study rule."""
+    return s.stakes == stakes and rule.trusted(s, n, cfg.get("start"))
 
 
 def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody, rng):
@@ -841,7 +842,7 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
         decision = rule.ALLOW                           # nobody can answer a spot check: the earned tier runs
     if not _earned(recorded, act, s, n, decision) or ST.copy_unchecked:
         decision = rule.ASK                             # copy_unchecked: this record may be a copy, not yet settled
-    if decision in (rule.ASK, rule.SPOT) and not suspended and not ST.copy_unchecked and trusted(cfg, s, n, act.stakes):
+    if decision == rule.ASK and not suspended and not ST.copy_unchecked and trusted(cfg, s, n, act.stakes):
         decision = rule.WATCH                           # trusted start: run as Hermes would, with an undo if possible
     return recorded, s, decision, suspended
 
@@ -1066,32 +1067,44 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
     try:
         raw = str(pattern_key or "")
         mine = raw.startswith(f"plugin_rule:{PREFIX}:")
-        if raw and not mine:
-            return None
         key, call = (raw[len("plugin_rule:"):] if mine else ""), str(tool_call_id or "")
-        session = anon(kwargs.get("session_id"))
+        session = anon(kwargs.get("session_id") or kwargs.get("session_key"))
         if not key and not (call and session):
             return None
         cfg = settings()
         posts = []
         with txn() as st:
             p = st.get_pending(key.rsplit(":", 1)[1]) if key else st.find_pending(session, call)
-            if p is None or p["phase"] != "asked" or (key and p["rule_key"] != key):
-                return None
             verdict = outcome(choice, kwargs.get("decided_by"))
-            if verdict == "approved":
+            if raw and not mine:
+                # Hermes' own prompt on a call tenure let through (trusted start or an earned tier): a person's
+                # refusal is a fault of the type; anything else stays with the call's own outcome.
+                if p is None or p["phase"] not in ("alone", "notify") or verdict != "refused":
+                    return None
+                st.pop_pending(p["id"])
+                if p.get("snap_id"):
+                    undo.discard(p["snap_id"], data_dir())
+                posts += _say(sync_settings(st, cfg), cfg["spot"])
+                posts += _say(record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
+                                             reversible=p["reversible"], result="fault", source="refusal",
+                                             session=p["session"]), cfg["spot"])
+                _bump(st, p["agent"], "fault")
+                p = None
+            if p is None or p["phase"] != "asked" or (key and p["rule_key"] != key):
+                pass                                        # not one of our open asks
+            elif verdict == "approved":
                 st.set_phase(p["id"], "approved")
-                return None
-            st.pop_pending(p["id"])
-            posts += _say(sync_settings(st, cfg), cfg["spot"])
-            if verdict == "refused":
-                result, source = "fault", ("spot" if p["decision"] == rule.SPOT else "refusal")
             else:
-                result, source = "neutral", "timeout"
-            posts += _say(record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
-                                         reversible=p["reversible"], result=result, source=source,
-                                         session=p["session"]), cfg["spot"])
-            _bump(st, p["agent"], result)
+                st.pop_pending(p["id"])
+                posts += _say(sync_settings(st, cfg), cfg["spot"])
+                if verdict == "refused":
+                    result, source = "fault", ("spot" if p["decision"] == rule.SPOT else "refusal")
+                else:
+                    result, source = "neutral", "timeout"
+                posts += _say(record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
+                                             reversible=p["reversible"], result=result, source=source,
+                                             session=p["session"]), cfg["spot"])
+                _bump(st, p["agent"], result)
         for text in posts:
             _announce(text)
     except LockTimeout:

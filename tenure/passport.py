@@ -34,7 +34,7 @@ PROTOCOL = "earned-autonomy/0.1"
 RULE_NAME = "study-rule-B"
 KEY_FILE = "passport-ed25519.pem"
 TYPE_FIELDS = ("type", "stakes", "tier", "effective_tier", "series", "required", "sessions", "provisional",
-               "guarantee")
+               "guarantee", "trusted")
 ROOT_KEYS = ("protocol", "generated_at", "agent", "rule", "settings_fingerprint", "redacted", "types", "ledger",
              "public_key", "signature")
 PART_KEYS = {"agent": ("model", "provider", "profile"), "rule": ("name", "fingerprint"), "ledger": ("count", "head")}
@@ -103,7 +103,7 @@ def settings_event_fingerprint(event: dict | None) -> str | None:
     """sha256 of a ``settings`` ledger event's canonical JSON (the settings a replay uses), or None."""
     if event is None:
         return None
-    return _sha(_canon({k: event.get(k) for k in ("event", "risks", "spot", "strict", "rule")}))
+    return _sha(_canon({k: event.get(k) for k in ("event", "risks", "spot", "strict", "start", "rule")}))
 
 
 # ------------------------------------------------------------------------------------------------------ replay
@@ -119,7 +119,14 @@ def _replay(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState], di
 
     Derived events are skipped. Raises ValueError on an unknown event, an outcome before any settings, or settings
     of another rule."""
-    cfg, states = None, {}
+    cfg, states, distrust = None, {}, set()
+
+    def lose_trust(key):                                         # a fault or revoke: every model of the profile
+        distrust.add(key)
+        for (_, k), st in states.items():
+            if k == key:
+                st.distrusted = True
+
     for i, r in enumerate(rows, 1):
         e = r.get("event") or {}
         kind = e.get("event")
@@ -140,7 +147,8 @@ def _replay(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState], di
             key = (e["agent"], e["type"])
             s = states.get(key)
             if s is None:
-                s = rule.TypeState(key=e["type"], stakes=e["stakes"], reversible=bool(e["reversible"]))
+                s = rule.TypeState(key=e["type"], stakes=e["stakes"], reversible=bool(e["reversible"]),
+                                   distrusted=e["type"] in distrust)
             elif s.stakes != e["stakes"]:
                 rule.rebase(s)                                   # evidence counts only at the stakes it was earned at
             s.stakes, s.reversible = e["stakes"], bool(e["reversible"])
@@ -158,6 +166,8 @@ def _replay(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState], di
             if (result, source) in store.COUNTED and not failed:
                 rule.count_action(s)
             states[key] = s
+            if result == "fault":
+                lose_trust(e["type"])
         elif kind == "agent":
             if e.get("mode") not in ("carry", "strict"):
                 raise ValueError(f"row {i}: agent event with mode {e.get('mode')!r}, expected carry or strict")
@@ -178,6 +188,7 @@ def _replay(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState], di
             if s is None:
                 raise ValueError(f"row {i}: revoke of {e['type']} for {e['agent']}, which has no record")
             rule.revoke(s)
+            lose_trust(e["type"])
     return states, cfg
 
 
@@ -226,7 +237,10 @@ def _entries(states: dict[str, rule.TypeState], cfg: dict | None, redact: bool) 
         out[name] = {"type": name, "stakes": s.stakes, "tier": s.tier,
                      "effective_tier": rule.effective_tier(s, n, s.stakes), "series": s.series,
                      "required": None if n is None else rule.required(s, n), "sessions": len(s.sessions),
-                     "provisional": s.provisional, "guarantee": rule.guarantee(s, n, spot)}
+                     "provisional": s.provisional, "guarantee": rule.guarantee(s, n, spot),
+                     # covered by the trusted start, not earned (an earned T3 is shown as T3)
+                     "trusted": (rule.trusted(s, n, (cfg or {}).get("start"))
+                                 and rule.effective_tier(s, n, s.stakes) != rule.T3)}
     return [out[k] for k in sorted(out)]
 
 

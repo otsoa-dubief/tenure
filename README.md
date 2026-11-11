@@ -50,7 +50,7 @@ not have asked. Prefer the preregistered study's start, where every type begins 
 
 | | Hermes by default | `--yolo` | An allowlist | **tenure** |
 |---|---|---|---|---|
-| Extra questions on day one | - | - | - | **none** (except what leaves the machine) |
+| Extra questions on day one | - | - | - | **none**, except what leaves the machine and a session that just read outside content |
 | Undo of what the agent changed | no | no | no | **yes, 24 hours** |
 | Trust taken back after a mistake | no | no | by hand | **automatically, per action type** |
 | Trust earned back on evidence | no | no | by hand | **yes, under a risk you choose** |
@@ -141,10 +141,13 @@ Carry-over is our addition; strict mode is the study. The public-benchmark veto 
 **Agents.** Each action type of each agent (`model@provider`) is trusted, or in one of the three tiers above.
 
 **Trusted start.** A type nobody has caught in a mistake runs as with Hermes alone. Reversible actions (files in the
-project) act, then tell you, with an undo; the others just run, and their automatic check (the written file still
-parses, the exit code is zero) still judges them. Its first fault ends the trust for that type for good, in this
-profile, across model changes: from then on the study rule below applies, starting from T1. Trusted actions carry
-no guarantee: the numbers of [The guarantee](#the-guarantee) apply to tiers earned on evidence.
+project) act, then tell you, with an undo; the others just run. What ends the trust: an undo, a flag
+(`/tenure flag TYPE`), a file it wrote that no longer parses (Python, JSON, TOML), or your refusal when Hermes itself
+asks about the call (a risky-looking command). A command that merely fails is not held against it: a failing test is
+often the point. The first fault ends the trust for that type for good, in this profile, for every model, present
+or future: from then on the study rule below applies, starting from T1. Trusted actions carry no guarantee: the
+numbers of [The guarantee](#the-guarantee) apply to tiers earned on evidence, and a type that earns T3 while
+trusted gets its spot checks like any other.
 
 **Proofs.** A type climbs on verified outcomes, judged after the tool has run: an approved action that ran
 cleanly and whose automatic check passed (the written file still parses, the exit code is zero) is a success, and

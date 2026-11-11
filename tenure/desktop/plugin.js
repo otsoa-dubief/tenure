@@ -2103,7 +2103,7 @@ function TypeRow({ type, t, index, motion, change, spot }) {
             ]
           }),
           trusted ? jsx('p', { className: 'tn-trust-note', children: t('type.trusted_no_guarantee') }) : null,
-          !plain && g ? jsx(Guarantee, { g, t }) : null
+          !plain && g && tier === 'alone' ? jsx(Guarantee, { g, t }) : null   // the guarantee holds once tenured
         ]
       }),
       change && change.dir === 'spot' && motion ? jsx('span', { 'aria-hidden': true, className: 'tn-scan' }, change.token) : null

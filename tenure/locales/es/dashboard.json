@@ -302,7 +302,7 @@
     "other": "{n} suspendidas: contenido externo leído"
   },
   "profile.this_dashboard": " · este panel",
-  "settings.about.body": "La misma regla que un estudio prerregistrado, reproducida en más de 6000 agentes simulados (resultados pendientes). Las capas añadidas la hacen más estricta: controles aleatorios (una vez autorizado un tipo, sigue preguntando en {spot} acciones), dos sesiones distintas en la serie que llega a T3, y suspensión cuando una sesión lee contenido externo.",
+  "settings.about.body": "La misma regla que un estudio prerregistrado, reproducida en más de 6000 agentes simulados (resultados pendientes). Además de la regla, para los niveles ganados con pruebas: controles aleatorios (una vez autorizado un tipo, sigue preguntando en {spot} acciones), dos sesiones distintas en la serie que llega a T3, y suspensión cuando una sesión lee contenido externo.",
   "settings.about.carry": "La herencia es un añadido nuestro; el modo estricto es el estudio.",
   "settings.about.title": "Sobre la regla",
   "settings.apply": "Aplicar",

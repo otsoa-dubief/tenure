@@ -33,7 +33,7 @@ verifier from before that date rejects a ledger that contains one, with an unkno
 
 | Event | Fields | Replay |
 |---|---|---|
-| `settings` | `risks` (`{low, medium, high}`: an accepted risk, or `null` for a capped level), `spot` (spot-check rate), `strict` (bool), `rule` (`"study-rule-B/1"`) | Every type of every agent known so far is re-evaluated: its series is capped at the new length and a T3 type that no longer meets it drops. Looser settings never promote a type by themselves. Logged before the first outcome, then on every change. |
+| `settings` | `risks` (`{low, medium, high}`: an accepted risk, or `null` for a capped level), `spot` (spot-check rate), `strict` (bool), `start` (`"trusted"` or `"probation"`; absent in older ledgers = probation), `rule` (`"study-rule-B/1"`) | Every type of every agent known so far is re-evaluated: its series is capped at the new length and a T3 type that no longer meets it drops. Looser settings never promote a type by themselves. Logged before the first outcome, then on every change. |
 | `outcome` | `agent`, `type`, `stakes` (`low`, `medium`, `high`), `reversible` (bool), `result` (`success`, `fault`, `neutral`), `source`, `session` | The agent's type (new: tier T1, empty record). If its stakes differ from the event's, its evidence is re-based first (series, sessions and carried part restart; the Wald score keeps a fault's penalty; tier T1). It takes the event's stakes and reversibility, then the success, fault or neutral update of the rule. Then, if `(result, source)` is an executed action (below), the wait after a failed trial counts it, unless that fault is the one that failed the trial. |
 | `agent` | `old`, `new`, `mode` (`carry` or `strict`), `vetoed` (list of types) | Every type of `old` that `new` has no record for gets the carried-over state: half of the series, provisional, with half of a negative score; a fresh start at high stakes, for a capped level, for a vetoed type or in strict mode. A medium or high fault in `old`'s memory becomes a trial for `new` in every mode. |
 | `revoke` | `agent`, `type` | The owner takes the type back: T1, no series, no score credit, no carried part. Not a fault. |
@@ -48,6 +48,11 @@ Sources per result:
 
 Executed actions, counted by the wait after a failed trial: `success/approval`, `success/spot`, `success/notify`,
 `fault/check`, `neutral/error`, `neutral/alone`.
+
+**Trusted start.** Every type state carries `distrusted`. A replay sets it on every state of a type, for every agent,
+at that type's first `fault` outcome or `revoke` event, and a state created afterwards for that type starts with it
+set. Under `start: "trusted"`, a type with `distrusted` unset, at low or medium stakes, not capped and with no open
+trial is covered by the trusted start: it asks nothing Hermes alone would not ask, and carries no guarantee.
 
 A replay refuses a ledger with an unknown event kind, an outcome, agent or revoke event before the first settings
 event, or settings of another rule.
@@ -83,7 +88,7 @@ different fingerprint means the replay of this implementation may not apply to t
   "types": [
     {"type": "file:write", "stakes": "low", "tier": "alone", "effective_tier": "alone", "series": 52,
      "required": 52, "sessions": 3, "provisional": 0, "guarantee": {"aoql": 0.0, "worst_case": 0.0,
-     "conditional": false}}
+     "conditional": false}, "trusted": false}
   ],
   "ledger": {"count": 1234, "head": "<64 hex>"},
   "public_key": "<64 hex: raw Ed25519 public key>",
@@ -92,7 +97,7 @@ different fingerprint means the replay of this implementation may not apply to t
 ```
 
 - `settings_fingerprint`: sha256 of the canonical JSON of the last `settings` event in the ledger's first `count`
-  rows, restricted to `event`, `risks`, `spot`, `strict` and `rule`. Tiers are computed under these settings.
+  rows, restricted to `event`, `risks`, `spot`, `strict`, `start` and `rule`. Tiers are computed under these settings.
 - `types`, sorted by `type`, one entry per type the agent has a record for:
   - `tier`: `ask` (T1), `notify` (T2), `alone` (T3), as stored;
   - `effective_tier`: the tier that would run an action of this type at its stakes under the passport's settings:
@@ -103,6 +108,8 @@ different fingerprint means the replay of this implementation may not apply to t
   - `sessions`: distinct sessions in the series; `provisional`: carried-over successes not yet confirmed;
   - `guarantee`: computed from the series length and the spot-check rate by `params`, or `{"capped": true}`. The
     example's numbers are placeholders.
+  - `trusted`: `true` when the type is covered by the trusted start (see above) and not at an effective T3: it acts
+    without having earned anything, and its `guarantee` does not apply.
 - `ledger`: the number of rows and the hash of the last one when the passport was made.
 - `signature`: Ed25519 over the canonical JSON of the passport without the `signature` field, as 128 lowercase hex
   digits; `public_key` is 64 lowercase hex digits. The key is created at first use in the plugin's data directory

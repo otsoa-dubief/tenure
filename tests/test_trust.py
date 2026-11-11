@@ -2,7 +2,7 @@
 applies to that type, from T1. Actions that leave the machine, self-protection and suspended sessions still ask."""
 import os
 
-from test_plugin import A, FAST, NPM, climb, ledger, outcomes, plugin, state, write  # noqa: F401
+from test_plugin import A, FAST, NPM, climb, ledger, outcomes, plugin, post, pre, state, write  # noqa: F401
 
 TRUST = {**FAST, "start": "trusted"}
 
@@ -63,12 +63,52 @@ def test_a_suspended_session_still_asks(plugin):
     assert ctx.call("write_file", write("s1")) == "approved"
 
 
-def test_trust_never_asks_for_a_spot_check(plugin):
+def test_no_spot_check_before_tenure_then_spot_checks_like_the_study(plugin):
     mod, ctx = plugin(TRUST)
-    mod.ST.rng.values = [0.0] * 20                                       # every draw would be a spot check
-    for i in range(8):
+    mod.ST.rng.values = [0.0] * 40                                       # every draw would be a spot check
+    for i in range(4):                                                   # FAST: 4 in a row over 2 sessions = T3
         assert ctx.call("write_file", write(f"sp{i}"), session=f"s{i % 2}") == "ran"
-    assert ctx.prompts == []
+    assert ctx.prompts == [] and state(mod, "file:write").tier == mod.rule.T3
+    assert ctx.call("write_file", write("sp-next"), session="s1") == "approved"   # the guarantee needs its checks
+    assert "spot check" in ctx.prompts[-1]["message"]
+
+
+def test_a_fault_ends_the_trust_for_every_model_of_the_profile(plugin):
+    mod, ctx = plugin(TRUST)
+    ctx.call("terminal", NPM)                                            # model-a: trusted
+    mod.pre_api_request(model="model-b", provider="nous", session_id="s1")
+    ctx.call("terminal", NPM)
+    mod.cli.flag("shell:npm", agent="model-b@nous")
+    assert ctx.call("terminal", NPM) == "approved"
+    mod.pre_api_request(model="model-a", provider="nous", session_id="s1")   # back to the first model
+    assert ctx.call("terminal", NPM) == "approved"
+    mod.pre_api_request(model="model-c", provider="nous", session_id="s1")   # and a new one
+    assert ctx.call("terminal", NPM) == "approved"
+    assert ctx.call("write_file", write("other")) == "ran"               # other types keep their trust
+
+
+def test_refusing_hermes_own_prompt_on_a_trusted_call_is_a_fault(plugin):
+    mod, ctx = plugin(TRUST)
+    args = {"command": "rm -rf build"}
+    assert pre(mod, "terminal", args, "h1") is None                      # tenure lets it through, Hermes asks
+    mod.post_approval_response(pattern_key="recursive delete", tool_call_id="h1", choice="deny",
+                               surface="cli", session_id="s1")
+    post(mod, "terminal", args, "h1", status="blocked", result='{"error": "denied"}')
+    s = state(mod, "shell:rm")
+    assert s.faults == 1 and s.distrusted
+    assert ctx.call("terminal", args) == "approved"
+
+
+def test_without_a_start_setting_the_trusted_start_applies(plugin, monkeypatch):
+    monkeypatch.setattr(mod_params(), "DEFAULT_START", "trusted")
+    mod, ctx = plugin(FAST)
+    assert mod.settings()["start"] == "trusted"
+    assert ctx.call("write_file", write("d1")) == "ran" and ctx.prompts == []
+
+
+def mod_params():
+    from tenure import params
+    return params
 
 
 def test_the_study_start_asks_first(plugin):
@@ -118,3 +158,17 @@ def test_a_state_stored_before_the_trusted_start_keeps_its_faults():
     from tenure import rule
     assert rule.TypeState.from_dict({"key": "file:write", "stakes": "low", "faults": 2}).distrusted
     assert not rule.TypeState.from_dict({"key": "file:write", "stakes": "low"}).distrusted
+
+
+def test_the_signed_passport_says_trusted_not_earned_and_verifies(plugin, tmp_path):
+    mod, ctx = plugin(TRUST)
+    ctx.call("write_file", write("pp"))
+    ctx.call("terminal", NPM)
+    mod.pre_api_request(model="model-b", provider="nous", session_id="s1")
+    ctx.call("terminal", NPM)
+    mod.cli.flag("shell:npm", agent="model-b@nous")                     # ends the trust for model-a too
+    rows = mod.store_().ledger()
+    p = mod.passport.build(mod.store_(), A, mod.settings(), mod.data_dir(), redact=False, rows=rows)
+    t = {e["type"]: e for e in p["types"]}
+    assert t["file:write"]["trusted"] is True and t["shell:npm"]["trusted"] is False
+    assert mod.passport.verify(p, rows) == []

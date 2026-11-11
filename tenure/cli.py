@@ -343,10 +343,12 @@ def revoke(type_key: str, agent: str | None = None, model: str | None = None, ev
             for _, s in st.states(ag):
                 if type_key not in ("all", s.key):
                     continue
-                if type_key == "all" and s.tier == rule.T1 and not s.series and not s.provisional and s.wald >= 0:
-                    continue                                       # nothing earned to take back
+                if (type_key == "all" and s.tier == rule.T1 and not s.series and not s.provisional and s.wald >= 0
+                        and s.distrusted):
+                    continue                                       # nothing earned or trusted to take back
                 events = rule.revoke(s)
                 st.put_state(ag, s)
+                st.distrust(s.key)
                 st.log({"event": "revoke", "agent": ag, "type": s.key})
                 for ev in events:
                     st.log({**ev, "agent": ag})
