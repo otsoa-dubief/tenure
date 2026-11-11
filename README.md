@@ -277,8 +277,10 @@ Community tab shows the board once you save it as `plugin-data/tenure/community-
 
 ## Limits
 
-<details><summary>14 known limits, stated plainly (click to open)</summary>
+<details><summary>15 known limits, stated plainly (click to open)</summary>
 
+- **Windows is not supported yet.** The shell classification assumes POSIX paths and shells; the Windows CI job runs
+  but does not gate. Use tenure on Linux or macOS (or WSL).
 - **A copied profile is caught only inside one install, and only once the original has run this version.** The
   check compares the database file with the other profiles of the same Hermes root. A copy made before the
   original ever ran tenure 1.0.0 or later, a copy whose original was deleted before the copy first started,

@@ -383,8 +383,10 @@ check("evidence chain intact", core.store.verify(rows), [])
 check("evidence holds no content", any(x in json.dumps(rows) for x in ("notes.md", "K=1", "broken(", project,
                                                                        "it-1", "make build")), False)
 check("the model change is a ledger input", kinds.count("agent"), 1)
-check("sources seen", sorted({o["source"] for o in outcomes}),
-      sorted({"approval", "notify", "undo", "alone", "spot", "check", "timeout"}))
+# A timed-out prompt counts for nothing: older Hermes reports it ("timeout"), newer ones leave no outcome at all.
+check("sources seen", sorted({o["source"] for o in outcomes} - {"timeout"}),
+      sorted({"approval", "notify", "undo", "alone", "spot", "check"}))
+check("a timed-out prompt is never a fault", [o for o in outcomes if o["source"] == "timeout" and o["result"] == "fault"], [])
 
 # --------------------------------------------------------------------------------- passport, export, verify
 pp, ledger = os.path.join(project, "passport.json"), os.path.join(project, "ledger.jsonl")

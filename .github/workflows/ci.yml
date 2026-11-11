@@ -30,6 +30,7 @@ jobs:
 
   windows:
     runs-on: windows-latest
+    continue-on-error: true     # Windows is not supported yet: the shell classification assumes POSIX paths and shells
     defaults:
       run:
         shell: bash
