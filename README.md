@@ -14,7 +14,7 @@
   <img alt="License Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-2563eb">
   <img alt="No network, no LLM call" src="https://img.shields.io/badge/network-none-16a34a">
   <img alt="5 languages: English, French, Spanish, Chinese, Arabic" src="https://img.shields.io/badge/languages-EN%20%C2%B7%20FR%20%C2%B7%20ES%20%C2%B7%20ZH%20%C2%B7%20AR-0053fd">
-  <a href="https://osf.io/vycge/"><img alt="Preregistered study" src="https://img.shields.io/badge/study-preregistered%20on%20OSF-7c3aed"></a>
+  <a href="https://osf.io/vycge/overview?view_only=6c0c2ac8fc9f4b92a6b4d6db76538201"><img alt="Preregistered study" src="https://img.shields.io/badge/study-preregistered%20on%20OSF-7c3aed"></a>
 </p>
 
 <p align="center">

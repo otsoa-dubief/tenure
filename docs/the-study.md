@@ -1,6 +1,6 @@
 # The study
 
-**[Preregistered on OSF](https://osf.io/vycge/) on 10 November 2026 (embargoed until the results are published). Results pending.**
+**[Preregistered on OSF](https://osf.io/vycge/overview?view_only=6c0c2ac8fc9f4b92a6b4d6db76538201) on 10 November 2026 (embargoed until the results are published; this view-only link opens it). Results pending.**
 
 The only claim tenure makes about the study: the same rule as a preregistered study, replayed on 6,000+ simulated agents. It does not claim that the study has confirmed the rule.
 

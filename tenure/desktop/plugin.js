@@ -6575,7 +6575,7 @@ const TYPES_YAML = `plugins:
  * control, and is the way when this Hermes refuses to save from here (501 / 403).
  */
 // The preregistration of the study whose rule tenure applies after a first mistake (docs/the-study.md).
-const OSF_URL = 'https://osf.io/vycge/'
+const OSF_URL = 'https://osf.io/vycge/overview?view_only=6c0c2ac8fc9f4b92a6b4d6db76538201'
 
 /** A link out, opened by the host in the browser (a new window), as the app's own outside links. */
 function ExtLink({ href, children }) {

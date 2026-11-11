@@ -5559,7 +5559,7 @@ const TENURE_LOCALES = {
   }
 
   // The preregistration of the study whose rule tenure applies after a first mistake (docs/the-study.md).
-  var OSF_URL = "https://osf.io/vycge/";
+  var OSF_URL = "https://osf.io/vycge/overview?view_only=6c0c2ac8fc9f4b92a6b4d6db76538201";
   /** A link out, in a new tab, as the dashboard's own outside links. */
   function ExtLink(props) {
     return h("a", { className: "tnr-ext tnr-focus", href: props.href, target: "_blank", rel: "noreferrer" }, props.children, h("span", { "aria-hidden": true }, " ↗"));
