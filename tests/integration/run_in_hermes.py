@@ -160,6 +160,24 @@ if START == "trusted":
     check("trusted: the undo restores the file and counts a fault", (code, os.path.exists(os.path.join(project, "notes.md"))), (0, False))
     check("trusted: after its first mistake, file:write asks first", write("b\n", "once"), "approved")
     check("trusted: the other types keep their trust", run("terminal", {"command": "npm test"}, real=False), "ran")
+    todo = os.path.join(project, "todo.txt")
+    with open(todo, "w") as f:
+        f.write("keep me\n")
+    mark = len(posted)
+    check("trusted: a plain rm of a project file really runs without a question",
+          (run("terminal", {"command": "rm todo.txt"}), os.path.exists(todo)), ("ran", False))
+    rm_undo = [p for p in since(mark) if "/tenure undo" in p]
+    check("trusted: ...and the owner is told, with an undo", len(rm_undo), 1)
+    code, out = cli("undo", rm_undo[0].rsplit(" ", 1)[1] if rm_undo else "0")
+    check("trusted: the undo puts the deleted file back", (code, os.path.exists(todo) and read("todo.txt")),
+          (0, "keep me\n"))
+    os.makedirs(os.path.join(project, "build", "x"), exist_ok=True)
+    check("trusted: Hermes itself still asks for rm -r (denied here: nothing is deleted)",
+          (run("terminal", {"command": "rm -rf build"}, "deny"), os.path.isdir(os.path.join(project, "build"))),
+          ("refused", True))
+    with open(os.path.join(project, "a.log"), "w") as f:
+        f.write("x\n")
+    check("trusted: a glob delete asks", run("terminal", {"command": "rm *.log"}, "once", real=False), "approved")
     for cmd in ("cd src && npm test", "source .venv/bin/activate && pytest", "npx jest", "git commit -m 'fix'"):
         check(f"trusted: everyday work asks nothing: {cmd}", run("terminal", {"command": cmd}, real=False), "ran")
     for cmd in ("npm test && rm -rf build", "npm run deploy", "aws s3 cp a s3://b", "uv publish", "sudo make install",
