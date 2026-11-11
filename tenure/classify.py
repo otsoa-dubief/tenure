@@ -506,16 +506,26 @@ def _hermes_targets() -> tuple[set, list, set]:
         top = os.path.dirname(pkg)
         if os.path.basename(top) not in ("site-packages", "dist-packages"):
             dirs.append(top)                             # a source checkout: the whole install
+            _TARGETS.setdefault("tops", set()).add(top)
     _TARGETS["v"] = (exes, list(dict.fromkeys(dirs)), files)
     return _TARGETS["v"]
 
 
-def _in_package(real: str) -> bool:
+# Programs that change the environment they run from: run from inside Hermes' install, they change Hermes.
+INSTALLERS = re.compile(r"(?:pip\d*(?:\.\d+)?|uv|uvx|easy_install|poetry|pdm|conda|mamba|micromamba)(?:\.exe)?")
+
+
+def _in_package(real: str, running: bool = False) -> bool:
     """``real`` is one of Hermes' executables, a file of its distribution, or lies in one of its package folders
-    (it need not exist yet: a module added to the package is loaded like the others)."""
+    (it need not exist yet: a module added to the package is loaded like the others). ``running`` a program: the
+    whole folder of a source checkout does not count, only Hermes' own code in it, so the node, npm or python an
+    image installs beside Hermes stay ordinary programs (a package installer there still changes Hermes)."""
     low = real.rstrip("/").casefold()
     found = _hermes_targets()
     exes, dirs, files = found[0], found[1], found[2] if len(found) > 2 else ()
+    if running and not INSTALLERS.fullmatch(os.path.basename(low)):
+        tops = _TARGETS.get("tops", set())
+        dirs = [d for d in dirs if d not in tops]
     return low in exes or low in files or any(low == d or low.startswith(d + "/") for d in dirs)
 
 
@@ -564,9 +574,9 @@ def _same_inode(path: str) -> bool:
     return False
 
 
-def _is_hermes_file(real: str, executable: bool) -> bool:
+def _is_hermes_file(real: str, executable: bool, running: bool = False) -> bool:
     low = real.casefold()
-    if _in_package(real):
+    if _in_package(real, running):
         return True
     if os.path.basename(low) in HERMES_PROGS and os.path.isfile(real):
         return True
@@ -608,7 +618,7 @@ def _hermes_program(token: str, cwd, home: str) -> bool:
     if "/" in token:
         if cwd == UNKNOWN and not os.path.isabs(_expand(token, home)):
             return False
-        return _is_hermes_file(_real(_abs(token, cwd, home)), True)
+        return _is_hermes_file(_real(_abs(token, cwd, home)), True, running=True)
     return _hermes_on_path(token, getattr(os, "environ", {}).get("PATH", ""))
 
 
@@ -628,7 +638,7 @@ def _hermes_on_path(name: str, path_value: str) -> bool:
                 continue
         except (OSError, ValueError):
             continue
-        found = name in HERMES_PROGS or _is_hermes_file(_real(_norm(p)), True)
+        found = name in HERMES_PROGS or _is_hermes_file(_real(_norm(p)), True, running=True)
         break
     if memo is not None:
         memo[key] = found

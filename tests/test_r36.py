@@ -248,3 +248,25 @@ def test_cd_to_pwd_relative_targets_is_resolved(env):
 def test_cd_through_a_cdpath_set_on_the_line_is_capped(env):
     for cmd in ["CDPATH=~/.hermes cd plugins", "export CDPATH=~/.hermes; cd plugins && tar xf /tmp/e.tar"]:
         assert cap(sh(cmd, env["P"])), cmd
+
+
+def test_programs_installed_beside_a_source_checkout_of_hermes_stay_ordinary(tmp_path, monkeypatch):
+    # The official image: Hermes from its sources in /opt/hermes, its venv (python, pip, npm) on PATH.
+    top = tmp_path / "opt" / "hermes"
+    (top / "hermes_cli").mkdir(parents=True)
+    vbin = top / ".venv" / "bin"
+    vbin.mkdir(parents=True)
+    for name in ("npm", "npx", "python3", "pip", "hermes"):
+        (vbin / name).write_text("#!/bin/sh\n")
+        (vbin / name).chmod(0o755)
+    low = lambda p: str(p).replace("\\", "/").casefold()
+    monkeypatch.setitem(c._TARGETS, "v", ({low(os.path.realpath(vbin / "hermes"))}, [low(top / "hermes_cli"), low(top)], set()))
+    monkeypatch.setitem(c._TARGETS, "tops", {low(top)})
+    monkeypatch.setenv("PATH", str(vbin))
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    for cmd in ("npm test", "npx jest", "python3 -m pytest"):
+        assert c.classify("terminal", {"command": cmd}, cwd=str(proj)).type != "self:hermes", cmd
+    for cmd in ("pip install requests", "hermes plugins disable tenure", f"{vbin}/hermes config set a b"):
+        assert c.classify("terminal", {"command": cmd}, cwd=str(proj)) .stakes == c.CAP, cmd
+    assert c.classify("write_file", {"path": str(top / "agent.py")}, cwd=str(proj)).stakes == c.CAP

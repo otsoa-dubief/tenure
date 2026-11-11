@@ -152,9 +152,6 @@ if START == "trusted":
     check("trusted: a project file is written without a question", write("a\n"), "ran")
     undo_lines = [p for p in since(mark) if "/tenure undo" in p]
     check("trusted: ...and the owner is told, with an undo", len(undo_lines), 1)
-    _a = core.classify.classify("terminal", {"command": "npm test"}, cwd=os.environ.get("TERMINAL_CWD"))
-    print("     DIAG", _a, core.classify._roots(), os.environ.get("TERMINAL_CWD"), os.getcwd(), core.classify.hermes_homes())
-    print("     DIAG state", core.store_().get_state("model-a@test", _a.type, _a.stakes, _a.reversible))
     check("trusted: a command runs without a question", run("terminal", {"command": "npm test"}, real=False), "ran")
     check("trusted: a push still asks", run("terminal", {"command": "git push origin main"}, "once", real=False),
           "approved")
