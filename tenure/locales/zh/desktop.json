@@ -20,12 +20,46 @@
   "benchmark.range_tip": "失误率及其 95% 区间，坐标轴 0–{max}%",
   "benchmark.rate": "{rate}%（{low}–{high}%）",
   "benchmark.search": "搜索操作类型",
+  "cell.capped_by_settings": "受风险设置限制",
+  "cell.kind_irreversible": "{type} · {stakes}，不可逆",
+  "cell.kind_reversible": "{type} · {stakes}，可逆",
+  "cell.provisional_long": {
+    "other": "{n} 项继承自上一个模型，暂定"
+  },
+  "cell.record": "记录：{successes} 次成功 · {faults} 次失误 · {neutrals} 次中性 · {spot} 次抽查",
+  "cell.series": "连续 {series}/{required}",
+  "cell.sessions": {
+    "other": "{n} 个会话"
+  },
+  "cell.tier_now": "当前级别：{tier}（{name}）",
   "chip.tip": {
     "other": "{name}：{n} 个操作类型中有 {earned} 个已赢得自主权（T2 或 T3）。打开 Tenure。"
   },
   "common.loading": "正在读取证据…",
   "common.no_match": "无匹配项",
+  "common.own_profile_only": "仅作用于当前配置文件",
   "common.retry": "重试",
+  "community.col_contributors": "贡献者",
+  "community.col_model": "模型",
+  "community.empty_how": "如要贡献，请用这条命令写出你的记录，查看其中内容，然后提交一个 pull request，把文件加入社区仓库（{repo}）。",
+  "community.empty_title": "还没有共享记录",
+  "community.empty_what": "社区基准汇总 Tenure 用户自愿发布的记录：按模型和操作类别统计的已验证成功次数与失误次数，并用各自的护照密钥签名。不会自动共享任何内容：Tenure 不进行任何网络调用。",
+  "community.empty_where": "如要在这里查看排行，请下载仓库发布的 community-board.json，并保存为 {path}。",
+  "community.generated": "{records} · 排行生成于 {date}",
+  "community.lede": "由贡献者自行申报，签名已核验：每份记录都用作者的护照密钥签名，每个密钥只计一份记录。",
+  "community.lede_bold": "这无法阻止一个人拥有多个密钥。",
+  "community.models": {
+    "other": "{n} 个模型"
+  },
+  "community.ranking": "按操作类别，模型按失误率 95% 区间的上限排序，从不按单一分数排序。",
+  "community.records": {
+    "other": "{n} 份记录"
+  },
+  "confirm.flag_desc": "这会记为一次失误：{type} 至少降一级，需要重新晋升。用于没人发现的错误。",
+  "confirm.flag_title": "将 {type} 标记为错误？",
+  "confirm.revoke_desc": "{type} 会重新先询问，连续记录从零开始。这不算失误。",
+  "confirm.revoke_title": "收回 {type}？",
+  "confirm.undo_title": "撤销操作 {id}？",
   "emblem.none": "尚未赢得自主权",
   "emblem.review": {
     "other": "{n} 个类型考察中"
@@ -39,6 +73,48 @@
   "empty.desc": "照常工作即可。每次更改都会先询问你，每个操作类型会根据你的回答赢得相应级别。",
   "empty.desc_trusted": "照常工作即可。每个操作类型在首次失误前像单独使用 Hermes 一样执行；此后会先询问你，并根据你的回答重新赢得级别。",
   "empty.title": "还没有智能体执行过操作",
+  "event.confirmed": "继承的证据已由它自己的记录确认",
+  "event.expired_pending": "待处理操作已过期 · 无证据",
+  "event.fault_check": "自动检查失败",
+  "event.fault_flag": "被你标记为失误",
+  "event.fault_other": "失误（{source}）",
+  "event.fault_refusal": "被你拒绝",
+  "event.fault_spot": "抽查被拒绝或失败",
+  "event.fault_undo": "被你撤销",
+  "event.neutral_alone": "自主执行（已赢得）",
+  "event.neutral_ambiguous": "无法判定 · 无证据",
+  "event.neutral_blocked": "被其他防护拦截 · 无证据",
+  "event.neutral_error": "工具出错 · 无证据",
+  "event.neutral_expired": "未回报结果 · 无证据",
+  "event.neutral_nobody": "无人应答 · 无证据",
+  "event.neutral_other": "中性（{source}）",
+  "event.neutral_timeout": "无回应 · 无证据",
+  "event.revoked": "被你收回",
+  "event.success_approved": "经你批准，运行无误",
+  "event.success_notify": "已执行并告知 · 未撤销",
+  "event.success_spot": "抽查经你批准",
+  "event.switch": "切换模型",
+  "event.switch_from": "从 {from} 切换模型",
+  "event.tier": "级别 {from} → {to} · {why}",
+  "event.trial_failed": {
+    "other": "考察未通过：需等待 {n} 个操作"
+  },
+  "event.trial_opened": {
+    "other": "开启考察期：接下来 {n} 个必须成功"
+  },
+  "event.trial_passed": "考察通过",
+  "event.trial_reopens": {
+    "other": "重新开启考察期：接下来 {n} 个必须成功"
+  },
+  "event.why_fault": "失误",
+  "event.why_series_complete": "连续记录已达标",
+  "event.why_series_n": "连续 {required}/{required}",
+  "event.why_sessions": {
+    "other": "{n} 个会话"
+  },
+  "event.why_settings": "设置更严格",
+  "event.why_stakes": "风险等级变更",
+  "event.why_wald": "通过序贯检验",
   "flag.confirm": "标记",
   "flag.desc": "这会记为一次失误：{type} 至少下降一个级别，之后需重新晋升。用于没人发现的错误。",
   "flag.title": "将此更改标记为错误？",
@@ -52,6 +128,10 @@
   "help.benchmark_body": "你的基准是每个模型在你自己的工作上、按操作类型的已验证记录，以及其失误率的 95% 区间。一个模型在某类型上有 {n} 个已验证结果后才会排名。显示的公开分数只作参考：是在别人任务上的能力，不是在你任务上的可靠性。",
   "help.flag_body": "标记用于报告一个没人发现的错误。它计为一次失误：该类型至少降一级，然后重新爬升。",
   "help.intro": "tenure 按模型、按操作类型决定 Hermes 是先询问你、先执行后告知，还是自主执行。每个决定都来自已验证的证据，写入一个已签名的账本。",
+  "help.key_help": "本帮助",
+  "help.key_raw": "切换原始类型名",
+  "help.keys_note": "焦点在此页面内时，快捷键才生效。",
+  "help.keys_title": "键盘",
   "help.passport_body": "护照是智能体记录的签名摘要：每个操作类型的级别、失误和已验证结果，以及哈希链账本的头部。它由此配置文件的 Ed25519 密钥签名。要验证它，请在智能体页面下载护照，导出账本，然后验证：",
   "help.passport_checks": "验证会检查签名和哈希链，然后重放账本，重新计算出相同的级别。其中没有任何自我声明。",
   "help.session_body": "有些询问（内联运行的代码、复杂的 shell 命令、未覆盖的本地命令如 rm、mv、cp，以及读取外部内容之后的命令）提供「允许本会话」：该询问在会话结束前不再出现。这是你的选择，不是证据：它不会赢得任何东西，新会话会再次询问。",
@@ -69,6 +149,60 @@
   "intro.body_trusted": "每个操作类型都以信任起步：首次失误前，它像单独使用 Hermes 一样执行，可逆的更改先执行后告知，并可撤销。首次失误（一次撤销、一次检查失败、一次标记）会让它进入试用期 (T1)：先询问。连续多次获批且无误后，它升到 T2；跨两个会话的更长连续记录会让它升到 T3：自主执行，但每 {k} 个操作仍会抽查 1 个，先询问你。离开本机和涉及金钱的操作始终会询问。",
   "intro.got_it": "知道了",
   "intro.title": "操作类型如何赢得级别",
+  "legend.a_share": "一部分",
+  "legend.alone": "自主执行，抽查其中 {share}",
+  "legend.ask": "先询问",
+  "legend.capped": "受限：始终询问",
+  "legend.carried": "继承自上一个模型，暂定",
+  "legend.carried_flag": "继承",
+  "legend.notify": "先执行后告知，可撤销（可逆类型）",
+  "legend.series": "连续已验证的成功次数，共需 N 次",
+  "legend.trusted": "信任起步：首次失误前像单独使用 Hermes 一样执行，未赢得任何级别",
+  "map.aria": "按操作类型列出的智能体",
+  "map.asked_suffix": " 次询问",
+  "map.capped": "受限",
+  "map.carried_n": {
+    "other": "{n} 项继承"
+  },
+  "map.copy_pending": "从另一个配置文件复制而来，启动时检查",
+  "map.count_faults": {
+    "other": "{n} 次失误"
+  },
+  "map.count_sessions": {
+    "other": "{n} 个会话"
+  },
+  "map.current": " · 当前配置文件",
+  "map.fault_on_record": "有失误记录",
+  "map.group_high": "高风险",
+  "map.group_low": "低风险",
+  "map.group_medium": "中风险",
+  "map.held": "已赢得 {tier}，被你的设置压低",
+  "map.one_in": "1/{k}",
+  "map.pending": "从下一个操作起生效",
+  "map.preset": "{preset}预设",
+  "map.profile": "配置文件 {profile}",
+  "map.read_only": " · 此处只读",
+  "map.spot": "抽查率 {rate}",
+  "map.start_probation": "考察起步（试用期）",
+  "map.start_trusted": "信任起步",
+  "map.strict": "严格",
+  "map.suspended": {
+    "other": "{n} 个会话已暂停：读取了外部内容"
+  },
+  "map.th_agent": "智能体",
+  "map.th_agent_sub": "配置文件 · model@provider",
+  "map.th_capped": "受限 · 始终询问",
+  "map.th_risk": {
+    "other": "风险率 {risk} · 连续 {n} 次后自主执行"
+  },
+  "map.tot_actions": {
+    "other": "{n} 个操作"
+  },
+  "map.tot_alone": "{n} 个未经询问",
+  "map.tot_checked": "{n} 个已确认",
+  "map.tot_faults": {
+    "other": "{n} 次失误"
+  },
   "meta.actions": "操作",
   "meta.actions_tip": "tenure 看到的此智能体的全部操作。没人验证的操作（无回应、超时）不计入。",
   "meta.alone": "自主执行",
@@ -78,6 +212,24 @@
   "meta.profile": "配置文件",
   "meta.provider": "提供方",
   "meta.start": "起点",
+  "missing.always_asks": "始终询问",
+  "missing.earned": "已赢得 · 接受抽查",
+  "missing.more_to_t2": {
+    "other": "还差 {n} 次进入考察中（T2）"
+  },
+  "missing.more_to_t3": {
+    "other": "还差 {n} 次转正"
+  },
+  "missing.rechecking": "正在复核",
+  "missing.second_session": "需要第 2 个会话",
+  "missing.trial_left": {
+    "other": "考察期 · 还差 {n}/{total}"
+  },
+  "missing.trial_wait": {
+    "other": "考察未通过 · 等 {n} 个操作"
+  },
+  "missing.trusted": "首次失误前保持信任 · 像单独使用 Hermes 一样执行",
+  "missing.trusted_undo": "首次失误前保持信任 · 先执行后告知，可撤销",
   "model_menu.badge": "已赢得 {tier}",
   "moment.dismiss": "关闭",
   "moment.eyebrow_down": "#失误 · {type}",
@@ -88,13 +240,35 @@
   "moment.review": "进入考察",
   "moment.review_sub": "{name} 现在先执行后告知，可撤销。",
   "nav.label": "Tenure",
+  "overview.actions_label": {
+    "other": "{n} 操作"
+  },
+  "overview.actions_sub": "已覆盖",
+  "overview.alone_label": "未询问即执行",
+  "overview.alone_sub": "未询问即运行，共 {total} 个",
+  "overview.aria": "最近 7 天",
+  "overview.checked_label": "已确认",
+  "overview.checked_sub": "由你确认，共 {total} 个",
+  "overview.faults_label": "发现的失误",
+  "overview.faults_sub": {
+    "other": "你检查的 {n} 次中有 {faults} 次"
+  },
+  "overview.window": "最近 7 天，所有配置文件",
   "page.animations": "动画",
   "page.animations_reduced": "系统要求减少动态效果：动画保持关闭",
+  "page.raw_off": "名称已脱敏",
+  "page.raw_on": "原始名称",
+  "page.raw_title": "显示原始操作类型名（r）",
   "page.title": "Tenure",
+  "page.unreadable": "无法读取：{profiles}。其数据库存在但无法打开；已显示其他配置文件。",
   "page.view_agents": "智能体",
   "page.view_benchmark": "你的基准",
+  "page.view_community": "社区",
   "page.view_help": "帮助",
+  "page.view_map": "总览",
   "page.view_settings": "设置",
+  "page.view_switch": "切换预览",
+  "page.view_undo": "撤销",
   "palette.no_current": "当前模型还没有记录。",
   "palette.open": "Tenure：打开",
   "palette.passport": "Tenure：显示当前模型的护照",
@@ -105,6 +279,11 @@
   "passport.faults_checks": {
     "other": "{n} 次失误 / {total} 次已验证结果"
   },
+  "passport.field_profile": "配置文件",
+  "passport.field_public_key": "公钥",
+  "passport.field_settings": "设置",
+  "passport.field_signature": "签名",
+  "passport.field_type_names": "类型名",
   "passport.generated": "生成时间",
   "passport.image_failed": "无法绘制图片",
   "passport.ledger": "账本",
@@ -124,6 +303,11 @@
   "passport.title": "已签名护照",
   "passport.trusted": "信任中（非赢得）",
   "passport.unavailable": "不可用：{error}",
+  "passport.value_hashed": "{profile}（已哈希）",
+  "passport.value_none": "无",
+  "passport.value_raw": "原始",
+  "passport.value_redacted": "程序和子命令之后的部分已脱敏",
+  "passport.value_unsigned": "未签名",
   "passport.verified": "已验证：签名有效，哈希链完整，重放账本得到相同的级别。",
   "passport.verify_hint": "任何人都可以验证：",
   "passport.verifying": "正在验证…",
@@ -228,6 +412,51 @@
   "state.suspended_tip": "此会话读取了外部内容：在会话结束前，每次操作都会询问。",
   "state.trial": "考察期",
   "state.trial_tip": "一次中、高风险的失误开启了考察期：需连续 3 次已验证的成功。",
+  "switch.arrow": "→",
+  "switch.capped": "受限",
+  "switch.col_after": "切换后",
+  "switch.col_now": "当前",
+  "switch.col_outcome": "结果",
+  "switch.col_public": "公开测评",
+  "switch.col_record": "你的记录",
+  "switch.col_type": "类型",
+  "switch.count_carried": {
+    "other": "{n} 项继承"
+  },
+  "switch.count_kept": {
+    "other": "{n} 项保留"
+  },
+  "switch.count_reset": {
+    "other": "{n} 项重置"
+  },
+  "switch.count_vetoed": {
+    "other": "{n} 项否决"
+  },
+  "switch.delta": "（{delta}）",
+  "switch.empty": "还没有可预览的智能体",
+  "switch.footnote": "公开分数仅供参考，从不授予自主权。否决只会阻止继承，且仅在超出固定差距时生效。",
+  "switch.from": "从",
+  "switch.label_carried": "继承，暂定",
+  "switch.label_kept": "保留",
+  "switch.label_reset": "重置",
+  "switch.label_vetoed": "否决",
+  "switch.lede": "更换模型之前：逐个类型查看新智能体会继承什么。新模型或新提供方即为新智能体。继承是我们的补充；严格模式即研究原规则。",
+  "switch.no_public": "无公开测评",
+  "switch.none": "无",
+  "switch.pick_body": "输入任意模型 ID。在 Hermes 真正运行新模型之前，什么都不会改变。",
+  "switch.pick_title": "选择目标模型",
+  "switch.placeholder": "模型 ID，例如 {example} 或 model@provider",
+  "switch.preview": "预览",
+  "switch.provisional": {
+    "other": "{n} 项暂定"
+  },
+  "switch.strict": "严格模式：不继承任何记录",
+  "switch.text_carried": "部分连续记录会被继承，并标为暂定，直到新模型积累自己的记录。",
+  "switch.text_kept": "新智能体在这里已有自己的记录；它永远不会被覆盖。",
+  "switch.text_reset": "从零开始：高风险、受限或严格模式。",
+  "switch.text_vetoed": "公开基准显示新模型在此类型上更弱：不继承任何记录。",
+  "switch.to": "目标模型",
+  "switch.to_aria": "目标模型",
   "tier.cap": "受限 · 始终询问",
   "tier.chip_trusted": "信任",
   "tier.name.cap": "始终询问",
@@ -239,11 +468,42 @@
   "tier.t2": "T2 · 先执行后告知，可撤销",
   "tier.t3": "T3 · 自主执行，接受抽查",
   "tier.trusted": "信任中 · 首次失误前，像单独使用 Hermes 一样执行",
+  "time.days": {
+    "other": "{n} 天"
+  },
+  "time.hours_minutes": {
+    "other": "{n} 小时 {mm} 分"
+  },
+  "time.minutes": {
+    "other": "{n} 分钟"
+  },
+  "time.seconds": {
+    "other": "{n} 秒"
+  },
+  "timeline.all_types": "所有类型",
+  "timeline.count": {
+    "other": "{n}×"
+  },
+  "timeline.empty": "此筛选条件下没有证据",
+  "timeline.filter_label": "按类型筛选",
+  "timeline.loading": "正在加载证据…",
+  "timeline.note": "来自哈希链账本，最新在前，最近 200 个事件。重复的结果已合并。",
+  "timeline.title": "证据时间线",
   "toast.acted": {
     "other": "{type}：{n} 项更改，已执行并告知你（{name}）。"
   },
   "toast.acted_detail": "撤销会恢复最近一次更改的文件，并记为一次失误。",
+  "toast.transition": "{agent} · {type}：{from} → {to}",
+  "transitions.empty": "打开此页面以来没有变化。每次自动的级别变化都会列在这里，以及各智能体的时间线中。",
+  "transitions.title": "本页看到的级别变化",
+  "transitions.why_after_fault": "因失误",
+  "transitions.why_changed": "无失误：被收回，或设置、风险等级已变更",
+  "transitions.why_on_evidence": "基于证据",
+  "transitions.why_trial_open": "考察期中",
   "type.always_asks": "始终询问",
+  "type.flag_button": "标记",
+  "type.flag_done": "已在 {type} 上记录失误：现为 {tier}。",
+  "type.flag_title": "事后为此类型记录一次失误",
   "type.guarantee": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。",
   "type.guarantee_plain": "其操作中最多约每 {k} 个就有 1 个带着无人批准的错误运行。",
   "type.guarantee_provisional": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。暂定：基于继承的证据。",
@@ -258,6 +518,9 @@
     "other": "再连续 {n} 次已验证的成功即可转正。"
   },
   "type.next_session": "连续记录已达标：再完成一个会话即可。",
+  "type.revoke_button": "收回",
+  "type.revoke_done": "已收回 {type}：退回 T1。",
+  "type.revoke_title": "收回此类型已赢得的自主权：退回 T1",
   "type.sessions": {
     "other": "{n} 个会话"
   },
@@ -270,5 +533,19 @@
   "type.trusted_line": "首次失误前保持信任 · 像单独使用 Hermes 一样执行。",
   "type.trusted_line_undo": "首次失误前保持信任 · 先执行后告知，可撤销。",
   "type.trusted_no_guarantee": "暂无保证：只有凭证据赢得的级别才有保证。首次失误会让它进入试用期 (T1)。",
-  "types.title": "操作类型"
+  "types.title": "操作类型",
+  "undo.col_agent": "智能体",
+  "undo.col_effect": "撤销的影响",
+  "undo.col_file": "文件",
+  "undo.col_type": "类型",
+  "undo.col_when": "时间",
+  "undo.confirm": "撤销 #{id}？",
+  "undo.effect_already": "恢复文件 · 自动检查已记过一次失误",
+  "undo.effect_fault": "恢复文件 · 记为一次失误",
+  "undo.effect_none": "没有可恢复的内容（无快照）· 会记为一次失误",
+  "undo.empty_body": "智能体未经询问写入的文件（信任中，或处于 T2：先执行后告知）会保留 24 小时快照。它们按最新在前显示在这里，每条都可单独撤销。",
+  "undo.empty_title": "没有可撤销的操作",
+  "undo.lede": "最近先执行后告知的操作。撤销会从快照恢复文件，并记为该类型的一次失误。",
+  "undo.title": "恢复文件",
+  "undo.window_ends": "{duration}后无法撤销"
 }

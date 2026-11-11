@@ -21,13 +21,53 @@
   "benchmark.range_tip": "Tasa de fallos y su rango del 95 %, en un eje de 0 a {max} %",
   "benchmark.rate": "{rate} % ({low}–{high} %)",
   "benchmark.search": "Buscar tipos de acción",
+  "cell.capped_by_settings": "Limitado por la configuración de riesgo",
+  "cell.kind_irreversible": "{type} · {stakes}, irreversible",
+  "cell.kind_reversible": "{type} · {stakes}, reversible",
+  "cell.provisional_long": {
+    "one": "{n} heredado del modelo anterior, provisional",
+    "other": "{n} heredados del modelo anterior, provisionales"
+  },
+  "cell.record": "Historial: {successes} éxitos · {faults} fallos · {neutrals} neutros · {spot} controles aleatorios",
+  "cell.series": "Serie {series}/{required} seguidas",
+  "cell.sessions": {
+    "one": "{n} sesión",
+    "other": "{n} sesiones"
+  },
+  "cell.tier_now": "Nivel actual: {tier} ({name})",
   "chip.tip": {
     "one": "{name}: {earned} de {n} tipo de acción se ha ganado autonomía (T2 o T3). Abrir Tenure.",
     "other": "{name}: {earned} de {n} tipos de acción se han ganado autonomía (T2 o T3). Abrir Tenure."
   },
   "common.loading": "Leyendo la evidencia…",
   "common.no_match": "Sin resultados",
+  "common.own_profile_only": "Solo actúa sobre el perfil actual",
   "common.retry": "Reintentar",
+  "community.col_contributors": "contribuyentes",
+  "community.col_model": "modelo",
+  "community.empty_how": "Para contribuir, escribe tu registro con este comando, lee lo que contiene y abre una pull request que añada el archivo al repositorio comunitario ({repo}).",
+  "community.empty_title": "Todavía no hay registros compartidos",
+  "community.empty_what": "El benchmark comunitario reúne los registros que usuarios de Tenure decidieron publicar: por modelo y por familia de acciones, los éxitos verificados y los fallos, firmados con la clave de su pasaporte. No se comparte nada automáticamente: Tenure no hace ninguna llamada de red.",
+  "community.empty_where": "Para ver la clasificación aquí, descarga el community-board.json que publica el repositorio y guárdalo como {path}.",
+  "community.generated": "{records} · clasificación generada el {date}",
+  "community.lede": "Declarado por quienes contribuyen, con firmas comprobadas: cada registro va firmado con la clave del pasaporte de su autor, y cuenta un solo registro por clave. ",
+  "community.lede_bold": "Esto no impide que una misma persona tenga varias claves.",
+  "community.models": {
+    "one": "{n} modelo",
+    "many": "{n} modelos",
+    "other": "{n} modelos"
+  },
+  "community.ranking": "Por familia de acciones, los modelos se ordenan por el extremo superior del rango del 95 % de su tasa de fallos, nunca por una sola puntuación.",
+  "community.records": {
+    "one": "{n} registro",
+    "many": "{n} registros",
+    "other": "{n} registros"
+  },
+  "confirm.flag_desc": "Cuenta como fallo: {type} baja al menos un nivel y vuelve a subir. Úsalo para un error que nadie detectó.",
+  "confirm.flag_title": "¿Marcar {type} como error?",
+  "confirm.revoke_desc": "{type} vuelve a preguntar antes de actuar y su serie empieza de cero. No es un fallo.",
+  "confirm.revoke_title": "¿Revocar {type}?",
+  "confirm.undo_title": "¿Deshacer la acción {id}?",
   "emblem.none": "Aún sin autonomía ganada",
   "emblem.review": {
     "one": "{n} tipo en revisión",
@@ -45,6 +85,52 @@
   "empty.desc": "Trabaja como siempre. Cada cambio pregunta antes, y cada tipo de acción se gana su nivel con tus respuestas.",
   "empty.desc_trusted": "Trabaja como siempre. Cada tipo de acción actúa como Hermes solo hasta su primer error; desde entonces pregunta antes y recupera su nivel con tus respuestas.",
   "empty.title": "Ningún agente ha actuado todavía",
+  "event.confirmed": "evidencia heredada confirmada por la suya propia",
+  "event.expired_pending": "acción pendiente caducada · sin evidencia",
+  "event.fault_check": "falló la comprobación automática",
+  "event.fault_flag": "marcado por ti como fallo",
+  "event.fault_other": "fallo ({source})",
+  "event.fault_refusal": "rechazado por ti",
+  "event.fault_spot": "control aleatorio rechazado o fallido",
+  "event.fault_undo": "deshecho por ti",
+  "event.neutral_alone": "actuó por su cuenta (ganado)",
+  "event.neutral_ambiguous": "llamada ambigua · sin evidencia",
+  "event.neutral_blocked": "bloqueado por otra protección · sin evidencia",
+  "event.neutral_error": "error de herramienta · sin evidencia",
+  "event.neutral_expired": "nunca informó del resultado · sin evidencia",
+  "event.neutral_nobody": "nadie que responda · sin evidencia",
+  "event.neutral_other": "neutro ({source})",
+  "event.neutral_timeout": "sin respuesta · sin evidencia",
+  "event.revoked": "revocado por ti",
+  "event.success_approved": "aprobado por ti, se ejecutó sin problemas",
+  "event.success_notify": "actuó y luego avisó · no deshecho",
+  "event.success_spot": "control aleatorio aprobado por ti",
+  "event.switch": "cambio de modelo",
+  "event.switch_from": "cambio de modelo desde {from}",
+  "event.tier": "nivel {from} → {to} · {why}",
+  "event.trial_failed": {
+    "one": "prueba no superada: esperar {n} acción",
+    "other": "prueba no superada: esperar {n} acciones"
+  },
+  "event.trial_opened": {
+    "one": "periodo de prueba abierto: la siguiente acción debe salir bien",
+    "other": "periodo de prueba abierto: las próximas {n} deben salir bien"
+  },
+  "event.trial_passed": "prueba superada",
+  "event.trial_reopens": {
+    "one": "periodo de prueba reabierto: la siguiente acción debe salir bien",
+    "other": "periodo de prueba reabierto: las próximas {n} deben salir bien"
+  },
+  "event.why_fault": "fallo",
+  "event.why_series_complete": "serie completa",
+  "event.why_series_n": "serie {required}/{required}",
+  "event.why_sessions": {
+    "one": "{n} sesión",
+    "other": "{n} sesiones"
+  },
+  "event.why_settings": "configuración más estricta",
+  "event.why_stakes": "cambio de impacto",
+  "event.why_wald": "test secuencial superado",
   "flag.confirm": "Marcar",
   "flag.desc": "Cuenta como un fallo: {type} bajará al menos un nivel y tendrá que volver a subir. Úsalo para un error que nadie detectó.",
   "flag.title": "¿Marcar este cambio como error?",
@@ -58,6 +144,10 @@
   "help.benchmark_body": "Tu benchmark es el historial verificado de cada modelo sobre tu propio trabajo, por tipo de acción, con el rango del 95 % de su tasa de fallos. Un modelo entra en la clasificación cuando tiene {n} resultados verificados en un tipo. Una puntuación pública, cuando aparece, es contexto: capacidad en tareas de otros, no fiabilidad en las tuyas.",
   "help.flag_body": "Marcar informa de un error que nadie detectó. Cuenta como fallo: el tipo baja al menos un nivel y luego vuelve a subir.",
   "help.intro": "Tenure decide, por modelo y por tipo de acción, si Hermes te pregunta antes, actúa y luego te avisa, o actúa por su cuenta. Cada decisión sale de evidencia verificada, escrita en un registro firmado.",
+  "help.key_help": "Esta ayuda",
+  "help.key_raw": "Nombres reales de los tipos: sí / no",
+  "help.keys_note": "Los atajos funcionan cuando el foco está en esta página.",
+  "help.keys_title": "Teclado",
   "help.passport_body": "El pasaporte es un resumen firmado del historial de un agente: el nivel de cada tipo de acción, sus fallos y resultados verificados, y el último hash del registro encadenado. Está firmado con la clave Ed25519 de este perfil. Para comprobarlo, descárgalo desde la página del agente, exporta el registro y verifica:",
   "help.passport_checks": "La comprobación verifica la firma y la cadena de hashes, y luego reproduce el registro para recalcular los mismos niveles. Nada en él es autodeclarado.",
   "help.session_body": "Algunas preguntas (código ejecutado en línea, comandos de shell complejos, comandos locales no cubiertos como rm, mv o cp, y un comando tras contenido externo) ofrecen «Permitir esta sesión»: esa pregunta calla hasta que termina la sesión. Es tu elección, no evidencia: no hace ganar nada, y una sesión nueva vuelve a preguntar.",
@@ -75,6 +165,67 @@
   "intro.body_trusted": "Cada tipo de acción empieza de confianza: hasta su primer error actúa como lo haría Hermes solo, y un cambio reversible actúa y luego te avisa, con opción de Deshacer. Su primer fallo (un Deshacer, una comprobación fallida, una marca) lo pasa a Período de prueba (T1): pregunta antes. Una serie de acciones limpias y aprobadas lo sube a T2; una serie más larga, en dos sesiones, a T3: actúa por su cuenta, y 1 acción de cada {k} sigue preguntando, como control aleatorio. Salir de la máquina y el dinero siempre preguntan.",
   "intro.got_it": "Entendido",
   "intro.title": "Cómo se gana su nivel un tipo de acción",
+  "legend.a_share": "una parte",
+  "legend.alone": "actúa por su cuenta, {share} con control aleatorio",
+  "legend.ask": "pregunta antes",
+  "legend.capped": "limitado: siempre pregunta",
+  "legend.carried": "del modelo anterior, provisional",
+  "legend.carried_flag": "heredado",
+  "legend.notify": "actúa y luego avisa, con opción de deshacer (tipos reversibles)",
+  "legend.series": "éxitos verificados seguidos, de los N necesarios",
+  "legend.trusted": "inicio de confianza: actúa como Hermes solo hasta su primer error, nada ganado",
+  "map.aria": "Agentes por tipo de acción",
+  "map.asked_suffix": " preguntas",
+  "map.capped": "limitado",
+  "map.carried_n": {
+    "one": "{n} heredado",
+    "other": "{n} heredados"
+  },
+  "map.copy_pending": "copiado de otro perfil, se verifica al iniciarse",
+  "map.count_faults": {
+    "one": "{n} fallo",
+    "other": "{n} fallos"
+  },
+  "map.count_sessions": {
+    "one": "{n} sesión",
+    "other": "{n} sesiones"
+  },
+  "map.current": " · este perfil",
+  "map.fault_on_record": "fallo registrado",
+  "map.group_high": "impacto alto",
+  "map.group_low": "impacto bajo",
+  "map.group_medium": "impacto medio",
+  "map.held": "{tier} guardado, retenido por tu configuración",
+  "map.one_in": "1 de cada {k}",
+  "map.pending": "se aplica desde la próxima acción",
+  "map.preset": "preajuste {preset}",
+  "map.profile": "Perfil {profile}",
+  "map.read_only": " · solo lectura aquí",
+  "map.spot": "controles aleatorios {rate}",
+  "map.start_probation": "inicio en estudio (período de prueba)",
+  "map.start_trusted": "inicio de confianza",
+  "map.strict": "estricto",
+  "map.suspended": {
+    "one": "{n} sesión suspendida: contenido externo leído",
+    "other": "{n} sesiones suspendidas: contenido externo leído"
+  },
+  "map.th_agent": "Agente",
+  "map.th_agent_sub": "perfil · modelo@proveedor",
+  "map.th_capped": "limitado · siempre pregunta",
+  "map.th_risk": {
+    "one": "riesgo {risk} · {n} éxito para actuar por su cuenta",
+    "other": "riesgo {risk} · {n} éxitos seguidos para actuar por su cuenta"
+  },
+  "map.tot_actions": {
+    "one": "{n} acción",
+    "other": "{n} acciones"
+  },
+  "map.tot_alone": "{n} sin preguntar",
+  "map.tot_checked": "{n} comprobadas",
+  "map.tot_faults": {
+    "one": "{n} fallo",
+    "other": "{n} fallos"
+  },
   "meta.actions": "Acciones",
   "meta.actions_tip": "Todas las acciones de este agente que tenure ha visto. Las que nadie verificó (sin respuesta, tiempo agotado) no cuentan.",
   "meta.alone": "Por su cuenta",
@@ -84,6 +235,28 @@
   "meta.profile": "Perfil",
   "meta.provider": "Proveedor",
   "meta.start": "Inicio",
+  "missing.always_asks": "siempre pregunta",
+  "missing.earned": "ganado · control aleatorio",
+  "missing.more_to_t2": {
+    "one": "falta {n} para En revisión (T2)",
+    "other": "faltan {n} para En revisión (T2)"
+  },
+  "missing.more_to_t3": {
+    "one": "falta {n} para Titular",
+    "other": "faltan {n} para Titular"
+  },
+  "missing.rechecking": "recomprobando",
+  "missing.second_session": "falta una 2.ª sesión",
+  "missing.trial_left": {
+    "one": "a prueba · falta {n} de {total}",
+    "other": "a prueba · faltan {n} de {total}"
+  },
+  "missing.trial_wait": {
+    "one": "prueba fallida · esperar {n}",
+    "other": "prueba fallida · esperar {n}"
+  },
+  "missing.trusted": "de confianza hasta su primer error · actúa como Hermes solo",
+  "missing.trusted_undo": "de confianza hasta su primer error · actúa y luego avisa, con opción de deshacer",
   "model_menu.badge": "{tier} ganado",
   "moment.dismiss": "Cerrar",
   "moment.eyebrow_down": "#Fallo · {type}",
@@ -94,13 +267,37 @@
   "moment.review": "En revisión",
   "moment.review_sub": "{name} ahora actúa y luego te avisa, con opción de Deshacer.",
   "nav.label": "Tenure",
+  "overview.actions_label": {
+    "one": "{n} acción",
+    "other": "{n} acciones"
+  },
+  "overview.actions_sub": "cubiertas",
+  "overview.alone_label": "sin preguntar",
+  "overview.alone_sub": "ejecutadas sin preguntar, de {total}",
+  "overview.aria": "Últimos 7 días",
+  "overview.checked_label": "comprobadas",
+  "overview.checked_sub": "por ti, de {total}",
+  "overview.faults_label": "fallos detectados",
+  "overview.faults_sub": {
+    "one": "{faults} de {n} comprobación tuya",
+    "other": "{faults} de {n} comprobaciones tuyas"
+  },
+  "overview.window": "últimos 7 días, todos los perfiles",
   "page.animations": "Animaciones",
   "page.animations_reduced": "Tu sistema pide reducir el movimiento: las animaciones siguen desactivadas",
+  "page.raw_off": "nombres ocultos",
+  "page.raw_on": "nombres reales",
+  "page.raw_title": "Mostrar los nombres reales de los tipos de acción (r)",
   "page.title": "Tenure",
+  "page.unreadable": "Ilegible: {profiles}. Su base de datos existe pero no se puede abrir; se muestran los demás perfiles.",
   "page.view_agents": "Agentes",
   "page.view_benchmark": "Tu benchmark",
+  "page.view_community": "Comunidad",
   "page.view_help": "Ayuda",
+  "page.view_map": "Mapa",
   "page.view_settings": "Ajustes",
+  "page.view_switch": "Cambio de modelo",
+  "page.view_undo": "Deshacer",
   "palette.no_current": "El modelo actual aún no tiene historial.",
   "palette.open": "Tenure: Abrir",
   "palette.passport": "Tenure: Mostrar el pasaporte del modelo actual",
@@ -112,6 +309,11 @@
     "one": "{n} fallo / {total} resultados verificados",
     "other": "{n} fallos / {total} resultados verificados"
   },
+  "passport.field_profile": "Perfil",
+  "passport.field_public_key": "Clave pública",
+  "passport.field_settings": "Configuración",
+  "passport.field_signature": "Firma",
+  "passport.field_type_names": "Nombres de tipo",
   "passport.generated": "Generado",
   "passport.image_failed": "No se pudo dibujar la imagen",
   "passport.ledger": "Registro",
@@ -134,6 +336,11 @@
   "passport.title": "Pasaporte firmado",
   "passport.trusted": "De confianza (no ganado)",
   "passport.unavailable": "No disponible: {error}",
+  "passport.value_hashed": "{profile} (hash)",
+  "passport.value_none": "ninguno",
+  "passport.value_raw": "reales",
+  "passport.value_redacted": "ocultos tras el programa y el subcomando",
+  "passport.value_unsigned": "sin firmar",
   "passport.verified": "Verificado: firma válida, cadena de hashes intacta, y al reproducir el registro se obtienen los mismos niveles.",
   "passport.verify_hint": "Cualquiera puede comprobarlo:",
   "passport.verifying": "Verificando…",
@@ -241,6 +448,56 @@
   "state.suspended_tip": "Una sesión leyó contenido externo: pregunta por todo hasta que termine.",
   "state.trial": "a prueba",
   "state.trial_tip": "Un fallo de impacto medio o alto abrió un periodo de prueba: 3 éxitos verificados seguidos.",
+  "switch.arrow": "→",
+  "switch.capped": "limitado",
+  "switch.col_after": "tras el cambio",
+  "switch.col_now": "ahora",
+  "switch.col_outcome": "resultado",
+  "switch.col_public": "medida pública",
+  "switch.col_record": "tu historial",
+  "switch.col_type": "tipo",
+  "switch.count_carried": {
+    "one": "{n} heredado",
+    "other": "{n} heredados"
+  },
+  "switch.count_kept": {
+    "one": "{n} conservado",
+    "other": "{n} conservados"
+  },
+  "switch.count_reset": {
+    "one": "{n} reiniciado",
+    "other": "{n} reiniciados"
+  },
+  "switch.count_vetoed": {
+    "one": "{n} vetado",
+    "other": "{n} vetados"
+  },
+  "switch.delta": " ({delta})",
+  "switch.empty": "Aún no hay ningún agente que previsualizar",
+  "switch.footnote": "Las puntuaciones públicas informan; nunca conceden autonomía. Un veto solo bloquea la herencia, más allá de un margen fijo.",
+  "switch.from": "Desde",
+  "switch.label_carried": "heredado, provisional",
+  "switch.label_kept": "conservado",
+  "switch.label_reset": "reiniciado",
+  "switch.label_vetoed": "vetado",
+  "switch.lede": "Antes de cambiar de modelo: lo que heredaría el nuevo agente, tipo por tipo. Un modelo o proveedor nuevo es un agente nuevo. La herencia es un añadido nuestro; el modo estricto es el estudio.",
+  "switch.no_public": "sin medida pública",
+  "switch.none": "ninguno",
+  "switch.pick_body": "Escribe cualquier id de modelo. Nada cambia hasta que Hermes ejecute de verdad el modelo nuevo.",
+  "switch.pick_title": "Elige un modelo de destino",
+  "switch.placeholder": "id de modelo, p. ej. {example} o model@provider",
+  "switch.preview": "Previsualizar",
+  "switch.provisional": {
+    "one": "{n} provisional",
+    "other": "{n} provisionales"
+  },
+  "switch.strict": "modo estricto: no se hereda nada",
+  "switch.text_carried": "Parte de la serie se hereda, marcada como provisional hasta que el modelo nuevo sume la suya.",
+  "switch.text_kept": "El nuevo agente ya tiene su propio historial aquí; nunca se sobrescribe.",
+  "switch.text_reset": "Empieza de cero: impacto alto, limitado o modo estricto.",
+  "switch.text_vetoed": "El benchmark público muestra que el modelo nuevo es más débil en este tipo: no se hereda nada.",
+  "switch.to": "Al modelo",
+  "switch.to_aria": "Modelo de destino",
   "tier.cap": "Limitado · siempre pregunta",
   "tier.chip_trusted": "CONFIANZA",
   "tier.name.cap": "Siempre pregunta",
@@ -252,12 +509,48 @@
   "tier.t2": "T2 · actúa y luego te avisa, con opción de Deshacer",
   "tier.t3": "T3 · actúa por su cuenta, con control aleatorio",
   "tier.trusted": "De confianza · actúa como Hermes solo hasta su primer error",
+  "time.days": {
+    "one": "{n} d",
+    "other": "{n} d"
+  },
+  "time.hours_minutes": {
+    "one": "{n} h {mm} min",
+    "other": "{n} h {mm} min"
+  },
+  "time.minutes": {
+    "one": "{n} min",
+    "other": "{n} min"
+  },
+  "time.seconds": {
+    "one": "{n} s",
+    "other": "{n} s"
+  },
+  "timeline.all_types": "Todos los tipos",
+  "timeline.count": {
+    "one": "{n}×",
+    "other": "{n}×"
+  },
+  "timeline.empty": "No hay evidencia para este filtro",
+  "timeline.filter_label": "Filtrar por tipo",
+  "timeline.loading": "Cargando la evidencia…",
+  "timeline.note": "Del registro encadenado por hash, los más recientes primero, últimos 200 eventos. Los resultados repetidos se agrupan.",
+  "timeline.title": "Cronología de la evidencia",
   "toast.acted": {
     "one": "{type} hizo un cambio y luego te avisó ({name}).",
     "other": "{type} hizo {n} cambios y luego te avisó ({name})."
   },
   "toast.acted_detail": "Deshacer restaura los archivos del último cambio y cuenta como fallo.",
+  "toast.transition": "{agent} · {type}: {from} → {to}",
+  "transitions.empty": "Ninguno desde que se abrió esta página. Cada cambio de nivel automático aparece aquí y en la cronología de cada agente.",
+  "transitions.title": "Cambios de nivel vistos en esta página",
+  "transitions.why_after_fault": "tras un fallo",
+  "transitions.why_changed": "sin fallo: revocado, o cambiaron los ajustes o el impacto",
+  "transitions.why_on_evidence": "por la evidencia",
+  "transitions.why_trial_open": "a prueba",
   "type.always_asks": "siempre pregunta",
+  "type.flag_button": "Marcar",
+  "type.flag_done": "Fallo registrado en {type}: ahora {tier}.",
+  "type.flag_title": "Registrar un fallo en este tipo, a posteriori",
   "type.guarantee": "Como máximo el {aoql} % de las acciones de este tipo se ejecutan con un error que nadie aprobó; el {worst} % si el modelo empeora.",
   "type.guarantee_plain": "Como máximo, aproximadamente 1 de cada {k} de sus acciones se ejecuta con un error que nadie aprobó.",
   "type.guarantee_provisional": "Como máximo el {aoql} % de las acciones de este tipo se ejecutan con un error que nadie aprobó; el {worst} % si el modelo empeora. Provisional: evidencia heredada.",
@@ -275,6 +568,9 @@
     "other": "Faltan {n} éxitos verificados seguidos para la titularidad."
   },
   "type.next_session": "La serie está completa: falta una sesión más.",
+  "type.revoke_button": "Revocar",
+  "type.revoke_done": "{type} revocado: vuelve a T1.",
+  "type.revoke_title": "Retirar lo que ganó este tipo: vuelve a T1",
   "type.sessions": {
     "one": "{n} sesión",
     "other": "{n} sesiones"
@@ -288,5 +584,19 @@
   "type.trusted_line": "De confianza hasta su primer error · actúa como Hermes solo.",
   "type.trusted_line_undo": "De confianza hasta su primer error · actúa y luego te avisa, con opción de Deshacer.",
   "type.trusted_no_guarantee": "Aún sin garantía: solo llega con un nivel ganado con evidencia. Su primer fallo lo pasa a Período de prueba (T1).",
-  "types.title": "Tipos de acción"
+  "types.title": "Tipos de acción",
+  "undo.col_agent": "agente",
+  "undo.col_effect": "efecto de deshacer",
+  "undo.col_file": "archivo",
+  "undo.col_type": "tipo",
+  "undo.col_when": "cuándo",
+  "undo.confirm": "¿Deshacer n.º {id}?",
+  "undo.effect_already": "restaura los archivos · la comprobación automática ya contó un fallo",
+  "undo.effect_fault": "restaura los archivos · cuenta como fallo",
+  "undo.effect_none": "nada que restaurar (sin instantánea) · contaría como fallo",
+  "undo.empty_body": "Las escrituras que el agente hizo sin preguntar (con confianza, o en T2: actúa y luego avisa) guardan una instantánea de los archivos durante 24 horas. Aparecen aquí, las más recientes primero, cada una con su botón Deshacer.",
+  "undo.empty_title": "Nada que deshacer",
+  "undo.lede": "Acciones recientes que actuaron y luego avisaron. Deshacer restaura los archivos desde su instantánea y cuenta como fallo del tipo.",
+  "undo.title": "Restaurar los archivos",
+  "undo.window_ends": "el plazo termina en {duration}"
 }

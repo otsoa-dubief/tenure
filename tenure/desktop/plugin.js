@@ -82,13 +82,51 @@ const TENURE_LOCALES = {
     "benchmark.range_tip": "Fault rate and its 95% range, on a 0–{max}% axis",
     "benchmark.rate": "{rate}% ({low}–{high}%)",
     "benchmark.search": "Search action types",
+    "cell.capped_by_settings": "Capped by the risk settings",
+    "cell.kind_irreversible": "{type} · {stakes}, irreversible",
+    "cell.kind_reversible": "{type} · {stakes}, reversible",
+    "cell.provisional_long": {
+      "one": "{n} carried over from the previous model, provisional",
+      "other": "{n} carried over from the previous model, provisional"
+    },
+    "cell.record": "Record: {successes} successes · {faults} faults · {neutrals} neutral · {spot} spot checks",
+    "cell.series": "Series {series}/{required} in a row",
+    "cell.sessions": {
+      "one": "{n} session",
+      "other": "{n} sessions"
+    },
+    "cell.tier_now": "Tier now: {tier} ({name})",
     "chip.tip": {
       "one": "{name}: {earned} of {n} action type has earned autonomy (T2 or T3). Open Tenure.",
       "other": "{name}: {earned} of {n} action types have earned autonomy (T2 or T3). Open Tenure."
     },
     "common.loading": "Reading the evidence…",
     "common.no_match": "No match",
+    "common.own_profile_only": "Acts on the current profile only",
     "common.retry": "Try again",
+    "community.col_contributors": "contributors",
+    "community.col_model": "model",
+    "community.empty_how": "To contribute, write your record with this command, read what it holds, then open a pull request adding the file to the community repository ({repo}).",
+    "community.empty_title": "No shared records yet",
+    "community.empty_what": "The community benchmark pools records that Tenure users chose to publish: per model and per action family, verified successes and faults, signed with their passport key. Nothing is shared automatically: Tenure makes no network call.",
+    "community.empty_where": "To see the board here, download the community-board.json the repository publishes and save it as {path}.",
+    "community.generated": "{records} · board generated on {date}",
+    "community.lede": "Self-reported by contributors, and signature-checked: each record is signed with its owner's passport key, and one record per key counts. ",
+    "community.lede_bold": "This does not stop one person with many keys.",
+    "community.models": {
+      "one": "{n} model",
+      "other": "{n} models"
+    },
+    "community.ranking": "Per action family, models ranked by the top of the 95% range of their fault rate, never by one score.",
+    "community.records": {
+      "one": "{n} record",
+      "other": "{n} records"
+    },
+    "confirm.flag_desc": "This counts as a fault: {type} drops at least one tier and climbs again. Use it for an error nobody caught.",
+    "confirm.flag_title": "Flag {type} as an error?",
+    "confirm.revoke_desc": "{type} asks first again and its series restarts from zero. Not a fault.",
+    "confirm.revoke_title": "Take back {type}?",
+    "confirm.undo_title": "Undo action {id}?",
     "emblem.none": "No autonomy earned yet",
     "emblem.review": {
       "one": "{n} type under review",
@@ -105,6 +143,52 @@ const TENURE_LOCALES = {
     "empty.desc": "Work as usual. Every change asks first, and each action type earns its tier from the answers you give.",
     "empty.desc_trusted": "Work as usual. Each action type acts as Hermes alone would until its first mistake; from then on it asks first and earns its tier back from your answers.",
     "empty.title": "No agent has acted yet",
+    "event.confirmed": "carried-over evidence confirmed by its own",
+    "event.expired_pending": "pending action expired · no evidence",
+    "event.fault_check": "automatic check failed",
+    "event.fault_flag": "flagged as a fault by you",
+    "event.fault_other": "fault ({source})",
+    "event.fault_refusal": "refused by you",
+    "event.fault_spot": "spot check refused or failed",
+    "event.fault_undo": "undone by you",
+    "event.neutral_alone": "acted alone (earned)",
+    "event.neutral_ambiguous": "ambiguous call · no evidence",
+    "event.neutral_blocked": "blocked by another guard · no evidence",
+    "event.neutral_error": "tool error · no evidence",
+    "event.neutral_expired": "never reported back · no evidence",
+    "event.neutral_nobody": "nobody to answer · no evidence",
+    "event.neutral_other": "neutral ({source})",
+    "event.neutral_timeout": "no answer · no evidence",
+    "event.revoked": "revoked by you",
+    "event.success_approved": "approved by you, ran cleanly",
+    "event.success_notify": "acted, then told you · not undone",
+    "event.success_spot": "spot check approved by you",
+    "event.switch": "model switch",
+    "event.switch_from": "model switch from {from}",
+    "event.tier": "tier {from} → {to} · {why}",
+    "event.trial_failed": {
+      "one": "trial failed: wait {n} action",
+      "other": "trial failed: wait {n} actions"
+    },
+    "event.trial_opened": {
+      "one": "trial opened: next {n} must succeed",
+      "other": "trial opened: next {n} must succeed"
+    },
+    "event.trial_passed": "trial passed",
+    "event.trial_reopens": {
+      "one": "trial reopens: next {n} must succeed",
+      "other": "trial reopens: next {n} must succeed"
+    },
+    "event.why_fault": "fault",
+    "event.why_series_complete": "series complete",
+    "event.why_series_n": "series {required}/{required}",
+    "event.why_sessions": {
+      "one": "{n} session",
+      "other": "{n} sessions"
+    },
+    "event.why_settings": "stricter settings",
+    "event.why_stakes": "stakes changed",
+    "event.why_wald": "sequential test passed",
     "flag.confirm": "Flag",
     "flag.desc": "This counts as a fault: {type} will drop at least one tier and climb again. Use it for an error nobody caught.",
     "flag.title": "Flag this change as an error?",
@@ -118,6 +202,10 @@ const TENURE_LOCALES = {
     "help.benchmark_body": "Your benchmark is each model's verified record on your own work, per action type, with the 95% range of its fault rate. A model is ranked once it has {n} verified outcomes on a type. A public score, when shown, is context: capability on someone else's tasks, not reliability on yours.",
     "help.flag_body": "Flag reports an error nobody caught. It counts as a fault: the type drops at least one tier, then climbs again.",
     "help.intro": "Tenure decides, per model and per action type, whether Hermes asks you first, acts then tells you, or acts on its own. Every decision comes from verified evidence, written in a signed ledger.",
+    "help.key_help": "This help",
+    "help.key_raw": "Raw type names on / off",
+    "help.keys_note": "Shortcuts work while focus is inside this page.",
+    "help.keys_title": "Keyboard",
     "help.passport_body": "The passport is a signed summary of an agent's record: each action type's tier, its faults and verified outcomes, and the head of the hash-chained ledger. It is signed with this profile's Ed25519 key. To check it, download it from the agent's page, export the ledger, then verify:",
     "help.passport_checks": "The check verifies the signature and the hash chain, then replays the ledger to recompute the same tiers. Nothing in it is self-declared.",
     "help.session_body": "Some asks (code run inline, complex shell commands, local commands tenure does not cover such as rm, mv or cp, and a command after outside content) offer “Allow for this session”: that ask stays quiet until the session ends. It is your choice, not evidence: it earns nothing, and a new session asks again.",
@@ -135,6 +223,67 @@ const TENURE_LOCALES = {
     "intro.body_trusted": "Each action type starts trusted: until its first mistake it acts as Hermes alone would, and a reversible change acts, then tells you, with an Undo. Its first fault (an Undo, a failed check, a flag) puts it on Probation (T1): it asks first. A run of clean, approved actions moves it to T2; a longer run, over two sessions, to T3: it acts on its own, and 1 action in {k} still asks, as a spot check. Leaving the machine and money always ask.",
     "intro.got_it": "Got it",
     "intro.title": "How an action type earns its tier",
+    "legend.a_share": "a share",
+    "legend.alone": "acts on its own, {share} spot-checked",
+    "legend.ask": "asks first",
+    "legend.capped": "capped: always asks",
+    "legend.carried": "from the previous model, provisional",
+    "legend.carried_flag": "carried over",
+    "legend.notify": "acts, then tells you, with an undo (reversible types)",
+    "legend.series": "verified successes in a row, of the N needed",
+    "legend.trusted": "trusted start: acts like Hermes alone until its first mistake, nothing earned",
+    "map.aria": "Agents by action type",
+    "map.asked_suffix": " asked",
+    "map.capped": "capped",
+    "map.carried_n": {
+      "one": "{n} carried over",
+      "other": "{n} carried over"
+    },
+    "map.copy_pending": "copied from another profile, checked when it starts",
+    "map.count_faults": {
+      "one": "{n} fault",
+      "other": "{n} faults"
+    },
+    "map.count_sessions": {
+      "one": "{n} session",
+      "other": "{n} sessions"
+    },
+    "map.current": " · this profile",
+    "map.fault_on_record": "fault on record",
+    "map.group_high": "high stakes",
+    "map.group_low": "low stakes",
+    "map.group_medium": "medium stakes",
+    "map.held": "stored {tier}, held back by your settings",
+    "map.one_in": "1 in {k}",
+    "map.pending": "applies from the next action",
+    "map.preset": "{preset} preset",
+    "map.profile": "Profile {profile}",
+    "map.read_only": " · read-only here",
+    "map.spot": "spot checks {rate}",
+    "map.start_probation": "study start (probation)",
+    "map.start_trusted": "trusted start",
+    "map.strict": "strict",
+    "map.suspended": {
+      "one": "{n} session suspended: external content read",
+      "other": "{n} sessions suspended: external content read"
+    },
+    "map.th_agent": "Agent",
+    "map.th_agent_sub": "profile · model@provider",
+    "map.th_capped": "capped · always asks",
+    "map.th_risk": {
+      "one": "risk {risk} · {n} in a row to act on its own",
+      "other": "risk {risk} · {n} in a row to act on its own"
+    },
+    "map.tot_actions": {
+      "one": "{n} action",
+      "other": "{n} actions"
+    },
+    "map.tot_alone": "{n} without asking",
+    "map.tot_checked": "{n} checked",
+    "map.tot_faults": {
+      "one": "{n} fault",
+      "other": "{n} faults"
+    },
     "meta.actions": "Actions",
     "meta.actions_tip": "Every action of this agent tenure saw. Actions nobody verified (no answer, a timeout) count for nothing.",
     "meta.alone": "On its own",
@@ -144,6 +293,28 @@ const TENURE_LOCALES = {
     "meta.profile": "Profile",
     "meta.provider": "Provider",
     "meta.start": "Start",
+    "missing.always_asks": "always asks",
+    "missing.earned": "earned · spot-checked",
+    "missing.more_to_t2": {
+      "one": "{n} more to reach Under review (T2)",
+      "other": "{n} more to reach Under review (T2)"
+    },
+    "missing.more_to_t3": {
+      "one": "{n} more to Tenured",
+      "other": "{n} more to Tenured"
+    },
+    "missing.rechecking": "re-checking",
+    "missing.second_session": "needs a 2nd session",
+    "missing.trial_left": {
+      "one": "trial · {n} of {total} to go",
+      "other": "trial · {n} of {total} to go"
+    },
+    "missing.trial_wait": {
+      "one": "trial failed · wait {n}",
+      "other": "trial failed · wait {n}"
+    },
+    "missing.trusted": "trusted until its first mistake · acts like Hermes alone",
+    "missing.trusted_undo": "trusted until its first mistake · acts, then tells you, with an undo",
     "model_menu.badge": "{tier} earned",
     "moment.dismiss": "Dismiss",
     "moment.eyebrow_down": "#Fault · {type}",
@@ -154,13 +325,37 @@ const TENURE_LOCALES = {
     "moment.review": "Under review",
     "moment.review_sub": "{name} now acts, then tells you, with an Undo.",
     "nav.label": "Tenure",
+    "overview.actions_label": {
+      "one": "{n} action",
+      "other": "{n} actions"
+    },
+    "overview.actions_sub": "covered",
+    "overview.alone_label": "acted without asking",
+    "overview.alone_sub": "ran without asking, of {total}",
+    "overview.aria": "Last 7 days",
+    "overview.checked_label": "checked",
+    "overview.checked_sub": "by you, of {total}",
+    "overview.faults_label": "faults caught",
+    "overview.faults_sub": {
+      "one": "{faults} of {n} check by you",
+      "other": "{faults} of {n} checks by you"
+    },
+    "overview.window": "last 7 days, every profile",
     "page.animations": "Animations",
     "page.animations_reduced": "Your system asks for reduced motion: animations stay off",
+    "page.raw_off": "redacted names",
+    "page.raw_on": "raw names",
+    "page.raw_title": "Show raw action type names (r)",
     "page.title": "Tenure",
+    "page.unreadable": "Unreadable: {profiles}. Its database exists but cannot be opened; other profiles are shown.",
     "page.view_agents": "Agents",
     "page.view_benchmark": "Your benchmark",
+    "page.view_community": "Community",
     "page.view_help": "Help",
+    "page.view_map": "Map",
     "page.view_settings": "Settings",
+    "page.view_switch": "Switch preview",
+    "page.view_undo": "Undo",
     "palette.no_current": "The current model has no record yet.",
     "palette.open": "Tenure: Open",
     "palette.passport": "Tenure: Show passport for current model",
@@ -172,6 +367,11 @@ const TENURE_LOCALES = {
       "one": "{n} fault / {total} verified outcomes",
       "other": "{n} faults / {total} verified outcomes"
     },
+    "passport.field_profile": "Profile",
+    "passport.field_public_key": "Public key",
+    "passport.field_settings": "Settings",
+    "passport.field_signature": "Signature",
+    "passport.field_type_names": "Type names",
     "passport.generated": "Generated",
     "passport.image_failed": "Could not draw the image",
     "passport.ledger": "Ledger",
@@ -193,6 +393,11 @@ const TENURE_LOCALES = {
     "passport.title": "Signed passport",
     "passport.trusted": "Trusted (not earned)",
     "passport.unavailable": "Not available: {error}",
+    "passport.value_hashed": "{profile} (hashed)",
+    "passport.value_none": "none",
+    "passport.value_raw": "raw",
+    "passport.value_redacted": "redacted after the program and subcommand",
+    "passport.value_unsigned": "unsigned",
     "passport.verified": "Verified: signature valid, hash chain intact, and replaying the ledger gives the same tiers.",
     "passport.verify_hint": "Anyone can check it:",
     "passport.verifying": "Verifying…",
@@ -300,6 +505,56 @@ const TENURE_LOCALES = {
     "state.suspended_tip": "A session read outside content: it asks for everything until it ends.",
     "state.trial": "trial",
     "state.trial_tip": "A medium or high fault opened a trial: 3 verified successes in a row.",
+    "switch.arrow": "→",
+    "switch.capped": "capped",
+    "switch.col_after": "after the switch",
+    "switch.col_now": "now",
+    "switch.col_outcome": "outcome",
+    "switch.col_public": "public measure",
+    "switch.col_record": "your record",
+    "switch.col_type": "type",
+    "switch.count_carried": {
+      "one": "{n} carried",
+      "other": "{n} carried"
+    },
+    "switch.count_kept": {
+      "one": "{n} kept",
+      "other": "{n} kept"
+    },
+    "switch.count_reset": {
+      "one": "{n} reset",
+      "other": "{n} reset"
+    },
+    "switch.count_vetoed": {
+      "one": "{n} vetoed",
+      "other": "{n} vetoed"
+    },
+    "switch.delta": " ({delta})",
+    "switch.empty": "No agent to preview yet",
+    "switch.footnote": "Public scores inform; they never grant autonomy. A veto only blocks carry-over, beyond a fixed margin.",
+    "switch.from": "From",
+    "switch.label_carried": "carried, provisional",
+    "switch.label_kept": "kept",
+    "switch.label_reset": "reset",
+    "switch.label_vetoed": "vetoed",
+    "switch.lede": "Before you change model: what the new agent would inherit, type by type. A new model or provider is a new agent. Carry-over is our addition; strict mode is the study.",
+    "switch.no_public": "no public measure",
+    "switch.none": "none",
+    "switch.pick_body": "Type any model id. Nothing changes until Hermes actually runs the new model.",
+    "switch.pick_title": "Pick a target model",
+    "switch.placeholder": "model id, e.g. {example} or model@provider",
+    "switch.preview": "Preview",
+    "switch.provisional": {
+      "one": "{n} provisional",
+      "other": "{n} provisional"
+    },
+    "switch.strict": "strict mode: nothing carries over",
+    "switch.text_carried": "Part of the series carries over, marked provisional until the new model adds its own.",
+    "switch.text_kept": "The new agent already has its own record here; it is never overwritten.",
+    "switch.text_reset": "Starts from zero: high stakes, capped, or strict mode.",
+    "switch.text_vetoed": "The public benchmark shows the new model weaker on this type: nothing carries over.",
+    "switch.to": "To model",
+    "switch.to_aria": "Target model",
     "tier.cap": "Capped · always asks",
     "tier.chip_trusted": "TRUSTED",
     "tier.name.cap": "Always asks",
@@ -311,12 +566,48 @@ const TENURE_LOCALES = {
     "tier.t2": "T2 · acts, then tells you, with an Undo",
     "tier.t3": "T3 · acts on its own, spot-checked",
     "tier.trusted": "Trusted · acts like Hermes alone until its first mistake",
+    "time.days": {
+      "one": "{n}d",
+      "other": "{n}d"
+    },
+    "time.hours_minutes": {
+      "one": "{n}h {mm}m",
+      "other": "{n}h {mm}m"
+    },
+    "time.minutes": {
+      "one": "{n}m",
+      "other": "{n}m"
+    },
+    "time.seconds": {
+      "one": "{n}s",
+      "other": "{n}s"
+    },
+    "timeline.all_types": "All types",
+    "timeline.count": {
+      "one": "{n}×",
+      "other": "{n}×"
+    },
+    "timeline.empty": "No evidence for this filter",
+    "timeline.filter_label": "Filter by type",
+    "timeline.loading": "Loading the evidence…",
+    "timeline.note": "From the hash-chained ledger, newest first, last 200 events. Repeated outcomes are grouped.",
+    "timeline.title": "Evidence timeline",
     "toast.acted": {
       "one": "{type} changed, then told you ({name}).",
       "other": "{type}: {n} changes, then told you ({name})."
     },
     "toast.acted_detail": "Undo restores the files of the last change and counts as a fault.",
+    "toast.transition": "{agent} · {type}: {from} → {to}",
+    "transitions.empty": "None since this page opened. Every automatic tier change is listed here and in each agent's timeline.",
+    "transitions.title": "Tier changes seen on this page",
+    "transitions.why_after_fault": "after a fault",
+    "transitions.why_changed": "without a fault: revoked, or the settings or stakes changed",
+    "transitions.why_on_evidence": "on evidence",
+    "transitions.why_trial_open": "trial open",
     "type.always_asks": "always asks",
+    "type.flag_button": "Flag",
+    "type.flag_done": "Fault recorded on {type}: now {tier}.",
+    "type.flag_title": "Record a fault on this type, after the fact",
     "type.guarantee": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad.",
     "type.guarantee_plain": "At most about 1 in {k} of its actions runs with an error nobody approved.",
     "type.guarantee_provisional": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad. Provisional: carried-over evidence.",
@@ -334,6 +625,9 @@ const TENURE_LOCALES = {
       "other": "{n} more verified successes in a row to be tenured."
     },
     "type.next_session": "The series is complete: one more session finishes it.",
+    "type.revoke_button": "Revoke",
+    "type.revoke_done": "Revoked {type}: back to T1.",
+    "type.revoke_title": "Take back what this type earned: back to T1",
     "type.sessions": {
       "one": "{n} session",
       "other": "{n} sessions"
@@ -347,7 +641,21 @@ const TENURE_LOCALES = {
     "type.trusted_line": "Trusted until its first mistake · acts like Hermes alone.",
     "type.trusted_line_undo": "Trusted until its first mistake · acts, then tells you, with an Undo.",
     "type.trusted_no_guarantee": "No guarantee yet: a guarantee comes only with a tier earned on evidence. Its first fault puts it on Probation (T1).",
-    "types.title": "Action types"
+    "types.title": "Action types",
+    "undo.col_agent": "agent",
+    "undo.col_effect": "effect of undo",
+    "undo.col_file": "file",
+    "undo.col_type": "type",
+    "undo.col_when": "when",
+    "undo.confirm": "Undo #{id}?",
+    "undo.effect_already": "restores the files · the automatic check already counted a fault",
+    "undo.effect_fault": "restores the files · counts as a fault",
+    "undo.effect_none": "nothing to restore (no snapshot) · would count as a fault",
+    "undo.empty_body": "File writes the agent made without asking (trusted, or at T2: acts, then tells you) keep a snapshot of the files for 24 hours. They appear here, newest first, each with its own undo.",
+    "undo.empty_title": "Nothing to undo",
+    "undo.lede": "Recent act-then-notify actions. Undo restores the files from their snapshot and counts as a fault of the type.",
+    "undo.title": "Restore the files",
+    "undo.window_ends": "window ends in {duration}"
   },
   "ar": {
     "agents.pick": "اختر وكيلًا لترى ما اكتسبه.",
@@ -376,6 +684,28 @@ const TENURE_LOCALES = {
     "benchmark.range_tip": "معدل الإخفاق ونطاق 95% له، على محور من 0 إلى {max}%",
     "benchmark.rate": "{rate}% ({low}–{high}%)",
     "benchmark.search": "البحث في أنواع الإجراءات",
+    "cell.capped_by_settings": "مقيَّد بإعدادات المخاطرة",
+    "cell.kind_irreversible": "{type} · {stakes}، لا يمكن التراجع عنه",
+    "cell.kind_reversible": "{type} · {stakes}، يمكن التراجع عنه",
+    "cell.provisional_long": {
+      "zero": "{n} منقولة من النموذج السابق، مؤقتة",
+      "one": "{n} منقول من النموذج السابق، مؤقت",
+      "two": "{n} منقولان من النموذج السابق، مؤقتان",
+      "few": "{n} منقولة من النموذج السابق، مؤقتة",
+      "many": "{n} منقولة من النموذج السابق، مؤقتة",
+      "other": "{n} منقولة من النموذج السابق، مؤقتة"
+    },
+    "cell.record": "السجل: {successes} نجاحات · {faults} إخفاقات · {neutrals} محايدة · {spot} فحوص عشوائية",
+    "cell.series": "السلسلة {series}/{required} على التوالي",
+    "cell.sessions": {
+      "zero": "{n} جلسات",
+      "one": "{n} جلسة",
+      "two": "{n} جلستان",
+      "few": "{n} جلسات",
+      "many": "{n} جلسةً",
+      "other": "{n} جلسة"
+    },
+    "cell.tier_now": "المستوى الآن: {tier} ({name})",
     "chip.tip": {
       "zero": "{name}: {earned} من {n} أنواع إجراءات اكتسبت الاستقلالية (T2 أو T3). افتح Tenure.",
       "one": "{name}: {earned} من {n} نوع إجراء اكتسب الاستقلالية (T2 أو T3). افتح Tenure.",
@@ -386,7 +716,39 @@ const TENURE_LOCALES = {
     },
     "common.loading": "جارٍ قراءة الأدلة…",
     "common.no_match": "لا نتائج",
+    "common.own_profile_only": "يخص الملف الشخصي الحالي فقط",
     "common.retry": "حاول مرة أخرى",
+    "community.col_contributors": "المساهمون",
+    "community.col_model": "النموذج",
+    "community.empty_how": "للمساهمة، اكتب سجلك بهذا الأمر، واقرأ ما يحتويه، ثم افتح طلب دمج (pull request) يضيف الملف إلى المستودع المجتمعي ({repo}).",
+    "community.empty_title": "لا توجد سجلات مشتركة بعد",
+    "community.empty_what": "يجمع المقياس المجتمعي السجلات التي اختار مستخدمو Tenure نشرها: لكل نموذج ولكل فئة إجراءات، النجاحات المُتحقَّق منها والإخفاقات، موقَّعة بمفتاح جوازهم. لا يُشارَك شيء تلقائيًا: لا يُجري Tenure أي اتصال بالشبكة.",
+    "community.empty_where": "لعرض الترتيب هنا، نزّل ملف community-board.json الذي ينشره المستودع واحفظه باسم {path}.",
+    "community.generated": "{records} · أُنشئ الترتيب في {date}",
+    "community.lede": "مُصرَّح به من المساهمين، مع التحقق من التوقيعات: كل سجل موقَّع بمفتاح جواز صاحبه، ويُحتسب سجل واحد لكل مفتاح. ",
+    "community.lede_bold": "هذا لا يمنع شخصًا واحدًا من امتلاك عدة مفاتيح.",
+    "community.models": {
+      "zero": "{n} نماذج",
+      "one": "{n} نموذج",
+      "two": "{n} نموذجان",
+      "few": "{n} نماذج",
+      "many": "{n} نموذجًا",
+      "other": "{n} نموذج"
+    },
+    "community.ranking": "لكل فئة إجراءات، تُرتَّب النماذج حسب الحد الأعلى لنطاق 95% لمعدل إخفاقها، وليس أبدًا حسب نتيجة واحدة.",
+    "community.records": {
+      "zero": "{n} سجلات",
+      "one": "{n} سجل",
+      "two": "{n} سجلّان",
+      "few": "{n} سجلات",
+      "many": "{n} سجلًّا",
+      "other": "{n} سجل"
+    },
+    "confirm.flag_desc": "يُحتسب هذا إخفاقًا: ينزل {type} مستوى واحدًا على الأقل ويصعد من جديد. استخدمه لخطأ لم يلاحظه أحد.",
+    "confirm.flag_title": "الإبلاغ عن {type} كخطأ؟",
+    "confirm.revoke_desc": "سيسأل {type} أولًا من جديد، وتبدأ سلسلته من الصفر. هذا ليس إخفاقًا.",
+    "confirm.revoke_title": "سحب {type}؟",
+    "confirm.undo_title": "التراجع عن الإجراء {id}؟",
     "emblem.none": "لم تُكتسب أي استقلالية بعد",
     "emblem.review": {
       "zero": "أنواع قيد المراجعة: {n}",
@@ -415,6 +777,68 @@ const TENURE_LOCALES = {
     "empty.desc": "اعمل كالمعتاد. كل تغيير يسأل أولًا، وكل نوع إجراء يكتسب مستواه من إجاباتك.",
     "empty.desc_trusted": "اعمل كالمعتاد. كل نوع إجراء يعمل كما يعمل Hermes وحده حتى أول خطأ له؛ وبعدها يسأل أولًا ويستعيد مستواه من إجاباتك.",
     "empty.title": "لم ينفّذ أي وكيل شيئًا بعد",
+    "event.confirmed": "أدلة منقولة أكّدتها أدلته هو",
+    "event.expired_pending": "انتهت صلاحية الإجراء المعلّق · بلا دليل",
+    "event.fault_check": "فشل الفحص التلقائي",
+    "event.fault_flag": "أبلغتَ عنه كإخفاق",
+    "event.fault_other": "إخفاق ({source})",
+    "event.fault_refusal": "رفضتَه",
+    "event.fault_spot": "فحص عشوائي مرفوض أو فاشل",
+    "event.fault_undo": "تراجعتَ عنه",
+    "event.neutral_alone": "عمل وحده (مكتسب)",
+    "event.neutral_ambiguous": "استدعاء ملتبس · بلا دليل",
+    "event.neutral_blocked": "حظره حارس آخر · بلا دليل",
+    "event.neutral_error": "خطأ في الأداة · بلا دليل",
+    "event.neutral_expired": "لم يرجع بنتيجة · بلا دليل",
+    "event.neutral_nobody": "لا أحد ليجيب · بلا دليل",
+    "event.neutral_other": "محايد ({source})",
+    "event.neutral_timeout": "بلا إجابة · بلا دليل",
+    "event.revoked": "سحبتَه",
+    "event.success_approved": "وافقتَ عليه، ونُفّذ بسلام",
+    "event.success_notify": "نفّذ ثم أبلغ · لم يُتراجع عنه",
+    "event.success_spot": "فحص عشوائي وافقتَ عليه",
+    "event.switch": "تبديل النموذج",
+    "event.switch_from": "تبديل النموذج من {from}",
+    "event.tier": "المستوى: من {from} إلى {to} · {why}",
+    "event.trial_failed": {
+      "zero": "فشل الاختبار: انتظر {n} إجراءات",
+      "one": "فشل الاختبار: انتظر {n} إجراء",
+      "two": "فشل الاختبار: انتظر {n} إجراءين",
+      "few": "فشل الاختبار: انتظر {n} إجراءات",
+      "many": "فشل الاختبار: انتظر {n} إجراءً",
+      "other": "فشل الاختبار: انتظر {n} إجراء"
+    },
+    "event.trial_opened": {
+      "zero": "فُتح اختبار: يجب أن تنجح الإجراءات الـ{n} التالية",
+      "one": "فُتح اختبار: يجب أن ينجح الإجراء التالي",
+      "two": "فُتح اختبار: يجب أن ينجح الإجراءان التاليان",
+      "few": "فُتح اختبار: يجب أن تنجح الإجراءات الـ{n} التالية",
+      "many": "فُتح اختبار: يجب أن تنجح الإجراءات الـ{n} التالية",
+      "other": "فُتح اختبار: يجب أن تنجح الإجراءات الـ{n} التالية"
+    },
+    "event.trial_passed": "اجتاز الاختبار",
+    "event.trial_reopens": {
+      "zero": "يُعاد فتح الاختبار: يجب أن تنجح الإجراءات الـ{n} التالية",
+      "one": "يُعاد فتح الاختبار: يجب أن ينجح الإجراء التالي",
+      "two": "يُعاد فتح الاختبار: يجب أن ينجح الإجراءان التاليان",
+      "few": "يُعاد فتح الاختبار: يجب أن تنجح الإجراءات الـ{n} التالية",
+      "many": "يُعاد فتح الاختبار: يجب أن تنجح الإجراءات الـ{n} التالية",
+      "other": "يُعاد فتح الاختبار: يجب أن تنجح الإجراءات الـ{n} التالية"
+    },
+    "event.why_fault": "إخفاق",
+    "event.why_series_complete": "اكتملت السلسلة",
+    "event.why_series_n": "السلسلة {required}/{required}",
+    "event.why_sessions": {
+      "zero": "{n} جلسات",
+      "one": "{n} جلسة",
+      "two": "{n} جلستان",
+      "few": "{n} جلسات",
+      "many": "{n} جلسةً",
+      "other": "{n} جلسة"
+    },
+    "event.why_settings": "إعدادات أكثر صرامة",
+    "event.why_stakes": "تغيّرت الخطورة",
+    "event.why_wald": "اجتاز الاختبار التتابعي",
     "flag.confirm": "إبلاغ",
     "flag.desc": "يُحسب هذا إخفاقًا: سينزل {type} مستوى واحدًا على الأقل ثم يصعد من جديد. استخدمه لخطأ لم يلحظه أحد.",
     "flag.title": "الإبلاغ عن هذا التغيير كخطأ؟",
@@ -428,6 +852,10 @@ const TENURE_LOCALES = {
     "help.benchmark_body": "مقياسك هو السجل الموثَّق لكل نموذج على عملك أنت، لكل نوع إجراء، مع نطاق 95% لمعدل إخفاقه. يدخل النموذج الترتيب عندما يبلغ {n} نتيجة موثّقة على نوع ما. النتيجة العامة، حين تظهر، للسياق فقط: قدرة على مهام غيرك، لا موثوقية على مهامك.",
     "help.flag_body": "الإبلاغ يرصد خطأً لم يلحظه أحد. ويُحسب إخفاقًا: ينزل النوع مستوى واحدًا على الأقل، ثم يصعد من جديد.",
     "help.intro": "يقرّر tenure، لكل نموذج ولكل نوع إجراء، هل يسألك Hermes أولًا، أم ينفّذ ثم يُبلغك، أم يعمل وحده. كل قرار ينبع من أدلة موثّقة مكتوبة في دفتر موقَّع.",
+    "help.key_help": "هذه المساعدة",
+    "help.key_raw": "إظهار / إخفاء الأسماء الخام للأنواع",
+    "help.keys_note": "تعمل الاختصارات عندما يكون التركيز داخل هذه الصفحة.",
+    "help.keys_title": "لوحة المفاتيح",
     "help.passport_body": "الجواز ملخّص موقَّع لسجل الوكيل: مستوى كل نوع إجراء، وإخفاقاته ونتائجه الموثّقة، ورأس دفتر سلسلة التجزئة. وهو موقَّع بمفتاح Ed25519 الخاص بهذا الملف الشخصي. للتحقق منه، نزّله من صفحة الوكيل، وصدّر الدفتر، ثم تحقّق:",
     "help.passport_checks": "يتحقق الفحص من التوقيع ومن سلسلة التجزئة، ثم يعيد تشغيل الدفتر ليحسب المستويات نفسها. لا شيء فيه مُعلَن ذاتيًا.",
     "help.session_body": "بعض الأسئلة (شيفرة تُشغَّل مباشرة، وأوامر shell المعقدة، وأوامر محلية غير مشمولة مثل rm وmv وcp، وأمر بعد قراءة محتوى خارجي) تعرض «السماح لهذه الجلسة»: فيسكت ذلك السؤال حتى تنتهي الجلسة. إنه اختيارك، لا دليل: لا يُكسب شيئًا، والجلسة الجديدة تسأل من جديد.",
@@ -445,6 +873,95 @@ const TENURE_LOCALES = {
     "intro.body_trusted": "يبدأ كل نوع إجراء موثوقًا: حتى أول خطأ له يعمل كما يعمل Hermes وحده، والتغيير القابل للتراجع ينفّذ ثم يُبلغك، مع زر تراجع. أول إخفاق له (تراجع، أو فحص فاشل، أو إبلاغ) يضعه في فترة اختبار (T1): يسأل أولًا. سلسلة من الإجراءات السليمة الموافق عليها تنقله إلى T2، وسلسلة أطول، على جلستين، إلى T3: يعمل وحده، ويظل إجراء واحد من كل {k} يسأل، كفحص عشوائي. مغادرة الجهاز والمال يسألان دائمًا.",
     "intro.got_it": "فهمت",
     "intro.title": "كيف يكتسب نوع الإجراء مستواه",
+    "legend.a_share": "نسبة منها",
+    "legend.alone": "يعمل وحده، ويُفحص {share} عشوائيًا",
+    "legend.ask": "يسأل أولًا",
+    "legend.capped": "مقيَّد: يسأل دائمًا",
+    "legend.carried": "من النموذج السابق، مؤقت",
+    "legend.carried_flag": "منقول",
+    "legend.notify": "ينفّذ ثم يُبلغ مع إمكانية التراجع (الأنواع القابلة للتراجع)",
+    "legend.series": "نجاحات موثَّقة على التوالي، من أصل N مطلوبة",
+    "legend.trusted": "بداية موثوقة: يعمل مثل Hermes وحده حتى أول خطأ له، دون أي اكتساب",
+    "map.aria": "الوكلاء حسب نوع الإجراء",
+    "map.asked_suffix": " بسؤال",
+    "map.capped": "مقيَّد",
+    "map.carried_n": {
+      "zero": "{n} منقولة",
+      "one": "{n} منقول",
+      "two": "{n} منقولان",
+      "few": "{n} منقولة",
+      "many": "{n} منقولة",
+      "other": "{n} منقولة"
+    },
+    "map.copy_pending": "منسوخ من ملف شخصي آخر، يُفحص عند تشغيله",
+    "map.count_faults": {
+      "zero": "{n} إخفاقات",
+      "one": "{n} إخفاق",
+      "two": "{n} إخفاقان",
+      "few": "{n} إخفاقات",
+      "many": "{n} إخفاقًا",
+      "other": "{n} إخفاق"
+    },
+    "map.count_sessions": {
+      "zero": "{n} جلسات",
+      "one": "{n} جلسة",
+      "two": "{n} جلستان",
+      "few": "{n} جلسات",
+      "many": "{n} جلسةً",
+      "other": "{n} جلسة"
+    },
+    "map.current": " · الملف الشخصي الحالي",
+    "map.fault_on_record": "إخفاق مسجَّل",
+    "map.group_high": "خطورة عالية",
+    "map.group_low": "خطورة منخفضة",
+    "map.group_medium": "خطورة متوسطة",
+    "map.held": "{tier} مخزَّن، تُقيّده إعداداتك",
+    "map.one_in": "1 من كل {k}",
+    "map.pending": "يسري من الإجراء التالي",
+    "map.preset": "الإعداد المسبق {preset}",
+    "map.profile": "الملف الشخصي {profile}",
+    "map.read_only": " · للقراءة فقط هنا",
+    "map.spot": "فحوص عشوائية {rate}",
+    "map.start_probation": "بداية بالدراسة (فترة اختبار)",
+    "map.start_trusted": "بداية موثوقة",
+    "map.strict": "صارم",
+    "map.suspended": {
+      "zero": "{n} جلسات معلّقة: قُرئ محتوى خارجي",
+      "one": "{n} جلسة معلّقة: قُرئ محتوى خارجي",
+      "two": "{n} جلستان معلّقتان: قُرئ محتوى خارجي",
+      "few": "{n} جلسات معلّقة: قُرئ محتوى خارجي",
+      "many": "{n} جلسةً معلّقة: قُرئ محتوى خارجي",
+      "other": "{n} جلسة معلّقة: قُرئ محتوى خارجي"
+    },
+    "map.th_agent": "الوكيل",
+    "map.th_agent_sub": "الملف الشخصي · model@provider",
+    "map.th_capped": "مقيَّد · يسأل دائمًا",
+    "map.th_risk": {
+      "zero": "المخاطرة {risk} · {n} على التوالي ليعمل وحده",
+      "one": "المخاطرة {risk} · {n} على التوالي ليعمل وحده",
+      "two": "المخاطرة {risk} · {n} على التوالي ليعمل وحده",
+      "few": "المخاطرة {risk} · {n} على التوالي ليعمل وحده",
+      "many": "المخاطرة {risk} · {n} على التوالي ليعمل وحده",
+      "other": "المخاطرة {risk} · {n} على التوالي ليعمل وحده"
+    },
+    "map.tot_actions": {
+      "zero": "{n} إجراءات",
+      "one": "{n} إجراء",
+      "two": "{n} إجراءان",
+      "few": "{n} إجراءات",
+      "many": "{n} إجراءً",
+      "other": "{n} إجراء"
+    },
+    "map.tot_alone": "{n} دون سؤال",
+    "map.tot_checked": "{n} مفحوصة",
+    "map.tot_faults": {
+      "zero": "{n} إخفاقات",
+      "one": "{n} إخفاق",
+      "two": "{n} إخفاقان",
+      "few": "{n} إخفاقات",
+      "many": "{n} إخفاقًا",
+      "other": "{n} إخفاق"
+    },
     "meta.actions": "الإجراءات",
     "meta.actions_tip": "كل إجراء لهذا الوكيل رآه tenure. الإجراءات التي لم يتحقق منها أحد (بلا إجابة، أو انتهت المهلة) لا تُحسب.",
     "meta.alone": "وحده",
@@ -454,6 +971,44 @@ const TENURE_LOCALES = {
     "meta.profile": "الملف الشخصي",
     "meta.provider": "المزوّد",
     "meta.start": "البداية",
+    "missing.always_asks": "يسأل دائمًا",
+    "missing.earned": "مكتسب · فحص عشوائي",
+    "missing.more_to_t2": {
+      "zero": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "one": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "two": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "few": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "many": "بقي {n} حتى «قيد المراجعة» (T2)",
+      "other": "بقي {n} حتى «قيد المراجعة» (T2)"
+    },
+    "missing.more_to_t3": {
+      "zero": "بقي {n} حتى التثبيت",
+      "one": "بقي {n} حتى التثبيت",
+      "two": "بقي {n} حتى التثبيت",
+      "few": "بقي {n} حتى التثبيت",
+      "many": "بقي {n} حتى التثبيت",
+      "other": "بقي {n} حتى التثبيت"
+    },
+    "missing.rechecking": "إعادة الفحص",
+    "missing.second_session": "يحتاج جلسة ثانية",
+    "missing.trial_left": {
+      "zero": "اختبار · بقي {n} من {total}",
+      "one": "اختبار · بقي {n} من {total}",
+      "two": "اختبار · بقي {n} من {total}",
+      "few": "اختبار · بقي {n} من {total}",
+      "many": "اختبار · بقي {n} من {total}",
+      "other": "اختبار · بقي {n} من {total}"
+    },
+    "missing.trial_wait": {
+      "zero": "فشل الاختبار · انتظر {n}",
+      "one": "فشل الاختبار · انتظر {n}",
+      "two": "فشل الاختبار · انتظر {n}",
+      "few": "فشل الاختبار · انتظر {n}",
+      "many": "فشل الاختبار · انتظر {n}",
+      "other": "فشل الاختبار · انتظر {n}"
+    },
+    "missing.trusted": "موثوق حتى أول خطأ له · يعمل مثل Hermes وحده",
+    "missing.trusted_undo": "موثوق حتى أول خطأ له · ينفّذ ثم يُبلغ مع إمكانية التراجع",
     "model_menu.badge": "{tier} مكتسب",
     "moment.dismiss": "إغلاق",
     "moment.eyebrow_down": "#إخفاق · {type}",
@@ -464,13 +1019,45 @@ const TENURE_LOCALES = {
     "moment.review": "قيد المراجعة",
     "moment.review_sub": "{name} ينفّذ الآن ثم يُبلغك، مع زر تراجع.",
     "nav.label": "Tenure",
+    "overview.actions_label": {
+      "zero": "{n} إجراءات",
+      "one": "{n} إجراء",
+      "two": "{n} إجراءان",
+      "few": "{n} إجراءات",
+      "many": "{n} إجراءً",
+      "other": "{n} إجراء"
+    },
+    "overview.actions_sub": "مشمولة",
+    "overview.alone_label": "نُفّذت دون سؤال",
+    "overview.alone_sub": "نُفّذت دون سؤال، من {total}",
+    "overview.aria": "آخر 7 أيام",
+    "overview.checked_label": "مفحوصة",
+    "overview.checked_sub": "بفحصك، من {total}",
+    "overview.faults_label": "إخفاقات مكتشفة",
+    "overview.faults_sub": {
+      "zero": "{faults} من {n} فحص أجريته",
+      "one": "{faults} من {n} فحص أجريته",
+      "two": "{faults} من {n} فحصين أجريتهما",
+      "few": "{faults} من {n} فحوص أجريتها",
+      "many": "{faults} من {n} فحصًا أجريته",
+      "other": "{faults} من {n} فحص أجريته"
+    },
+    "overview.window": "آخر 7 أيام، كل الملفات الشخصية",
     "page.animations": "الرسوم المتحركة",
     "page.animations_reduced": "يطلب نظامك تقليل الحركة: تبقى الرسوم المتحركة متوقفة",
+    "page.raw_off": "أسماء محجوبة",
+    "page.raw_on": "أسماء خام",
+    "page.raw_title": "إظهار الأسماء الخام لأنواع الإجراءات (r)",
     "page.title": "Tenure",
+    "page.unreadable": "غير مقروء: {profiles}. قاعدة بياناته موجودة لكن يتعذّر فتحها؛ تُعرض الملفات الشخصية الأخرى.",
     "page.view_agents": "الوكلاء",
     "page.view_benchmark": "مقياسك",
+    "page.view_community": "المجتمع",
     "page.view_help": "المساعدة",
+    "page.view_map": "الخريطة",
     "page.view_settings": "الإعدادات",
+    "page.view_switch": "معاينة التبديل",
+    "page.view_undo": "تراجع",
     "palette.no_current": "لا سجل للنموذج الحالي بعد.",
     "palette.open": "Tenure: فتح",
     "palette.passport": "Tenure: عرض جواز النموذج الحالي",
@@ -486,6 +1073,11 @@ const TENURE_LOCALES = {
       "many": "{n} إخفاق / {total} نتائج موثّقة",
       "other": "{n} إخفاق / {total} نتائج موثّقة"
     },
+    "passport.field_profile": "الملف الشخصي",
+    "passport.field_public_key": "المفتاح العام",
+    "passport.field_settings": "الإعدادات",
+    "passport.field_signature": "التوقيع",
+    "passport.field_type_names": "أسماء الأنواع",
     "passport.generated": "أُنشئ في",
     "passport.image_failed": "تعذّر رسم الصورة",
     "passport.ledger": "الدفتر",
@@ -515,6 +1107,11 @@ const TENURE_LOCALES = {
     "passport.title": "جواز موقَّع",
     "passport.trusted": "موثوق (غير مكتسب)",
     "passport.unavailable": "غير متاح: {error}",
+    "passport.value_hashed": "{profile} (مجزَّأ)",
+    "passport.value_none": "لا شيء",
+    "passport.value_raw": "خام",
+    "passport.value_redacted": "محجوب بعد البرنامج والأمر الفرعي",
+    "passport.value_unsigned": "غير موقَّع",
     "passport.verified": "تم التحقق: التوقيع صالح، وسلسلة التجزئة سليمة، وإعادة تشغيل الدفتر تعطي المستويات نفسها.",
     "passport.verify_hint": "يمكن لأي شخص التحقق منه:",
     "passport.verifying": "جارٍ التحقق…",
@@ -634,6 +1231,76 @@ const TENURE_LOCALES = {
     "state.suspended_tip": "قرأت الجلسة محتوى خارجيًا: يسأل عن كل شيء حتى تنتهي.",
     "state.trial": "اختبار",
     "state.trial_tip": "فتح إخفاق متوسط أو عالي الخطورة اختبارًا: 3 نجاحات موثّقة على التوالي.",
+    "switch.arrow": "←",
+    "switch.capped": "مقيَّد",
+    "switch.col_after": "بعد التبديل",
+    "switch.col_now": "الآن",
+    "switch.col_outcome": "النتيجة",
+    "switch.col_public": "المقياس العام",
+    "switch.col_record": "سجلك",
+    "switch.col_type": "النوع",
+    "switch.count_carried": {
+      "zero": "{n} منقولة",
+      "one": "{n} منقول",
+      "two": "{n} منقولان",
+      "few": "{n} منقولة",
+      "many": "{n} منقولة",
+      "other": "{n} منقولة"
+    },
+    "switch.count_kept": {
+      "zero": "{n} محفوظة",
+      "one": "{n} محفوظ",
+      "two": "{n} محفوظان",
+      "few": "{n} محفوظة",
+      "many": "{n} محفوظة",
+      "other": "{n} محفوظة"
+    },
+    "switch.count_reset": {
+      "zero": "{n} مُصفَّرة",
+      "one": "{n} مُصفَّر",
+      "two": "{n} مُصفَّران",
+      "few": "{n} مُصفَّرة",
+      "many": "{n} مُصفَّرة",
+      "other": "{n} مُصفَّرة"
+    },
+    "switch.count_vetoed": {
+      "zero": "{n} مرفوضة",
+      "one": "{n} مرفوض",
+      "two": "{n} مرفوضان",
+      "few": "{n} مرفوضة",
+      "many": "{n} مرفوضة",
+      "other": "{n} مرفوضة"
+    },
+    "switch.delta": " ({delta})",
+    "switch.empty": "لا وكيل للمعاينة بعد",
+    "switch.footnote": "النتائج العامة للعلم؛ لا تمنح استقلالية أبدًا. الرفض يمنع النقل فقط، فوق هامش ثابت.",
+    "switch.from": "من",
+    "switch.label_carried": "منقول، مؤقت",
+    "switch.label_kept": "محفوظ",
+    "switch.label_reset": "مُصفَّر",
+    "switch.label_vetoed": "مرفوض",
+    "switch.lede": "قبل أن تغيّر النموذج: ما الذي سيرثه الوكيل الجديد، نوعًا بنوع. النموذج أو المزوّد الجديد وكيل جديد. النقل إضافة منا؛ الوضع الصارم هو الدراسة.",
+    "switch.no_public": "لا مقياس عام",
+    "switch.none": "لا شيء",
+    "switch.pick_body": "اكتب أي معرّف نموذج. لا شيء يتغيّر حتى يشغّل Hermes النموذج الجديد فعلًا.",
+    "switch.pick_title": "اختر النموذج الهدف",
+    "switch.placeholder": "معرّف النموذج، مثل {example} أو model@provider",
+    "switch.preview": "معاينة",
+    "switch.provisional": {
+      "zero": "{n} مؤقتة",
+      "one": "{n} مؤقت",
+      "two": "{n} مؤقتان",
+      "few": "{n} مؤقتة",
+      "many": "{n} مؤقتة",
+      "other": "{n} مؤقتة"
+    },
+    "switch.strict": "الوضع الصارم: لا يُنقل شيء",
+    "switch.text_carried": "ينتقل جزء من السلسلة، موسومًا بأنه مؤقت حتى يضيف النموذج الجديد أدلته.",
+    "switch.text_kept": "للوكيل الجديد سجله الخاص هنا بالفعل؛ لا يُستبدل أبدًا.",
+    "switch.text_reset": "يبدأ من الصفر: خطورة عالية، أو مقيَّد، أو الوضع الصارم.",
+    "switch.text_vetoed": "يُظهر المقياس العام أن النموذج الجديد أضعف في هذا النوع: لا يُنقل شيء.",
+    "switch.to": "إلى النموذج",
+    "switch.to_aria": "النموذج الهدف",
     "tier.cap": "مقيَّد · يسأل دائمًا",
     "tier.chip_trusted": "موثوق",
     "tier.name.cap": "يسأل دائمًا",
@@ -645,6 +1312,52 @@ const TENURE_LOCALES = {
     "tier.t2": "T2 · ينفّذ ثم يُبلغك، مع زر تراجع",
     "tier.t3": "T3 · يعمل وحده، مع فحص عشوائي",
     "tier.trusted": "موثوق · يعمل مثل Hermes وحده حتى أول خطأ له",
+    "time.days": {
+      "zero": "{n} ي",
+      "one": "{n} ي",
+      "two": "{n} ي",
+      "few": "{n} ي",
+      "many": "{n} ي",
+      "other": "{n} ي"
+    },
+    "time.hours_minutes": {
+      "zero": "{n} س {mm} د",
+      "one": "{n} س {mm} د",
+      "two": "{n} س {mm} د",
+      "few": "{n} س {mm} د",
+      "many": "{n} س {mm} د",
+      "other": "{n} س {mm} د"
+    },
+    "time.minutes": {
+      "zero": "{n} د",
+      "one": "{n} د",
+      "two": "{n} د",
+      "few": "{n} د",
+      "many": "{n} د",
+      "other": "{n} د"
+    },
+    "time.seconds": {
+      "zero": "{n} ث",
+      "one": "{n} ث",
+      "two": "{n} ث",
+      "few": "{n} ث",
+      "many": "{n} ث",
+      "other": "{n} ث"
+    },
+    "timeline.all_types": "كل الأنواع",
+    "timeline.count": {
+      "zero": "{n}×",
+      "one": "{n}×",
+      "two": "{n}×",
+      "few": "{n}×",
+      "many": "{n}×",
+      "other": "{n}×"
+    },
+    "timeline.empty": "لا أدلة لهذا المرشّح",
+    "timeline.filter_label": "التصفية حسب النوع",
+    "timeline.loading": "جارٍ تحميل الأدلة…",
+    "timeline.note": "من الدفتر المتسلسل بالتجزئة، الأحدث أولًا، آخر 200 حدث. تُجمَّع النتائج المتكررة.",
+    "timeline.title": "خط الأدلة الزمني",
     "toast.acted": {
       "zero": "{type}: {n} تغييرات، ثم أبلغك ({name}).",
       "one": "{type}: تغيير واحد، ثم أبلغك ({name}).",
@@ -654,7 +1367,17 @@ const TENURE_LOCALES = {
       "other": "{type}: {n} تغيير، ثم أبلغك ({name})."
     },
     "toast.acted_detail": "التراجع يستعيد ملفات آخر تغيير ويُحسب إخفاقًا.",
+    "toast.transition": "{agent} · {type}: من {from} إلى {to}",
+    "transitions.empty": "لا شيء منذ فتح هذه الصفحة. كل تغيير تلقائي في المستوى يُدرج هنا وفي الخط الزمني لكل وكيل.",
+    "transitions.title": "تغييرات المستوى المرصودة في هذه الصفحة",
+    "transitions.why_after_fault": "بعد إخفاق",
+    "transitions.why_changed": "دون إخفاق: سحب، أو تغيّرت الإعدادات أو مستوى الخطورة",
+    "transitions.why_on_evidence": "بالأدلة",
+    "transitions.why_trial_open": "اختبار مفتوح",
     "type.always_asks": "يسأل دائمًا",
+    "type.flag_button": "إبلاغ",
+    "type.flag_done": "سُجّل إخفاق على {type}: أصبح الآن {tier}.",
+    "type.flag_title": "تسجيل إخفاق على هذا النوع، بعد وقوعه",
     "type.guarantee": "على الأكثر {aoql}% من إجراءات هذا النوع تُنفَّذ بخطأ لم يوافق عليه أحد؛ و{worst}% إذا ساء النموذج.",
     "type.guarantee_plain": "على الأكثر نحو إجراء واحد من كل {k} من إجراءاته يُنفَّذ بخطأ لم يوافق عليه أحد.",
     "type.guarantee_provisional": "على الأكثر {aoql}% من إجراءات هذا النوع تُنفَّذ بخطأ لم يوافق عليه أحد؛ و{worst}% إذا ساء النموذج. مؤقت: أدلة منقولة.",
@@ -684,6 +1407,9 @@ const TENURE_LOCALES = {
       "other": "{n} نجاح موثَّق آخر على التوالي للتثبيت."
     },
     "type.next_session": "اكتملت السلسلة: تبقى جلسة واحدة أخرى.",
+    "type.revoke_button": "سحب",
+    "type.revoke_done": "سُحبت استقلالية {type}: عاد إلى T1.",
+    "type.revoke_title": "استرجاع ما اكتسبه هذا النوع: العودة إلى T1",
     "type.sessions": {
       "zero": "{n} جلسات",
       "one": "{n} جلسة",
@@ -701,7 +1427,21 @@ const TENURE_LOCALES = {
     "type.trusted_line": "موثوق حتى أول خطأ له · يعمل مثل Hermes وحده.",
     "type.trusted_line_undo": "موثوق حتى أول خطأ له · ينفّذ ثم يُبلغك، مع زر تراجع.",
     "type.trusted_no_guarantee": "لا ضمان بعد: الضمان يأتي فقط مع مستوى مكتسب بالأدلة. أول إخفاق له يضعه في فترة اختبار (T1).",
-    "types.title": "أنواع الإجراءات"
+    "types.title": "أنواع الإجراءات",
+    "undo.col_agent": "الوكيل",
+    "undo.col_effect": "أثر التراجع",
+    "undo.col_file": "الملف",
+    "undo.col_type": "النوع",
+    "undo.col_when": "متى",
+    "undo.confirm": "التراجع عن #{id}؟",
+    "undo.effect_already": "يستعيد الملفات · سبق أن حسب الفحص التلقائي إخفاقًا",
+    "undo.effect_fault": "يستعيد الملفات · يُحسب إخفاقًا",
+    "undo.effect_none": "لا شيء للاستعادة (لا لقطة) · سيُحتسب إخفاقًا",
+    "undo.empty_body": "عمليات الكتابة التي أجراها الوكيل دون سؤال (موثوق، أو في T2: ينفّذ ثم يُبلغ) تحتفظ بلقطة من الملفات لمدة 24 ساعة. تظهر هنا، الأحدث أولًا، ولكل منها زر تراجع.",
+    "undo.empty_title": "لا شيء للتراجع عنه",
+    "undo.lede": "إجراءات «ينفّذ ثم يُبلغ» الأخيرة. التراجع يستعيد الملفات من لقطتها ويُحسب إخفاقًا للنوع.",
+    "undo.title": "استعادة الملفات",
+    "undo.window_ends": "تنتهي المهلة خلال {duration}"
   },
   "es": {
     "agents.pick": "Elige un agente para ver lo que se ha ganado.",
@@ -726,13 +1466,53 @@ const TENURE_LOCALES = {
     "benchmark.range_tip": "Tasa de fallos y su rango del 95 %, en un eje de 0 a {max} %",
     "benchmark.rate": "{rate} % ({low}–{high} %)",
     "benchmark.search": "Buscar tipos de acción",
+    "cell.capped_by_settings": "Limitado por la configuración de riesgo",
+    "cell.kind_irreversible": "{type} · {stakes}, irreversible",
+    "cell.kind_reversible": "{type} · {stakes}, reversible",
+    "cell.provisional_long": {
+      "one": "{n} heredado del modelo anterior, provisional",
+      "other": "{n} heredados del modelo anterior, provisionales"
+    },
+    "cell.record": "Historial: {successes} éxitos · {faults} fallos · {neutrals} neutros · {spot} controles aleatorios",
+    "cell.series": "Serie {series}/{required} seguidas",
+    "cell.sessions": {
+      "one": "{n} sesión",
+      "other": "{n} sesiones"
+    },
+    "cell.tier_now": "Nivel actual: {tier} ({name})",
     "chip.tip": {
       "one": "{name}: {earned} de {n} tipo de acción se ha ganado autonomía (T2 o T3). Abrir Tenure.",
       "other": "{name}: {earned} de {n} tipos de acción se han ganado autonomía (T2 o T3). Abrir Tenure."
     },
     "common.loading": "Leyendo la evidencia…",
     "common.no_match": "Sin resultados",
+    "common.own_profile_only": "Solo actúa sobre el perfil actual",
     "common.retry": "Reintentar",
+    "community.col_contributors": "contribuyentes",
+    "community.col_model": "modelo",
+    "community.empty_how": "Para contribuir, escribe tu registro con este comando, lee lo que contiene y abre una pull request que añada el archivo al repositorio comunitario ({repo}).",
+    "community.empty_title": "Todavía no hay registros compartidos",
+    "community.empty_what": "El benchmark comunitario reúne los registros que usuarios de Tenure decidieron publicar: por modelo y por familia de acciones, los éxitos verificados y los fallos, firmados con la clave de su pasaporte. No se comparte nada automáticamente: Tenure no hace ninguna llamada de red.",
+    "community.empty_where": "Para ver la clasificación aquí, descarga el community-board.json que publica el repositorio y guárdalo como {path}.",
+    "community.generated": "{records} · clasificación generada el {date}",
+    "community.lede": "Declarado por quienes contribuyen, con firmas comprobadas: cada registro va firmado con la clave del pasaporte de su autor, y cuenta un solo registro por clave. ",
+    "community.lede_bold": "Esto no impide que una misma persona tenga varias claves.",
+    "community.models": {
+      "one": "{n} modelo",
+      "many": "{n} modelos",
+      "other": "{n} modelos"
+    },
+    "community.ranking": "Por familia de acciones, los modelos se ordenan por el extremo superior del rango del 95 % de su tasa de fallos, nunca por una sola puntuación.",
+    "community.records": {
+      "one": "{n} registro",
+      "many": "{n} registros",
+      "other": "{n} registros"
+    },
+    "confirm.flag_desc": "Cuenta como fallo: {type} baja al menos un nivel y vuelve a subir. Úsalo para un error que nadie detectó.",
+    "confirm.flag_title": "¿Marcar {type} como error?",
+    "confirm.revoke_desc": "{type} vuelve a preguntar antes de actuar y su serie empieza de cero. No es un fallo.",
+    "confirm.revoke_title": "¿Revocar {type}?",
+    "confirm.undo_title": "¿Deshacer la acción {id}?",
     "emblem.none": "Aún sin autonomía ganada",
     "emblem.review": {
       "one": "{n} tipo en revisión",
@@ -750,6 +1530,52 @@ const TENURE_LOCALES = {
     "empty.desc": "Trabaja como siempre. Cada cambio pregunta antes, y cada tipo de acción se gana su nivel con tus respuestas.",
     "empty.desc_trusted": "Trabaja como siempre. Cada tipo de acción actúa como Hermes solo hasta su primer error; desde entonces pregunta antes y recupera su nivel con tus respuestas.",
     "empty.title": "Ningún agente ha actuado todavía",
+    "event.confirmed": "evidencia heredada confirmada por la suya propia",
+    "event.expired_pending": "acción pendiente caducada · sin evidencia",
+    "event.fault_check": "falló la comprobación automática",
+    "event.fault_flag": "marcado por ti como fallo",
+    "event.fault_other": "fallo ({source})",
+    "event.fault_refusal": "rechazado por ti",
+    "event.fault_spot": "control aleatorio rechazado o fallido",
+    "event.fault_undo": "deshecho por ti",
+    "event.neutral_alone": "actuó por su cuenta (ganado)",
+    "event.neutral_ambiguous": "llamada ambigua · sin evidencia",
+    "event.neutral_blocked": "bloqueado por otra protección · sin evidencia",
+    "event.neutral_error": "error de herramienta · sin evidencia",
+    "event.neutral_expired": "nunca informó del resultado · sin evidencia",
+    "event.neutral_nobody": "nadie que responda · sin evidencia",
+    "event.neutral_other": "neutro ({source})",
+    "event.neutral_timeout": "sin respuesta · sin evidencia",
+    "event.revoked": "revocado por ti",
+    "event.success_approved": "aprobado por ti, se ejecutó sin problemas",
+    "event.success_notify": "actuó y luego avisó · no deshecho",
+    "event.success_spot": "control aleatorio aprobado por ti",
+    "event.switch": "cambio de modelo",
+    "event.switch_from": "cambio de modelo desde {from}",
+    "event.tier": "nivel {from} → {to} · {why}",
+    "event.trial_failed": {
+      "one": "prueba no superada: esperar {n} acción",
+      "other": "prueba no superada: esperar {n} acciones"
+    },
+    "event.trial_opened": {
+      "one": "periodo de prueba abierto: la siguiente acción debe salir bien",
+      "other": "periodo de prueba abierto: las próximas {n} deben salir bien"
+    },
+    "event.trial_passed": "prueba superada",
+    "event.trial_reopens": {
+      "one": "periodo de prueba reabierto: la siguiente acción debe salir bien",
+      "other": "periodo de prueba reabierto: las próximas {n} deben salir bien"
+    },
+    "event.why_fault": "fallo",
+    "event.why_series_complete": "serie completa",
+    "event.why_series_n": "serie {required}/{required}",
+    "event.why_sessions": {
+      "one": "{n} sesión",
+      "other": "{n} sesiones"
+    },
+    "event.why_settings": "configuración más estricta",
+    "event.why_stakes": "cambio de impacto",
+    "event.why_wald": "test secuencial superado",
     "flag.confirm": "Marcar",
     "flag.desc": "Cuenta como un fallo: {type} bajará al menos un nivel y tendrá que volver a subir. Úsalo para un error que nadie detectó.",
     "flag.title": "¿Marcar este cambio como error?",
@@ -763,6 +1589,10 @@ const TENURE_LOCALES = {
     "help.benchmark_body": "Tu benchmark es el historial verificado de cada modelo sobre tu propio trabajo, por tipo de acción, con el rango del 95 % de su tasa de fallos. Un modelo entra en la clasificación cuando tiene {n} resultados verificados en un tipo. Una puntuación pública, cuando aparece, es contexto: capacidad en tareas de otros, no fiabilidad en las tuyas.",
     "help.flag_body": "Marcar informa de un error que nadie detectó. Cuenta como fallo: el tipo baja al menos un nivel y luego vuelve a subir.",
     "help.intro": "Tenure decide, por modelo y por tipo de acción, si Hermes te pregunta antes, actúa y luego te avisa, o actúa por su cuenta. Cada decisión sale de evidencia verificada, escrita en un registro firmado.",
+    "help.key_help": "Esta ayuda",
+    "help.key_raw": "Nombres reales de los tipos: sí / no",
+    "help.keys_note": "Los atajos funcionan cuando el foco está en esta página.",
+    "help.keys_title": "Teclado",
     "help.passport_body": "El pasaporte es un resumen firmado del historial de un agente: el nivel de cada tipo de acción, sus fallos y resultados verificados, y el último hash del registro encadenado. Está firmado con la clave Ed25519 de este perfil. Para comprobarlo, descárgalo desde la página del agente, exporta el registro y verifica:",
     "help.passport_checks": "La comprobación verifica la firma y la cadena de hashes, y luego reproduce el registro para recalcular los mismos niveles. Nada en él es autodeclarado.",
     "help.session_body": "Algunas preguntas (código ejecutado en línea, comandos de shell complejos, comandos locales no cubiertos como rm, mv o cp, y un comando tras contenido externo) ofrecen «Permitir esta sesión»: esa pregunta calla hasta que termina la sesión. Es tu elección, no evidencia: no hace ganar nada, y una sesión nueva vuelve a preguntar.",
@@ -780,6 +1610,67 @@ const TENURE_LOCALES = {
     "intro.body_trusted": "Cada tipo de acción empieza de confianza: hasta su primer error actúa como lo haría Hermes solo, y un cambio reversible actúa y luego te avisa, con opción de Deshacer. Su primer fallo (un Deshacer, una comprobación fallida, una marca) lo pasa a Período de prueba (T1): pregunta antes. Una serie de acciones limpias y aprobadas lo sube a T2; una serie más larga, en dos sesiones, a T3: actúa por su cuenta, y 1 acción de cada {k} sigue preguntando, como control aleatorio. Salir de la máquina y el dinero siempre preguntan.",
     "intro.got_it": "Entendido",
     "intro.title": "Cómo se gana su nivel un tipo de acción",
+    "legend.a_share": "una parte",
+    "legend.alone": "actúa por su cuenta, {share} con control aleatorio",
+    "legend.ask": "pregunta antes",
+    "legend.capped": "limitado: siempre pregunta",
+    "legend.carried": "del modelo anterior, provisional",
+    "legend.carried_flag": "heredado",
+    "legend.notify": "actúa y luego avisa, con opción de deshacer (tipos reversibles)",
+    "legend.series": "éxitos verificados seguidos, de los N necesarios",
+    "legend.trusted": "inicio de confianza: actúa como Hermes solo hasta su primer error, nada ganado",
+    "map.aria": "Agentes por tipo de acción",
+    "map.asked_suffix": " preguntas",
+    "map.capped": "limitado",
+    "map.carried_n": {
+      "one": "{n} heredado",
+      "other": "{n} heredados"
+    },
+    "map.copy_pending": "copiado de otro perfil, se verifica al iniciarse",
+    "map.count_faults": {
+      "one": "{n} fallo",
+      "other": "{n} fallos"
+    },
+    "map.count_sessions": {
+      "one": "{n} sesión",
+      "other": "{n} sesiones"
+    },
+    "map.current": " · este perfil",
+    "map.fault_on_record": "fallo registrado",
+    "map.group_high": "impacto alto",
+    "map.group_low": "impacto bajo",
+    "map.group_medium": "impacto medio",
+    "map.held": "{tier} guardado, retenido por tu configuración",
+    "map.one_in": "1 de cada {k}",
+    "map.pending": "se aplica desde la próxima acción",
+    "map.preset": "preajuste {preset}",
+    "map.profile": "Perfil {profile}",
+    "map.read_only": " · solo lectura aquí",
+    "map.spot": "controles aleatorios {rate}",
+    "map.start_probation": "inicio en estudio (período de prueba)",
+    "map.start_trusted": "inicio de confianza",
+    "map.strict": "estricto",
+    "map.suspended": {
+      "one": "{n} sesión suspendida: contenido externo leído",
+      "other": "{n} sesiones suspendidas: contenido externo leído"
+    },
+    "map.th_agent": "Agente",
+    "map.th_agent_sub": "perfil · modelo@proveedor",
+    "map.th_capped": "limitado · siempre pregunta",
+    "map.th_risk": {
+      "one": "riesgo {risk} · {n} éxito para actuar por su cuenta",
+      "other": "riesgo {risk} · {n} éxitos seguidos para actuar por su cuenta"
+    },
+    "map.tot_actions": {
+      "one": "{n} acción",
+      "other": "{n} acciones"
+    },
+    "map.tot_alone": "{n} sin preguntar",
+    "map.tot_checked": "{n} comprobadas",
+    "map.tot_faults": {
+      "one": "{n} fallo",
+      "other": "{n} fallos"
+    },
     "meta.actions": "Acciones",
     "meta.actions_tip": "Todas las acciones de este agente que tenure ha visto. Las que nadie verificó (sin respuesta, tiempo agotado) no cuentan.",
     "meta.alone": "Por su cuenta",
@@ -789,6 +1680,28 @@ const TENURE_LOCALES = {
     "meta.profile": "Perfil",
     "meta.provider": "Proveedor",
     "meta.start": "Inicio",
+    "missing.always_asks": "siempre pregunta",
+    "missing.earned": "ganado · control aleatorio",
+    "missing.more_to_t2": {
+      "one": "falta {n} para En revisión (T2)",
+      "other": "faltan {n} para En revisión (T2)"
+    },
+    "missing.more_to_t3": {
+      "one": "falta {n} para Titular",
+      "other": "faltan {n} para Titular"
+    },
+    "missing.rechecking": "recomprobando",
+    "missing.second_session": "falta una 2.ª sesión",
+    "missing.trial_left": {
+      "one": "a prueba · falta {n} de {total}",
+      "other": "a prueba · faltan {n} de {total}"
+    },
+    "missing.trial_wait": {
+      "one": "prueba fallida · esperar {n}",
+      "other": "prueba fallida · esperar {n}"
+    },
+    "missing.trusted": "de confianza hasta su primer error · actúa como Hermes solo",
+    "missing.trusted_undo": "de confianza hasta su primer error · actúa y luego avisa, con opción de deshacer",
     "model_menu.badge": "{tier} ganado",
     "moment.dismiss": "Cerrar",
     "moment.eyebrow_down": "#Fallo · {type}",
@@ -799,13 +1712,37 @@ const TENURE_LOCALES = {
     "moment.review": "En revisión",
     "moment.review_sub": "{name} ahora actúa y luego te avisa, con opción de Deshacer.",
     "nav.label": "Tenure",
+    "overview.actions_label": {
+      "one": "{n} acción",
+      "other": "{n} acciones"
+    },
+    "overview.actions_sub": "cubiertas",
+    "overview.alone_label": "sin preguntar",
+    "overview.alone_sub": "ejecutadas sin preguntar, de {total}",
+    "overview.aria": "Últimos 7 días",
+    "overview.checked_label": "comprobadas",
+    "overview.checked_sub": "por ti, de {total}",
+    "overview.faults_label": "fallos detectados",
+    "overview.faults_sub": {
+      "one": "{faults} de {n} comprobación tuya",
+      "other": "{faults} de {n} comprobaciones tuyas"
+    },
+    "overview.window": "últimos 7 días, todos los perfiles",
     "page.animations": "Animaciones",
     "page.animations_reduced": "Tu sistema pide reducir el movimiento: las animaciones siguen desactivadas",
+    "page.raw_off": "nombres ocultos",
+    "page.raw_on": "nombres reales",
+    "page.raw_title": "Mostrar los nombres reales de los tipos de acción (r)",
     "page.title": "Tenure",
+    "page.unreadable": "Ilegible: {profiles}. Su base de datos existe pero no se puede abrir; se muestran los demás perfiles.",
     "page.view_agents": "Agentes",
     "page.view_benchmark": "Tu benchmark",
+    "page.view_community": "Comunidad",
     "page.view_help": "Ayuda",
+    "page.view_map": "Mapa",
     "page.view_settings": "Ajustes",
+    "page.view_switch": "Cambio de modelo",
+    "page.view_undo": "Deshacer",
     "palette.no_current": "El modelo actual aún no tiene historial.",
     "palette.open": "Tenure: Abrir",
     "palette.passport": "Tenure: Mostrar el pasaporte del modelo actual",
@@ -817,6 +1754,11 @@ const TENURE_LOCALES = {
       "one": "{n} fallo / {total} resultados verificados",
       "other": "{n} fallos / {total} resultados verificados"
     },
+    "passport.field_profile": "Perfil",
+    "passport.field_public_key": "Clave pública",
+    "passport.field_settings": "Configuración",
+    "passport.field_signature": "Firma",
+    "passport.field_type_names": "Nombres de tipo",
     "passport.generated": "Generado",
     "passport.image_failed": "No se pudo dibujar la imagen",
     "passport.ledger": "Registro",
@@ -839,6 +1781,11 @@ const TENURE_LOCALES = {
     "passport.title": "Pasaporte firmado",
     "passport.trusted": "De confianza (no ganado)",
     "passport.unavailable": "No disponible: {error}",
+    "passport.value_hashed": "{profile} (hash)",
+    "passport.value_none": "ninguno",
+    "passport.value_raw": "reales",
+    "passport.value_redacted": "ocultos tras el programa y el subcomando",
+    "passport.value_unsigned": "sin firmar",
     "passport.verified": "Verificado: firma válida, cadena de hashes intacta, y al reproducir el registro se obtienen los mismos niveles.",
     "passport.verify_hint": "Cualquiera puede comprobarlo:",
     "passport.verifying": "Verificando…",
@@ -946,6 +1893,56 @@ const TENURE_LOCALES = {
     "state.suspended_tip": "Una sesión leyó contenido externo: pregunta por todo hasta que termine.",
     "state.trial": "a prueba",
     "state.trial_tip": "Un fallo de impacto medio o alto abrió un periodo de prueba: 3 éxitos verificados seguidos.",
+    "switch.arrow": "→",
+    "switch.capped": "limitado",
+    "switch.col_after": "tras el cambio",
+    "switch.col_now": "ahora",
+    "switch.col_outcome": "resultado",
+    "switch.col_public": "medida pública",
+    "switch.col_record": "tu historial",
+    "switch.col_type": "tipo",
+    "switch.count_carried": {
+      "one": "{n} heredado",
+      "other": "{n} heredados"
+    },
+    "switch.count_kept": {
+      "one": "{n} conservado",
+      "other": "{n} conservados"
+    },
+    "switch.count_reset": {
+      "one": "{n} reiniciado",
+      "other": "{n} reiniciados"
+    },
+    "switch.count_vetoed": {
+      "one": "{n} vetado",
+      "other": "{n} vetados"
+    },
+    "switch.delta": " ({delta})",
+    "switch.empty": "Aún no hay ningún agente que previsualizar",
+    "switch.footnote": "Las puntuaciones públicas informan; nunca conceden autonomía. Un veto solo bloquea la herencia, más allá de un margen fijo.",
+    "switch.from": "Desde",
+    "switch.label_carried": "heredado, provisional",
+    "switch.label_kept": "conservado",
+    "switch.label_reset": "reiniciado",
+    "switch.label_vetoed": "vetado",
+    "switch.lede": "Antes de cambiar de modelo: lo que heredaría el nuevo agente, tipo por tipo. Un modelo o proveedor nuevo es un agente nuevo. La herencia es un añadido nuestro; el modo estricto es el estudio.",
+    "switch.no_public": "sin medida pública",
+    "switch.none": "ninguno",
+    "switch.pick_body": "Escribe cualquier id de modelo. Nada cambia hasta que Hermes ejecute de verdad el modelo nuevo.",
+    "switch.pick_title": "Elige un modelo de destino",
+    "switch.placeholder": "id de modelo, p. ej. {example} o model@provider",
+    "switch.preview": "Previsualizar",
+    "switch.provisional": {
+      "one": "{n} provisional",
+      "other": "{n} provisionales"
+    },
+    "switch.strict": "modo estricto: no se hereda nada",
+    "switch.text_carried": "Parte de la serie se hereda, marcada como provisional hasta que el modelo nuevo sume la suya.",
+    "switch.text_kept": "El nuevo agente ya tiene su propio historial aquí; nunca se sobrescribe.",
+    "switch.text_reset": "Empieza de cero: impacto alto, limitado o modo estricto.",
+    "switch.text_vetoed": "El benchmark público muestra que el modelo nuevo es más débil en este tipo: no se hereda nada.",
+    "switch.to": "Al modelo",
+    "switch.to_aria": "Modelo de destino",
     "tier.cap": "Limitado · siempre pregunta",
     "tier.chip_trusted": "CONFIANZA",
     "tier.name.cap": "Siempre pregunta",
@@ -957,12 +1954,48 @@ const TENURE_LOCALES = {
     "tier.t2": "T2 · actúa y luego te avisa, con opción de Deshacer",
     "tier.t3": "T3 · actúa por su cuenta, con control aleatorio",
     "tier.trusted": "De confianza · actúa como Hermes solo hasta su primer error",
+    "time.days": {
+      "one": "{n} d",
+      "other": "{n} d"
+    },
+    "time.hours_minutes": {
+      "one": "{n} h {mm} min",
+      "other": "{n} h {mm} min"
+    },
+    "time.minutes": {
+      "one": "{n} min",
+      "other": "{n} min"
+    },
+    "time.seconds": {
+      "one": "{n} s",
+      "other": "{n} s"
+    },
+    "timeline.all_types": "Todos los tipos",
+    "timeline.count": {
+      "one": "{n}×",
+      "other": "{n}×"
+    },
+    "timeline.empty": "No hay evidencia para este filtro",
+    "timeline.filter_label": "Filtrar por tipo",
+    "timeline.loading": "Cargando la evidencia…",
+    "timeline.note": "Del registro encadenado por hash, los más recientes primero, últimos 200 eventos. Los resultados repetidos se agrupan.",
+    "timeline.title": "Cronología de la evidencia",
     "toast.acted": {
       "one": "{type} hizo un cambio y luego te avisó ({name}).",
       "other": "{type} hizo {n} cambios y luego te avisó ({name})."
     },
     "toast.acted_detail": "Deshacer restaura los archivos del último cambio y cuenta como fallo.",
+    "toast.transition": "{agent} · {type}: {from} → {to}",
+    "transitions.empty": "Ninguno desde que se abrió esta página. Cada cambio de nivel automático aparece aquí y en la cronología de cada agente.",
+    "transitions.title": "Cambios de nivel vistos en esta página",
+    "transitions.why_after_fault": "tras un fallo",
+    "transitions.why_changed": "sin fallo: revocado, o cambiaron los ajustes o el impacto",
+    "transitions.why_on_evidence": "por la evidencia",
+    "transitions.why_trial_open": "a prueba",
     "type.always_asks": "siempre pregunta",
+    "type.flag_button": "Marcar",
+    "type.flag_done": "Fallo registrado en {type}: ahora {tier}.",
+    "type.flag_title": "Registrar un fallo en este tipo, a posteriori",
     "type.guarantee": "Como máximo el {aoql} % de las acciones de este tipo se ejecutan con un error que nadie aprobó; el {worst} % si el modelo empeora.",
     "type.guarantee_plain": "Como máximo, aproximadamente 1 de cada {k} de sus acciones se ejecuta con un error que nadie aprobó.",
     "type.guarantee_provisional": "Como máximo el {aoql} % de las acciones de este tipo se ejecutan con un error que nadie aprobó; el {worst} % si el modelo empeora. Provisional: evidencia heredada.",
@@ -980,6 +2013,9 @@ const TENURE_LOCALES = {
       "other": "Faltan {n} éxitos verificados seguidos para la titularidad."
     },
     "type.next_session": "La serie está completa: falta una sesión más.",
+    "type.revoke_button": "Revocar",
+    "type.revoke_done": "{type} revocado: vuelve a T1.",
+    "type.revoke_title": "Retirar lo que ganó este tipo: vuelve a T1",
     "type.sessions": {
       "one": "{n} sesión",
       "other": "{n} sesiones"
@@ -993,7 +2029,21 @@ const TENURE_LOCALES = {
     "type.trusted_line": "De confianza hasta su primer error · actúa como Hermes solo.",
     "type.trusted_line_undo": "De confianza hasta su primer error · actúa y luego te avisa, con opción de Deshacer.",
     "type.trusted_no_guarantee": "Aún sin garantía: solo llega con un nivel ganado con evidencia. Su primer fallo lo pasa a Período de prueba (T1).",
-    "types.title": "Tipos de acción"
+    "types.title": "Tipos de acción",
+    "undo.col_agent": "agente",
+    "undo.col_effect": "efecto de deshacer",
+    "undo.col_file": "archivo",
+    "undo.col_type": "tipo",
+    "undo.col_when": "cuándo",
+    "undo.confirm": "¿Deshacer n.º {id}?",
+    "undo.effect_already": "restaura los archivos · la comprobación automática ya contó un fallo",
+    "undo.effect_fault": "restaura los archivos · cuenta como fallo",
+    "undo.effect_none": "nada que restaurar (sin instantánea) · contaría como fallo",
+    "undo.empty_body": "Las escrituras que el agente hizo sin preguntar (con confianza, o en T2: actúa y luego avisa) guardan una instantánea de los archivos durante 24 horas. Aparecen aquí, las más recientes primero, cada una con su botón Deshacer.",
+    "undo.empty_title": "Nada que deshacer",
+    "undo.lede": "Acciones recientes que actuaron y luego avisaron. Deshacer restaura los archivos desde su instantánea y cuenta como fallo del tipo.",
+    "undo.title": "Restaurar los archivos",
+    "undo.window_ends": "el plazo termina en {duration}"
   },
   "fr": {
     "agents.pick": "Choisissez un agent pour voir ce qu'il a gagné.",
@@ -1018,13 +2068,53 @@ const TENURE_LOCALES = {
     "benchmark.range_tip": "Taux de fautes et sa fourchette à 95 %, sur un axe de 0 à {max} %",
     "benchmark.rate": "{rate} % ({low}–{high} %)",
     "benchmark.search": "Rechercher des types d'action",
+    "cell.capped_by_settings": "Plafonné par les paramètres de risque",
+    "cell.kind_irreversible": "{type} · {stakes}, irréversible",
+    "cell.kind_reversible": "{type} · {stakes}, réversible",
+    "cell.provisional_long": {
+      "one": "{n} hérité du modèle précédent, provisoire",
+      "other": "{n} hérités du modèle précédent, provisoires"
+    },
+    "cell.record": "Historique : {successes} succès · {faults} fautes · {neutrals} neutres · {spot} contrôles aléatoires",
+    "cell.series": "Série {series}/{required} d'affilée",
+    "cell.sessions": {
+      "one": "{n} session",
+      "other": "{n} sessions"
+    },
+    "cell.tier_now": "Niveau actuel : {tier} ({name})",
     "chip.tip": {
       "one": "{name} : {earned} type d'action sur {n} a gagné son autonomie (T2 ou T3). Ouvrir Tenure.",
       "other": "{name} : {earned} types d'action sur {n} ont gagné leur autonomie (T2 ou T3). Ouvrir Tenure."
     },
     "common.loading": "Lecture des preuves…",
     "common.no_match": "Aucun résultat",
+    "common.own_profile_only": "N'agit que sur le profil courant",
     "common.retry": "Réessayer",
+    "community.col_contributors": "contributeurs",
+    "community.col_model": "modèle",
+    "community.empty_how": "Pour contribuer, écrivez votre relevé avec cette commande, lisez ce qu'il contient, puis ouvrez une pull request qui ajoute le fichier au dépôt communautaire ({repo}).",
+    "community.empty_title": "Aucun relevé partagé pour l'instant",
+    "community.empty_what": "Le benchmark communautaire rassemble les relevés que des utilisateurs de Tenure ont choisi de publier : par modèle et par famille d'actions, les succès vérifiés et les fautes, signés avec la clé de leur passeport. Rien n'est partagé automatiquement : Tenure ne fait aucun appel réseau.",
+    "community.empty_where": "Pour voir le classement ici, téléchargez le community-board.json publié par le dépôt et enregistrez-le sous {path}.",
+    "community.generated": "{records} · classement généré le {date}",
+    "community.lede": "Déclaré par les contributeurs, et signatures vérifiées : chaque relevé est signé avec la clé du passeport de son auteur, et un seul relevé compte par clé. ",
+    "community.lede_bold": "Cela n'empêche pas une même personne d'avoir plusieurs clés.",
+    "community.models": {
+      "one": "{n} modèle",
+      "many": "{n} modèles",
+      "other": "{n} modèles"
+    },
+    "community.ranking": "Par famille d'actions, les modèles sont classés par le haut de la fourchette à 95 % de leur taux de fautes, jamais par un score unique.",
+    "community.records": {
+      "one": "{n} relevé",
+      "many": "{n} relevés",
+      "other": "{n} relevés"
+    },
+    "confirm.flag_desc": "Cela compte comme une faute : {type} perd au moins un niveau et doit remonter. À utiliser pour une erreur que personne n'a repérée.",
+    "confirm.flag_title": "Signaler {type} comme une erreur ?",
+    "confirm.revoke_desc": "{type} vous demandera de nouveau avant d'agir, et sa série repart de zéro. Ce n'est pas une faute.",
+    "confirm.revoke_title": "Révoquer {type} ?",
+    "confirm.undo_title": "Annuler l'action {id} ?",
     "emblem.none": "Pas encore d'autonomie acquise",
     "emblem.review": {
       "one": "{n} type en examen",
@@ -1042,6 +2132,52 @@ const TENURE_LOCALES = {
     "empty.desc": "Travaillez comme d'habitude. L'agent demande avant chaque modification, et chaque type d'action gagne son niveau selon vos réponses.",
     "empty.desc_trusted": "Travaillez comme d'habitude. Chaque type d'action agit comme Hermes seul jusqu'à sa première erreur ; ensuite, il demande d'abord et regagne son niveau selon vos réponses.",
     "empty.title": "Aucun agent n'a encore agi",
+    "event.confirmed": "preuves héritées confirmées par les siennes",
+    "event.expired_pending": "action en attente expirée · aucune preuve",
+    "event.fault_check": "vérification automatique échouée",
+    "event.fault_flag": "signalé par vous comme une faute",
+    "event.fault_other": "faute ({source})",
+    "event.fault_refusal": "refusé par vous",
+    "event.fault_spot": "contrôle aléatoire refusé ou échoué",
+    "event.fault_undo": "annulé par vous",
+    "event.neutral_alone": "a agi seul (acquis)",
+    "event.neutral_ambiguous": "appel ambigu · aucune preuve",
+    "event.neutral_blocked": "bloqué par une autre protection · aucune preuve",
+    "event.neutral_error": "erreur d'outil · aucune preuve",
+    "event.neutral_expired": "aucun retour · aucune preuve",
+    "event.neutral_nobody": "personne pour répondre · aucune preuve",
+    "event.neutral_other": "neutre ({source})",
+    "event.neutral_timeout": "pas de réponse · aucune preuve",
+    "event.revoked": "révoqué par vous",
+    "event.success_approved": "approuvé par vous, exécuté sans erreur",
+    "event.success_notify": "a agi, puis prévenu · non annulé",
+    "event.success_spot": "contrôle aléatoire approuvé par vous",
+    "event.switch": "changement de modèle",
+    "event.switch_from": "changement de modèle depuis {from}",
+    "event.tier": "niveau {from} → {to} · {why}",
+    "event.trial_failed": {
+      "one": "essai échoué : attendre {n} action",
+      "other": "essai échoué : attendre {n} actions"
+    },
+    "event.trial_opened": {
+      "one": "essai ouvert : la prochaine action doit réussir",
+      "other": "essai ouvert : les {n} prochaines doivent réussir"
+    },
+    "event.trial_passed": "essai réussi",
+    "event.trial_reopens": {
+      "one": "essai rouvert : la prochaine action doit réussir",
+      "other": "essai rouvert : les {n} prochaines doivent réussir"
+    },
+    "event.why_fault": "faute",
+    "event.why_series_complete": "série complète",
+    "event.why_series_n": "série {required}/{required}",
+    "event.why_sessions": {
+      "one": "{n} session",
+      "other": "{n} sessions"
+    },
+    "event.why_settings": "paramètres plus stricts",
+    "event.why_stakes": "enjeu modifié",
+    "event.why_wald": "test séquentiel réussi",
     "flag.confirm": "Signaler",
     "flag.desc": "Cela compte comme une faute : {type} descendra d'au moins un niveau et devra remonter. À utiliser pour une erreur que personne n'a repérée.",
     "flag.title": "Signaler cette modification comme une erreur ?",
@@ -1055,6 +2191,10 @@ const TENURE_LOCALES = {
     "help.benchmark_body": "Votre benchmark est l'historique vérifié de chaque modèle sur votre propre travail, par type d'action, avec la fourchette à 95 % de son taux de fautes. Un modèle est classé dès qu'il a {n} résultats vérifiés sur un type. Un score public, quand il est affiché, sert de contexte : la capacité sur les tâches d'autres, pas la fiabilité sur les vôtres.",
     "help.flag_body": "Signaler rapporte une erreur que personne n'a repérée. Cela compte comme une faute : le type perd au moins un niveau, puis remonte.",
     "help.intro": "Tenure décide, par modèle et par type d'action, si Hermes vous demande d'abord, agit puis vous prévient, ou agit seul. Chaque décision vient de preuves vérifiées, inscrites dans un registre signé.",
+    "help.key_help": "Cette aide",
+    "help.key_raw": "Afficher / masquer les noms bruts",
+    "help.keys_note": "Les raccourcis marchent quand le focus est dans cette page.",
+    "help.keys_title": "Clavier",
     "help.passport_body": "Le passeport est un résumé signé de l'historique d'un agent : le niveau de chaque type d'action, ses fautes et ses résultats vérifiés, et la tête du registre à chaîne de hachage. Il est signé avec la clé Ed25519 de ce profil. Pour le vérifier, téléchargez-le depuis la page de l'agent, exportez le registre, puis vérifiez :",
     "help.passport_checks": "La vérification contrôle la signature et la chaîne de hachage, puis rejoue le registre pour recalculer les mêmes niveaux. Rien n'y est autodéclaré.",
     "help.session_body": "Certaines demandes (code exécuté en ligne, commandes shell complexes, commandes locales non couvertes comme rm, mv ou cp, et une commande après du contenu extérieur) proposent « Autoriser cette session » : cette demande se tait jusqu'à la fin de la session. C'est votre choix, pas une preuve : il ne fait rien gagner, et une nouvelle session redemande.",
@@ -1072,6 +2212,67 @@ const TENURE_LOCALES = {
     "intro.body_trusted": "Chaque type d'action commence en confiance : jusqu'à sa première erreur, il agit comme Hermes seul le ferait, et une modification réversible agit, puis vous prévient, avec un bouton Annuler. Sa première faute (une annulation, une vérification échouée, un signalement) le place en Probation (T1) : il demande d'abord. Une série d'actions approuvées sans faute le fait passer en T2 ; une série plus longue, sur deux sessions, en T3 : il agit seul, et 1 action sur {k} vous est encore demandée, par contrôle aléatoire. Sortir de la machine et l'argent sont toujours demandés.",
     "intro.got_it": "Compris",
     "intro.title": "Comment un type d'action gagne son niveau",
+    "legend.a_share": "une part",
+    "legend.alone": "agit seul, contrôle aléatoire : {share}",
+    "legend.ask": "demande d'abord",
+    "legend.capped": "plafonné : demande toujours",
+    "legend.carried": "hérité du modèle précédent, provisoire",
+    "legend.carried_flag": "hérité",
+    "legend.notify": "agit, puis prévient, annulable (types réversibles)",
+    "legend.series": "succès vérifiés d'affilée, sur les N requis",
+    "legend.trusted": "départ en confiance : agit comme Hermes seul jusqu'à sa première erreur, rien d'acquis",
+    "map.aria": "Agents par type d'action",
+    "map.asked_suffix": " demandés",
+    "map.capped": "plafonné",
+    "map.carried_n": {
+      "one": "{n} hérité",
+      "other": "{n} hérités"
+    },
+    "map.copy_pending": "copié depuis un autre profil, vérifié à son démarrage",
+    "map.count_faults": {
+      "one": "{n} faute",
+      "other": "{n} fautes"
+    },
+    "map.count_sessions": {
+      "one": "{n} session",
+      "other": "{n} sessions"
+    },
+    "map.current": " · ce profil",
+    "map.fault_on_record": "faute à l'historique",
+    "map.group_high": "enjeu élevé",
+    "map.group_low": "enjeu faible",
+    "map.group_medium": "enjeu moyen",
+    "map.held": "{tier} enregistré, retenu par vos paramètres",
+    "map.one_in": "1 sur {k}",
+    "map.pending": "s'applique dès la prochaine action",
+    "map.preset": "préréglage {preset}",
+    "map.profile": "Profil {profile}",
+    "map.read_only": " · lecture seule ici",
+    "map.spot": "contrôles aléatoires {rate}",
+    "map.start_probation": "départ à l'étude (probation)",
+    "map.start_trusted": "départ en confiance",
+    "map.strict": "strict",
+    "map.suspended": {
+      "one": "{n} session suspendue : elle a lu du contenu externe",
+      "other": "{n} sessions suspendues : elles ont lu du contenu externe"
+    },
+    "map.th_agent": "Agent",
+    "map.th_agent_sub": "profil · modèle@fournisseur",
+    "map.th_capped": "plafonné · demande toujours",
+    "map.th_risk": {
+      "one": "risque {risk} · {n} d'affilée pour agir seul",
+      "other": "risque {risk} · {n} d'affilée pour agir seul"
+    },
+    "map.tot_actions": {
+      "one": "{n} action",
+      "other": "{n} actions"
+    },
+    "map.tot_alone": "{n} sans demander",
+    "map.tot_checked": "{n} vérifiées",
+    "map.tot_faults": {
+      "one": "{n} faute",
+      "other": "{n} fautes"
+    },
     "meta.actions": "Actions",
     "meta.actions_tip": "Toutes les actions de cet agent vues par tenure. Les actions que personne n'a vérifiées (pas de réponse, délai expiré) ne comptent pas.",
     "meta.alone": "Sans demander",
@@ -1081,6 +2282,28 @@ const TENURE_LOCALES = {
     "meta.profile": "Profil",
     "meta.provider": "Fournisseur",
     "meta.start": "Départ",
+    "missing.always_asks": "demande toujours",
+    "missing.earned": "acquis · contrôlé au hasard",
+    "missing.more_to_t2": {
+      "one": "encore {n} pour passer En examen (T2)",
+      "other": "encore {n} pour passer En examen (T2)"
+    },
+    "missing.more_to_t3": {
+      "one": "encore {n} pour être Titulaire",
+      "other": "encore {n} pour être Titulaire"
+    },
+    "missing.rechecking": "revérification",
+    "missing.second_session": "2e session requise",
+    "missing.trial_left": {
+      "one": "essai · encore {n} sur {total}",
+      "other": "essai · encore {n} sur {total}"
+    },
+    "missing.trial_wait": {
+      "one": "essai échoué · attendre {n}",
+      "other": "essai échoué · attendre {n}"
+    },
+    "missing.trusted": "de confiance jusqu'à sa première erreur · agit comme Hermes seul",
+    "missing.trusted_undo": "de confiance jusqu'à sa première erreur · agit, puis prévient, annulable",
     "model_menu.badge": "{tier} acquis",
     "moment.dismiss": "Fermer",
     "moment.eyebrow_down": "#Faute · {type}",
@@ -1091,13 +2314,37 @@ const TENURE_LOCALES = {
     "moment.review": "En examen",
     "moment.review_sub": "{name} agit désormais, puis vous prévient, avec un bouton Annuler.",
     "nav.label": "Tenure",
+    "overview.actions_label": {
+      "one": "{n} action",
+      "other": "{n} actions"
+    },
+    "overview.actions_sub": "couvertes",
+    "overview.alone_label": "sans demander",
+    "overview.alone_sub": "exécutées sans demander, sur {total}",
+    "overview.aria": "7 derniers jours",
+    "overview.checked_label": "vérifiées",
+    "overview.checked_sub": "par vous, sur {total}",
+    "overview.faults_label": "fautes repérées",
+    "overview.faults_sub": {
+      "one": "{faults} sur {n} vérification par vous",
+      "other": "{faults} sur {n} vérifications par vous"
+    },
+    "overview.window": "7 derniers jours, tous les profils",
     "page.animations": "Animations",
     "page.animations_reduced": "Votre système demande de réduire les animations : elles restent coupées",
+    "page.raw_off": "noms masqués",
+    "page.raw_on": "noms bruts",
+    "page.raw_title": "Afficher les noms bruts des types d'action (r)",
     "page.title": "Tenure",
+    "page.unreadable": "Illisible : {profiles}. La base de données existe mais ne s'ouvre pas ; les autres profils sont affichés.",
     "page.view_agents": "Agents",
     "page.view_benchmark": "Votre benchmark",
+    "page.view_community": "Communauté",
     "page.view_help": "Aide",
+    "page.view_map": "Carte",
     "page.view_settings": "Paramètres",
+    "page.view_switch": "Aperçu du changement",
+    "page.view_undo": "Annuler",
     "palette.no_current": "Le modèle actuel n'a pas encore d'historique.",
     "palette.open": "Tenure : Ouvrir",
     "palette.passport": "Tenure : Afficher le passeport du modèle actuel",
@@ -1109,6 +2356,11 @@ const TENURE_LOCALES = {
       "one": "{n} faute / {total} résultats vérifiés",
       "other": "{n} fautes / {total} résultats vérifiés"
     },
+    "passport.field_profile": "Profil",
+    "passport.field_public_key": "Clé publique",
+    "passport.field_settings": "Paramètres",
+    "passport.field_signature": "Signature",
+    "passport.field_type_names": "Noms de types",
     "passport.generated": "Généré",
     "passport.image_failed": "Impossible de dessiner l'image",
     "passport.ledger": "Registre",
@@ -1131,6 +2383,11 @@ const TENURE_LOCALES = {
     "passport.title": "Passeport signé",
     "passport.trusted": "De confiance (non acquis)",
     "passport.unavailable": "Indisponible : {error}",
+    "passport.value_hashed": "{profile} (haché)",
+    "passport.value_none": "aucun",
+    "passport.value_raw": "bruts",
+    "passport.value_redacted": "masqués après le programme et la sous-commande",
+    "passport.value_unsigned": "non signé",
     "passport.verified": "Vérifié : signature valide, chaîne de hachage intacte, et le registre rejoué redonne les mêmes niveaux.",
     "passport.verify_hint": "Tout le monde peut le vérifier :",
     "passport.verifying": "Vérification…",
@@ -1238,6 +2495,56 @@ const TENURE_LOCALES = {
     "state.suspended_tip": "La session a lu du contenu externe : elle demande avant chaque action, jusqu'à sa fin.",
     "state.trial": "à l'essai",
     "state.trial_tip": "Une faute à enjeu moyen ou élevé a ouvert un essai : 3 succès vérifiés d'affilée.",
+    "switch.arrow": "→",
+    "switch.capped": "plafonné",
+    "switch.col_after": "après le changement",
+    "switch.col_now": "actuel",
+    "switch.col_outcome": "résultat",
+    "switch.col_public": "mesure publique",
+    "switch.col_record": "votre historique",
+    "switch.col_type": "type",
+    "switch.count_carried": {
+      "one": "{n} hérité",
+      "other": "{n} hérités"
+    },
+    "switch.count_kept": {
+      "one": "{n} conservé",
+      "other": "{n} conservés"
+    },
+    "switch.count_reset": {
+      "one": "{n} remis à zéro",
+      "other": "{n} remis à zéro"
+    },
+    "switch.count_vetoed": {
+      "one": "{n} bloqué",
+      "other": "{n} bloqués"
+    },
+    "switch.delta": " ({delta})",
+    "switch.empty": "Aucun agent à prévisualiser pour l'instant",
+    "switch.footnote": "Les scores publics informent ; ils n'accordent jamais d'autonomie. Un blocage n'empêche que l'héritage, au-delà d'une marge fixe.",
+    "switch.from": "De",
+    "switch.label_carried": "hérité, provisoire",
+    "switch.label_kept": "conservé",
+    "switch.label_reset": "remis à zéro",
+    "switch.label_vetoed": "bloqué",
+    "switch.lede": "Avant de changer de modèle : ce dont le nouvel agent hériterait, type par type. Un nouveau modèle ou fournisseur est un nouvel agent. L'héritage vient de nous ; le mode strict suit l'étude.",
+    "switch.no_public": "aucune mesure publique",
+    "switch.none": "aucun",
+    "switch.pick_body": "Saisissez n'importe quel identifiant de modèle. Rien ne change tant que Hermes n'utilise pas vraiment le nouveau modèle.",
+    "switch.pick_title": "Choisissez un modèle cible",
+    "switch.placeholder": "identifiant de modèle, p. ex. {example} ou model@provider",
+    "switch.preview": "Aperçu",
+    "switch.provisional": {
+      "one": "{n} provisoire",
+      "other": "{n} provisoires"
+    },
+    "switch.strict": "mode strict : rien n'est hérité",
+    "switch.text_carried": "Une partie de la série est héritée, marquée provisoire jusqu'à ce que le nouveau modèle ajoute la sienne.",
+    "switch.text_kept": "Le nouvel agent a déjà son propre historique ici ; il n'est jamais écrasé.",
+    "switch.text_reset": "Repart de zéro : enjeu élevé, plafonné ou mode strict.",
+    "switch.text_vetoed": "Selon le benchmark public, le nouveau modèle est plus faible sur ce type : rien n'est hérité.",
+    "switch.to": "Vers le modèle",
+    "switch.to_aria": "Modèle cible",
     "tier.cap": "Plafonné · demande toujours",
     "tier.chip_trusted": "CONFIANCE",
     "tier.name.cap": "Toujours demandé",
@@ -1249,12 +2556,48 @@ const TENURE_LOCALES = {
     "tier.t2": "T2 · agit, puis vous prévient, avec un bouton Annuler",
     "tier.t3": "T3 · agit seul, avec contrôles aléatoires",
     "tier.trusted": "De confiance · agit comme Hermes seul jusqu'à sa première erreur",
+    "time.days": {
+      "one": "{n} j",
+      "other": "{n} j"
+    },
+    "time.hours_minutes": {
+      "one": "{n} h {mm}",
+      "other": "{n} h {mm}"
+    },
+    "time.minutes": {
+      "one": "{n} min",
+      "other": "{n} min"
+    },
+    "time.seconds": {
+      "one": "{n} s",
+      "other": "{n} s"
+    },
+    "timeline.all_types": "Tous les types",
+    "timeline.count": {
+      "one": "{n}×",
+      "other": "{n}×"
+    },
+    "timeline.empty": "Aucune preuve pour ce filtre",
+    "timeline.filter_label": "Filtrer par type",
+    "timeline.loading": "Lecture des preuves…",
+    "timeline.note": "Issu du registre chaîné par hachage, du plus récent au plus ancien, 200 derniers événements. Les résultats répétés sont regroupés.",
+    "timeline.title": "Chronologie des preuves",
     "toast.acted": {
       "one": "{type} a fait une modification, puis vous a prévenu ({name}).",
       "other": "{type} a fait {n} modifications, puis vous a prévenu ({name})."
     },
     "toast.acted_detail": "Annuler restaure les fichiers de la dernière modification et compte comme une faute.",
+    "toast.transition": "{agent} · {type} : {from} → {to}",
+    "transitions.empty": "Aucun depuis l'ouverture de cette page. Chaque changement de niveau automatique est listé ici et dans la chronologie de chaque agent.",
+    "transitions.title": "Changements de niveau vus sur cette page",
+    "transitions.why_after_fault": "après une faute",
+    "transitions.why_changed": "sans faute : révocation, ou réglages ou enjeu modifiés",
+    "transitions.why_on_evidence": "sur preuves",
+    "transitions.why_trial_open": "essai ouvert",
     "type.always_asks": "demande toujours",
+    "type.flag_button": "Signaler",
+    "type.flag_done": "Faute enregistrée sur {type} : désormais {tier}.",
+    "type.flag_title": "Enregistrer une faute sur ce type, après coup",
     "type.guarantee": "Au plus {aoql} % des actions de ce type s'exécutent avec une erreur que personne n'a approuvée ; {worst} % si le modèle se dégrade.",
     "type.guarantee_plain": "Au plus environ 1 action sur {k} s'exécute avec une erreur que personne n'a approuvée.",
     "type.guarantee_provisional": "Au plus {aoql} % des actions de ce type s'exécutent avec une erreur que personne n'a approuvée ; {worst} % si le modèle se dégrade. Provisoire : preuves héritées.",
@@ -1272,6 +2615,9 @@ const TENURE_LOCALES = {
       "other": "Encore {n} succès vérifiés d'affilée pour être titularisé."
     },
     "type.next_session": "La série est complète : une session de plus et c'est fait.",
+    "type.revoke_button": "Révoquer",
+    "type.revoke_done": "{type} révoqué : retour en T1.",
+    "type.revoke_title": "Retirer ce que ce type a gagné : retour en T1",
     "type.sessions": {
       "one": "{n} session",
       "other": "{n} sessions"
@@ -1285,7 +2631,21 @@ const TENURE_LOCALES = {
     "type.trusted_line": "De confiance jusqu'à sa première erreur · agit comme Hermes seul.",
     "type.trusted_line_undo": "De confiance jusqu'à sa première erreur · agit, puis vous prévient, avec un bouton Annuler.",
     "type.trusted_no_guarantee": "Pas encore de garantie : elle ne vient qu'avec un niveau acquis sur preuves. Sa première faute le place en Probation (T1).",
-    "types.title": "Types d'action"
+    "types.title": "Types d'action",
+    "undo.col_agent": "agent",
+    "undo.col_effect": "effet de l'annulation",
+    "undo.col_file": "fichier",
+    "undo.col_type": "type",
+    "undo.col_when": "quand",
+    "undo.confirm": "Annuler le n° {id} ?",
+    "undo.effect_already": "restaure les fichiers · la vérification automatique a déjà compté une faute",
+    "undo.effect_fault": "restaure les fichiers · compte comme une faute",
+    "undo.effect_none": "rien à restaurer (pas d'instantané) · compterait comme une faute",
+    "undo.empty_body": "Les écritures que l'agent a faites sans demander (en confiance, ou en T2 : agir, puis prévenir) gardent 24 heures un instantané des fichiers. Elles apparaissent ici, de la plus récente à la plus ancienne, chacune avec son bouton Annuler.",
+    "undo.empty_title": "Rien à annuler",
+    "undo.lede": "Dernières actions faites en T2 (agir, puis prévenir). Annuler restaure les fichiers depuis leur instantané et compte comme une faute du type.",
+    "undo.title": "Restaurer les fichiers",
+    "undo.window_ends": "annulable encore {duration}"
   },
   "zh": {
     "agents.pick": "选择一个智能体，查看它已赢得的自主权。",
@@ -1309,12 +2669,46 @@ const TENURE_LOCALES = {
     "benchmark.range_tip": "失误率及其 95% 区间，坐标轴 0–{max}%",
     "benchmark.rate": "{rate}%（{low}–{high}%）",
     "benchmark.search": "搜索操作类型",
+    "cell.capped_by_settings": "受风险设置限制",
+    "cell.kind_irreversible": "{type} · {stakes}，不可逆",
+    "cell.kind_reversible": "{type} · {stakes}，可逆",
+    "cell.provisional_long": {
+      "other": "{n} 项继承自上一个模型，暂定"
+    },
+    "cell.record": "记录：{successes} 次成功 · {faults} 次失误 · {neutrals} 次中性 · {spot} 次抽查",
+    "cell.series": "连续 {series}/{required}",
+    "cell.sessions": {
+      "other": "{n} 个会话"
+    },
+    "cell.tier_now": "当前级别：{tier}（{name}）",
     "chip.tip": {
       "other": "{name}：{n} 个操作类型中有 {earned} 个已赢得自主权（T2 或 T3）。打开 Tenure。"
     },
     "common.loading": "正在读取证据…",
     "common.no_match": "无匹配项",
+    "common.own_profile_only": "仅作用于当前配置文件",
     "common.retry": "重试",
+    "community.col_contributors": "贡献者",
+    "community.col_model": "模型",
+    "community.empty_how": "如要贡献，请用这条命令写出你的记录，查看其中内容，然后提交一个 pull request，把文件加入社区仓库（{repo}）。",
+    "community.empty_title": "还没有共享记录",
+    "community.empty_what": "社区基准汇总 Tenure 用户自愿发布的记录：按模型和操作类别统计的已验证成功次数与失误次数，并用各自的护照密钥签名。不会自动共享任何内容：Tenure 不进行任何网络调用。",
+    "community.empty_where": "如要在这里查看排行，请下载仓库发布的 community-board.json，并保存为 {path}。",
+    "community.generated": "{records} · 排行生成于 {date}",
+    "community.lede": "由贡献者自行申报，签名已核验：每份记录都用作者的护照密钥签名，每个密钥只计一份记录。",
+    "community.lede_bold": "这无法阻止一个人拥有多个密钥。",
+    "community.models": {
+      "other": "{n} 个模型"
+    },
+    "community.ranking": "按操作类别，模型按失误率 95% 区间的上限排序，从不按单一分数排序。",
+    "community.records": {
+      "other": "{n} 份记录"
+    },
+    "confirm.flag_desc": "这会记为一次失误：{type} 至少降一级，需要重新晋升。用于没人发现的错误。",
+    "confirm.flag_title": "将 {type} 标记为错误？",
+    "confirm.revoke_desc": "{type} 会重新先询问，连续记录从零开始。这不算失误。",
+    "confirm.revoke_title": "收回 {type}？",
+    "confirm.undo_title": "撤销操作 {id}？",
     "emblem.none": "尚未赢得自主权",
     "emblem.review": {
       "other": "{n} 个类型考察中"
@@ -1328,6 +2722,48 @@ const TENURE_LOCALES = {
     "empty.desc": "照常工作即可。每次更改都会先询问你，每个操作类型会根据你的回答赢得相应级别。",
     "empty.desc_trusted": "照常工作即可。每个操作类型在首次失误前像单独使用 Hermes 一样执行；此后会先询问你，并根据你的回答重新赢得级别。",
     "empty.title": "还没有智能体执行过操作",
+    "event.confirmed": "继承的证据已由它自己的记录确认",
+    "event.expired_pending": "待处理操作已过期 · 无证据",
+    "event.fault_check": "自动检查失败",
+    "event.fault_flag": "被你标记为失误",
+    "event.fault_other": "失误（{source}）",
+    "event.fault_refusal": "被你拒绝",
+    "event.fault_spot": "抽查被拒绝或失败",
+    "event.fault_undo": "被你撤销",
+    "event.neutral_alone": "自主执行（已赢得）",
+    "event.neutral_ambiguous": "无法判定 · 无证据",
+    "event.neutral_blocked": "被其他防护拦截 · 无证据",
+    "event.neutral_error": "工具出错 · 无证据",
+    "event.neutral_expired": "未回报结果 · 无证据",
+    "event.neutral_nobody": "无人应答 · 无证据",
+    "event.neutral_other": "中性（{source}）",
+    "event.neutral_timeout": "无回应 · 无证据",
+    "event.revoked": "被你收回",
+    "event.success_approved": "经你批准，运行无误",
+    "event.success_notify": "已执行并告知 · 未撤销",
+    "event.success_spot": "抽查经你批准",
+    "event.switch": "切换模型",
+    "event.switch_from": "从 {from} 切换模型",
+    "event.tier": "级别 {from} → {to} · {why}",
+    "event.trial_failed": {
+      "other": "考察未通过：需等待 {n} 个操作"
+    },
+    "event.trial_opened": {
+      "other": "开启考察期：接下来 {n} 个必须成功"
+    },
+    "event.trial_passed": "考察通过",
+    "event.trial_reopens": {
+      "other": "重新开启考察期：接下来 {n} 个必须成功"
+    },
+    "event.why_fault": "失误",
+    "event.why_series_complete": "连续记录已达标",
+    "event.why_series_n": "连续 {required}/{required}",
+    "event.why_sessions": {
+      "other": "{n} 个会话"
+    },
+    "event.why_settings": "设置更严格",
+    "event.why_stakes": "风险等级变更",
+    "event.why_wald": "通过序贯检验",
     "flag.confirm": "标记",
     "flag.desc": "这会记为一次失误：{type} 至少下降一个级别，之后需重新晋升。用于没人发现的错误。",
     "flag.title": "将此更改标记为错误？",
@@ -1341,6 +2777,10 @@ const TENURE_LOCALES = {
     "help.benchmark_body": "你的基准是每个模型在你自己的工作上、按操作类型的已验证记录，以及其失误率的 95% 区间。一个模型在某类型上有 {n} 个已验证结果后才会排名。显示的公开分数只作参考：是在别人任务上的能力，不是在你任务上的可靠性。",
     "help.flag_body": "标记用于报告一个没人发现的错误。它计为一次失误：该类型至少降一级，然后重新爬升。",
     "help.intro": "tenure 按模型、按操作类型决定 Hermes 是先询问你、先执行后告知，还是自主执行。每个决定都来自已验证的证据，写入一个已签名的账本。",
+    "help.key_help": "本帮助",
+    "help.key_raw": "切换原始类型名",
+    "help.keys_note": "焦点在此页面内时，快捷键才生效。",
+    "help.keys_title": "键盘",
     "help.passport_body": "护照是智能体记录的签名摘要：每个操作类型的级别、失误和已验证结果，以及哈希链账本的头部。它由此配置文件的 Ed25519 密钥签名。要验证它，请在智能体页面下载护照，导出账本，然后验证：",
     "help.passport_checks": "验证会检查签名和哈希链，然后重放账本，重新计算出相同的级别。其中没有任何自我声明。",
     "help.session_body": "有些询问（内联运行的代码、复杂的 shell 命令、未覆盖的本地命令如 rm、mv、cp，以及读取外部内容之后的命令）提供「允许本会话」：该询问在会话结束前不再出现。这是你的选择，不是证据：它不会赢得任何东西，新会话会再次询问。",
@@ -1358,6 +2798,60 @@ const TENURE_LOCALES = {
     "intro.body_trusted": "每个操作类型都以信任起步：首次失误前，它像单独使用 Hermes 一样执行，可逆的更改先执行后告知，并可撤销。首次失误（一次撤销、一次检查失败、一次标记）会让它进入试用期 (T1)：先询问。连续多次获批且无误后，它升到 T2；跨两个会话的更长连续记录会让它升到 T3：自主执行，但每 {k} 个操作仍会抽查 1 个，先询问你。离开本机和涉及金钱的操作始终会询问。",
     "intro.got_it": "知道了",
     "intro.title": "操作类型如何赢得级别",
+    "legend.a_share": "一部分",
+    "legend.alone": "自主执行，抽查其中 {share}",
+    "legend.ask": "先询问",
+    "legend.capped": "受限：始终询问",
+    "legend.carried": "继承自上一个模型，暂定",
+    "legend.carried_flag": "继承",
+    "legend.notify": "先执行后告知，可撤销（可逆类型）",
+    "legend.series": "连续已验证的成功次数，共需 N 次",
+    "legend.trusted": "信任起步：首次失误前像单独使用 Hermes 一样执行，未赢得任何级别",
+    "map.aria": "按操作类型列出的智能体",
+    "map.asked_suffix": " 次询问",
+    "map.capped": "受限",
+    "map.carried_n": {
+      "other": "{n} 项继承"
+    },
+    "map.copy_pending": "从另一个配置文件复制而来，启动时检查",
+    "map.count_faults": {
+      "other": "{n} 次失误"
+    },
+    "map.count_sessions": {
+      "other": "{n} 个会话"
+    },
+    "map.current": " · 当前配置文件",
+    "map.fault_on_record": "有失误记录",
+    "map.group_high": "高风险",
+    "map.group_low": "低风险",
+    "map.group_medium": "中风险",
+    "map.held": "已赢得 {tier}，被你的设置压低",
+    "map.one_in": "1/{k}",
+    "map.pending": "从下一个操作起生效",
+    "map.preset": "{preset}预设",
+    "map.profile": "配置文件 {profile}",
+    "map.read_only": " · 此处只读",
+    "map.spot": "抽查率 {rate}",
+    "map.start_probation": "考察起步（试用期）",
+    "map.start_trusted": "信任起步",
+    "map.strict": "严格",
+    "map.suspended": {
+      "other": "{n} 个会话已暂停：读取了外部内容"
+    },
+    "map.th_agent": "智能体",
+    "map.th_agent_sub": "配置文件 · model@provider",
+    "map.th_capped": "受限 · 始终询问",
+    "map.th_risk": {
+      "other": "风险率 {risk} · 连续 {n} 次后自主执行"
+    },
+    "map.tot_actions": {
+      "other": "{n} 个操作"
+    },
+    "map.tot_alone": "{n} 个未经询问",
+    "map.tot_checked": "{n} 个已确认",
+    "map.tot_faults": {
+      "other": "{n} 次失误"
+    },
     "meta.actions": "操作",
     "meta.actions_tip": "tenure 看到的此智能体的全部操作。没人验证的操作（无回应、超时）不计入。",
     "meta.alone": "自主执行",
@@ -1367,6 +2861,24 @@ const TENURE_LOCALES = {
     "meta.profile": "配置文件",
     "meta.provider": "提供方",
     "meta.start": "起点",
+    "missing.always_asks": "始终询问",
+    "missing.earned": "已赢得 · 接受抽查",
+    "missing.more_to_t2": {
+      "other": "还差 {n} 次进入考察中（T2）"
+    },
+    "missing.more_to_t3": {
+      "other": "还差 {n} 次转正"
+    },
+    "missing.rechecking": "正在复核",
+    "missing.second_session": "需要第 2 个会话",
+    "missing.trial_left": {
+      "other": "考察期 · 还差 {n}/{total}"
+    },
+    "missing.trial_wait": {
+      "other": "考察未通过 · 等 {n} 个操作"
+    },
+    "missing.trusted": "首次失误前保持信任 · 像单独使用 Hermes 一样执行",
+    "missing.trusted_undo": "首次失误前保持信任 · 先执行后告知，可撤销",
     "model_menu.badge": "已赢得 {tier}",
     "moment.dismiss": "关闭",
     "moment.eyebrow_down": "#失误 · {type}",
@@ -1377,13 +2889,35 @@ const TENURE_LOCALES = {
     "moment.review": "进入考察",
     "moment.review_sub": "{name} 现在先执行后告知，可撤销。",
     "nav.label": "Tenure",
+    "overview.actions_label": {
+      "other": "{n} 操作"
+    },
+    "overview.actions_sub": "已覆盖",
+    "overview.alone_label": "未询问即执行",
+    "overview.alone_sub": "未询问即运行，共 {total} 个",
+    "overview.aria": "最近 7 天",
+    "overview.checked_label": "已确认",
+    "overview.checked_sub": "由你确认，共 {total} 个",
+    "overview.faults_label": "发现的失误",
+    "overview.faults_sub": {
+      "other": "你检查的 {n} 次中有 {faults} 次"
+    },
+    "overview.window": "最近 7 天，所有配置文件",
     "page.animations": "动画",
     "page.animations_reduced": "系统要求减少动态效果：动画保持关闭",
+    "page.raw_off": "名称已脱敏",
+    "page.raw_on": "原始名称",
+    "page.raw_title": "显示原始操作类型名（r）",
     "page.title": "Tenure",
+    "page.unreadable": "无法读取：{profiles}。其数据库存在但无法打开；已显示其他配置文件。",
     "page.view_agents": "智能体",
     "page.view_benchmark": "你的基准",
+    "page.view_community": "社区",
     "page.view_help": "帮助",
+    "page.view_map": "总览",
     "page.view_settings": "设置",
+    "page.view_switch": "切换预览",
+    "page.view_undo": "撤销",
     "palette.no_current": "当前模型还没有记录。",
     "palette.open": "Tenure：打开",
     "palette.passport": "Tenure：显示当前模型的护照",
@@ -1394,6 +2928,11 @@ const TENURE_LOCALES = {
     "passport.faults_checks": {
       "other": "{n} 次失误 / {total} 次已验证结果"
     },
+    "passport.field_profile": "配置文件",
+    "passport.field_public_key": "公钥",
+    "passport.field_settings": "设置",
+    "passport.field_signature": "签名",
+    "passport.field_type_names": "类型名",
     "passport.generated": "生成时间",
     "passport.image_failed": "无法绘制图片",
     "passport.ledger": "账本",
@@ -1413,6 +2952,11 @@ const TENURE_LOCALES = {
     "passport.title": "已签名护照",
     "passport.trusted": "信任中（非赢得）",
     "passport.unavailable": "不可用：{error}",
+    "passport.value_hashed": "{profile}（已哈希）",
+    "passport.value_none": "无",
+    "passport.value_raw": "原始",
+    "passport.value_redacted": "程序和子命令之后的部分已脱敏",
+    "passport.value_unsigned": "未签名",
     "passport.verified": "已验证：签名有效，哈希链完整，重放账本得到相同的级别。",
     "passport.verify_hint": "任何人都可以验证：",
     "passport.verifying": "正在验证…",
@@ -1517,6 +3061,51 @@ const TENURE_LOCALES = {
     "state.suspended_tip": "此会话读取了外部内容：在会话结束前，每次操作都会询问。",
     "state.trial": "考察期",
     "state.trial_tip": "一次中、高风险的失误开启了考察期：需连续 3 次已验证的成功。",
+    "switch.arrow": "→",
+    "switch.capped": "受限",
+    "switch.col_after": "切换后",
+    "switch.col_now": "当前",
+    "switch.col_outcome": "结果",
+    "switch.col_public": "公开测评",
+    "switch.col_record": "你的记录",
+    "switch.col_type": "类型",
+    "switch.count_carried": {
+      "other": "{n} 项继承"
+    },
+    "switch.count_kept": {
+      "other": "{n} 项保留"
+    },
+    "switch.count_reset": {
+      "other": "{n} 项重置"
+    },
+    "switch.count_vetoed": {
+      "other": "{n} 项否决"
+    },
+    "switch.delta": "（{delta}）",
+    "switch.empty": "还没有可预览的智能体",
+    "switch.footnote": "公开分数仅供参考，从不授予自主权。否决只会阻止继承，且仅在超出固定差距时生效。",
+    "switch.from": "从",
+    "switch.label_carried": "继承，暂定",
+    "switch.label_kept": "保留",
+    "switch.label_reset": "重置",
+    "switch.label_vetoed": "否决",
+    "switch.lede": "更换模型之前：逐个类型查看新智能体会继承什么。新模型或新提供方即为新智能体。继承是我们的补充；严格模式即研究原规则。",
+    "switch.no_public": "无公开测评",
+    "switch.none": "无",
+    "switch.pick_body": "输入任意模型 ID。在 Hermes 真正运行新模型之前，什么都不会改变。",
+    "switch.pick_title": "选择目标模型",
+    "switch.placeholder": "模型 ID，例如 {example} 或 model@provider",
+    "switch.preview": "预览",
+    "switch.provisional": {
+      "other": "{n} 项暂定"
+    },
+    "switch.strict": "严格模式：不继承任何记录",
+    "switch.text_carried": "部分连续记录会被继承，并标为暂定，直到新模型积累自己的记录。",
+    "switch.text_kept": "新智能体在这里已有自己的记录；它永远不会被覆盖。",
+    "switch.text_reset": "从零开始：高风险、受限或严格模式。",
+    "switch.text_vetoed": "公开基准显示新模型在此类型上更弱：不继承任何记录。",
+    "switch.to": "目标模型",
+    "switch.to_aria": "目标模型",
     "tier.cap": "受限 · 始终询问",
     "tier.chip_trusted": "信任",
     "tier.name.cap": "始终询问",
@@ -1528,11 +3117,42 @@ const TENURE_LOCALES = {
     "tier.t2": "T2 · 先执行后告知，可撤销",
     "tier.t3": "T3 · 自主执行，接受抽查",
     "tier.trusted": "信任中 · 首次失误前，像单独使用 Hermes 一样执行",
+    "time.days": {
+      "other": "{n} 天"
+    },
+    "time.hours_minutes": {
+      "other": "{n} 小时 {mm} 分"
+    },
+    "time.minutes": {
+      "other": "{n} 分钟"
+    },
+    "time.seconds": {
+      "other": "{n} 秒"
+    },
+    "timeline.all_types": "所有类型",
+    "timeline.count": {
+      "other": "{n}×"
+    },
+    "timeline.empty": "此筛选条件下没有证据",
+    "timeline.filter_label": "按类型筛选",
+    "timeline.loading": "正在加载证据…",
+    "timeline.note": "来自哈希链账本，最新在前，最近 200 个事件。重复的结果已合并。",
+    "timeline.title": "证据时间线",
     "toast.acted": {
       "other": "{type}：{n} 项更改，已执行并告知你（{name}）。"
     },
     "toast.acted_detail": "撤销会恢复最近一次更改的文件，并记为一次失误。",
+    "toast.transition": "{agent} · {type}：{from} → {to}",
+    "transitions.empty": "打开此页面以来没有变化。每次自动的级别变化都会列在这里，以及各智能体的时间线中。",
+    "transitions.title": "本页看到的级别变化",
+    "transitions.why_after_fault": "因失误",
+    "transitions.why_changed": "无失误：被收回，或设置、风险等级已变更",
+    "transitions.why_on_evidence": "基于证据",
+    "transitions.why_trial_open": "考察期中",
     "type.always_asks": "始终询问",
+    "type.flag_button": "标记",
+    "type.flag_done": "已在 {type} 上记录失误：现为 {tier}。",
+    "type.flag_title": "事后为此类型记录一次失误",
     "type.guarantee": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。",
     "type.guarantee_plain": "其操作中最多约每 {k} 个就有 1 个带着无人批准的错误运行。",
     "type.guarantee_provisional": "此类型最多有 {aoql}% 的操作会带着无人批准的错误运行；若模型变差，最多 {worst}%。暂定：基于继承的证据。",
@@ -1547,6 +3167,9 @@ const TENURE_LOCALES = {
       "other": "再连续 {n} 次已验证的成功即可转正。"
     },
     "type.next_session": "连续记录已达标：再完成一个会话即可。",
+    "type.revoke_button": "收回",
+    "type.revoke_done": "已收回 {type}：退回 T1。",
+    "type.revoke_title": "收回此类型已赢得的自主权：退回 T1",
     "type.sessions": {
       "other": "{n} 个会话"
     },
@@ -1559,7 +3182,21 @@ const TENURE_LOCALES = {
     "type.trusted_line": "首次失误前保持信任 · 像单独使用 Hermes 一样执行。",
     "type.trusted_line_undo": "首次失误前保持信任 · 先执行后告知，可撤销。",
     "type.trusted_no_guarantee": "暂无保证：只有凭证据赢得的级别才有保证。首次失误会让它进入试用期 (T1)。",
-    "types.title": "操作类型"
+    "types.title": "操作类型",
+    "undo.col_agent": "智能体",
+    "undo.col_effect": "撤销的影响",
+    "undo.col_file": "文件",
+    "undo.col_type": "类型",
+    "undo.col_when": "时间",
+    "undo.confirm": "撤销 #{id}？",
+    "undo.effect_already": "恢复文件 · 自动检查已记过一次失误",
+    "undo.effect_fault": "恢复文件 · 记为一次失误",
+    "undo.effect_none": "没有可恢复的内容（无快照）· 会记为一次失误",
+    "undo.empty_body": "智能体未经询问写入的文件（信任中，或处于 T2：先执行后告知）会保留 24 小时快照。它们按最新在前显示在这里，每条都可单独撤销。",
+    "undo.empty_title": "没有可撤销的操作",
+    "undo.lede": "最近先执行后告知的操作。撤销会从快照恢复文件，并记为该类型的一次失误。",
+    "undo.title": "恢复文件",
+    "undo.window_ends": "{duration}后无法撤销"
   }
 };
 /* TENURE_LOCALES_END */
@@ -2488,8 +4125,108 @@ const CSS = `
 .tn-anim-toggle{display:inline-flex;align-items:center;gap:0.4rem;font:0.66rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--tn-fg2);white-space:nowrap}
 .tn-anim-toggle[data-off=true]{opacity:0.6}
 .tn-root:dir(rtl),.tn-root:dir(rtl) *{letter-spacing:0!important}
-.tn-root:dir(rtl) :is(.tn-eyebrow,.tn-emblem-cap,.tn-anim-toggle,.tn-ptop,.tn-pfoot,.tn-psig,.tn-btn,.tn-seg button,.tn-chip-in,.tn-preset span:first-child){font-family:var(--font-sans,system-ui),system-ui,sans-serif;text-transform:none}
-@media (prefers-reduced-motion:reduce){.tn-uacts{transition:none}.tn-enter,.tn-scan,.tn-chip.tn-out,.tn-chip.tn-in,.tn-band-title,.tn-leaving{animation:none!important}.tn-prow,.tn-pass,.tn-ok{transition:none!important}.tn-prow{opacity:1;transform:none}}
+.tn-root:dir(rtl) :is(.tn-tile-window,.tn-magent-tot,.tn-mcell-mid,.tn-mprofile b,.tn-table th,.tn-kbd,.tn-eyebrow,.tn-emblem-cap,.tn-anim-toggle,.tn-ptop,.tn-pfoot,.tn-psig,.tn-btn,.tn-seg button,.tn-chip-in,.tn-preset span:first-child){font-family:var(--font-sans,system-ui),system-ui,sans-serif;text-transform:none}
+.tn-bench[data-pub=wide]{grid-template-columns:2rem minmax(9rem,1fr) 7rem minmax(7rem,10rem) 8.5rem 7rem}
+.tn-root .tn-mono{font-family:var(--tn-mono)}
+.tn-root .tn-dim{color:var(--tn-mut)}
+.tn-root .tn-end{text-align:end}
+.tn-head-tog{display:flex;align-items:center;gap:0.5rem 1rem;margin-inline-start:auto}
+.tn-raw{border:0;background:transparent;padding:0;cursor:pointer;outline:none}
+.tn-raw i{font-style:normal;display:inline-block;width:0.6rem;height:0.6rem;border:1px solid var(--tn-acc)}
+.tn-raw i[data-on=true]{background:var(--tn-acc)}
+.tn-raw:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--tn-acc) 45%,transparent)}
+.tn-doc.tn-doc-wide{max-width:84rem;gap:1.25rem}
+.tn-tiles-wrap{display:flex;flex-direction:column;gap:0.4rem;padding-block:0.25rem 0.75rem;border-block-end:1px solid var(--tn-line)}
+.tn-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0}
+.tn-tile{display:flex;flex-direction:column;gap:0.2rem;padding:0.4rem 1rem 0.4rem 0;min-width:0}
+.tn-tile+.tn-tile{padding-inline-start:1rem;border-inline-start:1px solid var(--tn-line)}
+.tn-tile-n{font-family:var(--tn-display);font-weight:700;font-size:clamp(1.9rem,3.6vw,2.8rem);line-height:0.95;color:var(--tn-fg);font-variant-numeric:tabular-nums}
+.tn-tile-label{font-size:0.78rem;color:var(--tn-fg)}
+.tn-tile-sub{font-size:0.7rem;color:var(--tn-mut)}
+.tn-tile-window{margin:0;font:0.62rem var(--tn-mono);letter-spacing:0.12em;text-transform:uppercase;color:var(--tn-mut)}
+@container (max-width:40rem){.tn-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tn-tile:nth-child(3){border-inline-start:0;padding-inline-start:0}}
+.tn-doc-wrap{container-type:inline-size}
+.tn-map-scroll{overflow-x:auto;max-width:100%}
+.tn-map{border-collapse:collapse;width:100%;font-size:0.75rem}
+.tn-map th,.tn-map td{padding:0.45rem 0.6rem;text-align:start;vertical-align:top;font-weight:400}
+.tn-map thead th{border-block-end:1px solid var(--tn-line)}
+.tn-mth-agent,.tn-mth-group{vertical-align:bottom}
+.tn-mth-agent>span,.tn-mth-group>span{display:block}
+.tn-mth-sub{font-size:0.66rem;color:var(--tn-mut);margin-block-start:0.15rem}
+.tn-mth-type code{font:0.72rem var(--tn-mono);color:var(--tn-fg);overflow-wrap:anywhere}
+.tn-mth-agent,.tn-mtd-agent{position:sticky;inset-inline-start:0;z-index:1;background:var(--ui-surface-background,var(--background-base,Canvas));width:17rem;min-width:15rem}
+.tn-mprofile th{padding-block:0.9rem 0.35rem;border-block-end:1px solid var(--tn-line)}
+.tn-mprofile th>div{display:flex;flex-wrap:wrap;align-items:center;gap:0.25rem 0.6rem;position:sticky;inset-inline-start:0.6rem;width:fit-content;max-width:min(100%,60rem)}
+.tn-mprofile b{font:500 0.7rem var(--tn-mono);letter-spacing:0.12em;text-transform:uppercase;color:var(--tn-acc-text)}
+.tn-mprof-set{font-size:0.7rem}
+.tn-mrow{cursor:pointer;border-block-end:1px solid var(--tn-line)}
+.tn-mrow:hover>*{background:var(--ui-row-hover-background,color-mix(in srgb,var(--tn-fg) 4%,transparent))}
+.tn-mrow:hover .tn-mtd-agent{background:color-mix(in srgb,var(--tn-fg) 4%,var(--ui-surface-background,var(--background-base,Canvas)))}
+.tn-magent{display:flex;align-items:flex-start;gap:0.6rem;width:100%;border:0;background:transparent;color:inherit;font:inherit;text-align:start;padding:0;cursor:pointer;outline:none}
+.tn-magent:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--tn-acc) 45%,transparent)}
+.tn-magent .tn-emblem{color:var(--tn-acc);flex:none}
+.tn-magent-txt{display:flex;flex-direction:column;gap:0.15rem;min-width:0;flex:1 1 auto}
+.tn-magent-name{font-family:var(--tn-display);font-weight:700;font-size:1.05rem;line-height:1.05;color:var(--tn-fg);overflow-wrap:anywhere}
+.tn-magent-name .tn-dim{font:400 0.68rem var(--tn-mono);margin-inline-start:0.2rem}
+.tn-magent-tot{font:0.66rem var(--tn-mono);color:var(--tn-mut);font-variant-numeric:tabular-nums}
+.tn-mopen{flex:none;color:var(--tn-mut);margin-block-start:0.2rem}
+.tn-mopen:dir(rtl){transform:scaleX(-1)}
+.tn-mrow:hover .tn-mopen{color:var(--tn-acc)}
+.tn-mcell{min-width:8rem}
+.tn-mcell-in{display:flex;flex-direction:column;gap:0.3rem;outline:none}
+.tn-mcell-top{display:flex;align-items:center;justify-content:space-between;gap:0.4rem}
+.tn-mcell .tn-bar{height:11px}
+.tn-mcell-mid{font:0.64rem var(--tn-mono);color:var(--tn-mut)}
+.tn-mcell-miss{font-size:0.68rem;line-height:1.4;color:var(--tn-fg2)}
+.tn-mcell-miss[data-tone=ok]{color:var(--tn-acc-text)}
+.tn-mcell-miss[data-tone=warn]{color:var(--tn-fg)}
+.tn-mnone{color:var(--tn-mut);text-align:center!important;vertical-align:middle!important}
+.tn-legend{display:flex;flex-wrap:wrap;gap:0.5rem 1.25rem;padding-block:0.6rem 0.25rem;font-size:0.7rem;color:var(--tn-fg2)}
+.tn-legend-i{display:inline-flex;align-items:center;gap:0.4rem}
+.tn-legend-bar{display:inline-flex;align-items:center;gap:0.35rem}
+.tn-legend-bar .tn-bar{width:3rem;height:10px}
+.tn-trans{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;border-block-start:1px solid var(--tn-line)}
+.tn-trans li{display:flex;flex-wrap:wrap;align-items:center;gap:0.3rem 0.75rem;padding:0.45rem 0.25rem;font-size:0.75rem;border-block-end:1px solid var(--tn-line)}
+.tn-trans code{font-size:0.72rem;color:var(--tn-fg)}
+.tn-trans-move{display:inline-flex;align-items:center;gap:0.35rem;color:var(--tn-mut)}
+.tn-flag[data-kind=ok]{border-style:solid;background:color-mix(in srgb,var(--tn-acc) 12%,transparent)}
+.tn-flag[data-kind=muted]{border-color:var(--tn-mut);color:var(--tn-fg2)}
+.tn-sw-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:0.6rem 0.75rem;padding-block:0.25rem 0.5rem}
+.tn-field{display:flex;flex-direction:column;gap:0.3rem;min-width:12rem}
+.tn-field-grow{flex:1 1 16rem}
+.tn-input{height:2rem;padding:0 0.6rem;font:0.78rem var(--tn-mono);color:var(--tn-fg);background:transparent;border:1px solid var(--tn-line);border-radius:0;outline:none;min-width:0}
+.tn-input:focus{border-color:var(--tn-acc);box-shadow:0 0 0 2px color-mix(in srgb,var(--tn-acc) 25%,transparent)}
+.tn-input option{color:initial}
+.tn-input-sm{height:1.6rem;font-size:0.7rem;padding:0 0.4rem}
+.tn-sw-arrow{padding-block-end:0.4rem;color:var(--tn-mut);font:0.9rem var(--tn-mono)}
+.tn-sw-pair{font:0.78rem var(--tn-mono);color:var(--tn-fg2);margin-inline-end:0.4rem}
+.tn-sw-pair b{color:var(--tn-fg);font-weight:500}
+.tn-sw-legend{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:0.35rem 0.75rem;margin:0.25rem 0;font-size:0.72rem;color:var(--tn-fg2);align-items:center}
+.tn-sw-legend dd{margin:0}
+.tn-sw-tier{display:inline-flex;align-items:center;gap:0.4rem;font-size:0.72rem}
+.tn-table{border-collapse:collapse;width:100%;font-size:0.75rem}
+.tn-table th{font:500 0.62rem var(--tn-mono);letter-spacing:0.1em;text-transform:uppercase;color:var(--tn-acc-text);text-align:start;padding:0.35rem 0.6rem;border-block-end:1px solid var(--tn-line);white-space:nowrap}
+.tn-table td{padding:0.5rem 0.6rem;vertical-align:top;border-block-end:1px solid var(--tn-line);color:var(--tn-fg)}
+.tn-table tr.tn-sub td:first-child{padding-inline-start:1.6rem}
+.tn-table code{font-size:0.72rem}
+.tn-table .tn-hint{margin:0}
+.tn-tacts{display:inline-flex;align-items:center;gap:0.1rem;opacity:0;transition:opacity 120ms}
+.tn-trow:hover .tn-tacts,.tn-trow:focus-within .tn-tacts{opacity:1}
+.tn-tl-wrap{display:flex;flex-direction:column;gap:0.75rem}
+.tn-tl-day ol{margin:0.25rem 0 0;padding:0;list-style:none;border-block-start:1px solid var(--tn-line)}
+.tn-tl-label{color:var(--tn-mut)}
+.tn-tl-item{display:grid;grid-template-columns:5.5rem 1rem minmax(0,1fr) auto auto;gap:0.25rem 0.6rem;align-items:baseline;padding:0.35rem 0.25rem;font-size:0.74rem;border-block-end:1px solid var(--tn-line);color:var(--tn-fg2)}
+.tn-tl-time,.tn-tl-seq{font:0.66rem var(--tn-mono);color:var(--tn-mut);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.tn-tl-glyph{color:var(--tn-mut);text-align:center}
+.tn-tl-item[data-tone=ok] .tn-tl-glyph,.tn-tl-item[data-tone=move] .tn-tl-glyph{color:var(--tn-acc-text)}
+.tn-tl-item[data-tone=fault] .tn-tl-glyph{color:var(--tn-fg);font-weight:700}
+.tn-tl-item[data-tone=move] .tn-tl-text{color:var(--tn-fg)}
+.tn-tl-text b{font:600 0.7rem var(--tn-mono);color:var(--tn-acc-text)}
+.tn-tl-type{font:0.68rem var(--tn-mono);color:var(--tn-fg)}
+.tn-keys{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:0.4rem 1rem;margin:0.25rem 0 0;align-items:center}
+.tn-keys dd{margin:0;font-size:0.76rem;color:var(--tn-fg2)}
+.tn-kbd{display:inline-flex;min-width:1.4rem;justify-content:center;padding:0.1rem 0.35rem;font:500 0.7rem var(--tn-mono);color:var(--tn-acc-text);border:1px solid var(--tn-acc);border-block-end-width:2px}
+@media (prefers-reduced-motion:reduce){.tn-uacts,.tn-tacts{transition:none}.tn-enter,.tn-scan,.tn-chip.tn-out,.tn-chip.tn-in,.tn-band-title,.tn-leaving{animation:none!important}.tn-prow,.tn-pass,.tn-ok{transition:none!important}.tn-prow{opacity:1;transform:none}}
 `
 
 // ------------------------------------------------------------------------------------------------ pieces
@@ -2598,7 +4335,7 @@ function Guarantee({ g, t }) {
   return jsx(Tip, { label: detail, children: jsx('p', { 'aria-label': plain + ' ' + detail, className: 'tn-tguar', tabIndex: 0, children: plain }) })
 }
 
-function TypeRow({ type, t, index, motion, change, spot }) {
+function TypeRow({ type, t, index, motion, change, spot, mine, onAct }) {
   const tier = tierKey(type)
   const g = type.guarantee
   const stakes = ['low', 'medium', 'high'].includes(type.stakes) ? t('type.stakes_' + type.stakes) : t('type.stakes_other', { stakes: type.stakes })
@@ -2622,7 +4359,22 @@ function TypeRow({ type, t, index, motion, change, spot }) {
               jsx('span', { className: 'tn-tk tn-bdi', children: type.type }),
               jsx(TierChip, { tier, t, motion }),
               jsx('span', { className: 'tn-tname', 'data-tier': tier, children: tierName(tier, t) }),
-              jsx('span', { className: 'tn-tstakes', children: stakes })
+              jsx('span', { className: 'tn-tstakes', children: stakes }),
+              onAct
+                ? jsxs('span', {
+                    className: 'tn-tacts',
+                    children: [
+                      jsx(Tip, {
+                        label: mine ? t('type.flag_title') : t('common.own_profile_only'),
+                        children: jsx('span', { children: jsx(Button, { disabled: !mine, onClick: () => onAct('flag', type), size: 'xs', variant: 'ghost', children: t('type.flag_button') }) })
+                      }),
+                      jsx(Tip, {
+                        label: mine ? t('type.revoke_title') : t('common.own_profile_only'),
+                        children: jsx('span', { children: jsx(Button, { disabled: !mine, onClick: () => onAct('revoke', type), size: 'xs', variant: 'ghost', children: t('type.revoke_button') }) })
+                      })
+                    ]
+                  })
+                : null
             ]
           }),
           jsx('div', {
@@ -2697,27 +4449,15 @@ function groupUndo(rows) {
 function RecentSection({ agent, t, n }) {
   const profile = useValue(host.state.profile)
   const qc = useQueryClient()
-  const [busy, setBusy] = useState(null)
   const [flagging, setFlagging] = useState(null)
   const [open, setOpen] = useState({})
-  const { data } = useQuery({ queryKey: ['tenure', profile, 'activity'], queryFn: () => rest('/activity?since=0'), refetchInterval: HEARTBEAT_MS })
+  const [target, setTarget] = useState(null)
+  const { data } = useActivity()
+  const mine = agent.profile === profile
   const [all, setAll] = useState(false)
   const every = ((data && data.undoable) || []).filter(r => r.agent === agent.agent && r.profile === agent.profile)
   const groups = groupUndo(every)
   const shown = all ? groups : groups.slice(0, 5)
-  const act = async (key, fn, ok, fail) => {
-    setBusy(key)
-    try {
-      await fn()
-      haptic('success')
-      host.notify({ kind: 'success', message: ok })
-      qc.invalidateQueries({ queryKey: ['tenure'] })
-    } catch (e) {
-      host.notifyError(e, fail)
-    } finally {
-      setBusy(null)
-    }
-  }
   const icon = () =>
     jsx(Tip, {
       label: t('recent.restore_icon'),
@@ -2745,20 +4485,12 @@ function RecentSection({ agent, t, n }) {
             className: 'tn-uacts',
             children: [
               jsx(Tip, {
-                label: t('recent.flag_tip'),
-                children: jsx(Button, { disabled: busy !== null, onClick: () => setFlagging(r), size: 'xs', variant: 'ghost', children: t('recent.flag') })
+                label: mine ? t('recent.flag_tip') : t('common.own_profile_only'),
+                children: jsx('span', { children: jsx(Button, { disabled: !mine, onClick: () => setFlagging(r), size: 'xs', variant: 'ghost', children: t('recent.flag') }) })
               }),
               jsx(Tip, {
-                label: t('recent.undo_tip'),
-                children: jsxs(Button, {
-                  'aria-busy': busy === 'undo' + r.id || undefined,
-                  disabled: busy !== null,
-                  onClick: () =>
-                    act('undo' + r.id, () => rest('/undo?of=' + encodeURIComponent(r.profile), { method: 'POST', body: { id: r.id } }), t('recent.undone'), t('recent.undo_failed')),
-                  size: 'xs',
-                  variant: 'outline',
-                  children: [busy === 'undo' + r.id ? jsx(Codicon, { name: 'loading', size: '0.75rem', spinning: true }) : null, t('recent.undo')]
-                })
+                label: mine ? t('recent.undo_tip') : t('common.own_profile_only'),
+                children: jsx('span', { children: jsx(Button, { disabled: !mine, onClick: () => setTarget(r), size: 'xs', variant: 'outline', children: t('recent.undo') }) })
               })
             ]
           }),
@@ -2813,6 +4545,7 @@ function RecentSection({ agent, t, n }) {
                 : []
             )
           }),
+      jsx(UndoDialog, { onClose: () => setTarget(null), t, target }),
       jsx(ConfirmDialog, {
         busyLabel: t('revoke.busy'),
         confirmLabel: t('flag.confirm'),
@@ -3337,7 +5070,12 @@ function PassportSection({ agent, t, n, motion }) {
                       { label: t('passport.protocol'), value: jsx('span', { className: 'font-mono', children: p.protocol }) },
                       { label: t('passport.rule'), value: jsx('span', { className: 'font-mono', children: `${p.rule.name} · ${String(p.rule.fingerprint).slice(0, 16)}` }) },
                       { label: t('passport.ledger'), value: jsx('span', { children: t('passport.ledger_value', { n: p.ledger.count, head: String(p.ledger.head).slice(0, 12) }) }) },
-                      { label: t('passport.generated'), value: when(p.generated_at) }
+                      { label: t('passport.generated'), value: when(p.generated_at) },
+                      { label: t('passport.field_profile'), value: jsx('span', { className: 'font-mono', children: t('passport.value_hashed', { profile: (p.agent || {}).profile }) }) },
+                      { label: t('passport.field_settings'), value: jsx('span', { className: 'font-mono', children: short(p.settings_fingerprint, 16) }) },
+                      { label: t('passport.field_public_key'), value: jsx('span', { className: 'font-mono', children: p.public_key ? short(p.public_key, 24) : t('passport.value_none') }) },
+                      { label: t('passport.field_signature'), value: jsx('span', { className: 'font-mono', children: p.signature ? short(p.signature, 24) + '…' : t('passport.value_unsigned') }) },
+                      { label: t('passport.field_type_names'), value: p.redacted ? t('passport.value_redacted') : t('passport.value_raw') }
                     ]
                   })
                 : null,
@@ -3509,6 +5247,9 @@ function MomentBand({ moment, agent, t, motion, onClose }) {
 
 function AgentDetail({ agent, t, onRevoke }) {
   const motion = useMotion()
+  const qc = useQueryClient()
+  const mine = agent.profile === useValue(host.state.profile)
+  const [acting, setActing] = useState(null)        // { kind: 'flag' | 'revoke', type }
   const tot = agent.totals || {}
   const s = agent.settings || {}
   const types = agent.types || []
@@ -3613,7 +5354,13 @@ function AgentDetail({ agent, t, onRevoke }) {
           jsxs('div', {
             className: 'tn-hero-side',
             children: [
-              jsx('div', { style: { alignSelf: 'flex-end' }, children: jsx(PanelAction, { icon: 'circle-slash', onClick: onRevoke, children: t('revoke.action') }) }),
+              jsxs('div', {
+                style: { alignSelf: 'flex-end', display: 'flex', gap: '0.25rem' },
+                children: [
+                  jsx(PanelAction, { icon: 'arrow-swap', onClick: () => openView('switch', agent.key), children: t('page.view_switch') }),
+                  jsx(PanelAction, { icon: 'circle-slash', onClick: onRevoke, children: t('revoke.action') })
+                ]
+              }),
               jsx(Emblem, { crumble, label: caption, motion, n: 60, pulse, rotate: true, share: shareOf(agent), size: 120 }, agent.key),
               jsx('div', { 'aria-hidden': true, className: 'tn-emblem-cap', children: caption })
             ]
@@ -3627,12 +5374,37 @@ function AgentDetail({ agent, t, onRevoke }) {
           jsx(Eyebrow, { n: 1, children: t('types.title') }),
           jsx('div', {
             className: 'tn-rows',
-            children: types.map((ty, i) => jsx(TypeRow, { change: changes[ty.type], index: i, motion, spot: s.spot, t, type: ty }, agent.key + '|' + ty.type))
+            children: types.map((ty, i) =>
+              jsx(TypeRow, { change: changes[ty.type], index: i, mine, motion, onAct: (kind, type) => setActing({ kind, type }), spot: s.spot, t, type: ty }, agent.key + '|' + ty.type)
+            )
           })
         ]
       }),
       jsx(RecentSection, { agent, n: 2, t }),
-      jsx(PassportSection, { agent, motion, n: 3, t })
+      jsx(PassportSection, { agent, motion, n: 3, t }),
+      jsx(TimelineSection, { agent, n: 4, t }),
+      jsx(ConfirmDialog, {
+        confirmLabel: acting && acting.kind === 'flag' ? t('type.flag_button') : t('type.revoke_button'),
+        description: acting ? (acting.kind === 'flag' ? t('confirm.flag_desc', { type: acting.type.type }) : t('confirm.revoke_desc', { type: acting.type.type })) : null,
+        destructive: true,
+        onClose: () => setActing(null),
+        onConfirm: async () => {
+          const { kind, type } = acting
+          const body = { agent: agent.agent, type: type.type }
+          try {
+            const r = await rest('/' + kind + '?of=' + encodeURIComponent(agent.profile), { method: 'POST', body })
+            const tier = TIER_SHORT[r && r.tier] || ''
+            haptic('success')
+            host.notify({ kind: 'success', message: kind === 'flag' ? t('type.flag_done', { type: type.type, tier }) : t('type.revoke_done', { type: type.type }) })
+          } catch (e) {
+            host.notifyError(e, kind === 'flag' ? t('confirm.flag_title', { type: type.type }) : t('confirm.revoke_title', { type: type.type }))
+          } finally {
+            qc.invalidateQueries({ queryKey: ['tenure'] })
+          }
+        },
+        open: acting !== null,
+        title: acting ? (acting.kind === 'flag' ? t('confirm.flag_title', { type: acting.type.type }) : t('confirm.revoke_title', { type: acting.type.type })) : ''
+      })
     ]
   })
 }
@@ -4411,14 +6183,1088 @@ function HelpView({ data, t }) {
             jsx('p', { className: 'tn-htext', children: t('help.passport_checks') }, 'c')
           ]
         }),
-        jsx(SettingRow, { n: 7, title: t('page.view_benchmark'), children: jsx('p', { className: 'tn-htext', children: t('help.benchmark_body', { n: RANK_MIN }) }) })
+        jsx(SettingRow, { n: 7, title: t('page.view_benchmark'), children: jsx('p', { className: 'tn-htext', children: t('help.benchmark_body', { n: RANK_MIN }) }) }),
+        jsx(SettingRow, {
+          help: t('help.keys_note'),
+          n: 8,
+          title: t('help.keys_title'),
+          children: jsx('dl', {
+            className: 'tn-keys',
+            children: [...PAGE_KEYS.map(([k, v]) => [k, t('page.view_' + v)]), ['r', t('help.key_raw')]].flatMap(([k, label]) => [
+              jsx('dt', { children: jsx('kbd', { className: 'tn-kbd', children: k }) }, 'k' + k),
+              jsx('dd', { children: k === '?' ? t('help.key_help') : label }, 'd' + k)
+            ])
+          })
+        })
       ]
     })
   })
 }
 
+// ------------------------------------------------------------------------------------------------ map, community, switch, undo
+// The dashboard tab's views, on the Desktop: same API calls, same words (the catalog keys are copied from
+// dashboard.json), drawn in ink and dither.
+const WEEK = 7 * 86400
+const TRIAL = 3 // rule.TRIAL
+const UNDO_WINDOW = 86400 // core.UNDO_WINDOW: an act-then-notify snapshot is kept 24 h
+const COMMUNITY_REPO = 'github.com/otsoa-dubief/tenure-community' // tenure/community.py REPO
+
+// Raw or redacted type names (the dashboard's `r` switch): every call carries raw=1 while it is on.
+let rawPref = false
+function setRawPref(on) {
+  rawPref = !!on
+  if (storage) storage.set('raw', rawPref ? 'on' : 'off')
+  seen.clear()
+  bus.dispatchEvent(new Event('raw'))
+}
+function useRaw() {
+  const [on, setOn] = useState(rawPref)
+  useEffect(() => {
+    const sync = () => setOn(rawPref)
+    bus.addEventListener('raw', sync)
+    return () => bus.removeEventListener('raw', sync)
+  }, [])
+  return on
+}
+
+/** /activity over the last 7 days, every profile: the header totals and the undoable actions (24 h). */
+function useActivity() {
+  const profile = useValue(host.state.profile)
+  return useQuery({
+    queryKey: ['tenure', profile, 'activity'],
+    queryFn: () => rest('/activity?since=' + Math.floor(Date.now() / 1000 - WEEK)),
+    refetchInterval: HEARTBEAT_MS
+  })
+}
+
+const num = n => {
+  if (n == null) return '—'
+  try { return new Intl.NumberFormat(pageLocale()).format(Number(n)) } catch (e) { return String(n) }
+}
+/** A duration in seconds, short units: "12s", "5m", "2h 05m", "3d". */
+function duration(t, sec) {
+  const s = Math.max(0, Math.round(sec))
+  if (s < 60) return t('time.seconds', { n: s })
+  if (s < 3600) return t('time.minutes', { n: Math.floor(s / 60) })
+  const mm = pad2(Math.floor((s % 3600) / 60))
+  if (s < 86400) return t('time.hours_minutes', { n: Math.floor(s / 3600), mm })
+  return t('time.days', { n: Math.floor(s / 86400) })
+}
+const hm = at => {
+  const d = new Date(at * 1000)
+  return pad2(d.getHours()) + ':' + pad2(d.getMinutes())
+}
+const hms = ms => hm(ms / 1000) + ':' + pad2(new Date(ms).getSeconds())
+const dayKey = at => {
+  const d = new Date(at * 1000)
+  return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate()
+}
+const dayLabel = at => {
+  try { return new Intl.DateTimeFormat(pageLocale(), { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(at * 1000)) } catch (e) { return new Date(at * 1000).toDateString() }
+}
+const short = (hash, n) => (hash ? String(hash).slice(0, n || 12) : '—')
+const oneIn = (t, r) => (r == null ? t('map.capped') : t('map.one_in', { k: Math.round(1 / r) }))
+const groupName = (t, s) => (LEVELS.includes(s) ? t('map.group_' + s) : s)
+const tierCode = (tier, t) => (tier === 'trusted' ? t('tier.chip_trusted') : TIER_SHORT[tier] || tier)
+
+/** What a type still needs, said as missing evidence (the dashboard's words). */
+function missing(ty, t) {
+  if (ty.capped) return t('missing.always_asks')
+  if (ty.trusted) return ty.reversible ? t('missing.trusted_undo') : t('missing.trusted')
+  if (ty.trial_wait) return t('missing.trial_wait', { n: ty.trial_wait })
+  if (ty.trial_left) return t('missing.trial_left', { n: ty.trial_left, total: TRIAL })
+  const eff = ty.effective_tier
+  if (eff === 'alone') return t('missing.earned')
+  const gap = (ty.required || 0) - (ty.series || 0)
+  if (gap <= 0 && (ty.sessions || 0) < SERIES_SESSIONS) return t('missing.second_session')
+  const parts = []
+  const k2 = eff === 'ask' ? toT2(ty) : null
+  if (k2) parts.push(t('missing.more_to_t2', { n: k2 }))
+  if (gap > 0) parts.push(t('missing.more_to_t3', { n: gap }))
+  return parts.join(' · ') || t('missing.rechecking')
+}
+
+/** The map cell's tooltip: kind, tier now, series, record. */
+function cellTitle(ty, t) {
+  const stakes = groupName(t, ty.stakes)
+  const name = tierName(tierKey(ty), t)
+  const tier = tierCode(tierKey(ty), t)
+  const kind = ty.reversible ? t('cell.kind_reversible', { type: ty.type, stakes }) : t('cell.kind_irreversible', { type: ty.type, stakes })
+  const stored = TIER_SHORT[ty.tier] || ty.tier
+  const now = t('cell.tier_now', { tier, name })
+  const lines = [kind, ty.tier !== ty.effective_tier && !ty.trusted ? now + ' · ' + t('map.held', { tier: stored }) : now]
+  const series = String(ty.series || 0)
+  const required = String(ty.required || 0)
+  lines.push(ty.capped ? t('cell.capped_by_settings') : t('cell.series', { series, required }) + ' · ' + t('cell.sessions', { n: ty.sessions || 0 }))
+  const successes = String(ty.successes || 0)
+  const faults = String(ty.faults || 0)
+  const neutrals = String(ty.neutrals || 0)
+  const spot = String(ty.spot_checks || 0)
+  lines.push(t('cell.record', { successes, faults, neutrals, spot }))
+  if (ty.provisional) lines.push(t('cell.provisional_long', { n: ty.provisional }))
+  if (ty.unresolved_fault) lines.push(t('map.fault_on_record'))
+  return lines
+}
+
+function profileSummary(st, types, t) {
+  const parts = [t('map.preset', { preset: presetName(t, st.preset || DEFAULTS.preset) }), t('map.spot', { rate: oneIn(t, st.spot) })]
+  const start = startOf(st, types)
+  if (start) parts.push(start === 'trusted' ? t('map.start_trusted') : t('map.start_probation'))
+  if (st.strict) parts.push(t('map.strict'))
+  if (st.pending) parts.push(t('map.pending'))
+  if (st.copy_pending) parts.push(t('map.copy_pending'))
+  return parts.join(' · ')
+}
+
+/** Every type seen on any agent, grouped by stakes (low, medium, high, then anything else), sorted by name. */
+function columns(profiles) {
+  const seenType = {}
+  const groups = { low: [], medium: [], high: [] }
+  for (const p of profiles)
+    for (const a of p.agents || [])
+      for (const ty of a.types || []) {
+        if (seenType[ty.type]) continue
+        seenType[ty.type] = 1
+        ;(groups[ty.stakes] || (groups[ty.stakes] = [])).push(ty.type)
+      }
+  const order = s => (LEVELS.indexOf(s) + 9) % 9
+  return Object.keys(groups)
+    .sort((a, b) => order(a) - order(b))
+    .filter(s => groups[s].length)
+    .map(s => ({ stakes: s, types: groups[s].sort() }))
+}
+
+function Tiles({ totals: tot, t }) {
+  const actions = tot ? tot.actions || 0 : 0
+  // "12 actions": the number is drawn big, the words stay as the catalog says them.
+  const actionsLabel = t('overview.actions_label', { n: actions }).replace(String(actions), '').trim()
+  const cells = [
+    { n: tot ? tot.actions : null, label: actionsLabel, sub: t('overview.actions_sub') },
+    { n: tot ? tot.checked : null, label: t('overview.checked_label'), sub: tot ? t('overview.checked_sub', { total: actions }) : '' },
+    { n: tot ? tot.alone : null, label: t('overview.alone_label'), sub: tot ? t('overview.alone_sub', { total: actions }) : '' },
+    { n: tot ? tot.faults : null, label: t('overview.faults_label'), sub: tot ? t('overview.faults_sub', { faults: tot.faults || 0, n: tot.checked || 0 }) : '' }
+  ]
+  return jsxs('section', {
+    'aria-label': t('overview.aria'),
+    className: 'tn-tiles-wrap',
+    children: [
+      jsx('div', {
+        className: 'tn-tiles',
+        children: cells.map((c, i) =>
+          jsxs(
+            'div',
+            {
+              className: 'tn-tile',
+              children: [
+                jsx('span', { 'aria-hidden': true, className: 'tn-tnum', style: { padding: 0 }, children: '#' + pad2(i + 1) }),
+                jsx('b', { className: 'tn-tile-n', children: num(c.n) }),
+                jsx('span', { className: 'tn-tile-label', children: c.label }),
+                jsx('span', { className: 'tn-tile-sub', children: c.sub })
+              ]
+            },
+            i
+          )
+        )
+      }),
+      jsx('p', { className: 'tn-tile-window', children: t('overview.window') })
+    ]
+  })
+}
+
+function MapCell({ ty, t, motion, row }) {
+  if (!ty) return jsx('td', { className: 'tn-mcell tn-mnone', children: '—' })
+  const tier = tierKey(ty)
+  const geo = barGeo(ty)
+  const held = ty.tier !== ty.effective_tier && !ty.trusted
+  return jsx('td', {
+    className: 'tn-mcell',
+    children: jsx(Tip, {
+      label: jsx('span', { style: { whiteSpace: 'pre-line' }, children: cellTitle(ty, t).join('\n') }),
+      children: jsxs('div', {
+        className: 'tn-mcell-in',
+        tabIndex: -1,
+        children: [
+          jsxs('div', {
+            className: 'tn-mcell-top',
+            children: [
+              jsx(TierChip, { motion, t, tier }),
+              ty.capped
+                ? jsxs('span', { className: 'tn-count', children: [num((ty.successes || 0) + (ty.faults || 0)), jsx('i', { children: t('map.asked_suffix') })] })
+                : ty.trusted
+                  ? null
+                  : jsx(Count, { ty })
+            ]
+          }),
+          jsx(DitherBar, { delay: 120 + row * 40, motion, notch: geo.notch, rows: 4, segments: geo.segments, solid: tier === 'alone', track: ty.capped, trust: tier === 'trusted', value: fillOf(ty) }),
+          jsxs('div', {
+            className: 'tn-mcell-mid',
+            children: [
+              ty.capped ? t('map.count_faults', { n: ty.faults || 0 }) : t('map.count_sessions', { n: ty.sessions || 0 }),
+              held ? jsx('span', { children: ' · ' + t('map.held', { tier: TIER_SHORT[ty.tier] || ty.tier }) }) : null
+            ]
+          }),
+          jsx('div', { className: 'tn-mcell-miss', 'data-tone': tier === 'alone' ? 'ok' : ty.trial_left || ty.trial_wait ? 'warn' : 'muted', children: missing(ty, t) }),
+          ty.provisional || ty.unresolved_fault
+            ? jsxs('div', {
+                className: 'tn-pills',
+                children: [
+                  ty.provisional ? jsx('span', { className: 'tn-flag', children: t('map.carried_n', { n: ty.provisional }) }, 'p') : null,
+                  ty.unresolved_fault ? jsx('span', { className: 'tn-flag', 'data-kind': 'fault', children: t('map.fault_on_record') }, 'f') : null
+                ]
+              })
+            : null
+        ]
+      })
+    })
+  })
+}
+
+function Legend({ t, spot, trusted, motion }) {
+  const item = (chip, text) => jsxs('span', { className: 'tn-legend-i', children: [chip, jsx('span', { children: text })] })
+  return jsxs('div', {
+    className: 'tn-legend',
+    children: [
+      trusted ? item(jsx(TierChip, { motion: false, t, tier: 'trusted' }), t('legend.trusted')) : null,
+      item(jsx(TierChip, { motion: false, t, tier: 'ask' }), t('legend.ask')),
+      item(jsx(TierChip, { motion: false, t, tier: 'notify' }), t('legend.notify')),
+      item(jsx(TierChip, { motion: false, t, tier: 'alone' }), t('legend.alone', { share: spot ? oneIn(t, spot) : t('legend.a_share') })),
+      item(jsx(TierChip, { motion: false, t, tier: 'cap' }), t('legend.capped')),
+      item(jsxs('span', { className: 'tn-legend-bar', children: [jsx(DitherBar, { motion, rows: 4, segments: 0, value: 0.55 }), jsx('span', { className: 'tn-mono', children: 'n/N' })] }), t('legend.series')),
+      item(jsx('span', { className: 'tn-flag', children: t('legend.carried_flag') }), t('legend.carried'))
+    ]
+  })
+}
+
+function Transitions({ items, t, n }) {
+  return jsxs('section', {
+    'aria-live': 'polite',
+    className: 'tn-section',
+    children: [
+      jsx(Eyebrow, { n, children: t('transitions.title') }),
+      items.length
+        ? jsx('ol', {
+            className: 'tn-trans',
+            children: items.slice(0, 8).map(x =>
+              jsxs(
+                'li',
+                {
+                  children: [
+                    jsx('span', { className: 'tn-mono tn-dim', children: hms(x.at) }),
+                    jsx('span', { className: 'tn-bdi', children: displayName(x.model) }),
+                    jsx('code', { className: 'tn-mono tn-bdi', children: x.type }),
+                    jsxs('span', { className: 'tn-trans-move', children: [jsx(TierChip, { motion: false, t, tier: x.from }), jsx('span', { 'aria-hidden': true, className: 'tn-mirror', children: '→' }), jsx(TierChip, { motion: false, t, tier: x.to })] }),
+                    jsx('span', { className: 'tn-dim', children: t('transitions.why_' + x.why) })
+                  ]
+                },
+                x.id
+              )
+            )
+          })
+        : jsx('p', { className: 'tn-hint', children: t('transitions.empty') })
+    ]
+  })
+}
+
+/** The dashboard's Map: four totals, every profile × agent × action type, the legend, the tier changes seen here. */
+function MapView({ data, t, transitions, onOpen }) {
+  const motion = useMotion()
+  const { data: activity } = useActivity()
+  const profiles = ((data && data.profiles) || []).filter(p => !p.error)
+  const cols = columns(profiles)
+  const ncols = cols.reduce((n, g) => n + g.types.length, 0)
+  const here = profiles.find(p => p.current)
+  const cur = here && here.settings
+  const rows = allAgents(data)
+  const trusted = rows.some(a => (a.types || []).some(ty => ty.trusted && !ty.capped))
+  let i = 0
+  const open = key => {
+    haptic('tap')
+    onOpen(key)
+  }
+  return jsx('div', {
+    className: 'tn-root tn-doc-wrap',
+    children: jsxs('div', {
+      className: 'tn-doc tn-doc-wide',
+      children: [
+        jsx(Tiles, { t, totals: activity && activity.totals }),
+        jsxs('section', {
+          className: 'tn-section',
+          children: [
+            jsx(Eyebrow, { n: 1, children: t('map.aria') }),
+            jsx('div', {
+              className: 'tn-map-scroll',
+              children: jsxs('table', {
+                'aria-label': t('map.aria'),
+                className: 'tn-map',
+                style: { minWidth: `calc(17rem + ${ncols} * 8.5rem)` },
+                children: [
+                  jsxs('thead', {
+                    children: [
+                      jsxs('tr', {
+                        children: [
+                          jsxs('th', { className: 'tn-mth-agent', rowSpan: 2, scope: 'col', children: [jsx('span', { className: 'tn-eyebrow', children: t('map.th_agent') }), jsx('span', { className: 'tn-mth-sub', children: t('map.th_agent_sub') })] }),
+                          ...cols.map(g => {
+                            const bar = cur && cur.risks ? cur.risks[g.stakes] : undefined
+                            const n = bar == null || !(bar > 0) ? null : studyN(bar)
+                            const risk = oneIn(t, bar)
+                            const sub = n == null ? (g.stakes === 'high' ? t('map.th_capped') : '') : t('map.th_risk', { risk, n })
+                            return jsxs('th', { className: 'tn-mth-group', colSpan: g.types.length, scope: 'colgroup', children: [jsx('span', { className: 'tn-eyebrow', children: groupName(t, g.stakes) }), jsx('span', { className: 'tn-mth-sub', children: sub })] }, g.stakes)
+                          })
+                        ]
+                      }),
+                      jsx('tr', { children: cols.flatMap(g => g.types.map(ty => jsx('th', { className: 'tn-mth-type', scope: 'col', children: jsx('code', { className: 'tn-bdi', children: ty }) }, ty))) })
+                    ]
+                  }),
+                  ...profiles.map(p =>
+                    jsxs(
+                      'tbody',
+                      {
+                        children: [
+                          jsx('tr', {
+                            className: 'tn-mprofile',
+                            children: jsx('th', {
+                              colSpan: ncols + 1,
+                              scope: 'rowgroup',
+                              children: jsxs('div', {
+                                children: [
+                                  jsx('b', { className: 'tn-bdi', children: t('map.profile', { profile: p.profile }) }),
+                                  jsx('span', { className: 'tn-dim', children: p.current ? t('map.current') : t('map.read_only') }),
+                                  p.suspended ? jsx(StatePill, { kind: 'fault', label: t('map.suspended', { n: p.suspended }), tip: t('state.suspended_tip'), t }) : null,
+                                  p.settings ? jsx('span', { className: 'tn-dim tn-mprof-set', children: profileSummary(p.settings, (p.agents || []).flatMap(a => a.types || []), t) }) : null
+                                ]
+                              })
+                            })
+                          }),
+                          ...(p.agents || []).map(a => {
+                            const key = `${p.profile}|${a.agent}`
+                            const byType = {}
+                            for (const ty of a.types || []) byType[ty.type] = ty
+                            const tot = a.totals || {}
+                            const row = i++
+                            return jsxs(
+                              'tr',
+                              {
+                                className: cn('tn-mrow', motion && 'tn-enter'),
+                                onClick: () => open(key),
+                                style: motion ? { animationDelay: `${row * 40}ms` } : undefined,
+                                children: [
+                                  jsx('th', {
+                                    className: 'tn-mtd-agent',
+                                    scope: 'row',
+                                    children: jsxs('button', {
+                                      className: 'tn-magent',
+                                      onClick: e => {
+                                        e.stopPropagation()
+                                        open(key)
+                                      },
+                                      type: 'button',
+                                      children: [
+                                        jsx(Emblem, { label: displayName(a.model), motion, n: 26, share: shareOf(a), size: 30 }, key),
+                                        jsxs('span', {
+                                          className: 'tn-magent-txt',
+                                          children: [
+                                            jsxs('span', { className: 'tn-magent-name tn-bdi', children: [displayName(a.model), jsx('span', { className: 'tn-dim', children: '@' + a.provider })] }),
+                                            jsx('span', { className: 'tn-magent-tot', children: t('map.tot_actions', { n: tot.actions || 0 }) + ' · ' + t('map.tot_checked', { n: tot.checked || 0 }) }),
+                                            jsx('span', { className: 'tn-magent-tot', children: t('map.tot_alone', { n: tot.alone || 0 }) + ' · ' + t('map.tot_faults', { n: tot.faults || 0 }) }),
+                                            a.provisional || a.trial || a.unresolved_fault
+                                              ? jsxs('span', {
+                                                  className: 'tn-pills',
+                                                  children: [
+                                                    a.provisional ? jsx('span', { className: 'tn-flag', children: t('state.provisional') }, 'p') : null,
+                                                    a.trial ? jsx('span', { className: 'tn-flag', children: t('state.trial') }, 't') : null,
+                                                    a.unresolved_fault ? jsx('span', { className: 'tn-flag', 'data-kind': 'fault', children: t('state.fault') }, 'f') : null
+                                                  ]
+                                                })
+                                              : null
+                                          ]
+                                        }),
+                                        jsx(Codicon, { className: 'tn-mopen', name: 'chevron-right', size: '0.8rem' })
+                                      ]
+                                    })
+                                  }),
+                                  ...cols.flatMap(g => g.types.map(ty => jsx(MapCell, { motion, row, t, ty: byType[ty] }, ty)))
+                                ]
+                              },
+                              key
+                            )
+                          })
+                        ]
+                      },
+                      p.profile
+                    )
+                  )
+                ]
+              })
+            }),
+            jsx(Legend, { motion, spot: cur && cur.spot, t, trusted })
+          ]
+        }),
+        jsx(Transitions, { items: transitions, n: 2, t })
+      ]
+    })
+  })
+}
+
+/** The page's own record of tier changes, diffed between two answers (since this page opened). */
+function usePageTransitions(data, t) {
+  const prev = useRef(null)
+  const [items, setItems] = useState([])
+  useEffect(() => {
+    const reset = () => {
+      prev.current = null
+    }
+    bus.addEventListener('raw', reset)
+    return () => bus.removeEventListener('raw', reset)
+  }, [])
+  useEffect(() => {
+    if (!data) return
+    const now = {}
+    for (const a of allAgents(data)) for (const ty of a.types || []) now[a.key + '\u0000' + ty.type] = { tier: tierKey(ty), a, ty }
+    const before = prev.current
+    prev.current = now
+    if (!before) return
+    const found = []
+    const stamp = Date.now()
+    for (const k of Object.keys(now)) {
+      const b = before[k]
+      const x = now[k]
+      if (!b || b.tier === x.tier) continue
+      // A fault (or the trial it opened) explains a drop; a climb is earned on evidence; a drop with no fault is a
+      // revoke, a settings or stakes change: said as such, never "on evidence".
+      const faulted = (x.ty.faults || 0) > (b.ty.faults || 0)
+      const why = faulted ? (x.ty.trial_left ? 'trial_open' : 'after_fault') : TIER_RANK[x.tier] > TIER_RANK[b.tier] ? 'on_evidence' : 'changed'
+      found.push({ id: k + stamp, at: stamp, model: x.a.model, agent: x.a.agent, type: x.ty.type, from: b.tier, to: x.tier, why })
+    }
+    if (!found.length) return
+    setItems(xs => found.concat(xs).slice(0, 30))
+    const f = found[0]
+    const from = tierCode(f.from, t)
+    const to = tierCode(f.to, t)
+    host.notify({ kind: 'info', message: t('toast.transition', { agent: displayName(f.model), type: f.type, from, to }) })
+  }, [data])
+  return items
+}
+
+// ---- community
+function CommunityView({ t }) {
+  const profile = useValue(host.state.profile)
+  const motion = useMotion()
+  const { data, error, isLoading, refetch } = useQuery({ queryKey: ['tenure', profile, 'community'], queryFn: () => rest('/community'), refetchInterval: HEARTBEAT_MS * 5 })
+  if (isLoading && !data) return jsx(PanelEmpty, { description: t('common.loading'), icon: 'loading~spin' })
+  if (error && !data)
+    return jsx(ErrorState, { description: error.message || String(error), title: t('backend.title'), children: jsx(Button, { onClick: () => refetch(), size: 'sm', children: t('common.retry') }) })
+  const board = data && data.board
+  const head = (title, body) =>
+    jsxs('header', {
+      className: 'tn-hero',
+      style: { display: 'block' },
+      children: [jsx('div', { className: 'tn-eyebrow', children: '#' + t('page.view_community') }), title ? jsx('h3', { className: 'tn-name', children: title }) : null, body]
+    })
+  if (!board || !(board.families || []).length) {
+    const path = (data && data.path) || 'community-board.json'
+    return jsx('div', {
+      className: 'tn-root tn-doc-wrap',
+      children: jsxs('div', {
+        className: 'tn-doc',
+        children: [
+          head(t('community.empty_title'), null),
+          jsx(SettingRow, {
+            n: 1,
+            title: t('page.view_community'),
+            children: [
+              jsx('p', { className: 'tn-htext', children: t('community.empty_what') }, 'w'),
+              jsx('p', { className: 'tn-htext', children: t('community.empty_how', { repo: COMMUNITY_REPO }) }, 'h'),
+              jsx(Cmd, { t, text: 'hermes tenure share' }, 'c'),
+              jsx('p', { className: 'tn-hint', children: t('community.empty_where', { path }) }, 'p')
+            ]
+          })
+        ]
+      })
+    })
+  }
+  const records = t('community.records', { n: board.records || 0 })
+  const date = board.generated || '—'
+  return jsx('div', {
+    className: 'tn-root tn-doc-wrap',
+    children: jsxs('div', {
+      className: 'tn-doc',
+      children: [
+        head(
+          null,
+          jsxs('div', {
+            style: { display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBlockStart: '0.35rem' },
+            children: [
+              jsxs('p', { className: 'tn-intro-body', style: { margin: 0 }, children: [t('community.lede'), jsx('b', { children: t('community.lede_bold') }), ' ', t('community.ranking')] }),
+              jsx('p', { className: 'tn-hint', children: t('community.generated', { records, date }) })
+            ]
+          })
+        ),
+        ...board.families.map((g, gi) => {
+          const ranked = (g.models || []).filter(r => r.checks >= RANK_MIN)
+          const waiting = (g.models || []).filter(r => r.checks < RANK_MIN)
+          const max = Math.min(1, Math.ceil(Math.max(0.05, ...ranked.map(r => r.high || 0)) * 20) / 20)
+          return jsxs(
+            'section',
+            {
+              className: 'tn-section',
+              style: { paddingBlock: '1rem 0.5rem' },
+              children: [
+                jsxs('div', { className: 'tn-section-head', children: [jsx(Eyebrow, { n: gi + 1, children: jsx('span', { className: 'tn-bdi', style: { textTransform: 'none' }, children: g.family }) }), jsx('span', { className: 'tn-hint', children: t('community.models', { n: (g.models || []).length }) })] }),
+                ranked.length
+                  ? jsxs('div', {
+                      children: [
+                        jsxs('div', {
+                          'aria-hidden': true,
+                          className: 'tn-bench tn-bench-h',
+                          'data-pub': 'wide',
+                          children: [
+                            jsx('span', {}),
+                            jsx('span', { className: 'tn-eyebrow', children: t('community.col_model') }),
+                            jsx('span', { className: 'tn-eyebrow tn-end', children: t('benchmark.col_faults') }),
+                            jsx('span', { className: 'tn-eyebrow', children: t('benchmark.col_range') }),
+                            jsx('span', { className: 'tn-eyebrow', children: t('benchmark.col_rate') }),
+                            jsx('span', { className: 'tn-eyebrow tn-end', children: t('community.col_contributors') })
+                          ]
+                        }),
+                        ...ranked.map((r, i) =>
+                          jsxs(
+                            'div',
+                            {
+                              className: cn('tn-bench', motion && 'tn-enter'),
+                              'data-pub': 'wide',
+                              style: motion ? { animationDelay: `${i * 40}ms` } : undefined,
+                              children: [
+                                jsx('span', { className: 'tn-tnum', style: { paddingBlockStart: 0 }, children: '#' + pad2(i + 1) }),
+                                jsxs('span', { className: 'tn-bm', children: [jsx('span', { className: 'tn-bdi', style: { color: 'var(--tn-fg)' }, children: displayName(r.model) }), jsx('span', { className: 'tn-bsub tn-bdi', children: '@' + r.provider })] }),
+                                jsx('span', { className: 'tn-bnum tn-end', children: t('benchmark.faults', { n: r.faults, total: r.checks }) }),
+                                jsx(Tip, {
+                                  label: t('benchmark.range_tip', { max: pct(max) }),
+                                  children: jsx('span', {
+                                    'aria-label': t('benchmark.rate', { rate: pct(r.rate), low: pct(r.low), high: pct(r.high) }),
+                                    role: 'img',
+                                    style: { display: 'block', outline: 'none' },
+                                    tabIndex: 0,
+                                    children: jsx(RangeBar, { delay: 80 + i * 40, high: r.high, low: r.low, max, motion, rate: r.rate })
+                                  })
+                                }),
+                                jsx('span', { className: 'tn-bnum', children: t('benchmark.rate', { rate: pct(r.rate), low: pct(r.low), high: pct(r.high) }) }),
+                                jsx('span', { className: 'tn-bnum tn-end', children: num(r.contributors) })
+                              ]
+                            },
+                            r.model + '@' + r.provider
+                          )
+                        )
+                      ]
+                    })
+                  : null,
+                waiting.length
+                  ? jsxs('div', {
+                      className: 'tn-section',
+                      children: [
+                        jsx(Eyebrow, { children: t('benchmark.not_ranked') }),
+                        jsx('p', { className: 'tn-hint', children: t('benchmark.not_ranked_note', { n: RANK_MIN }) }),
+                        jsx('div', {
+                          className: 'tn-wait',
+                          children: waiting.map(r => jsx('span', { className: 'tn-bdi', children: `${displayName(r.model)}@${r.provider} · ${num(r.faults)} / ${num(r.checks)}` }, r.model + '@' + r.provider))
+                        })
+                      ]
+                    })
+                  : null
+              ]
+            },
+            g.family
+          )
+        })
+      ]
+    })
+  })
+}
+
+// ---- switch preview
+const SWITCH_STATES = ['carried', 'reset', 'vetoed', 'kept']
+const SWITCH_KIND = { carried: 'state', reset: 'muted', vetoed: 'fault', kept: 'ok' }
+function SwitchFlag({ k, children }) {
+  return jsx('span', { className: 'tn-flag', 'data-kind': SWITCH_KIND[k] || 'muted', children })
+}
+
+function SwitchView({ data, t }) {
+  const agents = allAgents(data)
+  const motion = useMotion()
+  const [from, setFrom] = useState(() => focusKey || (agents[0] && agents[0].key) || '')
+  const [draft, setDraft] = useState('')
+  const [to, setTo] = useState('')
+  useEffect(() => {
+    focusKey = null
+  }, [])
+  const a = agents.find(x => x.key === from) || agents[0] || null
+  const models = [...new Set(agents.map(x => displayName(x.model)))].sort()
+  const { data: res, error, isFetching } = useQuery({
+    queryKey: ['tenure', a ? a.profile : '', 'preview', a ? a.agent : '', to],
+    queryFn: () => rest(`/preview?agent=${encodeURIComponent(a.agent)}&to=${encodeURIComponent(to)}&of=${encodeURIComponent(a.profile)}`),
+    enabled: !!(a && to)
+  })
+  const counts = {}
+  for (const ty of (res && res.types) || []) counts[ty.status] = (counts[ty.status] || 0) + 1
+  const cellTier = x =>
+    jsxs('span', {
+      className: 'tn-sw-tier',
+      children: [jsx(TierChip, { motion: false, t, tier: tierKey(x) }), jsx('span', { className: 'tn-mono', children: x.capped ? t('switch.capped') : num(x.series) + '/' + num(x.required) })]
+    })
+  return jsx('div', {
+    className: 'tn-root tn-doc-wrap',
+    children: jsxs('div', {
+      className: 'tn-doc tn-doc-wide',
+      children: [
+        jsxs('header', {
+          className: 'tn-hero',
+          style: { display: 'block' },
+          children: [jsx('div', { className: 'tn-eyebrow', children: '#' + t('page.view_switch') }), jsx('p', { className: 'tn-intro-body', style: { margin: '0.35rem 0 0' }, children: t('switch.lede') })]
+        }),
+        !agents.length
+          ? jsx(PanelEmpty, { description: t('switch.empty'), icon: 'arrow-swap' })
+          : jsxs('form', {
+              className: 'tn-sw-form',
+              onSubmit: e => {
+                e.preventDefault()
+                setTo(draft.trim())
+              },
+              children: [
+                jsxs('label', {
+                  className: 'tn-field',
+                  children: [
+                    jsx('span', { className: 'tn-eyebrow', children: t('switch.from') }),
+                    jsx('select', {
+                      className: 'tn-input',
+                      onChange: e => setFrom(e.target.value),
+                      value: a ? a.key : '',
+                      children: agents.map(x => jsx('option', { value: x.key, children: `${displayName(x.model)}@${x.provider} · ${x.profile}` }, x.key))
+                    })
+                  ]
+                }),
+                jsx('span', { 'aria-hidden': true, className: 'tn-sw-arrow', children: t('switch.arrow') }),
+                jsxs('label', {
+                  className: 'tn-field tn-field-grow',
+                  children: [
+                    jsx('span', { className: 'tn-eyebrow', children: t('switch.to') }),
+                    jsx('input', {
+                      'aria-label': t('switch.to_aria'),
+                      className: 'tn-input',
+                      list: 'tn-models-list',
+                      name: 'to',
+                      onChange: e => setDraft(e.target.value),
+                      placeholder: t('switch.placeholder', { example: models[0] || 'gpt-5' }),
+                      value: draft
+                    }),
+                    jsx('datalist', { id: 'tn-models-list', children: models.map(m => jsx('option', { value: m }, m)) })
+                  ]
+                }),
+                jsxs('button', {
+                  'aria-busy': isFetching ? 'true' : undefined,
+                  className: 'tn-btn',
+                  'data-kind': 'primary',
+                  type: 'submit',
+                  children: [isFetching ? jsx(Codicon, { name: 'loading', size: '0.8rem', spinning: true }) : null, t('switch.preview')]
+                })
+              ]
+            }),
+        error ? jsx('p', { className: 'tn-note', children: error.message || String(error) }) : null,
+        agents.length && !to
+          ? jsx(SettingRow, { n: 1, title: t('switch.pick_title'), children: jsx('p', { className: 'tn-htext', children: t('switch.pick_body') }) })
+          : null,
+        res
+          ? jsxs('div', {
+              className: 'tn-section',
+              style: { paddingBlockStart: '1rem' },
+              children: [
+                jsxs('div', {
+                  className: 'tn-pills',
+                  children: [
+                    jsxs('span', { className: 'tn-sw-pair tn-bdi', children: [jsx('b', { children: res.from }), ' ' + t('switch.arrow') + ' ', jsx('b', { children: res.to })] }),
+                    ...SWITCH_STATES.map(k => (counts[k] ? jsx(SwitchFlag, { k, children: t('switch.count_' + k, { n: counts[k] }) }, k) : null)),
+                    res.strict ? jsx('span', { className: 'tn-flag', 'data-kind': 'fault', children: t('switch.strict') }) : null
+                  ]
+                }),
+                jsx('dl', {
+                  className: 'tn-sw-legend',
+                  children: SWITCH_STATES.flatMap(k => [jsx('dt', { children: jsx(SwitchFlag, { k, children: t('switch.label_' + k) }) }, 'dt' + k), jsx('dd', { children: t('switch.text_' + k) }, 'dd' + k)])
+                }),
+                jsx('div', {
+                  className: 'tn-map-scroll',
+                  children: jsxs('table', {
+                    className: 'tn-table',
+                    children: [
+                      jsx('thead', {
+                        children: jsxs('tr', {
+                          children: [
+                            jsx('th', { children: t('switch.col_type') }),
+                            jsx('th', { children: t('switch.col_outcome') }),
+                            jsx('th', { children: t('switch.col_now') }),
+                            jsx('th', { children: t('switch.col_after') }),
+                            jsx('th', { children: t('switch.col_public') }),
+                            jsx('th', { children: t('switch.col_record') })
+                          ]
+                        })
+                      }),
+                      jsx('tbody', {
+                        children: res.types.map((ty, ri) => {
+                          const c = ty.card || {}
+                          const delta = c.delta != null ? t('switch.delta', { delta: (c.delta > 0 ? '+' : '') + dec1(c.delta) }) : ''
+                          return jsxs(
+                            'tr',
+                            {
+                              className: motion ? 'tn-enter' : undefined,
+                              style: motion ? { animationDelay: `${ri * 30}ms` } : undefined,
+                              children: [
+                                jsxs('td', { children: [jsx('code', { className: 'tn-mono tn-bdi', children: ty.type }), jsx('div', { className: 'tn-hint', children: groupName(t, ty.stakes) })] }),
+                                jsx('td', { children: jsx(SwitchFlag, { k: ty.status, children: SWITCH_STATES.includes(ty.status) ? t('switch.label_' + ty.status) : ty.status }) }),
+                                jsx('td', { children: cellTier(ty.old) }),
+                                jsxs('td', { children: [cellTier(ty.new), ty.new.provisional ? jsx('div', { className: 'tn-hint', children: t('switch.provisional', { n: ty.new.provisional }) }) : null] }),
+                                jsx('td', {
+                                  children: c.benchmark
+                                    ? jsxs('div', {
+                                        children: [
+                                          jsx('div', { className: 'tn-hint', children: c.benchmark }),
+                                          jsx('div', { className: 'tn-mono tn-bdi', children: (c.old != null ? dec1(c.old) : '—') + ' ' + t('switch.arrow') + ' ' + (c.new != null ? dec1(c.new) : '—') + delta })
+                                        ]
+                                      })
+                                    : jsx('span', { className: 'tn-hint', children: t('switch.no_public') })
+                                }),
+                                jsx('td', {
+                                  children: (ty.personal || []).length
+                                    ? ty.personal.map(p => jsxs('div', { className: 'tn-hint', children: [jsx('span', { className: 'tn-mono', style: { color: 'var(--tn-fg)' }, children: num(p.faults) + ' / ' + num(p.successes + p.faults) }), ' ' + displayName(p.model)] }, p.agent))
+                                    : jsx('span', { className: 'tn-hint', children: t('switch.none') })
+                                })
+                              ]
+                            },
+                            ty.type
+                          )
+                        })
+                      })
+                    ]
+                  })
+                }),
+                jsx('p', { className: 'tn-hint', children: t('switch.footnote') })
+              ]
+            })
+          : null
+      ]
+    })
+  })
+}
+
+// ---- undo
+const undoEffect = (u, t) => (!u.file ? t('undo.effect_none') : u.counts_as_fault ? t('undo.effect_fault') : t('undo.effect_already'))
+
+/** Undo, after Hermes' own confirmation dialog: restores the files from their snapshot, counts as a fault. */
+function UndoDialog({ target, onClose, t }) {
+  const qc = useQueryClient()
+  return jsx(ConfirmDialog, {
+    confirmLabel: t('recent.undo'),
+    description: target ? undoEffect(target, t) : null,
+    destructive: true,
+    onClose,
+    onConfirm: async () => {
+      const u = target
+      try {
+        const r = await rest('/undo?of=' + encodeURIComponent(u.profile), { method: 'POST', body: { id: u.id } })
+        haptic('success')
+        host.notify({ kind: r && r.ok === false ? 'warning' : 'success', message: (r && r.message) || t('recent.undone') })
+      } catch (e) {
+        host.notifyError(e, t('recent.undo_failed'))
+      } finally {
+        qc.invalidateQueries({ queryKey: ['tenure'] })
+      }
+    },
+    open: target !== null,
+    title: target ? t('confirm.undo_title', { id: target.id }) : ''
+  })
+}
+
+function UndoView({ data, t }) {
+  const motion = useMotion()
+  const { data: act } = useActivity()
+  const [open, setOpen] = useState({})
+  const [target, setTarget] = useState(null)
+  const list = (act && act.undoable) || []
+  const current = data && data.current
+  const head = jsxs('header', {
+    className: 'tn-hero',
+    style: { display: 'block' },
+    children: [
+      jsx('div', { className: 'tn-eyebrow', children: '#' + t('page.view_undo') }),
+      list.length ? null : jsx('h3', { className: 'tn-name', children: t('undo.empty_title') }),
+      jsx('p', { className: 'tn-intro-body', style: { margin: '0.35rem 0 0' }, children: list.length ? t('undo.lede') : t('undo.empty_body') })
+    ]
+  })
+  let i = 0
+  const row = (u, sub) => {
+    const mine = u.profile === current
+    const idx = i++
+    return jsxs(
+      'tr',
+      {
+        className: cn(motion && 'tn-enter', sub && 'tn-sub'),
+        style: motion ? { animationDelay: `${idx * 30}ms` } : undefined,
+        children: [
+          jsx('td', { className: 'tn-mono tn-dim', children: String(u.id) }),
+          jsxs('td', { children: [jsx('span', { className: 'tn-mono', children: ago(t, u.age) }), jsx('div', { className: 'tn-hint', children: t('undo.window_ends', { duration: duration(t, UNDO_WINDOW - u.age) }) })] }),
+          jsxs('td', { children: [jsx('span', { className: 'tn-bdi', children: u.agent }), jsx('div', { className: 'tn-hint tn-bdi', children: t('map.profile', { profile: u.profile }) })] }),
+          jsx('td', { children: jsx('code', { className: 'tn-mono tn-bdi', children: u.type }) }),
+          jsx('td', {
+            children: u.file
+              ? jsxs('span', { children: [jsx('code', { className: 'tn-mono tn-bdi', children: u.file }), u.files > 1 ? jsx('span', { className: 'tn-dim', children: ' ' + t('recent.more_files', { n: u.files - 1 }) }) : null] })
+              : jsx('span', { className: 'tn-hint', children: t('recent.no_snapshot') })
+          }),
+          jsx('td', { className: 'tn-hint', children: undoEffect(u, t) }),
+          jsx('td', {
+            className: 'tn-end',
+            children: jsx(Tip, {
+              label: mine ? t('undo.title') : t('common.own_profile_only'),
+              children: jsx('span', { tabIndex: mine ? undefined : 0, children: jsx(Button, { disabled: !mine, onClick: () => setTarget(u), size: 'xs', variant: 'outline', children: t('undo.confirm', { id: u.id }) }) })
+            })
+          })
+        ]
+      },
+      u.profile + u.id
+    )
+  }
+  return jsx('div', {
+    className: 'tn-root tn-doc-wrap',
+    children: jsxs('div', {
+      className: 'tn-doc tn-doc-wide',
+      children: [
+        head,
+        list.length
+          ? jsx('div', {
+              className: 'tn-map-scroll',
+              children: jsxs('table', {
+                className: 'tn-table',
+                children: [
+                  jsx('thead', {
+                    children: jsxs('tr', {
+                      children: [
+                        jsx('th', { children: '#' }),
+                        jsx('th', { children: t('undo.col_when') }),
+                        jsx('th', { children: t('undo.col_agent') }),
+                        jsx('th', { children: t('undo.col_type') }),
+                        jsx('th', { children: t('undo.col_file') }),
+                        jsx('th', { children: t('undo.col_effect') }),
+                        jsx('th', {})
+                      ]
+                    })
+                  }),
+                  jsx('tbody', {
+                    children: groupUndo(list).flatMap(g => {
+                      if (g.rows.length === 1) return [row(g.rows[0], false)]
+                      const first = g.rows[0]
+                      const expanded = !!open[g.key]
+                      const toggle = () => setOpen(o => ({ ...o, [g.key]: !expanded }))
+                      const idx = i++
+                      return [
+                        jsxs(
+                          'tr',
+                          {
+                            className: motion ? 'tn-enter' : undefined,
+                            style: motion ? { animationDelay: `${idx * 30}ms` } : undefined,
+                            children: [
+                              jsx('td', {
+                                children: jsxs('button', {
+                                  'aria-expanded': expanded,
+                                  'aria-label': (expanded ? t('recent.collapse') : t('recent.expand')) + ': ' + g.rows.length + ' × ' + g.type,
+                                  className: 'tn-ugroup',
+                                  onClick: toggle,
+                                  type: 'button',
+                                  children: [jsx(Codicon, { name: expanded ? 'chevron-down' : 'chevron-right', size: '0.75rem' }), jsx('b', { children: num(g.rows.length) + ' ×' })]
+                                })
+                              }),
+                              jsx('td', { children: jsx('span', { className: 'tn-mono', children: ago(t, first.age) }) }),
+                              jsxs('td', { children: [jsx('span', { className: 'tn-bdi', children: g.agent }), jsx('div', { className: 'tn-hint tn-bdi', children: t('map.profile', { profile: g.profile }) })] }),
+                              jsx('td', { children: jsx('code', { className: 'tn-mono tn-bdi', children: g.type }) }),
+                              jsx('td', { children: jsx('span', { className: 'tn-hint', children: t('recent.no_snapshot') }) }),
+                              jsx('td', { className: 'tn-hint', children: undoEffect(first, t) }),
+                              jsx('td', { className: 'tn-end', children: jsx(Button, { onClick: toggle, size: 'xs', variant: 'ghost', children: expanded ? t('recent.collapse') : t('recent.expand') }) })
+                            ]
+                          },
+                          'g' + g.key
+                        ),
+                        ...(expanded ? g.rows.map(u => row(u, true)) : [])
+                      ]
+                    })
+                  })
+                ]
+              })
+            })
+          : null,
+        jsx(UndoDialog, { onClose: () => setTarget(null), t, target })
+      ]
+    })
+  })
+}
+
+// ---- the agent's evidence timeline (/timeline): the ledger, newest first, repeated outcomes grouped
+const FAULT_SOURCES = ['refusal', 'spot', 'check', 'undo', 'flag']
+const NEUTRAL_SOURCES = ['alone', 'error', 'blocked', 'timeout', 'nobody', 'expired', 'ambiguous']
+const TIER_REASONS = ['wald', 'fault', 'settings', 'stakes']
+
+function describeEvent(e, t) {
+  const src = e.source
+  if (e.event === 'outcome') {
+    if (e.result === 'success')
+      return { glyph: '✓', tone: 'ok', text: src === 'notify' ? t('event.success_notify') : src === 'spot' ? t('event.success_spot') : t('event.success_approved') }
+    if (e.result === 'fault') return { glyph: '✕', tone: 'fault', text: FAULT_SOURCES.includes(src) ? t('event.fault_' + src) : t('event.fault_other', { source: String(src) }) }
+    return { glyph: '○', tone: 'muted', text: NEUTRAL_SOURCES.includes(src) ? t('event.neutral_' + src) : t('event.neutral_other', { source: String(src) }) }
+  }
+  if (e.event === 'tier') {
+    const required = String(e.required || '')
+    const series = e.required ? t('event.why_series_n', { required }) : t('event.why_series_complete')
+    const why =
+      e.reason === 'series' ? (e.sessions ? series + ' · ' + t('event.why_sessions', { n: e.sessions }) : series) : TIER_REASONS.includes(e.reason) ? t('event.why_' + e.reason) : e.reason
+    const from = tierCode(e.from, t)
+    const to = tierCode(e.to, t)
+    return { glyph: '◆', tone: 'move', text: t('event.tier', { from, to, why }) }
+  }
+  if (e.event === 'trial') {
+    const left = Number(e.left) || TRIAL
+    const text =
+      e.to === 'open'
+        ? e.reason === 'wait over'
+          ? t('event.trial_reopens', { n: left })
+          : t('event.trial_opened', { n: left })
+        : e.to === 'wait'
+          ? t('event.trial_failed', { n: Number(e.wait) || 0 })
+          : t('event.trial_passed')
+    return { glyph: '◇', tone: 'warn', text }
+  }
+  if (e.event === 'revoke' || e.event === 'revoked') return { glyph: '↺', tone: 'fault', text: t('event.revoked') }
+  if (e.event === 'confirmed') return { glyph: '✓', tone: 'ok', text: t('event.confirmed') }
+  if (e.event === 'agent') return { glyph: '⇄', tone: 'move', text: e.from ? t('event.switch_from', { from: e.from }) : t('event.switch') }
+  if (e.event === 'neutral_expired') return { glyph: '○', tone: 'muted', text: t('event.expired_pending') }
+  return { glyph: '·', tone: 'muted', text: e.event }
+}
+
+function runs(events) {
+  const out = []
+  for (const e of events) {
+    const sig = [e.event, e.result, e.source, e.type, e.reason, e.from, e.to].join('|')
+    const last = out[out.length - 1]
+    if (last && last.sig === sig && e.event === 'outcome' && dayKey(last.first.at) === dayKey(e.at)) {
+      last.count += 1
+      last.last = e
+    } else out.push({ sig, first: e, last: e, count: 1 })
+  }
+  return out
+}
+
+const TIMELINE_SHOWN = 30
+
+function TimelineSection({ agent, t, n }) {
+  const [filter, setFilter] = useState('all')
+  const [all, setAll] = useState(false)
+  const { data, error } = useQuery({
+    queryKey: ['tenure', agent.profile, 'timeline', agent.agent],
+    queryFn: () => rest(`/timeline?agent=${encodeURIComponent(agent.agent)}&of=${encodeURIComponent(agent.profile)}`),
+    refetchInterval: HEARTBEAT_MS
+  })
+  const events = data ? data.events || [] : null
+  const shown = events && filter !== 'all' ? events.filter(e => e.type === filter) : events
+  const grouped = shown ? runs(shown) : []
+  const visible = all ? grouped : grouped.slice(0, TIMELINE_SHOWN)
+  const days = []
+  for (const r of visible) {
+    const k = dayKey(r.first.at)
+    let g = days[days.length - 1]
+    if (!g || g.key !== k) days.push((g = { key: k, label: dayLabel(r.first.at), items: [] }))
+    g.items.push(r)
+  }
+  return jsxs('section', {
+    className: 'tn-section',
+    children: [
+      jsxs('div', {
+        className: 'tn-section-head',
+        children: [
+          jsx(Eyebrow, { n, children: t('timeline.title') }),
+          jsx('select', {
+            'aria-label': t('timeline.filter_label'),
+            className: 'tn-input tn-input-sm',
+            onChange: e => setFilter(e.target.value),
+            value: filter,
+            children: [jsx('option', { value: 'all', children: t('timeline.all_types') }, 'all'), ...(agent.types || []).map(ty => jsx('option', { value: ty.type, children: ty.type }, ty.type))]
+          })
+        ]
+      }),
+      jsx('p', { className: 'tn-hint', children: t('timeline.note') }),
+      error
+        ? jsx('p', { className: 'tn-note', children: error.message || String(error) })
+        : !events
+          ? jsx('p', { className: 'tn-hint', children: t('timeline.loading') })
+          : !grouped.length
+            ? jsx('p', { className: 'tn-hint', children: t('timeline.empty') })
+            : jsxs('div', {
+                className: 'tn-tl-wrap',
+                children: [
+                  ...days.map(g =>
+                    jsxs(
+                      'div',
+                      {
+                        className: 'tn-tl-day',
+                        children: [
+                          jsx('div', { className: 'tn-eyebrow tn-tl-label', children: g.label }),
+                          jsx('ol', {
+                            children: g.items.map(r => {
+                              const d = describeEvent(r.first, t)
+                              const span = r.count > 1 && hm(r.last.at) !== hm(r.first.at) ? hm(r.last.at) + '–' + hm(r.first.at) : hm(r.first.at)
+                              return jsxs(
+                                'li',
+                                {
+                                  className: 'tn-tl-item',
+                                  'data-tone': d.tone,
+                                  children: [
+                                    jsx('span', { className: 'tn-tl-time', children: span }),
+                                    jsx('span', { 'aria-hidden': true, className: 'tn-tl-glyph', children: d.glyph }),
+                                    jsxs('span', { className: 'tn-tl-text', children: [r.count > 1 ? jsx('b', { children: t('timeline.count', { n: r.count }) + ' ' }) : null, d.text] }),
+                                    r.first.type ? jsx('code', { className: 'tn-tl-type tn-bdi', children: r.first.type }) : null,
+                                    jsx('span', { className: 'tn-tl-seq', children: '#' + (r.count > 1 ? r.last.seq + '–' + r.first.seq : r.first.seq) })
+                                  ]
+                                },
+                                r.first.seq
+                              )
+                            })
+                          })
+                        ]
+                      },
+                      g.key
+                    )
+                  ),
+                  grouped.length > TIMELINE_SHOWN
+                    ? jsx('div', { children: jsx(Button, { onClick: () => setAll(!all), size: 'xs', variant: 'outline', children: all ? t('recent.show_fewer') : t('recent.show_all', { n: grouped.length }) }) }, 'more')
+                    : null
+                ]
+              })
+    ]
+  })
+}
+
+/** The keys of this page (while focus is inside it); the keys stay as they are, only their descriptions are translated. */
+const PAGE_KEYS = [
+  ['m', 'map'],
+  ['a', 'agents'],
+  ['p', 'agents'],
+  ['b', 'benchmark'],
+  ['c', 'community'],
+  ['w', 'switch'],
+  ['u', 'undo'],
+  ['s', 'settings'],
+  ['?', 'help']
+]
+
 let focusKey = null
 let focusRevoke = false
+
+/** Open another tab of the page, with an agent in mind (the switch preview starts from it). */
+function openView(view, key) {
+  focusKey = key || null
+  bus.dispatchEvent(new CustomEvent('view', { detail: { view } }))
+}
 
 function AnimationsToggle({ t }) {
   const [on, setOn] = useState(() => animPref !== 'off')
@@ -4455,19 +7301,74 @@ function AnimationsToggle({ t }) {
   return reduced ? jsx(Tip, { label: t('page.animations_reduced'), children: jsx('span', { tabIndex: 0, children: label }) }) : label
 }
 
+function RawToggle({ t }) {
+  const on = useRaw()
+  const qc = useQueryClient()
+  return jsx(Tip, {
+    label: t('page.raw_title'),
+    children: jsxs('button', {
+      'aria-pressed': on ? 'true' : 'false',
+      className: 'tn-anim-toggle tn-raw',
+      onClick: () => {
+        setRawPref(!on)
+        qc.resetQueries({ queryKey: ['tenure'] })
+      },
+      type: 'button',
+      children: [jsx('i', { 'aria-hidden': true, 'data-on': on ? 'true' : 'false' }), t(on ? 'page.raw_on' : 'page.raw_off')]
+    })
+  })
+}
+
+const VIEWS = ['map', 'agents', 'benchmark', 'community', 'switch', 'undo', 'settings', 'help']
+const typing = e => {
+  const el = e.target
+  const tag = ((el && el.tagName) || '').toLowerCase()
+  return tag === 'input' || tag === 'textarea' || tag === 'select' || (el && el.isContentEditable) || !!(el && el.closest && el.closest('[role=dialog],[role=alertdialog]'))
+}
+
 function TenurePage() {
   const t = usePluginI18n(ID)
   const { data, error, isLoading, refetch } = useAgents()
-  const [view, setView] = useState('agents')
+  const { data: activity } = useActivity()
+  const qc = useQueryClient()
+  const [view, setView] = useState('map')
+  const rootRef = useRef(null)
   useEffect(() => {
     const onFocus = () => setView('agents')
+    const onView = e => setView(e.detail.view)
     bus.addEventListener('focus', onFocus)
-    return () => bus.removeEventListener('focus', onFocus)
+    bus.addEventListener('view', onView)
+    // Shortcuts work while focus is inside the page: it takes focus when it opens.
+    if (rootRef.current && document.activeElement === document.body) rootRef.current.focus()
+    return () => {
+      bus.removeEventListener('focus', onFocus)
+      bus.removeEventListener('view', onView)
+    }
   }, [])
+  const transitions = usePageTransitions(data, t)
   const agents = allAgents(data)
   const here = ((data && data.profiles) || []).find(p => p.current) || {}
   const start = startOf(here.settings, (here.agents || []).flatMap(a => a.types || []))
   const trustedStart = start === 'trusted'
+  const unreadable = ((data && data.profiles) || []).filter(p => p.error).map(p => p.profile)
+  const undoCount = ((activity && activity.undoable) || []).length
+  const onKey = e => {
+    if (e.metaKey || e.ctrlKey || e.altKey || typing(e)) return
+    const hit = PAGE_KEYS.find(([k]) => k === e.key)
+    if (hit) {
+      setView(hit[1])
+      e.preventDefault()
+    } else if (e.key === 'r') {
+      setRawPref(!rawPref)
+      qc.resetQueries({ queryKey: ['tenure'] })
+      e.preventDefault()
+    }
+  }
+  const openAgent = key => {
+    focusKey = key
+    focusRevoke = false
+    setView('agents')
+  }
   let body
   if (isLoading && !data) body = jsx(PanelEmpty, { description: t('common.loading'), icon: 'loading~spin' })
   else if (error && !data)
@@ -4478,11 +7379,19 @@ function TenurePage() {
     })
   else if (view === 'settings') body = jsx(SettingsView, { data, t })
   else if (view === 'help') body = jsx(HelpView, { data, t })
+  else if (view === 'community') body = jsx(CommunityView, { t })
   else if (!agents.length) body = jsx(PanelEmpty, { description: t(trustedStart ? 'empty.desc_trusted' : 'empty.desc'), icon: 'shield', title: t('empty.title') })
+  else if (view === 'map') body = jsx(MapView, { data, onOpen: openAgent, t, transitions })
   else if (view === 'benchmark') body = jsx(BenchmarkView, { t })
+  else if (view === 'switch') body = jsx(SwitchView, { data, t })
+  else if (view === 'undo') body = jsx(UndoView, { data, t })
   else body = jsx(AgentsView, { data, t })
   return jsxs('div', {
     className: 'tn-root relative flex h-full flex-col overflow-hidden bg-(--ui-surface-background)',
+    onKeyDown: onKey,
+    ref: rootRef,
+    style: { outline: 'none' },
+    tabIndex: -1,
     children: [
       jsxs('header', {
         className: 'tn-head shrink-0',
@@ -4493,31 +7402,25 @@ function TenurePage() {
               jsx('h1', { className: 'text-sm font-semibold text-foreground', style: { margin: 0 }, children: t('page.title') }),
               agents.length
                 ? jsx('span', { className: 'rounded-full bg-(--ui-bg-quaternary) px-1.5 py-px text-[0.625rem] tabular-nums text-(--ui-text-tertiary)', children: String(agents.length) })
-                : null
+                : null,
+              data ? jsxs('div', { className: 'tn-head-tog', children: [jsx(RawToggle, { t }), jsx(AnimationsToggle, { t })] }) : null
             ]
           }),
           data
-            ? jsxs('div', {
+            ? jsx('div', {
                 className: 'tn-head-ctl',
-                children: [
-                  jsx(SegmentedControl, {
-                    onChange: setView,
-                    options: [
-                      { id: 'agents', label: t('page.view_agents') },
-                      { id: 'benchmark', label: t('page.view_benchmark') },
-                      { id: 'settings', label: t('page.view_settings') },
-                      { id: 'help', label: t('page.view_help') }
-                    ],
-                    sizing: 'content',
-                    value: view
-                  }),
-                  jsx(AnimationsToggle, { t })
-                ]
+                children: jsx(SegmentedControl, {
+                  onChange: setView,
+                  options: VIEWS.map(id => ({ id, label: id === 'undo' && undoCount ? `${t('page.view_undo')} · ${num(undoCount)}` : t('page.view_' + id) })),
+                  sizing: 'content',
+                  value: view
+                })
               })
             : null
         ]
       }),
-      agents.length && (view === 'agents' || view === 'benchmark') ? jsx(Intro, { t, spot: (here.settings || {}).spot, start }) : null,
+      unreadable.length ? jsx('p', { className: 'tn-note', style: { margin: '0 1rem 0.75rem' }, children: t('page.unreadable', { profiles: unreadable.join(', ') }) }) : null,
+      agents.length && (view === 'map' || view === 'agents' || view === 'benchmark') ? jsx(Intro, { t, spot: (here.settings || {}).spot, start }) : null,
       body
     ]
   })
@@ -4558,8 +7461,10 @@ export default {
   description: 'Autonomy each action type earns on verified evidence: tiers, your own benchmark, a signed passport.',
   register(ctx) {
     ctx.i18n.register(hostBundles(TENURE_LOCALES))
-    rest = ctx.rest
     storage = ctx.storage
+    rawPref = !!storage && storage.get('raw', 'off') === 'on'
+    // Every call of the page carries raw=1 while raw names are on (the dashboard's `r` switch).
+    rest = (path, opts) => ctx.rest(rawPref ? path + (path.includes('?') ? '&' : '?') + 'raw=1' : path, opts)
     animPref = storage && storage.get('animations', 'on') === 'off' ? 'off' : 'on'
     const style = document.createElement('style')
     style.dataset.plugin = ID

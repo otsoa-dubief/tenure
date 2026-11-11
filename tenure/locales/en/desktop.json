@@ -21,13 +21,51 @@
   "benchmark.range_tip": "Fault rate and its 95% range, on a 0–{max}% axis",
   "benchmark.rate": "{rate}% ({low}–{high}%)",
   "benchmark.search": "Search action types",
+  "cell.capped_by_settings": "Capped by the risk settings",
+  "cell.kind_irreversible": "{type} · {stakes}, irreversible",
+  "cell.kind_reversible": "{type} · {stakes}, reversible",
+  "cell.provisional_long": {
+    "one": "{n} carried over from the previous model, provisional",
+    "other": "{n} carried over from the previous model, provisional"
+  },
+  "cell.record": "Record: {successes} successes · {faults} faults · {neutrals} neutral · {spot} spot checks",
+  "cell.series": "Series {series}/{required} in a row",
+  "cell.sessions": {
+    "one": "{n} session",
+    "other": "{n} sessions"
+  },
+  "cell.tier_now": "Tier now: {tier} ({name})",
   "chip.tip": {
     "one": "{name}: {earned} of {n} action type has earned autonomy (T2 or T3). Open Tenure.",
     "other": "{name}: {earned} of {n} action types have earned autonomy (T2 or T3). Open Tenure."
   },
   "common.loading": "Reading the evidence…",
   "common.no_match": "No match",
+  "common.own_profile_only": "Acts on the current profile only",
   "common.retry": "Try again",
+  "community.col_contributors": "contributors",
+  "community.col_model": "model",
+  "community.empty_how": "To contribute, write your record with this command, read what it holds, then open a pull request adding the file to the community repository ({repo}).",
+  "community.empty_title": "No shared records yet",
+  "community.empty_what": "The community benchmark pools records that Tenure users chose to publish: per model and per action family, verified successes and faults, signed with their passport key. Nothing is shared automatically: Tenure makes no network call.",
+  "community.empty_where": "To see the board here, download the community-board.json the repository publishes and save it as {path}.",
+  "community.generated": "{records} · board generated on {date}",
+  "community.lede": "Self-reported by contributors, and signature-checked: each record is signed with its owner's passport key, and one record per key counts. ",
+  "community.lede_bold": "This does not stop one person with many keys.",
+  "community.models": {
+    "one": "{n} model",
+    "other": "{n} models"
+  },
+  "community.ranking": "Per action family, models ranked by the top of the 95% range of their fault rate, never by one score.",
+  "community.records": {
+    "one": "{n} record",
+    "other": "{n} records"
+  },
+  "confirm.flag_desc": "This counts as a fault: {type} drops at least one tier and climbs again. Use it for an error nobody caught.",
+  "confirm.flag_title": "Flag {type} as an error?",
+  "confirm.revoke_desc": "{type} asks first again and its series restarts from zero. Not a fault.",
+  "confirm.revoke_title": "Take back {type}?",
+  "confirm.undo_title": "Undo action {id}?",
   "emblem.none": "No autonomy earned yet",
   "emblem.review": {
     "one": "{n} type under review",
@@ -44,6 +82,52 @@
   "empty.desc": "Work as usual. Every change asks first, and each action type earns its tier from the answers you give.",
   "empty.desc_trusted": "Work as usual. Each action type acts as Hermes alone would until its first mistake; from then on it asks first and earns its tier back from your answers.",
   "empty.title": "No agent has acted yet",
+  "event.confirmed": "carried-over evidence confirmed by its own",
+  "event.expired_pending": "pending action expired · no evidence",
+  "event.fault_check": "automatic check failed",
+  "event.fault_flag": "flagged as a fault by you",
+  "event.fault_other": "fault ({source})",
+  "event.fault_refusal": "refused by you",
+  "event.fault_spot": "spot check refused or failed",
+  "event.fault_undo": "undone by you",
+  "event.neutral_alone": "acted alone (earned)",
+  "event.neutral_ambiguous": "ambiguous call · no evidence",
+  "event.neutral_blocked": "blocked by another guard · no evidence",
+  "event.neutral_error": "tool error · no evidence",
+  "event.neutral_expired": "never reported back · no evidence",
+  "event.neutral_nobody": "nobody to answer · no evidence",
+  "event.neutral_other": "neutral ({source})",
+  "event.neutral_timeout": "no answer · no evidence",
+  "event.revoked": "revoked by you",
+  "event.success_approved": "approved by you, ran cleanly",
+  "event.success_notify": "acted, then told you · not undone",
+  "event.success_spot": "spot check approved by you",
+  "event.switch": "model switch",
+  "event.switch_from": "model switch from {from}",
+  "event.tier": "tier {from} → {to} · {why}",
+  "event.trial_failed": {
+    "one": "trial failed: wait {n} action",
+    "other": "trial failed: wait {n} actions"
+  },
+  "event.trial_opened": {
+    "one": "trial opened: next {n} must succeed",
+    "other": "trial opened: next {n} must succeed"
+  },
+  "event.trial_passed": "trial passed",
+  "event.trial_reopens": {
+    "one": "trial reopens: next {n} must succeed",
+    "other": "trial reopens: next {n} must succeed"
+  },
+  "event.why_fault": "fault",
+  "event.why_series_complete": "series complete",
+  "event.why_series_n": "series {required}/{required}",
+  "event.why_sessions": {
+    "one": "{n} session",
+    "other": "{n} sessions"
+  },
+  "event.why_settings": "stricter settings",
+  "event.why_stakes": "stakes changed",
+  "event.why_wald": "sequential test passed",
   "flag.confirm": "Flag",
   "flag.desc": "This counts as a fault: {type} will drop at least one tier and climb again. Use it for an error nobody caught.",
   "flag.title": "Flag this change as an error?",
@@ -57,6 +141,10 @@
   "help.benchmark_body": "Your benchmark is each model's verified record on your own work, per action type, with the 95% range of its fault rate. A model is ranked once it has {n} verified outcomes on a type. A public score, when shown, is context: capability on someone else's tasks, not reliability on yours.",
   "help.flag_body": "Flag reports an error nobody caught. It counts as a fault: the type drops at least one tier, then climbs again.",
   "help.intro": "Tenure decides, per model and per action type, whether Hermes asks you first, acts then tells you, or acts on its own. Every decision comes from verified evidence, written in a signed ledger.",
+  "help.key_help": "This help",
+  "help.key_raw": "Raw type names on / off",
+  "help.keys_note": "Shortcuts work while focus is inside this page.",
+  "help.keys_title": "Keyboard",
   "help.passport_body": "The passport is a signed summary of an agent's record: each action type's tier, its faults and verified outcomes, and the head of the hash-chained ledger. It is signed with this profile's Ed25519 key. To check it, download it from the agent's page, export the ledger, then verify:",
   "help.passport_checks": "The check verifies the signature and the hash chain, then replays the ledger to recompute the same tiers. Nothing in it is self-declared.",
   "help.session_body": "Some asks (code run inline, complex shell commands, local commands tenure does not cover such as rm, mv or cp, and a command after outside content) offer “Allow for this session”: that ask stays quiet until the session ends. It is your choice, not evidence: it earns nothing, and a new session asks again.",
@@ -74,6 +162,67 @@
   "intro.body_trusted": "Each action type starts trusted: until its first mistake it acts as Hermes alone would, and a reversible change acts, then tells you, with an Undo. Its first fault (an Undo, a failed check, a flag) puts it on Probation (T1): it asks first. A run of clean, approved actions moves it to T2; a longer run, over two sessions, to T3: it acts on its own, and 1 action in {k} still asks, as a spot check. Leaving the machine and money always ask.",
   "intro.got_it": "Got it",
   "intro.title": "How an action type earns its tier",
+  "legend.a_share": "a share",
+  "legend.alone": "acts on its own, {share} spot-checked",
+  "legend.ask": "asks first",
+  "legend.capped": "capped: always asks",
+  "legend.carried": "from the previous model, provisional",
+  "legend.carried_flag": "carried over",
+  "legend.notify": "acts, then tells you, with an undo (reversible types)",
+  "legend.series": "verified successes in a row, of the N needed",
+  "legend.trusted": "trusted start: acts like Hermes alone until its first mistake, nothing earned",
+  "map.aria": "Agents by action type",
+  "map.asked_suffix": " asked",
+  "map.capped": "capped",
+  "map.carried_n": {
+    "one": "{n} carried over",
+    "other": "{n} carried over"
+  },
+  "map.copy_pending": "copied from another profile, checked when it starts",
+  "map.count_faults": {
+    "one": "{n} fault",
+    "other": "{n} faults"
+  },
+  "map.count_sessions": {
+    "one": "{n} session",
+    "other": "{n} sessions"
+  },
+  "map.current": " · this profile",
+  "map.fault_on_record": "fault on record",
+  "map.group_high": "high stakes",
+  "map.group_low": "low stakes",
+  "map.group_medium": "medium stakes",
+  "map.held": "stored {tier}, held back by your settings",
+  "map.one_in": "1 in {k}",
+  "map.pending": "applies from the next action",
+  "map.preset": "{preset} preset",
+  "map.profile": "Profile {profile}",
+  "map.read_only": " · read-only here",
+  "map.spot": "spot checks {rate}",
+  "map.start_probation": "study start (probation)",
+  "map.start_trusted": "trusted start",
+  "map.strict": "strict",
+  "map.suspended": {
+    "one": "{n} session suspended: external content read",
+    "other": "{n} sessions suspended: external content read"
+  },
+  "map.th_agent": "Agent",
+  "map.th_agent_sub": "profile · model@provider",
+  "map.th_capped": "capped · always asks",
+  "map.th_risk": {
+    "one": "risk {risk} · {n} in a row to act on its own",
+    "other": "risk {risk} · {n} in a row to act on its own"
+  },
+  "map.tot_actions": {
+    "one": "{n} action",
+    "other": "{n} actions"
+  },
+  "map.tot_alone": "{n} without asking",
+  "map.tot_checked": "{n} checked",
+  "map.tot_faults": {
+    "one": "{n} fault",
+    "other": "{n} faults"
+  },
   "meta.actions": "Actions",
   "meta.actions_tip": "Every action of this agent tenure saw. Actions nobody verified (no answer, a timeout) count for nothing.",
   "meta.alone": "On its own",
@@ -83,6 +232,28 @@
   "meta.profile": "Profile",
   "meta.provider": "Provider",
   "meta.start": "Start",
+  "missing.always_asks": "always asks",
+  "missing.earned": "earned · spot-checked",
+  "missing.more_to_t2": {
+    "one": "{n} more to reach Under review (T2)",
+    "other": "{n} more to reach Under review (T2)"
+  },
+  "missing.more_to_t3": {
+    "one": "{n} more to Tenured",
+    "other": "{n} more to Tenured"
+  },
+  "missing.rechecking": "re-checking",
+  "missing.second_session": "needs a 2nd session",
+  "missing.trial_left": {
+    "one": "trial · {n} of {total} to go",
+    "other": "trial · {n} of {total} to go"
+  },
+  "missing.trial_wait": {
+    "one": "trial failed · wait {n}",
+    "other": "trial failed · wait {n}"
+  },
+  "missing.trusted": "trusted until its first mistake · acts like Hermes alone",
+  "missing.trusted_undo": "trusted until its first mistake · acts, then tells you, with an undo",
   "model_menu.badge": "{tier} earned",
   "moment.dismiss": "Dismiss",
   "moment.eyebrow_down": "#Fault · {type}",
@@ -93,13 +264,37 @@
   "moment.review": "Under review",
   "moment.review_sub": "{name} now acts, then tells you, with an Undo.",
   "nav.label": "Tenure",
+  "overview.actions_label": {
+    "one": "{n} action",
+    "other": "{n} actions"
+  },
+  "overview.actions_sub": "covered",
+  "overview.alone_label": "acted without asking",
+  "overview.alone_sub": "ran without asking, of {total}",
+  "overview.aria": "Last 7 days",
+  "overview.checked_label": "checked",
+  "overview.checked_sub": "by you, of {total}",
+  "overview.faults_label": "faults caught",
+  "overview.faults_sub": {
+    "one": "{faults} of {n} check by you",
+    "other": "{faults} of {n} checks by you"
+  },
+  "overview.window": "last 7 days, every profile",
   "page.animations": "Animations",
   "page.animations_reduced": "Your system asks for reduced motion: animations stay off",
+  "page.raw_off": "redacted names",
+  "page.raw_on": "raw names",
+  "page.raw_title": "Show raw action type names (r)",
   "page.title": "Tenure",
+  "page.unreadable": "Unreadable: {profiles}. Its database exists but cannot be opened; other profiles are shown.",
   "page.view_agents": "Agents",
   "page.view_benchmark": "Your benchmark",
+  "page.view_community": "Community",
   "page.view_help": "Help",
+  "page.view_map": "Map",
   "page.view_settings": "Settings",
+  "page.view_switch": "Switch preview",
+  "page.view_undo": "Undo",
   "palette.no_current": "The current model has no record yet.",
   "palette.open": "Tenure: Open",
   "palette.passport": "Tenure: Show passport for current model",
@@ -111,6 +306,11 @@
     "one": "{n} fault / {total} verified outcomes",
     "other": "{n} faults / {total} verified outcomes"
   },
+  "passport.field_profile": "Profile",
+  "passport.field_public_key": "Public key",
+  "passport.field_settings": "Settings",
+  "passport.field_signature": "Signature",
+  "passport.field_type_names": "Type names",
   "passport.generated": "Generated",
   "passport.image_failed": "Could not draw the image",
   "passport.ledger": "Ledger",
@@ -132,6 +332,11 @@
   "passport.title": "Signed passport",
   "passport.trusted": "Trusted (not earned)",
   "passport.unavailable": "Not available: {error}",
+  "passport.value_hashed": "{profile} (hashed)",
+  "passport.value_none": "none",
+  "passport.value_raw": "raw",
+  "passport.value_redacted": "redacted after the program and subcommand",
+  "passport.value_unsigned": "unsigned",
   "passport.verified": "Verified: signature valid, hash chain intact, and replaying the ledger gives the same tiers.",
   "passport.verify_hint": "Anyone can check it:",
   "passport.verifying": "Verifying…",
@@ -239,6 +444,56 @@
   "state.suspended_tip": "A session read outside content: it asks for everything until it ends.",
   "state.trial": "trial",
   "state.trial_tip": "A medium or high fault opened a trial: 3 verified successes in a row.",
+  "switch.arrow": "→",
+  "switch.capped": "capped",
+  "switch.col_after": "after the switch",
+  "switch.col_now": "now",
+  "switch.col_outcome": "outcome",
+  "switch.col_public": "public measure",
+  "switch.col_record": "your record",
+  "switch.col_type": "type",
+  "switch.count_carried": {
+    "one": "{n} carried",
+    "other": "{n} carried"
+  },
+  "switch.count_kept": {
+    "one": "{n} kept",
+    "other": "{n} kept"
+  },
+  "switch.count_reset": {
+    "one": "{n} reset",
+    "other": "{n} reset"
+  },
+  "switch.count_vetoed": {
+    "one": "{n} vetoed",
+    "other": "{n} vetoed"
+  },
+  "switch.delta": " ({delta})",
+  "switch.empty": "No agent to preview yet",
+  "switch.footnote": "Public scores inform; they never grant autonomy. A veto only blocks carry-over, beyond a fixed margin.",
+  "switch.from": "From",
+  "switch.label_carried": "carried, provisional",
+  "switch.label_kept": "kept",
+  "switch.label_reset": "reset",
+  "switch.label_vetoed": "vetoed",
+  "switch.lede": "Before you change model: what the new agent would inherit, type by type. A new model or provider is a new agent. Carry-over is our addition; strict mode is the study.",
+  "switch.no_public": "no public measure",
+  "switch.none": "none",
+  "switch.pick_body": "Type any model id. Nothing changes until Hermes actually runs the new model.",
+  "switch.pick_title": "Pick a target model",
+  "switch.placeholder": "model id, e.g. {example} or model@provider",
+  "switch.preview": "Preview",
+  "switch.provisional": {
+    "one": "{n} provisional",
+    "other": "{n} provisional"
+  },
+  "switch.strict": "strict mode: nothing carries over",
+  "switch.text_carried": "Part of the series carries over, marked provisional until the new model adds its own.",
+  "switch.text_kept": "The new agent already has its own record here; it is never overwritten.",
+  "switch.text_reset": "Starts from zero: high stakes, capped, or strict mode.",
+  "switch.text_vetoed": "The public benchmark shows the new model weaker on this type: nothing carries over.",
+  "switch.to": "To model",
+  "switch.to_aria": "Target model",
   "tier.cap": "Capped · always asks",
   "tier.chip_trusted": "TRUSTED",
   "tier.name.cap": "Always asks",
@@ -250,12 +505,48 @@
   "tier.t2": "T2 · acts, then tells you, with an Undo",
   "tier.t3": "T3 · acts on its own, spot-checked",
   "tier.trusted": "Trusted · acts like Hermes alone until its first mistake",
+  "time.days": {
+    "one": "{n}d",
+    "other": "{n}d"
+  },
+  "time.hours_minutes": {
+    "one": "{n}h {mm}m",
+    "other": "{n}h {mm}m"
+  },
+  "time.minutes": {
+    "one": "{n}m",
+    "other": "{n}m"
+  },
+  "time.seconds": {
+    "one": "{n}s",
+    "other": "{n}s"
+  },
+  "timeline.all_types": "All types",
+  "timeline.count": {
+    "one": "{n}×",
+    "other": "{n}×"
+  },
+  "timeline.empty": "No evidence for this filter",
+  "timeline.filter_label": "Filter by type",
+  "timeline.loading": "Loading the evidence…",
+  "timeline.note": "From the hash-chained ledger, newest first, last 200 events. Repeated outcomes are grouped.",
+  "timeline.title": "Evidence timeline",
   "toast.acted": {
     "one": "{type} changed, then told you ({name}).",
     "other": "{type}: {n} changes, then told you ({name})."
   },
   "toast.acted_detail": "Undo restores the files of the last change and counts as a fault.",
+  "toast.transition": "{agent} · {type}: {from} → {to}",
+  "transitions.empty": "None since this page opened. Every automatic tier change is listed here and in each agent's timeline.",
+  "transitions.title": "Tier changes seen on this page",
+  "transitions.why_after_fault": "after a fault",
+  "transitions.why_changed": "without a fault: revoked, or the settings or stakes changed",
+  "transitions.why_on_evidence": "on evidence",
+  "transitions.why_trial_open": "trial open",
   "type.always_asks": "always asks",
+  "type.flag_button": "Flag",
+  "type.flag_done": "Fault recorded on {type}: now {tier}.",
+  "type.flag_title": "Record a fault on this type, after the fact",
   "type.guarantee": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad.",
   "type.guarantee_plain": "At most about 1 in {k} of its actions runs with an error nobody approved.",
   "type.guarantee_provisional": "At most {aoql}% of this type's actions run with an error nobody approved; {worst}% if the model turns bad. Provisional: carried-over evidence.",
@@ -273,6 +564,9 @@
     "other": "{n} more verified successes in a row to be tenured."
   },
   "type.next_session": "The series is complete: one more session finishes it.",
+  "type.revoke_button": "Revoke",
+  "type.revoke_done": "Revoked {type}: back to T1.",
+  "type.revoke_title": "Take back what this type earned: back to T1",
   "type.sessions": {
     "one": "{n} session",
     "other": "{n} sessions"
@@ -286,5 +580,19 @@
   "type.trusted_line": "Trusted until its first mistake · acts like Hermes alone.",
   "type.trusted_line_undo": "Trusted until its first mistake · acts, then tells you, with an Undo.",
   "type.trusted_no_guarantee": "No guarantee yet: a guarantee comes only with a tier earned on evidence. Its first fault puts it on Probation (T1).",
-  "types.title": "Action types"
+  "types.title": "Action types",
+  "undo.col_agent": "agent",
+  "undo.col_effect": "effect of undo",
+  "undo.col_file": "file",
+  "undo.col_type": "type",
+  "undo.col_when": "when",
+  "undo.confirm": "Undo #{id}?",
+  "undo.effect_already": "restores the files · the automatic check already counted a fault",
+  "undo.effect_fault": "restores the files · counts as a fault",
+  "undo.effect_none": "nothing to restore (no snapshot) · would count as a fault",
+  "undo.empty_body": "File writes the agent made without asking (trusted, or at T2: acts, then tells you) keep a snapshot of the files for 24 hours. They appear here, newest first, each with its own undo.",
+  "undo.empty_title": "Nothing to undo",
+  "undo.lede": "Recent act-then-notify actions. Undo restores the files from their snapshot and counts as a fault of the type.",
+  "undo.title": "Restore the files",
+  "undo.window_ends": "window ends in {duration}"
 }
