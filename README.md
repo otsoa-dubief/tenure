@@ -58,6 +58,11 @@ What tenure asks that Hermes alone would not:
   for this session" stops the questions for that kind of command until the session ends (the answer that allows it counts once, like any approval; what the grant lets through
   afterwards counts for nothing).
 
+**In practice.** In one ordinary coding session of 30 calls (writing files, npm, pytest, git, `rm`, `mv`, `sed -i`,
+`echo >>`, a web page, a push), the trusted start asks 3 questions Hermes would not: `rm *.log`, `git push`, and a
+command right after the web page. Hermes asks 2 more by itself. The study start asks 23. Replay it:
+`python scripts/friction.py` (the session is in `tests/friction.py`).
+
 Prefer the preregistered study's start, where every type begins on probation? `hermes tenure start probation`.
 
 | | Hermes by default | `--yolo` | An allowlist | **tenure** |
