@@ -46,12 +46,14 @@ Tenure keeps Hermes' speed and adds what is missing:
 What tenure asks that Hermes alone would not:
 
 - what leaves your machine: pushes, publishing, deploys, registry logins, messages, uploads, cloud writes, payments;
-- what cannot be undone: deleting files, discarding uncommitted git work, `sed -i`, `cp`, `mv`, anything under `sudo`;
+- what cannot be undone: recursive deletes, file commands with a glob or a variable, files outside the project,
+  discarding uncommitted git work, anything under `sudo` (a plain `rm`, `mv`, `cp`, `sed -i`, `touch` or `echo > file`
+  on project files is saved first and runs with an undo, like a file write);
 - programs outside the list above (database and unknown CLIs, or a package runner starting one), until they earn it;
 - shell it cannot read safely (`for`, `if`, `python -c`), and the agent's own skills, plugins and secrets;
 - every command, for the rest of a session that just read outside content (web, mail, downloads, `git pull`);
   file writes keep going with their undo, and `/new` starts afresh;
-- writing through the shell (`echo … > file`, `tee`; a covered tool's own output, `pytest > log`, is fine), local
+- other writing through the shell (`tee`, a pipe into a file; a covered tool's own output, `pytest > log`, is fine), local
   scripts (`./run.sh`, `bash x.sh`) and `docker`. For these and inline code (`python -c`, `for`, `if`), "Allow
   for this session" stops the questions for that kind of command until the session ends (the answer that allows it counts once, like any approval; what the grant lets through
   afterwards counts for nothing).
@@ -128,7 +130,7 @@ start is not the study either: trusted actions earn nothing and carry no guarant
 **Agents.** Each action type of each agent (`model@provider`) is trusted, or in one of the three tiers above.
 
 **Trusted start.** A type nobody has caught in a mistake runs as with Hermes alone. Reversible actions (files in the
-project) act, then tell you, with an undo; the others just run. What ends the trust: an undo, a flag
+project, including a plain `rm`, `mv`, `cp`, `sed -i` or `> file` on them) act, then tell you, with an undo; the others just run. What ends the trust: an undo, a flag
 (`/tenure flag TYPE`), a file it wrote that no longer parses (Python, JSON, TOML), or your refusal when Hermes itself
 asks about the call (a risky-looking command). A command that merely fails is not held against it: a failing test is
 often the point. The first fault ends the trust for that type for good, in this profile, for every model, present

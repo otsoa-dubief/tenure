@@ -51,7 +51,7 @@ your command:
 
 | Type in your ledger | Family in the record |
 |---|---|
-| `file:write`, `memory:write`, `delegate:task` | unchanged (fixed words of the classifier) |
+| `file:write`, `file:shell`, `memory:write`, `delegate:task` | unchanged (fixed words of the classifier) |
 | `shell:git:commit`, `shell:kubectl:apply` | unchanged (known program, known subcommand) |
 | `shell:git:my-alias` | `shell:git` |
 | `shell:npm:run:build` | `shell:npm:run` |

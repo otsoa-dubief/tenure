@@ -39,7 +39,7 @@ HEX64, HEX128 = re.compile(r"[0-9a-f]{64}"), re.compile(r"[0-9a-f]{128}")
 FIXED_TYPES = frozenset({
     "bot:message", "browser:cdp", "browser:dialog", "browser:exec", "code:execute", "computer:use", "cron:manage",
     "delegate:task", "discord:admin", "feishu:comment", "file:sensitive", "file:unknown", "file:unreadable",
-    "file:write-outside", "file:write", "media:generate", "memory:write", "message:react", "message:send",
+    "file:shell", "file:write-outside", "file:write", "media:generate", "memory:write", "message:react", "message:send",
     "process:manage", "schedule:at", "schedule:crontab", "schedule:launchctl", "secrets:vault", "self:connections",
     "self:env", "self:hermes", "self:plugins", "self:skills", "self:tenure", "tool:unreadable-args",
 } | {t for t, _, _ in classify.TOOLS.values()})
