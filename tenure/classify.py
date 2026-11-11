@@ -1400,6 +1400,42 @@ PACKAGE_RUNNERS = {"npm": {"exec", "x"}, "pnpm": {"dlx", "exec"}, "yarn": {"dlx"
                    "uv": {"run", "tool"}, "poetry": {"run"}, "pipx": {"run"}, "uvx": (), "bunx": ()}
 
 
+# Programs the trusted start may cover (kept in step with params.TRUSTED_PROGRAMS) plus the runners that start them:
+# only these need the scan below, since anything else asks under the study rule anyway.
+TRUSTABLE = {"npm", "pnpm", "yarn", "bun", "node", "deno", "tsc", "eslint", "prettier", "jest", "vitest", "python",
+             "python3", "pytest", "uv", "poetry", "ruff", "black", "mypy", "isort", "cargo", "rustc", "go", "make",
+             "cmake", "gradle", "mvn", "swift", "dotnet", "git", "mkdir", "touch", "uvx", "bunx", "pipx"}
+OUTBOUND_ANY = OUTBOUND_VERBS | {"push", "dcommit", "imap-send", "uploadarchives", "perform"}
+
+
+def _outbound_word(typ: str, tokens: list[str]) -> str | None:
+    """A word anywhere in a shell call that means it leaves the machine or throws work away: a script or target named
+    deploy/release/publish (``bun run deploy``, ``go run ./cmd/deploy``, ``deno run deploy.ts``), a registry or
+    remote verb (``twine upload``, ``git lfs push``, ``svn dcommit``, ``mvn release:perform``), ``--remote``; for
+    git, a forced checkout/switch/worktree removal, ``reset --merge|--keep`` or ``reflog expire|delete`` ("discard").
+    ``git stash push`` and quoted messages are not matched."""
+    words = [t for t in tokens if t and not t.startswith("-")]
+    prog = typ.split(":")[1] if typ.count(":") >= 1 else ""
+    if prog == "git" and len(words) > 1:
+        sub, rest = words[1], set(tokens[2:])
+        forced = bool(rest & {"-f", "--force"}) or any(re.fullmatch(r"-[a-zA-Z]*f[a-zA-Z]*", t) for t in rest)
+        if (sub in ("checkout", "switch") and forced) or (sub == "worktree" and "remove" in rest and forced) \
+                or (sub == "reset" and rest & {"--merge", "--keep"}) or (sub == "reflog" and rest & {"expire", "delete"}):
+            return "discard"
+        if sub == "stash":
+            return None
+    if any(t == "--remote" or t.startswith("--remote=") for t in tokens):
+        return "remote"
+    for w in words[1:]:
+        if " " in w:
+            continue                                         # a quoted message, not a verb
+        base = os.path.basename(w.rstrip("/")).lower()
+        for piece in [base, base.rsplit(".", 1)[0], *base.split(":")]:
+            if piece in OUTBOUND_ANY:
+                return piece
+    return None
+
+
 def _git_discards(sub: str, args: list[str]) -> bool:
     """git commands that throw away uncommitted work: checkout -- <paths> / checkout ., restore, stash drop|clear,
     reset --hard, clean -f, branch -D."""
@@ -2837,6 +2873,12 @@ def _segment_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, st
         own = (own[0], MEDIUM)                               # a read-only command, under an environment it chose
     if RANK[own[1]] < RANK[HIGH] and any(os.path.basename(t) in ("sudo", "doas") for t in tokens[:4]):
         own = (own[0], HIGH)                                 # root rights: beyond the project, never trusted
+    prog_of = own[0].split(":")[1] if own[0].startswith("shell:") and own[0].count(":") else ""
+    if prog_of in TRUSTABLE and (own[1] in (LOW, MEDIUM) or own[0] == "shell:git:reflog"):
+        out = _outbound_word(own[0], tokens)
+        if out:                                              # publish, deploy, discard... anywhere in the call
+            own = (own[0] if out in own[0].lower().split(":") or any(p.startswith(out + ".") for p in own[0].lower().split(":"))
+                   else f"shell:{prog_of}:{out}", HIGH)
     return floor if floor and RANK[floor[1]] > RANK[own[1]] else own
 
 

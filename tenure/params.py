@@ -39,12 +39,13 @@ DEFAULT_START = "trusted"
 TRUSTED_TYPES = ("file:write", "file:write-outside", "memory:write", "delegate:task")
 # Subcommands that leave the machine are never covered, whatever classify made of them (e.g. `bun publish`).
 UNTRUSTED_VERBS = frozenset({"publish", "deploy", "unpublish", "yank", "login", "logout", "adduser", "token", "owner",
-                             "dist-tag", "deprecate", "send-email", "upload", "release", "push", "discard"})
+                             "dist-tag", "deprecate", "send-email", "upload", "release", "push", "discard",
+                             "remote", "dcommit", "imap-send", "uploadarchives", "perform", "x", "dlx"})
 TRUSTED_PROGRAMS = frozenset({
     "npm", "pnpm", "yarn", "bun", "node", "deno", "tsc", "eslint", "prettier", "jest", "vitest",
     "python", "python3", "pytest", "uv", "poetry", "ruff", "black", "mypy", "isort",
     "cargo", "rustc", "go", "make", "cmake", "gradle", "mvn", "swift", "dotnet",
-    "git", "mkdir", "touch", "cp", "mv", "ln", "sed", "awk", "tar", "unzip", "zip", "gzip",
+    "git", "mkdir", "touch",
 })
 DEFAULT_SPOT = 0.1          # one cleared action in ten still asks
 LEVELS = ("low", "medium", "high")
