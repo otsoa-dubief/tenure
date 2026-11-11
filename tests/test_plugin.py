@@ -197,7 +197,7 @@ def age(mod, call, seconds=90000, session="s1"):
 # ------------------------------------------------------------------------------------------------ registration
 def test_registers_the_hooks_and_commands(plugin):
     mod, ctx = plugin()
-    assert set(ctx.hooks) == {"pre_api_request", "pre_tool_call", "post_approval_response", "post_tool_call",
+    assert set(ctx.hooks) == {"pre_api_request", "pre_tool_call", "post_approval_response", "post_tool_call", "post_llm_call",
                               "subagent_start", "subagent_stop"}
     assert "tenure" in ctx.commands and "tenure" in ctx.cli
 

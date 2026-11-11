@@ -285,6 +285,7 @@
   "notice.trust.lost": "tenure · ↓ En probation · {type}\nSa première erreur : il vous demande d'abord désormais, pour ce type d'action seulement. Il regagne son autonomie à partir d'ici.",
   "settle.acted": "tenure : {type} a agi, puis vous a prévenu · {command} {id}",
   "settle.acted_fault": "tenure : {type} a agi, puis vous a prévenu, mais la vérification automatique a échoué ({reason}) ; comptée comme une faute · {command} {id}",
+  "settle.acted_many": "tenure : {type} a agi {n} fois, puis vous a prévenu · {command} {id} (ou {ids})",
   "settle.check_failed": "tenure : {type} : la vérification automatique a échoué ({reason}) ; comptée comme une faute.",
   "stakes.high": "élevé",
   "stakes.low": "faible",

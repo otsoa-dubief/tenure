@@ -437,6 +437,7 @@
   "notice.trust.lost": "tenure · ↓ في فترة الاختبار · {type}\nخطؤه الأول: من الآن يطلب إذنك أولًا، لهذا النوع من الإجراءات فقط. ويستعيد استقلاليته انطلاقًا من هنا.",
   "settle.acted": "tenure: نفّذ {type} ثم أبلغك · {command} {id}",
   "settle.acted_fault": "tenure: نفّذ {type} ثم أبلغك، لكن الفحص التلقائي فشل ({reason})؛ حُسب إخفاقًا · {command} {id}",
+  "settle.acted_many": "tenure: نفّذ {type} {n} مرات ثم أبلغك · {command} {id} (أو {ids})",
   "settle.check_failed": "tenure: {type}: فشل الفحص التلقائي ({reason})؛ حُسب إخفاقًا.",
   "stakes.high": "عالية",
   "stakes.low": "منخفضة",

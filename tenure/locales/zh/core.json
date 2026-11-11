@@ -247,6 +247,7 @@
   "notice.trust.lost": "tenure · ↓ 进入试用期 · {type}\n这是它的第一次失误：从现在起，仅对这类操作，它会先征求你的同意。它将从这里重新赢得自主权。",
   "settle.acted": "tenure：{type} 已执行并告知你 · {command} {id}",
   "settle.acted_fault": "tenure：{type} 已执行并告知你，但自动检查失败（{reason}）；已记为失误 · {command} {id}",
+  "settle.acted_many": "tenure：{type} 已执行 {n} 次，随后通知了你 · {command} {id}（或 {ids}）",
   "settle.check_failed": "tenure：{type}：自动检查失败（{reason}）；已记为失误。",
   "stakes.high": "高",
   "stakes.low": "低",

@@ -285,6 +285,7 @@
   "notice.trust.lost": "tenure · ↓ On probation · {type}\nIts first mistake: it asks you first from now on, for this kind of action only. It earns its autonomy back from here.",
   "settle.acted": "tenure: {type} acted, then told you · {command} {id}",
   "settle.acted_fault": "tenure: {type} acted, then told you, but the automatic check failed ({reason}); counted as a fault · {command} {id}",
+  "settle.acted_many": "tenure: {type} acted {n} times, then told you · {command} {id} (or {ids})",
   "settle.check_failed": "tenure: {type}: the automatic check failed ({reason}); counted as a fault.",
   "stakes.high": "high",
   "stakes.low": "low",

@@ -95,6 +95,7 @@ class _State:
         self.opening = threading.Lock()          # opening the store
         self.agents: OrderedDict[str, str] = OrderedDict()     # session id -> agent of its latest API request
         self.tainted: OrderedDict[str, float] = OrderedDict()  # suspended sessions (anonymised) -> since when
+        self.acted: dict = {}           # (session, type) -> {"ids", "handle", "at"}: this turn's acted message
         self.cwds: OrderedDict[str, str] = OrderedDict()       # session id -> terminal cwd its last command reported
         self.last_agent = ""
         self.rng = random.SystemRandom()
@@ -589,12 +590,56 @@ def _push(event: str, payload: dict | None = None) -> None:
         log.debug("tenure: plugin event %s not sent", event, exc_info=True)
 
 
+class Acted(str):
+    """An "acted, then told you" line: actions of one type in one turn share one message, edited in place."""
+    def __new__(cls, text: str, session: str, type_key: str, undo_id: int):
+        obj = super().__new__(cls, text)
+        obj.session, obj.type_key, obj.undo_id = session, type_key, undo_id
+        return obj
+
+
+ACTED_WINDOW = 600.0            # seconds: without an end-of-turn signal, a later action starts a new message
+
+
+def _ids(ids: list[int]) -> str:
+    return f"{ids[0]}–{ids[-1]}" if ids == list(range(ids[0], ids[-1] + 1)) else ", ".join(map(str, ids))
+
+
 def _announce(text: str) -> None:
     try:
-        if ST.ctx is not None and hasattr(ST.ctx, "post_message"):
-            ST.ctx.post_message(text)
+        if ST.ctx is None or not hasattr(ST.ctx, "post_message"):
+            return
+        if isinstance(text, Acted):
+            key, now = (text.session, text.type_key), time.time()
+            with ST.mem:
+                entry = ST.acted.get(key)
+                if entry and now - entry["at"] < ACTED_WINDOW and callable(getattr(entry["handle"], "edit", None)):
+                    entry["ids"].append(text.undo_id)
+                    entry["at"] = now
+                    ids = entry["ids"]
+                    grouped = tr("settle.acted_many", type=text.type_key, n=len(ids), command="/tenure undo",
+                                 id=ids[-1], ids=_ids(ids))
+                    entry["handle"].edit(grouped)
+                    return
+            handle = ST.ctx.post_message(str(text))
+            with ST.mem:
+                ST.acted[key] = {"ids": [text.undo_id], "handle": handle, "at": now}
+            return
+        ST.ctx.post_message(text)
     except Exception:
         log.debug("tenure: post_message failed", exc_info=True)
+
+
+def post_llm_call(session_id="", **kwargs):
+    """The turn ended: the next acted action of a type starts a new message."""
+    try:
+        session = anon(session_id or kwargs.get("task_id") or "")
+        with ST.mem:
+            for key in [k for k in ST.acted if k[0] == session or not session_id]:
+                del ST.acted[key]
+    except Exception:
+        log.debug("tenure: post_llm_call failed", exc_info=True)
+    return None
 
 
 def _purge() -> None:
@@ -976,7 +1021,8 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         if reason:
             posts.append(tr("settle.acted_fault", type=key, reason=reason, command="/tenure undo", id=undo_id))
         else:
-            posts.append(tr("settle.acted", type=key, command="/tenure undo", id=undo_id))
+            posts.append(Acted(tr("settle.acted", type=key, command="/tenure undo", id=undo_id), p["session"], key,
+                               undo_id))
     elif reason:
         posts.append(tr("settle.check_failed", type=key, reason=reason))
     return posts + _say(events, cfg["spot"])
@@ -1279,6 +1325,7 @@ def register(ctx):
     ctx.register_hook("pre_tool_call", pre_tool_call)
     ctx.register_hook("post_approval_response", post_approval_response)
     ctx.register_hook("post_tool_call", post_tool_call)
+    ctx.register_hook("post_llm_call", post_llm_call)
     ctx.register_hook("subagent_start", subagent_start)
     ctx.register_hook("subagent_stop", subagent_stop)
     from . import cli

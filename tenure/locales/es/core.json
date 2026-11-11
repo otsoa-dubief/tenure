@@ -285,6 +285,7 @@
   "notice.trust.lost": "tenure · ↓ En prueba · {type}\nSu primer error: a partir de ahora te pregunta primero, solo para este tipo de acción. Recupera su autonomía desde aquí.",
   "settle.acted": "tenure: {type} actuó y luego te avisó · {command} {id}",
   "settle.acted_fault": "tenure: {type} actuó y luego te avisó, pero la comprobación automática falló ({reason}); contado como fallo · {command} {id}",
+  "settle.acted_many": "tenure: {type} actuó {n} veces y luego te avisó · {command} {id} (o {ids})",
   "settle.check_failed": "tenure: {type}: la comprobación automática falló ({reason}); contado como fallo.",
   "stakes.high": "alto",
   "stakes.low": "bajo",

@@ -309,3 +309,28 @@ def test_the_first_outside_read_is_explained_once(plugin):
     ctx.call("web_search", {"query": "y"})
     said = [p for p in ctx.posted if "/new" in p]
     assert len(said) == 1 and "commands ask" in said[0]
+
+
+class Handle:
+    """Hermes' PluginMessage: a posted message that can be edited in place."""
+    def __init__(self, box, i):
+        self.box, self.i = box, i
+
+    def edit(self, text):
+        self.box[self.i] = text
+        return self
+
+
+def test_writes_in_one_turn_share_one_edited_message(plugin):
+    mod, ctx = plugin(TRUST)
+    def post(text):
+        ctx.posted.append(text)
+        return Handle(ctx.posted, len(ctx.posted) - 1)
+    ctx.post_message = post
+    for i in range(3):
+        assert ctx.call("write_file", write(f"g{i}")) == "ran"
+    acted = [p for p in ctx.posted if "acted" in p]
+    assert len(acted) == 1 and "3 times" in acted[0] and "/tenure undo 3" in acted[0] and "1–3" in acted[0]
+    mod.post_llm_call(session_id="s1")                                  # the turn ends: the next write posts anew
+    ctx.call("write_file", write("g9"))
+    assert len([p for p in ctx.posted if "acted" in p]) == 2
