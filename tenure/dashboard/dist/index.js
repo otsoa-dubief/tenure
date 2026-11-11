@@ -3845,8 +3845,8 @@ const TENURE_LOCALES = {
                     h(DitherBar, Object.assign(barProps(ty), { className: "tnr-drawer-bar", delay: 200 + ti * 40 }))),
                   h("td", null, h(TierChip, { tier: shownTier(ty), capped: ty.capped, label: true }),
                     ty.tier !== ty.effective_tier && !ty.trusted ? h("div", { className: "tnr-held" }, t("cell.held", { tier: TIER[ty.tier] })) : null),
-                  h("td", { className: "tnr-num" }, ty.capped ? "—" : num(ty.series) + "/" + num(ty.required)),
-                  h("td", { className: "tnr-num" }, ty.capped ? "—" : num(ty.sessions) + "/" + SESSIONS),
+                  h("td", { className: "tnr-num" }, ty.capped || ty.trusted ? "—" : num(ty.series) + "/" + num(ty.required)),
+                  h("td", { className: "tnr-num" }, ty.capped || ty.trusted ? "—" : num(ty.sessions) + "/" + SESSIONS),
                   h("td", { className: "tnr-num" }, num(ty.faults) + " / " + num(ty.successes + ty.faults)),
                   h("td", { className: "tnr-dtable-actions" },
                     h(ConfirmBtn, {
@@ -4301,8 +4301,8 @@ const TENURE_LOCALES = {
                 h("td", null, trust ? h(Fragment, null, h(TierChip, { tier: "trusted", still: true }),
                   h("div", { className: "tnr-dim tnr-small" }, t("passport.trusted")))
                   : h(TierChip, { tier: ty.effective_tier || ty.tier, capped: !!g.capped, label: true })),
-                h("td", { className: "tnr-num" }, ty.required == null ? "—" : num(ty.series) + "/" + num(ty.required)),
-                h("td", { className: "tnr-num" }, num(ty.sessions)),
+                h("td", { className: "tnr-num" }, ty.required == null || ty.trusted ? "—" : num(ty.series) + "/" + num(ty.required)),
+                h("td", { className: "tnr-num" }, ty.trusted ? "—" : num(ty.sessions)),
                 h("td", { className: "tnr-small" }, g.capped ? t("legend.capped") : trust ? h("span", { className: "tnr-dim" }, t("guarantee.trusted")) : h(Guarantee, { g: g })));
             }))))));
   }
