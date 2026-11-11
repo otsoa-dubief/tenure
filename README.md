@@ -76,6 +76,10 @@ hermes tenure setup          # the three presets side by side
 Requires Hermes 0.23.0 or later and Python 3.11 or later. No network, no LLM call, nothing to configure to start.
 Work as usual: `hermes tenure` shows where each action type stands.
 
+**In Hermes Desktop**, turn the page on once (Hermes asks this of every plugin's desktop half):
+**Capabilities → Plugins → Tenure**. The **Tenure** page then appears in the sidebar, with a status-bar chip.
+The web dashboard shows a **Tenure** tab without any step.
+
 ## Three pillars
 
 **1. Your own benchmark.** Public leaderboards say how a model does on someone else's tasks. tenure keeps a
