@@ -165,6 +165,10 @@ if START == "trusted":
     for cmd in ("npm test && rm -rf build", "npm run deploy", "aws s3 cp a s3://b", "uv publish", "sudo make install",
                 "git checkout -- .", "stripe charges create", "sed -i s/a/b/ notes.md"):
         check(f"trusted: still asks: {cmd}", run("terminal", {"command": cmd}, "once", real=False), "approved")
+    check("trusted: inline code asks, and 'Allow for this session' is offered",
+          run("terminal", {"command": "python3 -c 'print(1)'"}, "session", real=False), "approved")
+    check("trusted: ...then Hermes' own session grant lets the next one run",
+          run("terminal", {"command": "python3 -c 'print(2)'"}, real=False), "ran")
     code, out = cli("flag", "shell:npm")
     check("trusted: a flag ends the trust for that type", run("terminal", {"command": "npm test"}, "once", real=False),
           "approved")
