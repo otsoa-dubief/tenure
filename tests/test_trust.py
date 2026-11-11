@@ -87,3 +87,27 @@ def test_the_passport_replays_a_trusted_record(plugin):
         live.pop("changed_at"), again.pop("changed_at")
         assert live == again
     assert replayed["shell:npm"].distrusted and not replayed["file:write"].distrusted
+
+
+def test_the_first_fault_says_so_in_the_chat(plugin):
+    mod, ctx = plugin(TRUST)
+    ctx.call("write_file", write("n1"))
+    uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    assert "T1" in mod.cli.slash(f"undo {uid}")
+    tiers = [e for e in ledger(mod, "tier") if e.get("from") == "trusted"]
+    assert len(tiers) == 1 and tiers[0]["to"] == mod.rule.T1
+    assert mod._say(tiers, 0.1)[0].startswith("tenure · ↓ On probation · file:write")
+
+
+def test_status_shows_trusted_types_and_the_start(plugin):
+    mod, ctx = plugin(TRUST)
+    ctx.call("terminal", NPM)
+    text = mod.cli.slash("status")
+    assert "Trusted start" in text and "Trusted (until a mistake)" in text
+
+
+def test_the_start_command_saves_the_setting(plugin):
+    mod, ctx = plugin(TRUST)
+    assert mod.cli.slash("start probation").startswith("Study start")
+    assert ctx.settings["start"] == "probation"
+    assert ctx.call("write_file", write("st")) == "approved"

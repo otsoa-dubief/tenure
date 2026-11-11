@@ -622,6 +622,8 @@ def _say(events: list[dict], spot: float) -> list[str]:
                           sessions=tr("notice.count.sessions", n=ev.get("sessions"))))
         elif kind == "tier" and reason == "wald":
             out.append(tr("notice.tier.wald", type=t))
+        elif kind == "tier" and reason == "fault" and ev.get("from") == "trusted":
+            out.append(tr("notice.trust.lost", type=t))
         elif kind == "tier" and reason == "fault" and ev.get("to") == rule.T1:
             out.append(tr("notice.tier.fault_probation", type=t))
         elif kind == "tier" and reason in ("fault", "settings"):
@@ -667,6 +669,7 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
     s = st.get_state(agent, type_key, stakes, reversible)
     n = params.required_n(cfg["risks"], stakes)
     rebased = rule.rebase(s) if recorded is not None and recorded.stakes != stakes else []
+    was_trusted = trusted(cfg, s, n, stakes)
     if result == "success":
         events = rule.on_success(s, n, session=session, source=source)
     elif result == "fault":
@@ -674,6 +677,9 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
     else:
         events = rule.on_neutral(s, source)
     failed_trial = any(ev["event"] == "trial" and ev.get("reason") == "failed" for ev in events)
+    if was_trusted and result == "fault" and not any(ev["event"] == "tier" for ev in events):
+        events.insert(0, {"event": "tier", "type": type_key, "stakes": stakes, "from": "trusted", "to": s.tier,
+                          "reason": "fault"})                # the trusted start ends: the study rule applies now
     events = rebased + events
     if (result, source) in store.COUNTED and not failed_trial:
         events += rule.count_action(s)

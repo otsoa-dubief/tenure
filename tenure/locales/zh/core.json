@@ -146,6 +146,9 @@
   "cli.setup.paused": "学习已暂停：{setting} 已关闭。将 {setting} 设为 smart 或 manual，tenure 才能学习。",
   "cli.setup.save_failed": "无法保存预设（{error}）。请设置 {setting}: {name}",
   "cli.setup.unknown": "未知预设 {name}。",
+  "cli.start.probation": "研究起步：每类操作都会先征求你的同意，直到赢得自主权（预注册研究的规则）。",
+  "cli.start.save_failed": "无法保存起步模式（{error}）。请设置 {setting}: {value}",
+  "cli.start.trusted": "信任起步：每类操作在第一次失误之前，都像只有 Hermes 时一样运行；之后会先征求你的同意，并重新赢得自主权。",
   "cli.status.capped": "受限：始终询问",
   "cli.status.chain_broken": {
     "other": "证据：{n} 条，哈希链断裂（{problem}）。"
@@ -176,10 +179,12 @@
     "other": "另有 {n} 个智能体有记录（{agents}）：{command}"
   },
   "cli.status.paused": "此处学习已暂停：没人应答审批（{why}）。已赢得的级别照常运行。",
+  "cli.status.trusted_start": "信任起步：各类操作在第一次失误之前像只有 Hermes 时一样运行（{command} 可改为研究起步）。",
   "cli.strict.off": "严格模式已关闭：新模型继承上一个模型一半的记录，除非公开基准否决该类型。",
   "cli.strict.on": "严格模式已开启：新模型从空记录开始，不继承任何记录。",
   "cli.strict.save_failed": "无法保存严格模式（{error}）。请设置 {setting}: {value}",
   "cli.tier.held": "{tier}（受设置压制）",
+  "cli.tier.trusted": "信任中（直到失误）",
   "cli.undo.footer": "撤销其中一个：{command} <编号>",
   "cli.undo.footer_more": "共 {total} 个中最新的 {shown} 个。撤销其中一个：{command} <编号>",
   "cli.undo.more_files": {
@@ -192,7 +197,7 @@
   "cli.undo.title": {
     "other": "过去 {n} 小时内自主执行的操作（撤销任一个都记为失误）："
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    undo [ID]                                  恢复一个先执行后告知的操作写入的文件（记为失误）；不带参数时列出清单\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    strict on|off                              严格模式：新模型从空记录开始\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    undo [ID]                                  恢复一个先执行后告知的操作写入的文件（记为失误）；不带参数时列出清单\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    start trusted|probation                    trusted：某类操作第一次失误前不提问；probation：研究起步\n    strict on|off                              严格模式：新模型从空记录开始\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n",
   "cli.verify.after": {
     "other": "注意：此护照之后账本中有 {n} 个事件；级别没有变化。"
   },
@@ -230,6 +235,7 @@
   "notice.trial.wait_over": {
     "other": "tenure：{type} 获得新的考察期：接下来的 {n} 个操作会询问。"
   },
+  "notice.trust.lost": "tenure · ↓ 进入试用期 · {type}\n这是它的第一次失误：从现在起，仅对这类操作，它会先征求你的同意。它将从这里重新赢得自主权。",
   "settle.acted": "tenure：{type} 已执行并告知你 · {command} {id}",
   "settle.acted_fault": "tenure：{type} 已执行并告知你，但自动检查失败（{reason}）；已记为失误 · {command} {id}",
   "settle.check_failed": "tenure：{type}：自动检查失败（{reason}）；已记为失误。",

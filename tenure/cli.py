@@ -122,8 +122,10 @@ def _join(items) -> str:
     return tr("cli.list.separator").join(items)
 
 
-def _tier_cell(s: rule.TypeState, n: int | None) -> str:
+def _tier_cell(s: rule.TypeState, n: int | None, cfg: dict | None = None) -> str:
     eff = effective_tier(s, n)
+    if cfg is not None and eff != rule.T3 and _core().trusted(cfg, s, n, s.stakes):
+        return tr("cli.tier.trusted")
     return tr("cli.tier.held", tier=tier_name(eff)) if _RANK[s.tier] > _RANK[eff] else tier_name(eff)
 
 
@@ -180,7 +182,7 @@ def _status_agent(st, agent: str, cfg: dict) -> list[str]:
         notes = [tr("cli.status.note.provisional", n=s.provisional)] if s.provisional else []
         notes += [tr("cli.status.note.trial", n=s.trial_left)] if s.trial_left else []
         notes += [tr("cli.status.note.trial_wait", n=s.trial_wait)] if s.trial_wait else []
-        cells.append([s.key, _stakes(s.stakes), _tier_cell(s, n), series, sessions, _record(s.faults, s.successes),
+        cells.append([s.key, _stakes(s.stakes), _tier_cell(s, n, cfg), series, sessions, _record(s.faults, s.successes),
                       tr("cli.status.notes", guarantee=guar, notes=tr("cli.list.joiner").join(notes)) if notes
                       else guar])
     lines += ["  " + ln for ln in _table(_cols("type", "stakes", "tier_now", "series", "sessions", "record",
@@ -197,7 +199,7 @@ def status_text(agent: str | None = None, *, profile: str | None = None, model: 
         last = passport._last_settings(st.ledger())
         if last:
             cfg = {**cfg, "risks": dict(last["risks"]), "spot": last.get("spot", cfg["spot"]),
-                   "strict": bool(last.get("strict"))}
+                   "strict": bool(last.get("strict")), "start": last.get("start", "probation")}
         agents = (_targets(core, st, agent=agent, model=model, every=every) if (agent or model or every) else
                   [st.get_meta("agent:last") or "unknown@unknown"])
     else:
@@ -206,6 +208,8 @@ def status_text(agent: str | None = None, *, profile: str | None = None, model: 
     header = ("cli.status.header.profile" if profile else "cli.status.header.here") + ("_strict" if cfg["strict"]
                                                                                         else "")
     lines = [tr(header, profile=profile, preset=cfg["preset"], spot=round(1 / cfg["spot"]))]
+    if cfg.get("start") == "trusted":
+        lines.append(tr("cli.status.trusted_start", command="hermes tenure start probation"))
     copied = None if profile else st.get_meta(core.COPIED_META)
     if copied:
         lines.append(tr("cli.status.copied", date=time.strftime("%Y-%m-%d", time.localtime(float(copied)))))
@@ -534,6 +538,14 @@ def setup_preset(name: str = "") -> str:
     return warn + tr("cli.setup.in_force", name=name) + "\n" + presets_text(core.settings()["spot"])
 
 
+def start(value: str) -> str:
+    core = _core()
+    err = _save_setting(core, "start", value)
+    if err:
+        return tr("cli.start.save_failed", error=err, setting=f"{SETTINGS}.start", value=value)
+    return tr("cli.start.trusted") if value == "trusted" else tr("cli.start.probation")
+
+
 def strict(value: str) -> str:
     core = _core()
     on = value == "on"
@@ -616,6 +628,8 @@ def _add_subcommands(subparser) -> None:
     subs.add_parser("anchor", help="One line to publish: the ledger's head, date and length")
     p = subs.add_parser("export", help="Write the evidence ledger as hash-chained JSON lines")
     p.add_argument("path", nargs="?", default="")
+    p = subs.add_parser("start", help="trusted: no question before a type's first mistake; probation: the study's start")
+    p.add_argument("value", choices=params.STARTS)
     p = subs.add_parser("strict", help="Strict mode: a new model starts with an empty record")
     p.add_argument("value", choices=("on", "off"))
     subs.add_parser("cleanup", help="List dead tenure keys in Hermes' permanent allowlist")
@@ -658,6 +672,8 @@ def execute(ns) -> tuple[str, int]:
             return anchor(), 0
         if cmd == "export":
             return export(g("path", "")), 0
+        if cmd == "start":
+            return start(g("value")), 0
         if cmd == "strict":
             return strict(g("value")), 0
         if cmd == "cleanup":

@@ -166,6 +166,9 @@
   "cli.setup.paused": "el aprendizaje está en pausa: {setting} está desactivado. Define {setting}: smart o manual para que tenure aprenda.",
   "cli.setup.save_failed": "No se pudo guardar el preajuste ({error}). Define {setting}: {name}",
   "cli.setup.unknown": "Preajuste desconocido: {name}.",
+  "cli.start.probation": "Inicio del estudio: cada tipo de acción te pregunta primero hasta ganarse su autonomía (la regla del estudio prerregistrado).",
+  "cli.start.save_failed": "No se pudo guardar el modo de inicio ({error}). Configura {setting}: {value}",
+  "cli.start.trusted": "Inicio con confianza: cada tipo de acción funciona como con Hermes solo hasta su primer error; después te pregunta primero y recupera su autonomía.",
   "cli.status.capped": "limitado: siempre se pregunta",
   "cli.status.chain_broken": {
     "one": "Evidencia: {n} entrada, CADENA ROTA ({problem}).",
@@ -202,10 +205,12 @@
     "other": "{n} agentes más tienen historial ({agents}): {command}"
   },
   "cli.status.paused": "Aprendizaje en pausa aquí: nadie responde a las aprobaciones ({why}). Los niveles ganados siguen activos.",
+  "cli.status.trusted_start": "Inicio con confianza: los tipos actúan como con Hermes solo hasta su primer error ({command} para el inicio del estudio).",
   "cli.strict.off": "Modo estricto desactivado: un modelo nuevo hereda la mitad del historial del modelo anterior, salvo que un benchmark público vete el tipo.",
   "cli.strict.on": "Modo estricto activado: un modelo nuevo empieza con un historial vacío, no se hereda nada.",
   "cli.strict.save_failed": "No se pudo guardar el modo estricto ({error}). Define {setting}: {value}",
   "cli.tier.held": "{tier} (retenido: configuración)",
+  "cli.tier.trusted": "Con confianza (hasta un error)",
   "cli.undo.footer": "Deshacer una: {command} <número>",
   "cli.undo.footer_more": "Las {shown} más recientes de {total}. Deshacer una: {command} <número>",
   "cli.undo.more_files": {
@@ -221,7 +226,7 @@
     "one": "Acciones hechas por su cuenta en la última hora (deshacer una cuenta como fallo):",
     "other": "Acciones hechas por su cuenta en las últimas {n} horas (deshacer una cuenta como fallo):"
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   lo que ha ganado cada agente, por tipo de acción\n    setup [careful|balanced|fast]              las tres recomendaciones; con un nombre, lo aplica\n    explain                                    cómo decide tenure y qué garantizan los números\n    models [--type T]                          el historial verificado de cada modelo en tu propio trabajo\n    undo [ID]                                  restaura los archivos de una acción que actuó y luego avisó (cuenta un fallo); sin ID, la lista\n    flag TYPE [note] [--model M]               informa de un error que el agente cometió por su cuenta: se le revoca la autonomía\n    revoke TYPE|all [--model M | --all]        retira la autonomía ganada sin que haya error\n    passport [--agent A] [--out FILE]          escribe el pasaporte firmado de un agente (--no-redact conserva los nombres de tipo)\n    verify PASSPORT [LEDGER]                   comprueba un pasaporte; con el registro exportado, lo recalcula reproduciéndolo\n    anchor                                     una línea para publicar: el último hash, la fecha y la longitud del registro\n    export [PATH]                              escribe el registro de evidencia (líneas JSON encadenadas por hash)\n    strict on|off                              modo estricto: un modelo nuevo empieza con un historial vacío\n    cleanup                                    lista las claves muertas de tenure en la lista de permitidos permanente de Hermes\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   lo que ha ganado cada agente, por tipo de acción\n    setup [careful|balanced|fast]              las tres recomendaciones; con un nombre, lo aplica\n    explain                                    cómo decide tenure y qué garantizan los números\n    models [--type T]                          el historial verificado de cada modelo en tu propio trabajo\n    undo [ID]                                  restaura los archivos de una acción que actuó y luego avisó (cuenta un fallo); sin ID, la lista\n    flag TYPE [note] [--model M]               informa de un error que el agente cometió por su cuenta: se le revoca la autonomía\n    revoke TYPE|all [--model M | --all]        retira la autonomía ganada sin que haya error\n    passport [--agent A] [--out FILE]          escribe el pasaporte firmado de un agente (--no-redact conserva los nombres de tipo)\n    verify PASSPORT [LEDGER]                   comprueba un pasaporte; con el registro exportado, lo recalcula reproduciéndolo\n    anchor                                     una línea para publicar: el último hash, la fecha y la longitud del registro\n    export [PATH]                              escribe el registro de evidencia (líneas JSON encadenadas por hash)\n    start trusted|probation                    trusted: ninguna pregunta antes del primer error de un tipo; probation: el inicio del estudio\n    strict on|off                              modo estricto: un modelo nuevo empieza con un historial vacío\n    cleanup                                    lista las claves muertas de tenure en la lista de permitidos permanente de Hermes\n",
   "cli.verify.after": {
     "one": "Nota: el registro tiene {n} evento posterior a este pasaporte; los niveles no cambian.",
     "other": "Nota: el registro tiene {n} eventos posteriores a este pasaporte; los niveles no cambian."
@@ -267,6 +272,7 @@
     "one": "tenure: {type} tiene un nuevo periodo de prueba: su próxima acción pregunta.",
     "other": "tenure: {type} tiene un nuevo periodo de prueba: sus próximas {n} acciones preguntan."
   },
+  "notice.trust.lost": "tenure · ↓ En prueba · {type}\nSu primer error: a partir de ahora te pregunta primero, solo para este tipo de acción. Recupera su autonomía desde aquí.",
   "settle.acted": "tenure: {type} actuó y luego te avisó · {command} {id}",
   "settle.acted_fault": "tenure: {type} actuó y luego te avisó, pero la comprobación automática falló ({reason}); contado como fallo · {command} {id}",
   "settle.check_failed": "tenure: {type}: la comprobación automática falló ({reason}); contado como fallo.",

@@ -172,7 +172,8 @@ def _settings(core, st, own: bool = False) -> dict:
                   "custom")
     return {"preset": preset, "risks": risks,
             "spot": spot if isinstance(spot, (int, float)) and 0 < spot < 1 else params.DEFAULT_SPOT,
-            "strict": bool(ev.get("strict")), "overrides": {}, "enabled": True, "pending": False}
+            "strict": bool(ev.get("strict")), "overrides": {}, "enabled": True, "pending": False,
+            "start": ev.get("start") if ev.get("start") in params.STARTS else "probation"}
 
 
 def _type_row(core, cfg: dict, s, raw: bool = False) -> dict:
@@ -182,6 +183,10 @@ def _type_row(core, cfg: dict, s, raw: bool = False) -> dict:
             "tier": s.tier,
             # A copied profile that has not started yet will restart every type: nothing it shows is earned yet.
             "effective_tier": rule.T1 if cfg.get("copy_pending") else rule.effective_tier(s, n, s.stakes),
+            # Trusted start: no fault yet, so it asks nothing Hermes would not (an earned T3 shows as T3).
+            "trusted": (not cfg.get("copy_pending") and core.trusted(cfg, s, n, s.stakes)
+                        and rule.effective_tier(s, n, s.stakes) != rule.T3),
+            "distrusted": s.distrusted,
             "capped": n is None, "required": None if n is None else rule.required(s, n),
             "series": s.series, "sessions": len(s.sessions), "wald": s.wald,
             "successes": s.successes, "faults": s.faults, "neutrals": s.neutrals, "spot_checks": s.spot_checks,

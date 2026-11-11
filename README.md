@@ -1,10 +1,11 @@
 <h1 align="center">tenure</h1>
 
-<p align="center"><strong>Autonomy your agent earns, one action type at a time, on evidence you can check.</strong></p>
+<p align="center"><strong>Hermes trusts your agent blindly. Tenure makes that trust revocable.</strong></p>
 
 <p align="center">
-  A plugin for <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>. Every change your agent makes asks first.
-  Each kind of action earns the right to act alone, under a risk you set, and loses it on one fault.
+  A plugin for <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a>. Not one extra question on day
+  one. Every action can be undone or flagged. The first mistake on a kind of action puts that kind, and only that
+  kind, on probation: it asks first, and earns its autonomy back on verified evidence.
 </p>
 
 <p align="center">
@@ -24,32 +25,35 @@
   <a href="#commands">Commands</a>
 </p>
 
-<p align="center"><img alt="Illustration: T1 asks first, T2 acts then tells you, T3 acts on its own; one fault and the type drops back" src="docs/images/tiers.svg" width="820"><br><sub>Illustration of the rule, not a screenshot.</sub></p>
+<p align="center"><img alt="Illustration of the earned tiers after a first mistake: T1 asks first, T2 acts then tells you, T3 acts on its own; one fault and the type drops back" src="docs/images/tiers.svg" width="820"><br><sub>Illustration of the rule, not a screenshot.</sub></p>
 
 ## The problem
 
-Out of the box, Hermes asks about a short list of risky-looking commands and lets everything else through, and
-there is no way to say "trust it on this, not on that". You either babysit every step or hand over the keys.
+Out of the box, Hermes asks about a short list of risky-looking commands and lets everything else through: it
+writes your files, runs your tests, edits its memory, without a word, and it keeps doing so after it gets something
+wrong. There is no undo, no record, and no way to say "trust it on this, not on that". `--yolo` removes even the
+short list.
 
-tenure closes that gap. Every action that changes something asks first, through Hermes' own approval prompt.
-Each action type (writing files in the project, `npm`, `git push`, sending a message, one MCP tool) keeps its own
-verified record and climbs three tiers, only on evidence:
+Tenure keeps Hermes' speed and adds what is missing:
 
 | Tier | What happens |
 |---|---|
-| **T1 · Probation** (asks first) | Every action of the type asks you first. Everything starts here. |
-| **T2 · Under review** (acts, then tells you) | The agent acts, then tells you, with an undo: the files it touched were saved first (24 hours, 5 MB per action). Only for reversible types at low or medium stakes. |
-| **T3 · Tenured** (acts on its own) | The agent acts on its own. A random share of actions (one in ten by default) still asks, as a spot check. |
+| **Trusted** (the start) | The agent works as with Hermes alone: no extra question. Files it changes are saved first and can be undone for 24 hours (`/tenure undo`); anything can be flagged (`/tenure flag`). |
+| **T1 · Probation** (asks first) | After its first mistake (an undo, a flag, a failed automatic check, a refusal), that kind of action asks you first. Only that kind. |
+| **T2 · Under review** (acts, then tells you) | Earned back on approvals: the agent acts, then tells you, with an undo. Only for reversible types at low or medium stakes. |
+| **T3 · Tenured** (acts on its own) | Earned on a series of verified successes over two sessions, under a risk you set. One in ten is still spot-checked. |
 
-One fault and the type drops back. Ordinary reads never ask; secrets, sensitive files, the agent's own skills and
-plugins, and anything that could switch tenure off always do (see [Self-protection](#self-protection)).
+What leaves your machine (pushes, messages, uploads, payments), the agent's own skills, plugins and secrets, and a
+session that just read outside content (web, mail, downloads) always ask: those are the only questions Hermes would
+not have asked. Prefer the preregistered study's start, where every type begins on probation?
+`hermes tenure start probation`.
 
 | | Hermes by default | `--yolo` | An allowlist | **tenure** |
 |---|---|---|---|---|
-| Asks before a change | a short list of commands | never | until you allow it | every change, at first |
-| Trust per kind of action | no | no | by hand | **earned, per action type** |
-| Trust taken back | no | no | by hand | **on one fault** |
-| A risk you choose, with its numbers | no | no | no | **yes, per stakes level** |
+| Extra questions on day one | - | - | - | **none** (except what leaves the machine) |
+| Undo of what the agent changed | no | no | no | **yes, 24 hours** |
+| Trust taken back after a mistake | no | no | by hand | **automatically, per action type** |
+| Trust earned back on evidence | no | no | by hand | **yes, under a risk you choose** |
 | Evidence someone else can check | no | no | no | **signed passport** |
 
 ## Three pillars
@@ -134,7 +138,13 @@ Carry-over is our addition; strict mode is the study. The public-benchmark veto 
 
 ## How it works
 
-**Agents.** Each action type of each agent (`model@provider`) is in one of the three tiers above.
+**Agents.** Each action type of each agent (`model@provider`) is trusted, or in one of the three tiers above.
+
+**Trusted start.** A type nobody has caught in a mistake runs as with Hermes alone. Reversible actions (files in the
+project) act, then tell you, with an undo; the others just run, and their automatic check (the written file still
+parses, the exit code is zero) still judges them. Its first fault ends the trust for that type for good, in this
+profile, across model changes: from then on the study rule below applies, starting from T1. Trusted actions carry
+no guarantee: the numbers of [The guarantee](#the-guarantee) apply to tiers earned on evidence.
 
 **Proofs.** A type climbs on verified outcomes, judged after the tool has run: an approved action that ran
 cleanly and whose automatic check passed (the written file still parses, the exit code is zero) is a success, and
@@ -223,6 +233,7 @@ The full rules, every protected entry and every known gap: [docs/self-protection
 | `hermes tenure verify PASSPORT [LEDGER] [--key HEX]` | Check a passport, against the exported ledger when given; `--key` pins the owner's public key |
 | `hermes tenure anchor` | One line to publish: the ledger's head, date and length |
 | `hermes tenure export [PATH]` | Write the evidence ledger as hash-chained JSON lines |
+| `hermes tenure start trusted\|probation` | Trusted start (default: no question before a type's first mistake) or the study's start (every type on probation) |
 | `hermes tenure strict on\|off` | Strict mode: a new model starts with an empty record |
 | `hermes tenure cleanup` | List dead tenure keys in Hermes' permanent allowlist (prints, never edits) |
 
