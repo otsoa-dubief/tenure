@@ -19,6 +19,8 @@ import functools
 import itertools
 import os
 import re
+
+from . import params
 import shlex
 import stat as _stat
 import threading
@@ -1402,9 +1404,7 @@ PACKAGE_RUNNERS = {"npm": {"exec", "x"}, "pnpm": {"dlx", "exec"}, "yarn": {"dlx"
 
 # Programs the trusted start may cover (kept in step with params.TRUSTED_PROGRAMS) plus the runners that start them:
 # only these need the scan below, since anything else asks under the study rule anyway.
-TRUSTABLE = {"npm", "pnpm", "yarn", "bun", "node", "deno", "tsc", "eslint", "prettier", "jest", "vitest", "python",
-             "python3", "pytest", "uv", "poetry", "ruff", "black", "mypy", "isort", "cargo", "rustc", "go", "make",
-             "cmake", "gradle", "mvn", "swift", "dotnet", "git", "mkdir", "touch", "uvx", "bunx", "pipx"}
+TRUSTABLE = set(params.TRUSTED_PROGRAMS) | {"uvx", "bunx", "pipx"}
 OUTBOUND_ANY = OUTBOUND_VERBS | {"push", "dcommit", "imap-send", "uploadarchives", "perform"}
 
 
@@ -3086,6 +3086,8 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
         return SELF_HERMES                                   # the hermes-agent distribution removed or replaced
     if substitution:
         return f"shell:{prog}", HIGH
+    if _venv_activate(prog, args):
+        return "shell:source:activate", MEDIUM               # changes PATH to the project's own virtualenv
     if prog in ("eval", "source", "."):
         return "shell:eval", HIGH
     if prog in SHELLS:
@@ -3904,7 +3906,7 @@ def _tilde_dirs(tokens: list[str]) -> list[str]:
 
 
 def _run(segs: list[Seg], start: str, home: str, depth: int) -> tuple[str, str]:
-    best, first = ("shell:unknown", MEDIUM), True
+    best, first, fallback = ("shell:unknown", MEDIUM), True, None
     states = [(start, None)]       # every (cwd, previous cwd) the shell may be in: a cd that may not stick adds one
     known: dict = {}               # variables assigned earlier on the line (R36)
     for n, seg in enumerate(segs):
@@ -3924,8 +3926,12 @@ def _run(segs: list[Seg], start: str, home: str, depth: int) -> tuple[str, str]:
                 top = fed
         if any(t.startswith("CDPATH=") for t in seg.tokens) or (_cd_kind(seg.tokens) and "CDPATH" in known):
             top = ("self:tenure", CAP)                    # where the cd lands cannot be worked out
-        if (first or RANK[top[1]] > RANK[best[1]]
-                or (RANK[top[1]] == RANK[best[1]] and top[0] in FLOORS and best[0] not in FLOORS)):
+        if _neutral_seg(seg.tokens, top):
+            fallback = top if fallback is None or RANK[top[1]] > RANK[fallback[1]] else fallback   # never wins a tie
+        elif (first or RANK[top[1]] > RANK[best[1]]
+                or (RANK[top[1]] == RANK[best[1]] and top[0] in FLOORS and best[0] not in FLOORS)
+                or (RANK[top[1]] == RANK[best[1]] and params.trust_covers(best[0])
+                    and not params.trust_covers(top[0]))):    # at equal stakes, what the trust does not cover wins
             best, first = top, False
         cd = _cd_kind(seg.tokens)
         if cd:
@@ -3933,6 +3939,8 @@ def _run(segs: list[Seg], start: str, home: str, depth: int) -> tuple[str, str]:
             states = list(dict.fromkeys(states + moved if seg.sub or seg.cond else moved))
             if len(states) > 32:
                 states = [(UNKNOWN, None)]
+    if fallback and (first or RANK[fallback[1]] > RANK[best[1]]):
+        return fallback                                   # a shell move outranks reads only: it keeps its own stakes
     return best
 
 
@@ -3999,6 +4007,29 @@ def _text_floor(text: str) -> str | None:
     if TENURE_NAMES.search(text.casefold().replace("\\", "/")):
         return "self:tenure"
     return "file:sensitive" if _frag(text) else None
+
+
+SHELL_MOVES = {"cd", "pushd", "popd", "export", "sleep", "set", "true", ":"}
+ACTIVATE = re.compile(r"(?:[\w.-]+/)*[\w.-]*/bin/activate(?:\.(?:fish|csh))?")
+
+
+def _venv_activate(prog: str, args: list) -> bool:
+    """`source <dir>/bin/activate` (or `.`): a virtualenv's activate script, inside the project tree."""
+    return (prog in ("source", ".") and len(args) == 1 and bool(ACTIVATE.fullmatch(str(args[0])))
+            and ".." not in str(args[0]) and not str(args[0]).startswith(("/", "~")))
+
+
+def _neutral_seg(seg_tokens: list[str], top: tuple[str, str]) -> bool:
+    """A segment that only moves the shell or its environment, or activates a virtualenv: in a chain it never sets the
+    type (the rest of the chain does). Never when it redirects, writes, hijacks a variable or rates above medium,
+    except `source <dir>/bin/activate`, the virtualenv's own script."""
+    toks = [t for t in seg_tokens if t not in ("(", ")", "{", "}")]
+    if not toks or _redirects(seg_tokens) or _substituted(seg_tokens):
+        return False
+    prog = os.path.basename(toks[0])
+    if _venv_activate(prog, toks[1:]):
+        return True
+    return prog in SHELL_MOVES and RANK[top[1]] <= RANK[MEDIUM] and _hijacks(seg_tokens) is None
 
 
 def _seg_pure(seg_tokens: list[str]) -> bool:
@@ -4134,6 +4165,8 @@ def _seg_complex(tokens: list[str]) -> bool:
     if not toks:
         return False
     prog, args = os.path.basename(toks[0]), toks[1:]
+    if _venv_activate(prog, args):
+        return False                                         # the virtualenv's own activate script
     if prog in ("eval", "source", "."):
         return True
     if prog in SHELLS:

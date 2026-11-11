@@ -45,7 +45,7 @@ TRUSTED_PROGRAMS = frozenset({
     "npm", "pnpm", "yarn", "bun", "node", "deno", "tsc", "eslint", "prettier", "jest", "vitest",
     "python", "python3", "pytest", "uv", "poetry", "ruff", "black", "mypy", "isort",
     "cargo", "rustc", "go", "make", "cmake", "gradle", "mvn", "swift", "dotnet",
-    "git", "mkdir", "touch",
+    "git", "mkdir", "touch", "cd", "pushd", "popd", "export", "sleep", "set",
 })
 DEFAULT_SPOT = 0.1          # one cleared action in ten still asks
 LEVELS = ("low", "medium", "high")
@@ -123,3 +123,16 @@ def describe(preset_or_risks, spot: float = DEFAULT_SPOT) -> dict:
         g = aoql(n, spot)[0]
         out[level] = dict(risk=risks[level], capped=False, n=n, aoql=g, worst_case=worst_case(n, spot))
     return out
+
+
+def trust_covers(key: str) -> bool:
+    """The kinds of action the trusted start may cover: ``TRUSTED_TYPES``, a shell program of ``TRUSTED_PROGRAMS``
+    (a package runner only for a covered program), never a key carrying one of ``UNTRUSTED_VERBS``."""
+    if key in TRUSTED_TYPES:
+        return True
+    parts = key.split(":")
+    if any(p in UNTRUSTED_VERBS for p in parts[2:]):
+        return False
+    if len(parts) >= 4 and parts[0] == "shell" and parts[2] == "exec":
+        return parts[3] in TRUSTED_PROGRAMS
+    return len(parts) >= 2 and parts[0] == "shell" and parts[1] in TRUSTED_PROGRAMS
