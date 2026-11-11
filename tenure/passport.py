@@ -107,7 +107,27 @@ def settings_event_fingerprint(event: dict | None) -> str | None:
 
 
 # ------------------------------------------------------------------------------------------------------ replay
+_REPLAYED: dict = {}             # (rows, head) -> deep copy source: building then verifying a passport replays once
+
+
 def _replay(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState], dict | None]:
+    """Memoised ``_replay_rows``: the ledger is append-only and hash-chained, so its length and head name its content.
+    Callers get their own copy of the states."""
+    try:
+        key = hashlib.sha256("\n".join(str(r["hash"]) for r in rows).encode()).hexdigest()   # chain hashes
+    except (KeyError, TypeError):
+        return _replay_rows(rows)
+    hit = _REPLAYED.get(key)
+    if hit is None:
+        hit = _replay_rows(rows)
+        if len(_REPLAYED) > 8:
+            _REPLAYED.clear()
+        _REPLAYED[key] = hit
+    states, cfg = hit
+    return {k: rule.TypeState.from_dict(v.to_dict()) for k, v in states.items()}, cfg
+
+
+def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState], dict | None]:
     """States by (agent, type), and the last settings event. Mirrors the hooks of ``tenure/__init__.py``:
 
     - settings (``sync_settings``): ``rule.reevaluate`` on every type of every agent known so far (R23);
@@ -308,6 +328,15 @@ def _last_settings(rows: list[dict]) -> dict | None:
     return next((r["event"] for r in reversed(rows) if r["event"].get("event") == "settings"), None)
 
 
+def _states_for(rows: list[dict], agent: str, st) -> dict:
+    """The agent's types as the ledger replays them; the recorded states when the ledger cannot be replayed."""
+    try:
+        states, _ = _replay(rows)
+        return {k: s for (a, k), s in states.items() if a == agent}
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return {s.key: s for _, s in st.states(agent)}
+
+
 def build(st, agent: str, settings: dict, data_dir: str, redact: bool = True, create_key: bool = True,
           rows: list[dict] | None = None) -> dict:
     """The passport of ``agent``: its recorded states, under the settings of the ledger's last settings event (the
@@ -330,7 +359,9 @@ def build(st, agent: str, settings: dict, data_dir: str, redact: bool = True, cr
          "rule": {"name": RULE_NAME, "fingerprint": rule_fingerprint()},
          "settings_fingerprint": settings_event_fingerprint(cfg),
          "redacted": bool(redact),
-         "types": _entries({s.key: s for _, s in st.states(agent)}, cfg, redact),
+         # What the ledger proves, by replay: the very states a verifier recomputes (a record kept by an older
+         # version may differ in a field the replay now derives, such as the trusted start).
+         "types": _entries(_states_for(rows, agent, st), cfg, redact),
          "ledger": {"count": len(rows), "head": _head(rows)}}
     if create_key or os.path.exists(os.path.join(data_dir, KEY_FILE)):
         key, public = keypair(data_dir)

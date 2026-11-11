@@ -203,4 +203,4 @@ console.log(JSON.stringify([
     res = json.loads(subprocess.run([NODE, str(script)], check=True, capture_output=True, text=True).stdout)
     assert res == ["1 session", "0 sessions", "file:write changed, then told you (m).", "file:write: 3 changes, then told you (m).",
                    "1 fault / 4", "balanced · 1 in 10 spot-checked · applies from the next action",
-                   "NAME will ask before every action again. Its record stays in the ledger."]
+                   "Every action type of NAME asks first again and its series restarts from zero. Its record stays in the ledger. Not a fault."]

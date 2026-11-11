@@ -68,20 +68,26 @@ const TENURE_LOCALES = {
     "benchmark.col_public": "Public",
     "benchmark.col_range": "95% range",
     "benchmark.col_rate": "Rate",
+    "benchmark.col_sessions": "sessions",
+    "benchmark.empty_body": "Each verified action adds to the model's record on that type, here and in {cmd}.",
+    "benchmark.empty_title": "No record yet",
     "benchmark.faults": {
       "one": "{n} fault / {total}",
       "other": "{n} faults / {total}"
     },
     "benchmark.no_public": "—",
+    "benchmark.no_public_type": "No public measure for this action type.",
     "benchmark.not_ranked": "Not enough evidence yet",
     "benchmark.not_ranked_note": "A model is ranked once it has {n} verified outcomes on this type.",
     "benchmark.note": "Each model's verified record on your work for this action type, with the 95% range of its fault rate, ranked by the top of that range. The public score is context: capability on their tasks, not reliability on yours.",
+    "benchmark.public_note": "Public capability on their tasks, not reliability on yours.",
     "benchmark.public_score": "Public score: {benchmark}, {source}",
-    "benchmark.public_score_accessed": "Public score: {benchmark}, {source}, {accessed}.",
     "benchmark.public_value": "{value}%",
     "benchmark.range_tip": "Fault rate and its 95% range, on a 0–{max}% axis",
     "benchmark.rate": "{rate}% ({low}–{high}%)",
     "benchmark.search": "Search action types",
+    "benchmark.source": "{source}. Best published score, any harness; not a controlled comparison.",
+    "benchmark.source_accessed": "{source}, accessed {accessed}. Best published score, any harness; not a controlled comparison.",
     "cell.capped_by_settings": "Capped by the risk settings",
     "cell.kind_irreversible": "{type} · {stakes}, irreversible",
     "cell.kind_reversible": "{type} · {stakes}, reversible",
@@ -202,11 +208,14 @@ const TENURE_LOCALES = {
     "help.benchmark_body": "Your benchmark is each model's verified record on your own work, per action type, with the 95% range of its fault rate. A model is ranked once it has {n} verified outcomes on a type. A public score, when shown, is context: capability on someone else's tasks, not reliability on yours.",
     "help.flag_body": "Flag reports an error nobody caught. It counts as a fault: the type drops at least one tier, then climbs again.",
     "help.intro": "Tenure decides, per model and per action type, whether Hermes asks you first, acts then tells you, or acts on its own. Every decision comes from verified evidence, written in a signed ledger.",
+    "help.key_close": "Close",
     "help.key_help": "This help",
+    "help.key_next_prev": "Next / previous agent",
+    "help.key_open": "Open the focused agent",
     "help.key_raw": "Raw type names on / off",
     "help.keys_note": "Shortcuts work while focus is inside this page.",
     "help.keys_title": "Keyboard",
-    "help.passport_body": "The passport is a signed summary of an agent's record: each action type's tier, its faults and verified outcomes, and the head of the hash-chained ledger. It is signed with this profile's Ed25519 key. To check it, download it from the agent's page, export the ledger, then verify:",
+    "help.passport_body": "The passport is a signed summary of an agent's record: each action type's tier, its faults and verified outcomes, and the head of the hash-chained ledger. It is signed with this profile's Ed25519 key. To check it, download it, export the ledger, then verify:",
     "help.passport_checks": "The check verifies the signature and the hash chain, then replays the ledger to recompute the same tiers. Nothing in it is self-declared.",
     "help.session_body": "Some asks (code run inline, complex shell commands, local commands tenure does not cover such as rm, mv or cp, and a command after outside content) offer “Allow for this session”: that ask stays quiet until the session ends. It is your choice, not evidence: it earns nothing, and a new session asks again.",
     "help.session_title": "Allow for this session",
@@ -279,7 +288,7 @@ const TENURE_LOCALES = {
       "other": "{n} actions"
     },
     "map.tot_alone": "{n} without asking",
-    "map.tot_checked": "{n} checked",
+    "map.tot_checked": "{n} verified by you",
     "map.tot_faults": {
       "one": "{n} fault",
       "other": "{n} faults"
@@ -287,7 +296,7 @@ const TENURE_LOCALES = {
     "meta.actions": "Actions",
     "meta.actions_tip": "Every action of this agent tenure saw. Actions nobody verified (no answer, a timeout) count for nothing.",
     "meta.alone": "On its own",
-    "meta.checked": "By you",
+    "meta.checked": "Verified by you",
     "meta.faults": "Faults",
     "meta.preset": "Preset",
     "meta.profile": "Profile",
@@ -314,7 +323,7 @@ const TENURE_LOCALES = {
       "other": "trial failed · wait {n}"
     },
     "missing.trusted": "trusted until its first mistake · acts like Hermes alone",
-    "missing.trusted_undo": "trusted until its first mistake · acts, then tells you, with an undo",
+    "missing.trusted_undo": "trusted until its first mistake · acts, then tells you, with an Undo",
     "model_menu.badge": "{tier} earned",
     "moment.dismiss": "Dismiss",
     "moment.eyebrow_down": "#Fault · {type}",
@@ -333,12 +342,12 @@ const TENURE_LOCALES = {
     "overview.alone_label": "acted without asking",
     "overview.alone_sub": "ran without asking, of {total}",
     "overview.aria": "Last 7 days",
-    "overview.checked_label": "checked",
+    "overview.checked_label": "verified",
     "overview.checked_sub": "by you, of {total}",
     "overview.faults_label": "faults caught",
     "overview.faults_sub": {
-      "one": "{faults} of {n} check by you",
-      "other": "{faults} of {n} checks by you"
+      "one": "{faults} of {n} verified by you",
+      "other": "{faults} of {n} verified by you"
     },
     "overview.window": "last 7 days, every profile",
     "page.animations": "Animations",
@@ -346,6 +355,7 @@ const TENURE_LOCALES = {
     "page.raw_off": "redacted names",
     "page.raw_on": "raw names",
     "page.raw_title": "Show raw action type names (r)",
+    "page.stale": "Last refresh failed ({error}). Showing the data from {time}.",
     "page.title": "Tenure",
     "page.unreadable": "Unreadable: {profiles}. Its database exists but cannot be opened; other profiles are shown.",
     "page.view_agents": "Agents",
@@ -385,7 +395,6 @@ const TENURE_LOCALES = {
       "other": "+{n} more action types, in the file"
     },
     "passport.pending_note": "Computed under the last logged settings; the new settings apply from the next action.",
-    "passport.problems": "Does not verify: {problems}",
     "passport.protocol": "Protocol",
     "passport.rule": "Rule",
     "passport.save_image": "Save image (.png)",
@@ -398,7 +407,17 @@ const TENURE_LOCALES = {
     "passport.value_raw": "raw",
     "passport.value_redacted": "redacted after the program and subcommand",
     "passport.value_unsigned": "unsigned",
-    "passport.verified": "Verified: signature valid, hash chain intact, and replaying the ledger gives the same tiers.",
+    "passport.verdict_chain": "Hash chain intact",
+    "passport.verdict_ok_replay": "Replaying the ledger with the rule gives the same tiers",
+    "passport.verdict_ok_signature": "Signature valid (Ed25519)",
+    "passport.verdict_ok_title": "Verified",
+    "passport.verdict_problems": {
+      "one": "{n} problem found",
+      "other": "{n} problems found"
+    },
+    "passport.verdict_unsigned_no_key": "No signing key yet: {cmd} creates one",
+    "passport.verdict_unsigned_replay": "Replay gives the same tiers",
+    "passport.verdict_unsigned_title": "Unsigned, otherwise verified",
     "passport.verify_hint": "Anyone can check it:",
     "passport.verifying": "Verifying…",
     "preset.copy_pending": "copied from another profile, checked when it starts",
@@ -435,12 +454,12 @@ const TENURE_LOCALES = {
     "recent.undo_failed": "Could not undo",
     "recent.undo_tip": "Restore the files as they were. Counts as a fault: the type goes back down.",
     "recent.undone": "Files restored. Counted as a fault.",
-    "revoke.action": "Revoke…",
+    "revoke.action": "Revoke all",
     "revoke.busy": "Revoking…",
-    "revoke.confirm": "Revoke",
-    "revoke.desc": "{name} will ask before every action again. Its record stays in the ledger.",
-    "revoke.done": "{name} asks first again on every action type.",
-    "revoke.title": "Revoke earned autonomy?",
+    "revoke.confirm": "Revoke all",
+    "revoke.desc": "Every action type of {name} asks first again and its series restarts from zero. Its record stays in the ledger. Not a fault.",
+    "revoke.done": "Every action type of {name} asks first again.",
+    "revoke.title": "Revoke all of this agent's earned autonomy?",
     "settings.advanced_docs": "Every key is explained by hermes tenure explain and in tenure's README.",
     "settings.advanced_help": "Action-type overrides, and every key in Hermes' own form.",
     "settings.advanced_title": "Advanced",
@@ -455,7 +474,7 @@ const TENURE_LOCALES = {
     "settings.enabled_unknown": "The agent half does not report this state yet: pick one to set it.",
     "settings.enabled_warn": "Off: tenure stops deciding; Hermes asks as usual. The ledger and every record stay as they are.",
     "settings.in_force": "In force",
-    "settings.no_writer": "This Hermes does not let the Desktop save tenure's settings: use the command below.",
+    "settings.no_writer": "This Hermes does not let this page save tenure's settings: use the command below.",
     "settings.none": "This profile has no tenure record yet: the defaults apply until its first action.",
     "settings.one_in": "1 in",
     "settings.or_config": "Or in Hermes' config.yaml, under plugins.entries.tenure.settings:",
@@ -651,7 +670,7 @@ const TENURE_LOCALES = {
     "undo.effect_already": "restores the files · the automatic check already counted a fault",
     "undo.effect_fault": "restores the files · counts as a fault",
     "undo.effect_none": "nothing to restore (no snapshot) · would count as a fault",
-    "undo.empty_body": "File writes the agent made without asking (trusted, or at T2: acts, then tells you) keep a snapshot of the files for 24 hours. They appear here, newest first, each with its own undo.",
+    "undo.empty_body": "File writes the agent made without asking (trusted, or at T2: acts, then tells you) keep a snapshot of the files for 24 hours. They appear here, newest first, each with its own Undo.",
     "undo.empty_title": "Nothing to undo",
     "undo.lede": "Recent act-then-notify actions. Undo restores the files from their snapshot and counts as a fault of the type.",
     "undo.title": "Restore the files",
@@ -666,6 +685,9 @@ const TENURE_LOCALES = {
     "benchmark.col_public": "عام",
     "benchmark.col_range": "نطاق 95%",
     "benchmark.col_rate": "المعدل",
+    "benchmark.col_sessions": "الجلسات",
+    "benchmark.empty_body": "كل إجراء موثّق يُضاف إلى سجل النموذج على ذلك النوع، هنا وفي {cmd}.",
+    "benchmark.empty_title": "لا سجل بعد",
     "benchmark.faults": {
       "zero": "{n} إخفاقات / {total}",
       "one": "{n} إخفاق / {total}",
@@ -675,15 +697,18 @@ const TENURE_LOCALES = {
       "other": "{n} إخفاق / {total}"
     },
     "benchmark.no_public": "—",
+    "benchmark.no_public_type": "لا مقياس عام لنوع الإجراء هذا.",
     "benchmark.not_ranked": "لا أدلة كافية بعد",
     "benchmark.not_ranked_note": "يدخل النموذج الترتيب عندما يبلغ {n} نتيجة موثّقة على هذا النوع.",
     "benchmark.note": "السجل الموثَّق لكل نموذج على عملك لنوع الإجراء هذا، مع نطاق 95% لمعدل إخفاقه، مرتبًا حسب الحد الأعلى لهذا النطاق. النتيجة العامة للسياق فقط: قدرة على مهامهم، لا موثوقية على مهامك.",
+    "benchmark.public_note": "قدرة عامة على مهامهم، لا موثوقية على مهامك.",
     "benchmark.public_score": "النتيجة العامة: {benchmark}، {source}",
-    "benchmark.public_score_accessed": "النتيجة العامة: {benchmark}، {source}، {accessed}.",
     "benchmark.public_value": "{value}%",
     "benchmark.range_tip": "معدل الإخفاق ونطاق 95% له، على محور من 0 إلى {max}%",
     "benchmark.rate": "{rate}% ({low}–{high}%)",
     "benchmark.search": "البحث في أنواع الإجراءات",
+    "benchmark.source": "{source}. أفضل نتيجة منشورة، بأي أداة تقييم؛ ليست مقارنة مضبوطة.",
+    "benchmark.source_accessed": "{source}، اطُّلع عليه في {accessed}. أفضل نتيجة منشورة، بأي أداة تقييم؛ ليست مقارنة مضبوطة.",
     "cell.capped_by_settings": "مقيَّد بإعدادات المخاطرة",
     "cell.kind_irreversible": "{type} · {stakes}، لا يمكن التراجع عنه",
     "cell.kind_reversible": "{type} · {stakes}، يمكن التراجع عنه",
@@ -852,11 +877,14 @@ const TENURE_LOCALES = {
     "help.benchmark_body": "مقياسك هو السجل الموثَّق لكل نموذج على عملك أنت، لكل نوع إجراء، مع نطاق 95% لمعدل إخفاقه. يدخل النموذج الترتيب عندما يبلغ {n} نتيجة موثّقة على نوع ما. النتيجة العامة، حين تظهر، للسياق فقط: قدرة على مهام غيرك، لا موثوقية على مهامك.",
     "help.flag_body": "الإبلاغ يرصد خطأً لم يلحظه أحد. ويُحسب إخفاقًا: ينزل النوع مستوى واحدًا على الأقل، ثم يصعد من جديد.",
     "help.intro": "يقرّر tenure، لكل نموذج ولكل نوع إجراء، هل يسألك Hermes أولًا، أم ينفّذ ثم يُبلغك، أم يعمل وحده. كل قرار ينبع من أدلة موثّقة مكتوبة في دفتر موقَّع.",
+    "help.key_close": "إغلاق",
     "help.key_help": "هذه المساعدة",
+    "help.key_next_prev": "الوكيل التالي / السابق",
+    "help.key_open": "فتح الوكيل المحدد",
     "help.key_raw": "إظهار / إخفاء الأسماء الخام للأنواع",
     "help.keys_note": "تعمل الاختصارات عندما يكون التركيز داخل هذه الصفحة.",
     "help.keys_title": "لوحة المفاتيح",
-    "help.passport_body": "الجواز ملخّص موقَّع لسجل الوكيل: مستوى كل نوع إجراء، وإخفاقاته ونتائجه الموثّقة، ورأس دفتر سلسلة التجزئة. وهو موقَّع بمفتاح Ed25519 الخاص بهذا الملف الشخصي. للتحقق منه، نزّله من صفحة الوكيل، وصدّر الدفتر، ثم تحقّق:",
+    "help.passport_body": "الجواز ملخّص موقَّع لسجل الوكيل: مستوى كل نوع إجراء، وإخفاقاته ونتائجه الموثّقة، ورأس دفتر سلسلة التجزئة. وهو موقَّع بمفتاح Ed25519 الخاص بهذا الملف الشخصي. للتحقق منه، نزّله، وصدّر الدفتر، ثم تحقّق:",
     "help.passport_checks": "يتحقق الفحص من التوقيع ومن سلسلة التجزئة، ثم يعيد تشغيل الدفتر ليحسب المستويات نفسها. لا شيء فيه مُعلَن ذاتيًا.",
     "help.session_body": "بعض الأسئلة (شيفرة تُشغَّل مباشرة، وأوامر shell المعقدة، وأوامر محلية غير مشمولة مثل rm وmv وcp، وأمر بعد قراءة محتوى خارجي) تعرض «السماح لهذه الجلسة»: فيسكت ذلك السؤال حتى تنتهي الجلسة. إنه اختيارك، لا دليل: لا يُكسب شيئًا، والجلسة الجديدة تسأل من جديد.",
     "help.session_title": "السماح لهذه الجلسة",
@@ -953,7 +981,7 @@ const TENURE_LOCALES = {
       "other": "{n} إجراء"
     },
     "map.tot_alone": "{n} دون سؤال",
-    "map.tot_checked": "{n} مفحوصة",
+    "map.tot_checked": "{n} وثّقتها أنت",
     "map.tot_faults": {
       "zero": "{n} إخفاقات",
       "one": "{n} إخفاق",
@@ -965,7 +993,7 @@ const TENURE_LOCALES = {
     "meta.actions": "الإجراءات",
     "meta.actions_tip": "كل إجراء لهذا الوكيل رآه tenure. الإجراءات التي لم يتحقق منها أحد (بلا إجابة، أو انتهت المهلة) لا تُحسب.",
     "meta.alone": "وحده",
-    "meta.checked": "بفحصك",
+    "meta.checked": "بتوثيقك",
     "meta.faults": "الإخفاقات",
     "meta.preset": "الإعداد المسبق",
     "meta.profile": "الملف الشخصي",
@@ -1031,16 +1059,16 @@ const TENURE_LOCALES = {
     "overview.alone_label": "نُفّذت دون سؤال",
     "overview.alone_sub": "نُفّذت دون سؤال، من {total}",
     "overview.aria": "آخر 7 أيام",
-    "overview.checked_label": "مفحوصة",
-    "overview.checked_sub": "بفحصك، من {total}",
+    "overview.checked_label": "موثّقة",
+    "overview.checked_sub": "بتوثيقك، من {total}",
     "overview.faults_label": "إخفاقات مكتشفة",
     "overview.faults_sub": {
-      "zero": "{faults} من {n} فحص أجريته",
-      "one": "{faults} من {n} فحص أجريته",
-      "two": "{faults} من {n} فحصين أجريتهما",
-      "few": "{faults} من {n} فحوص أجريتها",
-      "many": "{faults} من {n} فحصًا أجريته",
-      "other": "{faults} من {n} فحص أجريته"
+      "zero": "{faults} من {n} وثّقتها أنت",
+      "one": "{faults} من {n} وثّقتها أنت",
+      "two": "{faults} من {n} وثّقتها أنت",
+      "few": "{faults} من {n} وثّقتها أنت",
+      "many": "{faults} من {n} وثّقتها أنت",
+      "other": "{faults} من {n} وثّقتها أنت"
     },
     "overview.window": "آخر 7 أيام، كل الملفات الشخصية",
     "page.animations": "الرسوم المتحركة",
@@ -1048,6 +1076,7 @@ const TENURE_LOCALES = {
     "page.raw_off": "أسماء محجوبة",
     "page.raw_on": "أسماء خام",
     "page.raw_title": "إظهار الأسماء الخام لأنواع الإجراءات (r)",
+    "page.stale": "فشل آخر تحديث ({error}). تُعرض بيانات {time}.",
     "page.title": "Tenure",
     "page.unreadable": "غير مقروء: {profiles}. قاعدة بياناته موجودة لكن يتعذّر فتحها؛ تُعرض الملفات الشخصية الأخرى.",
     "page.view_agents": "الوكلاء",
@@ -1099,7 +1128,6 @@ const TENURE_LOCALES = {
       "other": "+{n} نوعِ إجراء آخر، في الملف"
     },
     "passport.pending_note": "محسوب وفق آخر إعدادات مسجّلة؛ تسري الإعدادات الجديدة من الإجراء التالي.",
-    "passport.problems": "لا يجتاز التحقق: {problems}",
     "passport.protocol": "البروتوكول",
     "passport.rule": "القاعدة",
     "passport.save_image": "حفظ الصورة (.png)",
@@ -1112,7 +1140,21 @@ const TENURE_LOCALES = {
     "passport.value_raw": "خام",
     "passport.value_redacted": "محجوب بعد البرنامج والأمر الفرعي",
     "passport.value_unsigned": "غير موقَّع",
-    "passport.verified": "تم التحقق: التوقيع صالح، وسلسلة التجزئة سليمة، وإعادة تشغيل الدفتر تعطي المستويات نفسها.",
+    "passport.verdict_chain": "سلسلة التجزئة سليمة",
+    "passport.verdict_ok_replay": "إعادة تشغيل الدفتر بالقاعدة تعطي المستويات نفسها",
+    "passport.verdict_ok_signature": "التوقيع صالح (Ed25519)",
+    "passport.verdict_ok_title": "تم التحقق",
+    "passport.verdict_problems": {
+      "zero": "وُجدت {n} مشكلات",
+      "one": "وُجدت {n} مشكلة",
+      "two": "وُجدت {n} مشكلتان",
+      "few": "وُجدت {n} مشكلات",
+      "many": "وُجدت {n} مشكلةً",
+      "other": "وُجدت {n} مشكلة"
+    },
+    "passport.verdict_unsigned_no_key": "لا مفتاح توقيع بعد: {cmd} ينشئ واحدًا",
+    "passport.verdict_unsigned_replay": "إعادة التشغيل تعطي المستويات نفسها",
+    "passport.verdict_unsigned_title": "غير موقَّع، وما عدا ذلك سليم",
     "passport.verify_hint": "يمكن لأي شخص التحقق منه:",
     "passport.verifying": "جارٍ التحقق…",
     "preset.copy_pending": "منسوخ من ملف شخصي آخر، يُفحص عند تشغيله",
@@ -1157,12 +1199,12 @@ const TENURE_LOCALES = {
     "recent.undo_failed": "تعذّر التراجع",
     "recent.undo_tip": "استعادة الملفات كما كانت. يُحسب إخفاقًا: ينزل النوع من جديد.",
     "recent.undone": "استُعيدت الملفات. حُسب إخفاقًا.",
-    "revoke.action": "سحب…",
+    "revoke.action": "سحب الكل",
     "revoke.busy": "جارٍ السحب…",
-    "revoke.confirm": "سحب",
-    "revoke.desc": "سيعود {name} إلى السؤال قبل كل إجراء. يبقى سجله في الدفتر.",
-    "revoke.done": "يسأل {name} أولًا من جديد في كل أنواع الإجراءات.",
-    "revoke.title": "سحب الاستقلالية المكتسبة؟",
+    "revoke.confirm": "سحب الكل",
+    "revoke.desc": "سيسأل كل نوع إجراء لدى {name} أولًا من جديد، وتبدأ سلسلته من الصفر. يبقى سجله في الدفتر. هذا ليس إخفاقًا.",
+    "revoke.done": "يسأل كل نوع إجراء لدى {name} أولًا من جديد.",
+    "revoke.title": "سحب كل الاستقلالية المكتسبة لهذا الوكيل؟",
     "settings.advanced_docs": "كل مفتاح مشروح عبر hermes tenure explain وفي ملف README الخاص بـ tenure.",
     "settings.advanced_help": "إعادة تصنيف أنواع الإجراءات، وكل المفاتيح في نموذج Hermes الخاص.",
     "settings.advanced_title": "متقدّم",
@@ -1177,7 +1219,7 @@ const TENURE_LOCALES = {
     "settings.enabled_unknown": "لا يُبلغ جزء الوكيل عن هذه الحالة بعد: اختر واحدة لضبطها.",
     "settings.enabled_warn": "متوقف: يكفّ tenure عن اتخاذ القرار؛ ويسأل Hermes كالمعتاد. يبقى الدفتر وكل السجلات كما هي.",
     "settings.in_force": "سارٍ",
-    "settings.no_writer": "لا يسمح Hermes هذا لـ Desktop بحفظ إعدادات tenure: استخدم الأمر أدناه.",
+    "settings.no_writer": "لا يسمح Hermes هذا لهذه الصفحة بحفظ إعدادات tenure: استخدم الأمر أدناه.",
     "settings.none": "لا سجل tenure لهذا الملف الشخصي بعد: تسري القيم الافتراضية حتى أول إجراء له.",
     "settings.one_in": "1 من كل",
     "settings.or_config": "أو في ملف config.yaml الخاص بـ Hermes، تحت plugins.entries.tenure.settings:",
@@ -1452,20 +1494,26 @@ const TENURE_LOCALES = {
     "benchmark.col_public": "Pública",
     "benchmark.col_range": "Rango 95 %",
     "benchmark.col_rate": "Tasa",
+    "benchmark.col_sessions": "sesiones",
+    "benchmark.empty_body": "Cada acción verificada suma al historial del modelo en ese tipo, aquí y en {cmd}.",
+    "benchmark.empty_title": "Sin historial todavía",
     "benchmark.faults": {
       "one": "{n} fallo / {total}",
       "other": "{n} fallos / {total}"
     },
     "benchmark.no_public": "—",
+    "benchmark.no_public_type": "No hay medida pública para este tipo de acción.",
     "benchmark.not_ranked": "Aún no hay evidencia suficiente",
     "benchmark.not_ranked_note": "Un modelo entra en la clasificación cuando tiene {n} resultados verificados en este tipo.",
     "benchmark.note": "El historial verificado de cada modelo en tu trabajo para este tipo de acción, con el rango del 95 % de su tasa de fallos, ordenado por el extremo superior de ese rango. La puntuación pública es contexto: capacidad en sus tareas, no fiabilidad en las tuyas.",
+    "benchmark.public_note": "Capacidad pública en sus tareas, no fiabilidad en las tuyas.",
     "benchmark.public_score": "Puntuación pública: {benchmark}, {source}",
-    "benchmark.public_score_accessed": "Puntuación pública: {benchmark}, {source}, {accessed}.",
     "benchmark.public_value": "{value} %",
     "benchmark.range_tip": "Tasa de fallos y su rango del 95 %, en un eje de 0 a {max} %",
     "benchmark.rate": "{rate} % ({low}–{high} %)",
     "benchmark.search": "Buscar tipos de acción",
+    "benchmark.source": "{source}. Mejor puntuación publicada, con cualquier entorno de evaluación; no es una comparación controlada.",
+    "benchmark.source_accessed": "{source}, consultado el {accessed}. Mejor puntuación publicada, con cualquier entorno de evaluación; no es una comparación controlada.",
     "cell.capped_by_settings": "Limitado por la configuración de riesgo",
     "cell.kind_irreversible": "{type} · {stakes}, irreversible",
     "cell.kind_reversible": "{type} · {stakes}, reversible",
@@ -1589,11 +1637,14 @@ const TENURE_LOCALES = {
     "help.benchmark_body": "Tu benchmark es el historial verificado de cada modelo sobre tu propio trabajo, por tipo de acción, con el rango del 95 % de su tasa de fallos. Un modelo entra en la clasificación cuando tiene {n} resultados verificados en un tipo. Una puntuación pública, cuando aparece, es contexto: capacidad en tareas de otros, no fiabilidad en las tuyas.",
     "help.flag_body": "Marcar informa de un error que nadie detectó. Cuenta como fallo: el tipo baja al menos un nivel y luego vuelve a subir.",
     "help.intro": "Tenure decide, por modelo y por tipo de acción, si Hermes te pregunta antes, actúa y luego te avisa, o actúa por su cuenta. Cada decisión sale de evidencia verificada, escrita en un registro firmado.",
+    "help.key_close": "Cerrar",
     "help.key_help": "Esta ayuda",
+    "help.key_next_prev": "Agente siguiente / anterior",
+    "help.key_open": "Abrir el agente seleccionado",
     "help.key_raw": "Nombres reales de los tipos: sí / no",
     "help.keys_note": "Los atajos funcionan cuando el foco está en esta página.",
     "help.keys_title": "Teclado",
-    "help.passport_body": "El pasaporte es un resumen firmado del historial de un agente: el nivel de cada tipo de acción, sus fallos y resultados verificados, y el último hash del registro encadenado. Está firmado con la clave Ed25519 de este perfil. Para comprobarlo, descárgalo desde la página del agente, exporta el registro y verifica:",
+    "help.passport_body": "El pasaporte es un resumen firmado del historial de un agente: el nivel de cada tipo de acción, sus fallos y resultados verificados, y el último hash del registro encadenado. Está firmado con la clave Ed25519 de este perfil. Para comprobarlo, descárgalo, exporta el registro y verifica:",
     "help.passport_checks": "La comprobación verifica la firma y la cadena de hashes, y luego reproduce el registro para recalcular los mismos niveles. Nada en él es autodeclarado.",
     "help.session_body": "Algunas preguntas (código ejecutado en línea, comandos de shell complejos, comandos locales no cubiertos como rm, mv o cp, y un comando tras contenido externo) ofrecen «Permitir esta sesión»: esa pregunta calla hasta que termina la sesión. Es tu elección, no evidencia: no hace ganar nada, y una sesión nueva vuelve a preguntar.",
     "help.session_title": "Permitir esta sesión",
@@ -1666,7 +1717,7 @@ const TENURE_LOCALES = {
       "other": "{n} acciones"
     },
     "map.tot_alone": "{n} sin preguntar",
-    "map.tot_checked": "{n} comprobadas",
+    "map.tot_checked": "{n} verificadas por ti",
     "map.tot_faults": {
       "one": "{n} fallo",
       "other": "{n} fallos"
@@ -1674,7 +1725,7 @@ const TENURE_LOCALES = {
     "meta.actions": "Acciones",
     "meta.actions_tip": "Todas las acciones de este agente que tenure ha visto. Las que nadie verificó (sin respuesta, tiempo agotado) no cuentan.",
     "meta.alone": "Por su cuenta",
-    "meta.checked": "Por ti",
+    "meta.checked": "Verificadas por ti",
     "meta.faults": "Fallos",
     "meta.preset": "Preajuste",
     "meta.profile": "Perfil",
@@ -1720,12 +1771,12 @@ const TENURE_LOCALES = {
     "overview.alone_label": "sin preguntar",
     "overview.alone_sub": "ejecutadas sin preguntar, de {total}",
     "overview.aria": "Últimos 7 días",
-    "overview.checked_label": "comprobadas",
+    "overview.checked_label": "verificadas",
     "overview.checked_sub": "por ti, de {total}",
     "overview.faults_label": "fallos detectados",
     "overview.faults_sub": {
-      "one": "{faults} de {n} comprobación tuya",
-      "other": "{faults} de {n} comprobaciones tuyas"
+      "one": "{faults} de {n} verificada por ti",
+      "other": "{faults} de {n} verificadas por ti"
     },
     "overview.window": "últimos 7 días, todos los perfiles",
     "page.animations": "Animaciones",
@@ -1733,6 +1784,7 @@ const TENURE_LOCALES = {
     "page.raw_off": "nombres ocultos",
     "page.raw_on": "nombres reales",
     "page.raw_title": "Mostrar los nombres reales de los tipos de acción (r)",
+    "page.stale": "La última actualización falló ({error}). Se muestran los datos de las {time}.",
     "page.title": "Tenure",
     "page.unreadable": "Ilegible: {profiles}. Su base de datos existe pero no se puede abrir; se muestran los demás perfiles.",
     "page.view_agents": "Agentes",
@@ -1773,7 +1825,6 @@ const TENURE_LOCALES = {
       "other": "+{n} tipos de acción más, en el archivo"
     },
     "passport.pending_note": "Calculado con los últimos ajustes registrados; los nuevos ajustes se aplican desde la próxima acción.",
-    "passport.problems": "No se verifica: {problems}",
     "passport.protocol": "Protocolo",
     "passport.rule": "Regla",
     "passport.save_image": "Guardar imagen (.png)",
@@ -1786,7 +1837,17 @@ const TENURE_LOCALES = {
     "passport.value_raw": "reales",
     "passport.value_redacted": "ocultos tras el programa y el subcomando",
     "passport.value_unsigned": "sin firmar",
-    "passport.verified": "Verificado: firma válida, cadena de hashes intacta, y al reproducir el registro se obtienen los mismos niveles.",
+    "passport.verdict_chain": "Cadena de hashes intacta",
+    "passport.verdict_ok_replay": "Al reproducir el registro con la regla se obtienen los mismos niveles",
+    "passport.verdict_ok_signature": "Firma válida (Ed25519)",
+    "passport.verdict_ok_title": "Verificado",
+    "passport.verdict_problems": {
+      "one": "{n} problema encontrado",
+      "other": "{n} problemas encontrados"
+    },
+    "passport.verdict_unsigned_no_key": "Aún no hay clave de firma: {cmd} crea una",
+    "passport.verdict_unsigned_replay": "La reproducción da los mismos niveles",
+    "passport.verdict_unsigned_title": "Sin firmar, por lo demás verificado",
     "passport.verify_hint": "Cualquiera puede comprobarlo:",
     "passport.verifying": "Verificando…",
     "preset.copy_pending": "copiado de otro perfil, se verifica al iniciarse",
@@ -1823,12 +1884,12 @@ const TENURE_LOCALES = {
     "recent.undo_failed": "No se pudo deshacer",
     "recent.undo_tip": "Restaura los archivos como estaban. Cuenta como fallo: el tipo vuelve a bajar.",
     "recent.undone": "Archivos restaurados. Contado como fallo.",
-    "revoke.action": "Revocar…",
+    "revoke.action": "Revocar todo",
     "revoke.busy": "Revocando…",
-    "revoke.confirm": "Revocar",
-    "revoke.desc": "{name} volverá a preguntar antes de cada acción. Su historial se queda en el registro.",
-    "revoke.done": "{name} vuelve a preguntar antes en todos los tipos de acción.",
-    "revoke.title": "¿Revocar la autonomía ganada?",
+    "revoke.confirm": "Revocar todo",
+    "revoke.desc": "Cada tipo de acción de {name} vuelve a preguntar antes de actuar y su serie empieza de cero. Su historial se queda en el registro. No es un fallo.",
+    "revoke.done": "Cada tipo de acción de {name} vuelve a preguntar antes de actuar.",
+    "revoke.title": "¿Revocar toda la autonomía ganada de este agente?",
     "settings.advanced_docs": "Cada clave se explica con hermes tenure explain y en el README de tenure.",
     "settings.advanced_help": "Reclasificación de tipos de acción, y todas las claves en el formulario propio de Hermes.",
     "settings.advanced_title": "Avanzado",
@@ -1843,7 +1904,7 @@ const TENURE_LOCALES = {
     "settings.enabled_unknown": "La parte del agente aún no informa de este estado: elige uno para fijarlo.",
     "settings.enabled_warn": "Desactivado: tenure deja de decidir; Hermes pregunta como siempre. El registro y todos los historiales se quedan como están.",
     "settings.in_force": "En vigor",
-    "settings.no_writer": "Este Hermes no deja que Desktop guarde los ajustes de tenure: usa el comando de abajo.",
+    "settings.no_writer": "Este Hermes no deja que esta página guarde los ajustes de tenure: usa el comando de abajo.",
     "settings.none": "Este perfil aún no tiene historial de tenure: se aplican los valores por defecto hasta su primera acción.",
     "settings.one_in": "1 de cada",
     "settings.or_config": "O en el config.yaml de Hermes, bajo plugins.entries.tenure.settings:",
@@ -2054,20 +2115,26 @@ const TENURE_LOCALES = {
     "benchmark.col_public": "Public",
     "benchmark.col_range": "Fourch. 95 %",
     "benchmark.col_rate": "Taux",
+    "benchmark.col_sessions": "sessions",
+    "benchmark.empty_body": "Chaque action vérifiée s'ajoute à l'historique du modèle pour ce type, ici et dans {cmd}.",
+    "benchmark.empty_title": "Aucun historique pour l'instant",
     "benchmark.faults": {
       "one": "{n} faute / {total}",
       "other": "{n} fautes / {total}"
     },
     "benchmark.no_public": "—",
+    "benchmark.no_public_type": "Aucune mesure publique pour ce type d'action.",
     "benchmark.not_ranked": "Pas encore assez de preuves",
     "benchmark.not_ranked_note": "Un modèle est classé à partir de {n} résultats vérifiés sur ce type.",
     "benchmark.note": "L'historique vérifié de chaque modèle sur votre travail pour ce type d'action, avec la fourchette à 95 % de son taux de fautes, classé par le haut de cette fourchette. Le score public sert de contexte : il mesure la capacité sur les tâches du benchmark, pas la fiabilité sur les vôtres.",
+    "benchmark.public_note": "Capacité sur les tâches du benchmark, pas fiabilité sur les vôtres.",
     "benchmark.public_score": "Score public : {benchmark}, {source}",
-    "benchmark.public_score_accessed": "Score public : {benchmark}, {source}, {accessed}.",
     "benchmark.public_value": "{value} %",
     "benchmark.range_tip": "Taux de fautes et sa fourchette à 95 %, sur un axe de 0 à {max} %",
     "benchmark.rate": "{rate} % ({low}–{high} %)",
     "benchmark.search": "Rechercher des types d'action",
+    "benchmark.source": "{source}. Meilleur score publié, toutes conditions de test confondues ; pas une comparaison à armes égales.",
+    "benchmark.source_accessed": "{source}, consulté le {accessed}. Meilleur score publié, toutes conditions de test confondues ; pas une comparaison à armes égales.",
     "cell.capped_by_settings": "Plafonné par les paramètres de risque",
     "cell.kind_irreversible": "{type} · {stakes}, irréversible",
     "cell.kind_reversible": "{type} · {stakes}, réversible",
@@ -2191,11 +2258,14 @@ const TENURE_LOCALES = {
     "help.benchmark_body": "Votre benchmark est l'historique vérifié de chaque modèle sur votre propre travail, par type d'action, avec la fourchette à 95 % de son taux de fautes. Un modèle est classé dès qu'il a {n} résultats vérifiés sur un type. Un score public, quand il est affiché, sert de contexte : la capacité sur les tâches d'autres, pas la fiabilité sur les vôtres.",
     "help.flag_body": "Signaler rapporte une erreur que personne n'a repérée. Cela compte comme une faute : le type perd au moins un niveau, puis remonte.",
     "help.intro": "Tenure décide, par modèle et par type d'action, si Hermes vous demande d'abord, agit puis vous prévient, ou agit seul. Chaque décision vient de preuves vérifiées, inscrites dans un registre signé.",
+    "help.key_close": "Fermer",
     "help.key_help": "Cette aide",
+    "help.key_next_prev": "Agent suivant / précédent",
+    "help.key_open": "Ouvrir l'agent sélectionné",
     "help.key_raw": "Afficher / masquer les noms bruts",
     "help.keys_note": "Les raccourcis marchent quand le focus est dans cette page.",
     "help.keys_title": "Clavier",
-    "help.passport_body": "Le passeport est un résumé signé de l'historique d'un agent : le niveau de chaque type d'action, ses fautes et ses résultats vérifiés, et la tête du registre à chaîne de hachage. Il est signé avec la clé Ed25519 de ce profil. Pour le vérifier, téléchargez-le depuis la page de l'agent, exportez le registre, puis vérifiez :",
+    "help.passport_body": "Le passeport est un résumé signé de l'historique d'un agent : le niveau de chaque type d'action, ses fautes et ses résultats vérifiés, et la tête du registre à chaîne de hachage. Il est signé avec la clé Ed25519 de ce profil. Pour le vérifier, téléchargez-le, exportez le registre, puis vérifiez :",
     "help.passport_checks": "La vérification contrôle la signature et la chaîne de hachage, puis rejoue le registre pour recalculer les mêmes niveaux. Rien n'y est autodéclaré.",
     "help.session_body": "Certaines demandes (code exécuté en ligne, commandes shell complexes, commandes locales non couvertes comme rm, mv ou cp, et une commande après du contenu extérieur) proposent « Autoriser cette session » : cette demande se tait jusqu'à la fin de la session. C'est votre choix, pas une preuve : il ne fait rien gagner, et une nouvelle session redemande.",
     "help.session_title": "Autoriser cette session",
@@ -2268,7 +2338,7 @@ const TENURE_LOCALES = {
       "other": "{n} actions"
     },
     "map.tot_alone": "{n} sans demander",
-    "map.tot_checked": "{n} vérifiées",
+    "map.tot_checked": "{n} vérifiées par vous",
     "map.tot_faults": {
       "one": "{n} faute",
       "other": "{n} fautes"
@@ -2276,7 +2346,7 @@ const TENURE_LOCALES = {
     "meta.actions": "Actions",
     "meta.actions_tip": "Toutes les actions de cet agent vues par tenure. Les actions que personne n'a vérifiées (pas de réponse, délai expiré) ne comptent pas.",
     "meta.alone": "Sans demander",
-    "meta.checked": "Par vous",
+    "meta.checked": "Vérifiées par vous",
     "meta.faults": "Fautes",
     "meta.preset": "Préréglage",
     "meta.profile": "Profil",
@@ -2326,8 +2396,8 @@ const TENURE_LOCALES = {
     "overview.checked_sub": "par vous, sur {total}",
     "overview.faults_label": "fautes repérées",
     "overview.faults_sub": {
-      "one": "{faults} sur {n} vérification par vous",
-      "other": "{faults} sur {n} vérifications par vous"
+      "one": "{faults} sur {n} vérifiée par vous",
+      "other": "{faults} sur {n} vérifiées par vous"
     },
     "overview.window": "7 derniers jours, tous les profils",
     "page.animations": "Animations",
@@ -2335,6 +2405,7 @@ const TENURE_LOCALES = {
     "page.raw_off": "noms masqués",
     "page.raw_on": "noms bruts",
     "page.raw_title": "Afficher les noms bruts des types d'action (r)",
+    "page.stale": "La dernière actualisation a échoué ({error}). Données de {time} affichées.",
     "page.title": "Tenure",
     "page.unreadable": "Illisible : {profiles}. La base de données existe mais ne s'ouvre pas ; les autres profils sont affichés.",
     "page.view_agents": "Agents",
@@ -2375,7 +2446,6 @@ const TENURE_LOCALES = {
       "other": "+{n} types d'action de plus, dans le fichier"
     },
     "passport.pending_note": "Calculé avec les derniers réglages enregistrés ; les nouveaux réglages s'appliquent dès la prochaine action.",
-    "passport.problems": "Ne se vérifie pas : {problems}",
     "passport.protocol": "Protocole",
     "passport.rule": "Règle",
     "passport.save_image": "Enregistrer l'image (.png)",
@@ -2388,7 +2458,17 @@ const TENURE_LOCALES = {
     "passport.value_raw": "bruts",
     "passport.value_redacted": "masqués après le programme et la sous-commande",
     "passport.value_unsigned": "non signé",
-    "passport.verified": "Vérifié : signature valide, chaîne de hachage intacte, et le registre rejoué redonne les mêmes niveaux.",
+    "passport.verdict_chain": "Chaîne de hachage intacte",
+    "passport.verdict_ok_replay": "Le registre rejoué avec la règle redonne les mêmes niveaux",
+    "passport.verdict_ok_signature": "Signature valide (Ed25519)",
+    "passport.verdict_ok_title": "Vérifié",
+    "passport.verdict_problems": {
+      "one": "{n} problème trouvé",
+      "other": "{n} problèmes trouvés"
+    },
+    "passport.verdict_unsigned_no_key": "Pas encore de clé de signature : {cmd} en crée une",
+    "passport.verdict_unsigned_replay": "Le registre rejoué redonne les mêmes niveaux",
+    "passport.verdict_unsigned_title": "Non signé, vérifié par ailleurs",
     "passport.verify_hint": "Tout le monde peut le vérifier :",
     "passport.verifying": "Vérification…",
     "preset.copy_pending": "copié depuis un autre profil, vérifié à son démarrage",
@@ -2425,12 +2505,12 @@ const TENURE_LOCALES = {
     "recent.undo_failed": "Annulation impossible",
     "recent.undo_tip": "Restaurer les fichiers tels qu'ils étaient. Compte comme une faute : le type redescend.",
     "recent.undone": "Fichiers restaurés. Compté comme une faute.",
-    "revoke.action": "Révoquer…",
+    "revoke.action": "Tout révoquer",
     "revoke.busy": "Révocation…",
-    "revoke.confirm": "Révoquer",
-    "revoke.desc": "{name} demandera de nouveau avant chaque action. Son historique reste dans le registre.",
-    "revoke.done": "{name} demande de nouveau avant d'agir, pour tous les types d'action.",
-    "revoke.title": "Révoquer l'autonomie acquise ?",
+    "revoke.confirm": "Tout révoquer",
+    "revoke.desc": "Chaque type d'action de {name} vous demandera de nouveau avant d'agir, et sa série repart de zéro. Son historique reste dans le registre. Ce n'est pas une faute.",
+    "revoke.done": "Chaque type d'action de {name} demande de nouveau avant d'agir.",
+    "revoke.title": "Révoquer toute l'autonomie acquise de cet agent ?",
     "settings.advanced_docs": "Chaque clé est expliquée par hermes tenure explain et dans le README de tenure.",
     "settings.advanced_help": "Reclassements de types d'action, et toutes les clés dans le formulaire de Hermes.",
     "settings.advanced_title": "Avancé",
@@ -2445,7 +2525,7 @@ const TENURE_LOCALES = {
     "settings.enabled_unknown": "La partie agent ne rapporte pas encore cet état : choisissez-en un pour le fixer.",
     "settings.enabled_warn": "Désactivé : tenure ne décide plus ; Hermes demande comme d'habitude. Le registre et tous les historiques restent tels quels.",
     "settings.in_force": "En vigueur",
-    "settings.no_writer": "Ce Hermes ne laisse pas le Desktop enregistrer les paramètres de tenure : utilisez la commande ci-dessous.",
+    "settings.no_writer": "Ce Hermes ne laisse pas cette page enregistrer les paramètres de tenure : utilisez la commande ci-dessous.",
     "settings.none": "Ce profil n'a pas encore d'historique tenure : les valeurs par défaut s'appliquent jusqu'à sa première action.",
     "settings.one_in": "1 sur",
     "settings.or_config": "Ou dans le config.yaml de Hermes, sous plugins.entries.tenure.settings :",
@@ -2656,19 +2736,25 @@ const TENURE_LOCALES = {
     "benchmark.col_public": "公开",
     "benchmark.col_range": "95% 区间",
     "benchmark.col_rate": "失误率",
+    "benchmark.col_sessions": "会话",
+    "benchmark.empty_body": "每个已验证的操作都会计入模型在该类型上的记录，显示在这里和 {cmd} 中。",
+    "benchmark.empty_title": "还没有记录",
     "benchmark.faults": {
       "other": "{n} 次失误 / {total}"
     },
     "benchmark.no_public": "—",
+    "benchmark.no_public_type": "此操作类型没有公开测评。",
     "benchmark.not_ranked": "证据尚不足",
     "benchmark.not_ranked_note": "模型在此类型上有 {n} 次已验证结果后才参与排名。",
     "benchmark.note": "每个模型在你的工作中、针对此操作类型的已验证记录，附失误率的 95% 区间，按区间上限排名。公开分数仅供参考：它衡量的是模型在别人任务上的能力，而不是在你的工作上的可靠性。",
+    "benchmark.public_note": "衡量的是在别人任务上的能力，而不是在你的工作上的可靠性。",
     "benchmark.public_score": "公开分数：{benchmark}，{source}",
-    "benchmark.public_score_accessed": "公开分数：{benchmark}，{source}，{accessed}。",
     "benchmark.public_value": "{value}%",
     "benchmark.range_tip": "失误率及其 95% 区间，坐标轴 0–{max}%",
     "benchmark.rate": "{rate}%（{low}–{high}%）",
     "benchmark.search": "搜索操作类型",
+    "benchmark.source": "{source}。已公布的最高分，不限测试框架；并非受控对比。",
+    "benchmark.source_accessed": "{source}，访问于 {accessed}。已公布的最高分，不限测试框架；并非受控对比。",
     "cell.capped_by_settings": "受风险设置限制",
     "cell.kind_irreversible": "{type} · {stakes}，不可逆",
     "cell.kind_reversible": "{type} · {stakes}，可逆",
@@ -2777,11 +2863,14 @@ const TENURE_LOCALES = {
     "help.benchmark_body": "你的基准是每个模型在你自己的工作上、按操作类型的已验证记录，以及其失误率的 95% 区间。一个模型在某类型上有 {n} 个已验证结果后才会排名。显示的公开分数只作参考：是在别人任务上的能力，不是在你任务上的可靠性。",
     "help.flag_body": "标记用于报告一个没人发现的错误。它计为一次失误：该类型至少降一级，然后重新爬升。",
     "help.intro": "tenure 按模型、按操作类型决定 Hermes 是先询问你、先执行后告知，还是自主执行。每个决定都来自已验证的证据，写入一个已签名的账本。",
+    "help.key_close": "关闭",
     "help.key_help": "本帮助",
+    "help.key_next_prev": "下一个 / 上一个智能体",
+    "help.key_open": "打开当前智能体",
     "help.key_raw": "切换原始类型名",
     "help.keys_note": "焦点在此页面内时，快捷键才生效。",
     "help.keys_title": "键盘",
-    "help.passport_body": "护照是智能体记录的签名摘要：每个操作类型的级别、失误和已验证结果，以及哈希链账本的头部。它由此配置文件的 Ed25519 密钥签名。要验证它，请在智能体页面下载护照，导出账本，然后验证：",
+    "help.passport_body": "护照是智能体记录的签名摘要：每个操作类型的级别、失误和已验证结果，以及哈希链账本的头部。它由此配置文件的 Ed25519 密钥签名。要验证它，请下载护照，导出账本，然后验证：",
     "help.passport_checks": "验证会检查签名和哈希链，然后重放账本，重新计算出相同的级别。其中没有任何自我声明。",
     "help.session_body": "有些询问（内联运行的代码、复杂的 shell 命令、未覆盖的本地命令如 rm、mv、cp，以及读取外部内容之后的命令）提供「允许本会话」：该询问在会话结束前不再出现。这是你的选择，不是证据：它不会赢得任何东西，新会话会再次询问。",
     "help.session_title": "允许本会话",
@@ -2848,14 +2937,14 @@ const TENURE_LOCALES = {
       "other": "{n} 个操作"
     },
     "map.tot_alone": "{n} 个未经询问",
-    "map.tot_checked": "{n} 个已确认",
+    "map.tot_checked": "{n} 个由你验证",
     "map.tot_faults": {
       "other": "{n} 次失误"
     },
     "meta.actions": "操作",
     "meta.actions_tip": "tenure 看到的此智能体的全部操作。没人验证的操作（无回应、超时）不计入。",
     "meta.alone": "自主执行",
-    "meta.checked": "由你确认",
+    "meta.checked": "由你验证",
     "meta.faults": "失误",
     "meta.preset": "预设",
     "meta.profile": "配置文件",
@@ -2896,11 +2985,11 @@ const TENURE_LOCALES = {
     "overview.alone_label": "未询问即执行",
     "overview.alone_sub": "未询问即运行，共 {total} 个",
     "overview.aria": "最近 7 天",
-    "overview.checked_label": "已确认",
-    "overview.checked_sub": "由你确认，共 {total} 个",
+    "overview.checked_label": "已验证",
+    "overview.checked_sub": "由你验证，共 {total} 个",
     "overview.faults_label": "发现的失误",
     "overview.faults_sub": {
-      "other": "你检查的 {n} 次中有 {faults} 次"
+      "other": "你验证的 {n} 个中有 {faults} 个"
     },
     "overview.window": "最近 7 天，所有配置文件",
     "page.animations": "动画",
@@ -2908,6 +2997,7 @@ const TENURE_LOCALES = {
     "page.raw_off": "名称已脱敏",
     "page.raw_on": "原始名称",
     "page.raw_title": "显示原始操作类型名（r）",
+    "page.stale": "上次刷新失败（{error}）。显示的是 {time} 的数据。",
     "page.title": "Tenure",
     "page.unreadable": "无法读取：{profiles}。其数据库存在但无法打开；已显示其他配置文件。",
     "page.view_agents": "智能体",
@@ -2944,7 +3034,6 @@ const TENURE_LOCALES = {
       "other": "另有 {n} 个操作类型，见文件"
     },
     "passport.pending_note": "按最近记录的设置计算；新设置从下一个操作起生效。",
-    "passport.problems": "验证未通过：{problems}",
     "passport.protocol": "协议",
     "passport.rule": "规则",
     "passport.save_image": "保存图片（.png）",
@@ -2957,7 +3046,16 @@ const TENURE_LOCALES = {
     "passport.value_raw": "原始",
     "passport.value_redacted": "程序和子命令之后的部分已脱敏",
     "passport.value_unsigned": "未签名",
-    "passport.verified": "已验证：签名有效，哈希链完整，重放账本得到相同的级别。",
+    "passport.verdict_chain": "哈希链完整",
+    "passport.verdict_ok_replay": "按规则重放账本得到相同的级别",
+    "passport.verdict_ok_signature": "签名有效（Ed25519）",
+    "passport.verdict_ok_title": "已验证",
+    "passport.verdict_problems": {
+      "other": "发现 {n} 个问题"
+    },
+    "passport.verdict_unsigned_no_key": "还没有签名密钥：运行 {cmd} 创建",
+    "passport.verdict_unsigned_replay": "重放得到相同的级别",
+    "passport.verdict_unsigned_title": "未签名，其余均已验证",
     "passport.verify_hint": "任何人都可以验证：",
     "passport.verifying": "正在验证…",
     "preset.copy_pending": "从另一个配置文件复制而来，启动时检查",
@@ -2992,12 +3090,12 @@ const TENURE_LOCALES = {
     "recent.undo_failed": "无法撤销",
     "recent.undo_tip": "将文件恢复原样。记为一次失误：该类型会降级。",
     "recent.undone": "文件已恢复。已记为一次失误。",
-    "revoke.action": "收回…",
+    "revoke.action": "全部收回",
     "revoke.busy": "正在收回…",
-    "revoke.confirm": "收回",
-    "revoke.desc": "{name} 每次操作前都会重新询问。它的记录仍保留在账本中。",
-    "revoke.done": "{name} 的所有操作类型都已恢复为先询问。",
-    "revoke.title": "收回已赢得的自主权？",
+    "revoke.confirm": "全部收回",
+    "revoke.desc": "{name} 的每个操作类型都会重新先询问，连续记录从零开始。它的记录仍保留在账本中。这不算失误。",
+    "revoke.done": "{name} 的每个操作类型都已恢复为先询问。",
+    "revoke.title": "收回此智能体已获得的全部自主权？",
     "settings.advanced_docs": "每个设置项都可通过 hermes tenure explain 和 tenure 的 README 查看说明。",
     "settings.advanced_help": "操作类型的重新分类，以及 Hermes 自带表单中的全部设置项。",
     "settings.advanced_title": "高级",
@@ -3012,7 +3110,7 @@ const TENURE_LOCALES = {
     "settings.enabled_unknown": "智能体部分尚未报告此状态：选择一项即可设定。",
     "settings.enabled_warn": "关闭：tenure 不再做决定；Hermes 照常询问。账本和所有记录保持不变。",
     "settings.in_force": "生效中",
-    "settings.no_writer": "此 Hermes 不允许 Desktop 保存 tenure 的设置：请使用下方命令。",
+    "settings.no_writer": "此 Hermes 不允许此页面保存 tenure 的设置：请使用下方命令。",
     "settings.none": "此配置文件还没有 tenure 记录：在第一个操作之前使用默认设置。",
     "settings.one_in": "1/",
     "settings.or_config": "或在 Hermes 的 config.yaml 中，于 plugins.entries.tenure.settings 下：",
@@ -4044,6 +4142,10 @@ const CSS = `
 .tn-cmd{display:flex;align-items:flex-start;gap:0.25rem;min-width:0}
 .tn-hint{margin:0;font-size:0.7rem;line-height:1.5;color:var(--tn-mut)}
 .tn-verify{display:flex;flex-direction:column;gap:0.35rem}
+.tn-verdict-title{display:block;font-weight:600;color:var(--tn-fg)}
+.tn-verdict[data-tone=ok] .tn-verdict-title{color:var(--tn-acc-text)}
+.tn-verdict-lines{margin:0.2rem 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:0.1rem}
+.tn-verdict-lines li::before{content:'· ';color:var(--tn-mut)}
 .tn-doc-wrap{min-height:0;flex:1 1 auto;overflow-y:auto}
 .tn-doc{display:flex;flex-direction:column;gap:0;max-width:58rem;padding:0.25rem 1rem 2.5rem}
 .tn-doc>.tn-hero{margin-block-end:0.25rem}
@@ -4127,6 +4229,8 @@ const CSS = `
 .tn-root:dir(rtl),.tn-root:dir(rtl) *{letter-spacing:0!important}
 .tn-root:dir(rtl) :is(.tn-tile-window,.tn-magent-tot,.tn-mcell-mid,.tn-mprofile b,.tn-table th,.tn-kbd,.tn-eyebrow,.tn-emblem-cap,.tn-anim-toggle,.tn-ptop,.tn-pfoot,.tn-psig,.tn-btn,.tn-seg button,.tn-chip-in,.tn-preset span:first-child){font-family:var(--font-sans,system-ui),system-ui,sans-serif;text-transform:none}
 .tn-bench[data-pub=wide]{grid-template-columns:2rem minmax(9rem,1fr) 7rem minmax(7rem,10rem) 8.5rem 7rem}
+.tn-bench[data-s=true]{grid-template-columns:2rem minmax(9rem,1fr) 7rem minmax(7rem,10rem) 8.5rem 4rem}
+.tn-bench[data-s=true][data-pub=true]{grid-template-columns:2rem minmax(9rem,1fr) 7rem minmax(7rem,10rem) 8.5rem 4rem 3.5rem}
 .tn-root .tn-mono{font-family:var(--tn-mono)}
 .tn-root .tn-dim{color:var(--tn-mut)}
 .tn-root .tn-end{text-align:end}
@@ -4989,6 +5093,17 @@ function PassportSection({ agent, t, n, motion }) {
     placeholderData: (previous, query) => (query && query.queryKey[3] === agent.agent ? previous : undefined)
   })
   const ok = doc && Array.isArray(doc.verify) && doc.verify.length === 0
+  const problems = (doc && Array.isArray(doc.verify) && doc.verify) || []
+  // The verdict in three lines, as on the dashboard: signature, hash chain, replay.
+  const verdict = ok
+    ? { tone: 'ok', title: t('passport.verdict_ok_title'), lines: [t('passport.verdict_ok_signature'), t('passport.verdict_chain'), t('passport.verdict_ok_replay')] }
+    : problems.length === 1 && problems[0] === 'unsigned'
+      ? {
+          tone: 'warn',
+          title: t('passport.verdict_unsigned_title'),
+          lines: [t('passport.verdict_chain'), t('passport.verdict_unsigned_replay'), t('passport.verdict_unsigned_no_key', { cmd: hermesCmd(agent.profile, 'passport') })]
+        }
+      : { tone: 'fault', title: t('passport.verdict_problems', { n: problems.length }), lines: problems }
   const p = doc && doc.passport
   const pending = !!(agent.settings && agent.settings.pending)
   const base = 'passport-' + fileSafe(displayName(agent.model))
@@ -5048,22 +5163,32 @@ function PassportSection({ agent, t, n, motion }) {
               pending ? jsx('p', { className: 'tn-note', children: t('passport.pending_note') }) : null,
               isLoading && !doc
                 ? jsxs('p', { className: 'tn-status', style: { margin: 0 }, children: [jsx(Codicon, { name: 'loading', size: '0.8rem', spinning: true }), t('passport.verifying')] })
-                : jsxs('div', {
-                    className: 'tn-status',
-                    'data-ok': ok ? 'true' : 'false',
-                    role: 'status',
-                    children: [
-                      jsx(Codicon, { className: 'mt-px shrink-0', name: ok ? 'verified-filled' : 'warning', size: '0.85rem' }),
-                      jsx('span', {
-                        className: 'min-w-0 break-words',
-                        children: error
-                          ? t('passport.unavailable', { error: error.message || String(error) })
-                          : ok
-                            ? t('passport.verified')
-                            : t('passport.problems', { problems: ((doc && doc.verify) || []).join('; ') })
-                      })
-                    ]
-                  }),
+                : error
+                  ? jsxs('div', {
+                      className: 'tn-status',
+                      'data-ok': 'false',
+                      role: 'status',
+                      children: [
+                        jsx(Codicon, { className: 'mt-px shrink-0', name: 'warning', size: '0.85rem' }),
+                        jsx('span', { className: 'min-w-0 break-words', children: t('passport.unavailable', { error: error.message || String(error) }) })
+                      ]
+                    })
+                  : jsxs('div', {
+                      className: 'tn-status tn-verdict',
+                      'data-ok': verdict.tone === 'ok' ? 'true' : 'false',
+                      'data-tone': verdict.tone,
+                      role: 'status',
+                      children: [
+                        jsx(Codicon, { className: 'mt-px shrink-0', name: verdict.tone === 'ok' ? 'verified-filled' : 'warning', size: '0.85rem' }),
+                        jsxs('div', {
+                          className: 'min-w-0 break-words',
+                          children: [
+                            jsx('b', { className: 'tn-verdict-title', children: verdict.title }),
+                            jsx('ul', { className: 'tn-verdict-lines', children: verdict.lines.map((l, i) => jsx('li', { children: l }, i)) })
+                          ]
+                        })
+                      ]
+                    }),
               p
                 ? jsx(PanelMeta, {
                     rows: [
@@ -5499,7 +5624,8 @@ function BenchmarkView({ t }) {
       children: jsx(Button, { onClick: () => refetch(), size: 'sm', children: t('common.retry') })
     })
   const rows = (data && data.rows) || []
-  if (!rows.length) return jsx(PanelEmpty, { description: t('empty.desc'), icon: 'graph', title: t('empty.title') })
+  if (!rows.length)
+    return jsx(PanelEmpty, { description: t('benchmark.empty_body', { cmd: 'hermes tenure models' }), icon: 'graph', title: t('benchmark.empty_title') })
   const types = [...new Set(rows.map(r => r.type))]
   const q = query.trim().toLowerCase()
   const visibleTypes = types.filter(x => !q || x.toLowerCase().includes(q))
@@ -5556,12 +5682,14 @@ function BenchmarkView({ t }) {
                 'aria-hidden': true,
                 className: 'tn-bench tn-bench-h',
                 'data-pub': showPub ? 'true' : 'false',
+                'data-s': 'true',
                 children: [
                   jsx('span', {}),
                   jsx('span', {}),
                   jsx('span', { className: 'tn-eyebrow tn-end', children: t('benchmark.col_faults') }),
                   jsx('span', { className: 'tn-eyebrow', children: t('benchmark.col_range') }),
                   jsx('span', { className: 'tn-eyebrow', children: t('benchmark.col_rate') }),
+                  jsx('span', { className: 'tn-eyebrow tn-end', children: t('benchmark.col_sessions') }),
                   showPub ? jsx('span', { className: 'tn-eyebrow tn-end', children: t('benchmark.col_public') }) : null
                 ]
               }),
@@ -5573,6 +5701,7 @@ function BenchmarkView({ t }) {
                     {
                       className: cn('tn-bench', motion && 'tn-enter'),
                       'data-pub': showPub ? 'true' : 'false',
+                      'data-s': 'true',
                       style: motion ? { animationDelay: `${i * 40}ms` } : undefined,
                       children: [
                         jsx('span', { className: 'tn-tnum', style: { paddingBlockStart: 0 }, children: '#' + pad2(i + 1) }),
@@ -5595,6 +5724,7 @@ function BenchmarkView({ t }) {
                           })
                         }),
                         jsx('span', { className: 'tn-bnum', children: t('benchmark.rate', { rate: pct(r.rate), low: pct(r.low), high: pct(r.high) }) }),
+                        jsx('span', { className: 'tn-bnum tn-end', children: num(r.sessions_in_series) }),
                         showPub
                           ? jsx(Tip, {
                               label: pub ? t('benchmark.public_score', { benchmark: pub.benchmark, source: pub.source }) : '',
@@ -5626,7 +5756,21 @@ function BenchmarkView({ t }) {
                     ]
                   })
                 : null,
-              pub ? jsx('p', { style: { margin: 0, fontSize: '0.7rem', color: 'var(--tn-fg2)' }, children: t('benchmark.public_score_accessed', { benchmark: pub.benchmark, source: pub.source, accessed: pub.accessed }) }) : null
+              // The public measure, as information: whose score, how it was obtained, and what it does not say.
+              jsxs('div', {
+                style: { display: 'flex', flexDirection: 'column', gap: '0.15rem', fontSize: '0.7rem', color: 'var(--tn-fg2)' },
+                children: [
+                  pub
+                    ? jsx('p', {
+                        style: { margin: 0 },
+                        children: pub.accessed
+                          ? t('benchmark.source_accessed', { source: [pub.benchmark, pub.source].filter(Boolean).join(' · '), accessed: pub.accessed })
+                          : t('benchmark.source', { source: [pub.benchmark, pub.source].filter(Boolean).join(' · ') })
+                      })
+                    : jsx('p', { style: { margin: 0 }, children: t('benchmark.no_public_type') }),
+                  jsx('p', { style: { margin: 0, color: 'var(--tn-fg)' }, children: t('benchmark.public_note') })
+                ]
+              })
             ]
           })
     ]
@@ -6190,7 +6334,7 @@ function HelpView({ data, t }) {
           title: t('help.keys_title'),
           children: jsx('dl', {
             className: 'tn-keys',
-            children: [...PAGE_KEYS.map(([k, v]) => [k, t('page.view_' + v)]), ['r', t('help.key_raw')]].flatMap(([k, label]) => [
+            children: [...PAGE_KEYS.map(([k, v]) => [k, t('page.view_' + v)]), ['j / k', t('help.key_next_prev')], ['↵', t('help.key_open')], ['r', t('help.key_raw')], ['esc', t('help.key_close')]].flatMap(([k, label]) => [
               jsx('dt', { children: jsx('kbd', { className: 'tn-kbd', children: k }) }, 'k' + k),
               jsx('dd', { children: k === '?' ? t('help.key_help') : label }, 'd' + k)
             ])
@@ -7328,7 +7472,7 @@ const typing = e => {
 
 function TenurePage() {
   const t = usePluginI18n(ID)
-  const { data, error, isLoading, refetch } = useAgents()
+  const { data, error, isLoading, refetch, dataUpdatedAt } = useAgents()
   const { data: activity } = useActivity()
   const qc = useQueryClient()
   const [view, setView] = useState('map')
@@ -7361,6 +7505,18 @@ function TenurePage() {
     } else if (e.key === 'r') {
       setRawPref(!rawPref)
       qc.resetQueries({ queryKey: ['tenure'] })
+      e.preventDefault()
+    } else if (e.key === 'Escape' && (view === 'help' || view === 'agents')) {
+      setView('map')                                   // dialogs keep their own Escape (typing() skips them)
+      e.preventDefault()
+    } else if ((e.key === 'j' || e.key === 'k') && view === 'map' && rootRef.current) {
+      // Next / previous agent: focus moves between the map's agent buttons; Enter opens the focused one.
+      const btns = [...rootRef.current.querySelectorAll('.tn-magent')]
+      if (!btns.length) return
+      const at = btns.indexOf(document.activeElement)
+      const next = at < 0 ? 0 : Math.max(0, Math.min(btns.length - 1, at + (e.key === 'j' ? 1 : -1)))
+      btns[next].focus()
+      if (btns[next].scrollIntoView) btns[next].scrollIntoView({ block: 'nearest' })
       e.preventDefault()
     }
   }
@@ -7420,6 +7576,9 @@ function TenurePage() {
         ]
       }),
       unreadable.length ? jsx('p', { className: 'tn-note', style: { margin: '0 1rem 0.75rem' }, children: t('page.unreadable', { profiles: unreadable.join(', ') }) }) : null,
+      error && data
+        ? jsx('p', { className: 'tn-note', role: 'status', style: { margin: '0 1rem 0.75rem' }, children: t('page.stale', { error: error.message || String(error), time: dataUpdatedAt ? hms(dataUpdatedAt) : '—' }) })
+        : null,
       agents.length && (view === 'map' || view === 'agents' || view === 'benchmark') ? jsx(Intro, { t, spot: (here.settings || {}).spot, start }) : null,
       body
     ]

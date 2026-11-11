@@ -29,7 +29,8 @@ DYNAMIC = {
     "stakes.": ["low", "medium", "high"],
     "stakes.group.": ["low", "medium", "high"],
     "preset.": ["careful", "balanced", "fast", "custom"],
-    "view.": ["map", "models", "switch", "passport", "undo", "settings"],
+    "view.": ["map", "models", "switch", "passport", "undo", "settings", "help"],
+    "help.asks_": ["leaves", "irreversible", "unknown", "outside", "files"],
     "event.fault.": ["refusal", "spot", "check", "undo", "flag"],
     "event.neutral.": ["alone", "error", "blocked", "timeout", "nobody", "expired", "ambiguous"],
     "event.why.": ["wald", "fault", "settings", "stakes"],
@@ -217,7 +218,7 @@ def test_lookup_falls_back_and_selects_plurals(tmp_path):
                          capture_output=True, text=True, timeout=60)
     assert res.returncode == 0, res.stderr
     out = json.loads(res.stdout)
-    assert out["en"] == ["Map", "Undo", "1 fault", "2 faults", "1,234 faults", "no.such.key", "— checked", "1h 02m ago"]
+    assert out["en"] == ["Map", "Undo", "1 fault", "2 faults", "1,234 faults", "no.such.key", "— verified by you", "1h 02m ago"]
     assert out["undefined"] == out["en"] and out["xx"] == out["en"]
     assert out["fr"][:4] == ["Carte", "Undo", "1 faute", "2 fautes"]          # missing key -> English
     assert out["fr-CA"][:4] == out["fr"][:4]                                     # base language

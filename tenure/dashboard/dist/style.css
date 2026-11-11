@@ -659,6 +659,26 @@
 .tnr-dial-foot { display: flex; align-items: center; gap: 10px; padding-top: 16px; flex-wrap: wrap; }
 .tnr-pass-row.is-trusted .tnr-pass-tier b { font-weight: 400; opacity: 0.85; }
 
+/* ---- intro, help view, acted without asking ------------------------------------------------------------------ */
+.tnr-intro { display: flex; align-items: flex-start; gap: 16px; border: 1px solid var(--tnr-line-2); padding: 12px 14px; margin: 0 0 18px; max-width: 980px; }
+.tnr-intro-text { flex: 1; min-width: 0; }
+.tnr-intro-text p { margin: 4px 0 0; font-size: 13px; color: var(--tnr-fg); max-width: 860px; }
+.tnr-helpview .tnr-srow p { font-size: 13px; }
+.tnr-help-list { margin: 0; padding-inline-start: 18px; font-size: 13px; }
+.tnr-help-list li { margin: 3px 0; }
+.tnr-help-tiers { display: grid; gap: 8px; margin: 4px 0 12px; }
+.tnr-help-tier { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.tnr-help-keys { display: grid; grid-template-columns: 70px 1fr; gap: 0; margin: 0; font-size: 12.5px; max-width: 520px; }
+.tnr-help-keys dt, .tnr-help-keys dd { padding: 5px 0; border-bottom: 1px solid var(--tnr-line); margin: 0; }
+.tnr-recent { margin: 0 0 22px; }
+.tnr-ulist { list-style: none; margin: 6px 0 8px; padding: 0; border-top: 1px solid var(--tnr-line); }
+.tnr-urow { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--tnr-line); font-size: 12.5px; flex-wrap: wrap; }
+.tnr-urow.tnr-undo-sub { padding-inline-start: 22px; }
+.tnr-uicon { color: var(--tnr-acc); cursor: help; }
+.tnr-uname { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.tnr-uacts { display: inline-flex; gap: 6px; }
+.tnr-pass-more { font-size: 11px; opacity: 0.8; padding: 4px 0; }
+
 /* ---- help, toast --------------------------------------------------------------------------------------------- */
 .tnr-help {
   margin: auto; width: min(400px, calc(100vw - 32px)); background: var(--tnr-bg); border: 1px solid var(--tnr-acc);
