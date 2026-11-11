@@ -64,6 +64,7 @@ def test_p5_b_default_home_workspace_writes_are_ordinary(tmp_path, monkeypatch, 
     ws = user / ".hermes" / "kanban" / "workspaces" / "t1"
     ws.mkdir(parents=True)
     monkeypatch.setenv("HOME", str(user))
+    monkeypatch.setenv("USERPROFILE", str(user))       # Windows reads the home from USERPROFILE
     monkeypatch.delenv("HERMES_HOME", raising=False)
     for tool, args in _workspace_cases(ws, user / ".hermes"):
         t, stakes = kind(tool, args, str(ws))

@@ -96,6 +96,10 @@ def _norm(p: str) -> str:
 _DRIVE_ROOT = re.compile(r"[A-Za-z]:/?")
 
 
+def _nt() -> bool:
+    return getattr(os, "name", "") == "nt"
+
+
 def _is_root(p: str) -> bool:
     """The file system root: `/`, or a drive's root on Windows (`C:/`)."""
     return p == "/" or bool(_DRIVE_ROOT.fullmatch(p))
@@ -4518,8 +4522,32 @@ def _complex_floor(command: str) -> bool:
 def _windows_slashes(command: str) -> str:
     """On Windows a backslash between path characters is a path separator (C:\\Users\\me\\.hermes), not the POSIX
     escape that would glue the name into C:Usersme.hermes and hide it from every check: it is read as a slash. A
-    backslash before a space, a quote, a dollar, a backtick or another backslash keeps its shell meaning."""
-    return re.sub(r"\\(?=[^\s\"'$`\\])", "/", command)
+    backslash before a space, a quote, a dollar, a backtick or another backslash keeps its shell meaning, and so does
+    every backslash between quotes, where the shell already keeps it as typed (later read as a separator)."""
+    out, quote, i, n = [], "", 0, len(command)
+    while i < n:
+        ch = command[i]
+        if quote:
+            if ch == "\\" and quote == '"' and i + 1 < n:
+                out.append(command[i:i + 2])
+                i += 2
+                continue
+            if ch == quote:
+                quote = ""
+        elif ch in "'\"":
+            quote = ch
+        elif ch == "\\" and i + 1 < n:
+            nxt = command[i + 1]
+            if nxt.isspace() or nxt in "\"'$`\\":
+                out.append(command[i:i + 2])
+                i += 2
+            else:
+                out.append("/")
+                i += 1
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
 
 
 def _shell(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str, str, bool]:
@@ -4972,7 +5000,7 @@ def _repository_path(server: str | None, args: dict, value) -> bool:
                for v in values)
 
 
-SCHEME_PATH = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:(?=[/~.])")
+SCHEME_PATH = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:(?=[/~.]|[A-Za-z]:/)")       # dir:/path, dir:C:/path
 # Arguments of Hermes' own tools that carry prose, not a place on disk: a note, a message, a prompt.
 PROSE_KEYS = {"content", "text", "prompt", "goal", "message", "summary", "title", "body", "description", "query",
               "context", "instructions", "caption", "comment", "old_text", "new_text", "negative_prompt", "notes"}
@@ -5063,15 +5091,20 @@ def _args_hit(args: dict, cwd, home: str, reading: bool = False, commands: bool 
                 return "file:sensitive", CAP             # one of Hermes' own entries, under any .hermes folder
             if commands and _runs_hermes_text(variant):
                 return SELF_HERMES                       # a command line, or keys to type, that runs Hermes' CLI
-            words = [variant] + [w for w in re.split(r"[\s'\"`,;=()\[\]{}<>|]+", variant) if w and w != variant]
-            words += [w.split(":", 1)[1] for w in words if SCHEME_PATH.match(w)]       # dir:/path, vscode:~/x
+            text = _norm(variant) if _nt() else variant     # Windows: C:\\Users\\me is C:/Users/me
+            words = [text] + [w for w in re.split(r"[\s'\"`,;=()\[\]{}<>|]+", text) if w and w != text]
+            words += [w.split(":", 1)[1] for w in words if SCHEME_PATH.match(w) and not _DRIVE_ROOT.match(w[:3])]
             words += [x for w in words if ":" in w and w.startswith(("/", "~", ".", "$")) and "://" not in w
                       for x in w.split(":") if x]                                       # a volume: /host:/inside
+            words += [x for w in words if _DRIVE_ROOT.match(w[:3]) and len(w) > 3 and ":" in w[3:] and "://" not in w
+                      for x in [w[:2] + w[2:].split(":")[0]] + w[2:].split(":")[1:] if x]   # C:/host:/inside
             for cand in words[:400]:
                 if cand.startswith("file://"):
                     cand = cand[len("file://"):]
-                    if cand and not cand.startswith("/") and "/" in cand:
+                    if cand and not cand.startswith("/") and "/" in cand and not _DRIVE_ROOT.match(cand[:3]):
                         cand = cand[cand.index("/"):]        # file://localhost/path: the host is not the path
+                if len(cand) > 3 and cand[0] == "/" and _DRIVE_ROOT.fullmatch(cand[1:4]):
+                    cand = cand[1:]                          # file:///C:/x, %2FC:/x: a drive path
                 if len(cand) > 4096:
                     continue
                 if not ("/" in cand or cand.startswith(("~", ".", "$"))):

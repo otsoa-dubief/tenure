@@ -113,6 +113,7 @@ def test_a_bare_hermes_home_variable_is_a_level_even_in_docker(tmp_path, monkeyp
     data = tmp_path / "opt-data"
     data.mkdir()
     monkeypatch.setenv("HOME", str(data))
+    monkeypatch.setenv("USERPROFILE", str(data))       # Windows reads the home from USERPROFILE
     monkeypatch.setenv("HERMES_HOME", str(data))
     monkeypatch.delitem(sys.modules, "hermes_constants", raising=False)
     assert cap(sh("tar xf /tmp/e.tar -C $HERMES_HOME", str(data)))

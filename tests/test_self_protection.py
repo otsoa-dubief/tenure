@@ -210,6 +210,7 @@ def test_docker_home_is_the_user_home_and_the_working_directory(tmp_path, monkey
     data = tmp_path / "opt-data"
     data.mkdir()
     monkeypatch.setenv("HOME", str(data))
+    monkeypatch.setenv("USERPROFILE", str(data))       # Windows reads the home from USERPROFILE
     monkeypatch.setenv("HERMES_HOME", str(data))
     monkeypatch.delitem(sys.modules, "hermes_constants", raising=False)
     cwd = str(data)

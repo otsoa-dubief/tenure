@@ -186,7 +186,7 @@ def test_locale_comes_from_the_dashboard_sdk():
 RUNNER = r"""
 const fs = require("fs");
 let src = fs.readFileSync(process.argv[2], "utf8");
-const block = process.argv[3];
+const block = fs.readFileSync(process.argv[3], "utf8");
 const i = src.indexOf("/* TENURE_LOCALES_BEGIN */"), j = src.indexOf("/* TENURE_LOCALES_END */");
 src = src.slice(0, i) + "/* TENURE_LOCALES_BEGIN */\nconst TENURE_LOCALES = " + block + ";\n" + src.slice(j);
 src = src.replace('REG.register("tenure", TenurePage);', "global.__T = { t: t, setLocale: setLocale, ago: ago };");
@@ -214,8 +214,10 @@ def test_lookup_falls_back_and_selects_plurals(tmp_path):
                                                         "few": "{n} أخطاء", "many": "{n} خطأ", "other": "{n} خطأ"}}}
     runner = tmp_path / "run.js"
     runner.write_text(RUNNER, encoding="utf-8")
-    res = subprocess.run(["node", str(runner), str(JS), json.dumps(fake, ensure_ascii=False)],
-                         capture_output=True, text=True, timeout=60)
+    data = tmp_path / "locales.json"                    # a file: the catalog is longer than a Windows command line
+    data.write_text(json.dumps(fake, ensure_ascii=False), encoding="utf-8")
+    res = subprocess.run(["node", str(runner), str(JS), str(data)],
+                         capture_output=True, text=True, encoding="utf-8", timeout=60)
     assert res.returncode == 0, res.stderr
     out = json.loads(res.stdout)
     assert out["en"] == ["Map", "Undo", "1 fault", "2 faults", "1,234 faults", "no.such.key", "— verified by you", "1h 02m ago"]

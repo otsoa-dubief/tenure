@@ -661,6 +661,7 @@ def world(tmp_path, monkeypatch):
         "run_agent.py", "hermes_agent-0.23.0.dist-info/METADATA", "hermes_agent-0.23.0.dist-info/RECORD")))
     monkeypatch.syspath_prepend(str(sp))
     monkeypatch.setenv("HOME", str(h))
+    monkeypatch.setenv("USERPROFILE", str(h))       # Windows reads the home from USERPROFILE
     monkeypatch.setenv("HERMES_HOME", str(hh))
     monkeypatch.setenv("PATH", str(fb) + os.pathsep + os.environ.get("PATH", ""))
     for mod in ("hermes_constants", "hermes_cli"):
@@ -681,7 +682,9 @@ def wsh(w, cmd, cwd=None):
 
 
 def wcode(w, code, cwd=None):
-    return kind("execute_code", {"code": _fill(w, code)}, cwd=_fill(w, cwd) if cwd else w.proj, home=w.h)
+    # a Windows path inside a Python literal is written with slashes: 'C:\\Users' would not even parse (\\U escape)
+    slashed = type("World", (), {k: getattr(w, k).replace("\\", "/") for k in ("env", "h", "hh", "fb", "proj", "sp")})
+    return kind("execute_code", {"code": _fill(slashed, code)}, cwd=_fill(w, cwd) if cwd else w.proj, home=w.h)
 
 
 T1_COMMANDS = [
@@ -870,6 +873,7 @@ def test_docker_home_stays_free(tmp_path, monkeypatch):
     (d / "proj").mkdir(parents=True)
     (d / "config.yaml").write_text("x")
     monkeypatch.setenv("HOME", str(d))
+    monkeypatch.setenv("USERPROFILE", str(d))       # Windows reads the home from USERPROFILE
     monkeypatch.setenv("HERMES_HOME", str(d))
     monkeypatch.delitem(sys.modules, "hermes_constants", raising=False)
     run = lambda cmd, cwd: sh(cmd, cwd=str(cwd), home=str(d))[1]

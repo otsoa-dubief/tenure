@@ -29,7 +29,8 @@ def env(tmp_path, monkeypatch):
     proj.mkdir()
     monkeypatch.setenv("HERMES_HOME", str(home))
     monkeypatch.setenv("HOME", str(user))
-    monkeypatch.setenv("PATH", f"{user / 'bin'}:/usr/bin:/bin")
+    monkeypatch.setenv("USERPROFILE", str(user))       # Windows reads the home from USERPROFILE
+    monkeypatch.setenv("PATH", os.pathsep.join([str(user / "bin"), "/usr/bin", "/bin"]))
     monkeypatch.delitem(sys.modules, "hermes_constants", raising=False)
     c.reset_hermes_targets()
     yield dict(V=str(venv), H=str(home), R=str(root), U=str(user), P=str(proj), tmp=tmp_path)

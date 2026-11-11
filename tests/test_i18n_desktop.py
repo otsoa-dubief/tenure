@@ -201,7 +201,8 @@ console.log(JSON.stringify([
   T('revoke.desc', { name: 'NAME' }),
 ]))
 """, encoding="utf-8")
-    res = json.loads(subprocess.run([NODE, str(script)], check=True, capture_output=True, text=True).stdout)
+    res = json.loads(subprocess.run([NODE, str(script)], check=True, capture_output=True, text=True,
+                                    encoding="utf-8").stdout)
     assert res == ["1 session", "0 sessions", "file:write changed, then told you (m).", "file:write: 3 changes, then told you (m).",
                    "1 fault / 4", "balanced · 1 in 10 spot-checked · applies from the next action",
                    "Every action type of NAME asks first again and its series restarts from zero. Its record stays in the ledger. Not a fault."]
