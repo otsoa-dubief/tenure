@@ -43,13 +43,15 @@ Tenure keeps Hermes' speed and adds what is missing:
 | **T2 · Under review** (acts, then tells you) | Earned back on approvals: the agent acts, then tells you, with an undo. Only for reversible types at low or medium stakes. |
 | **T3 · Tenured** (acts on its own) | Earned on a series of verified successes over two sessions, under a risk you set. One in ten is still spot-checked. |
 
-What tenure asks that Hermes alone would not: what leaves your machine (pushes, publishing, deploys, registry logins,
-messages, uploads, cloud writes, payments), deleting files or discarding uncommitted git work, commands that change files without an undo (`sed -i`, `cp`, `mv`),
-anything under `sudo`,
-programs outside the list above (database and unknown CLIs, or a package runner starting one, until they earn it),
-shell constructs it cannot read safely (`for`, `if`, `python -c`), the agent's own skills, plugins and secrets, and a
-session that just read outside content (web, mail, downloads). Prefer the preregistered study's start, where every type begins on probation?
-`hermes tenure start probation`.
+What tenure asks that Hermes alone would not:
+
+- what leaves your machine: pushes, publishing, deploys, registry logins, messages, uploads, cloud writes, payments;
+- what cannot be undone: deleting files, discarding uncommitted git work, `sed -i`, `cp`, `mv`, anything under `sudo`;
+- programs outside the list above (database and unknown CLIs, or a package runner starting one), until they earn it;
+- shell it cannot read safely (`for`, `if`, `python -c`), and the agent's own skills, plugins and secrets;
+- everything, for the rest of a session that just read outside content (web, mail, downloads).
+
+Prefer the preregistered study's start, where every type begins on probation? `hermes tenure start probation`.
 
 | | Hermes by default | `--yolo` | An allowlist | **tenure** |
 |---|---|---|---|---|
