@@ -138,7 +138,7 @@
   "help.asks_files": "File edits keep their Undo, and so does a plain rm, mv, cp, sed -i or echo > file on project files: a change made without asking can be put back.",
   "help.asks_irreversible": "What cannot be undone: a recursive delete, a glob or a variable in a file command, discarding uncommitted git work, anything under sudo.",
   "help.asks_leaves": "What leaves the machine: publishing, deploying, pushing, sending an email, a payment.",
-  "help.asks_outside": "After the agent reads outside content (a web page, an email, a downloaded file), its commands ask until you start a new session with /new.",
+  "help.asks_outside": "After the agent reads outside content (a web page, an email, a downloaded file), its commands ask until you start a new session with /new; file changes, plain rm, mv or cp included, keep going with their Undo.",
   "help.asks_title": "What asks, and why",
   "help.asks_unknown": "Programs tenure does not know: a database or cloud tool, an unknown command.",
   "help.benchmark_body": "Your benchmark is each model's verified record on your own work, per action type, with the 95% range of its fault rate. A model is ranked once it has {n} verified outcomes on a type. A public score, when shown, is context: capability on someone else's tasks, not reliability on yours.",

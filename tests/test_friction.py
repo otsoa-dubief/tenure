@@ -1,6 +1,7 @@
 """The friction bench (tests/friction.py, printed by scripts/friction.py): in one ordinary coding session of thirty
 calls, the trusted start asks only about a glob delete, a push, and a command after outside content. Measured on
-2026-11-11: 8 questions before plain file commands kept an undo, 3 after; the study start asks 23."""
+2026-11-11: 8 questions before plain file commands kept an undo, 3 after; the study start asks 23. With the web page read
+fourth: 11 questions answered once, 3 with one "Allow for this session"."""
 from friction import SED, SESSION, replay
 
 
@@ -29,6 +30,6 @@ def test_the_study_start_asks_much_more():
 def test_a_web_page_early_costs_one_session_answer_not_every_command():
     once = [r["what"] for r in replay("trusted", early_web=True) if r["tenure"]]
     session = [r["what"] for r in replay("trusted", early_web=True, answer="session") if r["tenure"]]
-    assert len([a for a in once if a not in ("python -c 'import sys; print(sys.version)'", "rm -rf build")]) == 17
+    assert len([a for a in once if a not in ("python -c 'import sys; print(sys.version)'", "rm -rf build")]) == 11
     assert [a for a in session if a not in ("python -c 'import sys; print(sys.version)'", "rm -rf build")] == [
         "npm install", "rm *.log", "git push origin main"]

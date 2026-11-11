@@ -1515,14 +1515,14 @@ def _undo_target_ok(p: str, cwd: str, home: str) -> bool:
             return False                                 # a hard link: the other names would keep the change
     except OSError:
         return False
-    if {".git", ".hermes"} & set(_norm(p).split("/")):
+    if {".git", ".hermes"} & set(_norm(p).casefold().split("/")):
         return False                                     # git's own data, a project's Hermes settings: keep asking
     return _file(p, cwd, home)[1] == LOW
 
 
 def _undo_source_ok(p: str, cwd: str, home: str) -> bool:
     """A file the command only reads: a regular project file (what it holds stays inside the project)."""
-    return (os.path.isfile(p) and not os.path.islink(p) and not {".git", ".hermes"} & set(_norm(p).split("/"))
+    return (os.path.isfile(p) and not os.path.islink(p) and not {".git", ".hermes"} & set(_norm(p).casefold().split("/"))
             and _file(p, cwd, home)[1] == LOW)
 
 
@@ -1582,6 +1582,8 @@ def _undo_sed(args: list[str], cwd: str, home: str) -> list[str] | None:
         script = rest.pop(0)
     if not rest or any(r.startswith("-") for r in rest):
         return None
+    if not _sed_plain(script):
+        return None                                      # only substitutions and deletions: no r, R, w, e, y, a, i, c
     for brackets in (True, False):
         read = _sed_script(script, brackets)
         if read is None or read[0] or read[1]:
@@ -1590,6 +1592,32 @@ def _undo_sed(args: list[str], cwd: str, home: str) -> list[str] | None:
     if not all(os.path.isfile(f) and not os.path.islink(f) for f in files):
         return None
     return files + ([f + suffix for f in files] if suffix else [])
+
+
+_SED_ADDR = r"(?:\d+|\$|/(?:\\.|[^/\\\n])*/I?)"
+_SED_CMD = re.compile(
+    rf"[ \t]*(?:{_SED_ADDR}(?:[ \t]*,[ \t]*{_SED_ADDR})?)?[ \t]*!?[ \t]*"
+    r"(?:s(?P<d>[^\\\n\sa-zA-Z0-9])(?:\\.|(?!(?P=d))[^\\\n])*(?P=d)(?:\\.|(?!(?P=d))[^\\\n])*(?P=d)[gpIi0-9]*|d)[ \t]*")
+
+
+def _sed_plain(script: str) -> bool:
+    """A sed script made only of substitutions (flags g, p, I, a number) and deletions, each with an optional address
+    or range, separated by `;` or new lines: it reads no other file and writes nothing but the edited one."""
+    i, n = 0, len(script)
+    while True:
+        m = _SED_CMD.match(script, i)
+        if not m or m.end() == i:
+            return False
+        i = m.end()
+        if i >= n:
+            return True
+        if script[i] not in ";\n":
+            return False
+        i += 1
+        while i < n and script[i] in " \t;\n":
+            i += 1
+        if i >= n:
+            return True
 
 
 def _undo_touch(args: list[str], cwd: str, home: str) -> list[str] | None:

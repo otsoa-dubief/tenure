@@ -407,11 +407,24 @@ def test_a_recursive_rm_or_a_glob_still_asks(plugin):
     assert state(mod, "file:shell") is None
 
 
-def test_after_outside_content_a_file_command_asks(plugin):
+def test_after_outside_content_a_file_command_keeps_going_with_its_undo(plugin):
     mod, ctx = plugin(TRUST)
-    _mk(ctx, "notes.txt")
+    path = _mk(ctx, "notes.txt")
     ctx.call("web_search", {"query": "x"})
-    assert ctx.call("terminal", {"command": "rm notes.txt"}) == "approved"
+    assert ctx.call("terminal", {"command": "rm notes.txt"}) == "ran"            # like a file write: saved first
+    assert "/tenure undo" in ctx.posted[-1]
+    os.remove(path)
+    mod.cli.slash(f"undo {int(ctx.posted[-1].rsplit(' ', 1)[1])}")
+    assert open(path).read() == "old\n"
+
+
+def test_a_session_answer_after_outside_content_never_runs_a_file_command_without_its_undo(plugin):
+    mod, ctx = plugin(TRUST)
+    _mk(ctx, "keep.txt")
+    ctx.call("web_search", {"query": "x"})
+    assert ctx.call("terminal", {"command": "npm install"}, answer="session") == "approved"
+    assert ctx.call("terminal", {"command": "rm keep.txt"}) == "ran"
+    assert "/tenure undo" in ctx.posted[-1]
 
 
 def test_the_study_start_asks_for_a_file_command(plugin):

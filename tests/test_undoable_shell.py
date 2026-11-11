@@ -274,3 +274,21 @@ def test_chains_that_stay_asking(tmp_path):
     for cmd in ("rm a.txt && rm -r d", "rm a.txt && npm test", "rm a.txt || rm b.txt", "rm a.txt &&", "&& rm a.txt",
                 "touch x.txt && rm x.txt", "rm a.txt & rm b.txt"):
         assert _u(cmd, tmp_path) is None, cmd
+
+
+def test_sed_reading_another_file_is_none(tmp_path):
+    _files(tmp_path, "b.txt")
+    i = "-i ''" if BSD else "-i"
+    for script in ("1r /etc/passwd", "R /etc/passwd", "$r x", "/a/r y", "s/a/b/;r z", "1{r q\n}", "y/ab/cd/", "a\\\ntext",
+                   "s/a/b/w o", "n;p"):
+        assert _u(f"sed {i} '{script}' b.txt", tmp_path) is None, script
+    for script in ("s/a/b/g", "1d", "/x/d", "s|a|b|;s/c/d/2", "3,5s/a/b/", "$d", "/^#/!s/a/b/I", "s/r/R/"):
+        assert _u(f"sed {i} '{script}' b.txt", tmp_path) == _p(tmp_path, "b.txt"), script
+
+
+def test_hermes_and_git_folders_any_case_are_none(tmp_path):
+    for d in (".HERMES", ".Hermes", ".GIT", ".Git"):
+        (tmp_path / d).mkdir(exist_ok=True)
+        (tmp_path / d / "config.yaml").write_text("x")
+        assert _u(f"echo x > {d}/config.yaml", tmp_path) is None, d
+        assert _u(f"rm {d}/config.yaml", tmp_path) is None, d

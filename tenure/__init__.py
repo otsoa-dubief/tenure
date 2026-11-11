@@ -895,7 +895,7 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
     if not _earned(recorded, act, s, n, decision) or ST.copy_unchecked:
         decision = rule.ASK                             # copy_unchecked: this record may be a copy, not yet settled
     if (decision == rule.ASK and not ST.copy_unchecked and trusted(cfg, s, n, act.stakes)
-            and (not suspended or (act.reversible and act.type.startswith("file:") and act.type != "file:shell"))):
+            and (not suspended or (act.reversible and act.type.startswith("file:")))):
         decision = rule.WATCH                           # after outside content: undoable file writes only                           # trusted start: run as Hermes would, with an undo if possible
     return recorded, s, decision, suspended
 
@@ -1123,7 +1123,10 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                         else "trial" if s.trial_left or s.trial_wait else "ask")
                 # Under the trusted start, an ask for inline code, or one only the suspension causes, has a key stable
                 # for the session: "Allow for this session" then covers that type until the session ends.
-                per_session = (cfg.get("start") == "trusted" and not nobody and decision == rule.ASK
+                # A file change whose files could not be saved is asked about each time: a session answer must
+                # never let a write run without its undo.
+                no_undo = act.reversible and not snap and bool(classify.files_written(tool, args, cwd))
+                per_session = (cfg.get("start") == "trusted" and not nobody and decision == rule.ASK and not no_undo
                                and (act.type in params.SESSION_TYPES or (suspended and trusted(cfg, s, n, act.stakes))
                                     or _uncovered_local(act, s, n)))
                 # After outside content, one session answer covers every covered type (one key for the session);

@@ -141,7 +141,7 @@
   "help.asks_files": "La edición de archivos conserva su Deshacer, igual que un rm, mv, cp, sed -i o echo > archivo simple sobre archivos del proyecto: un cambio hecho sin preguntar se puede revertir.",
   "help.asks_irreversible": "Lo que no se puede deshacer: un borrado recursivo, un comodín o una variable en un comando de archivos, descartar trabajo de git sin confirmar, todo lo que pasa por sudo.",
   "help.asks_leaves": "Lo que sale de la máquina: publicar, desplegar, hacer push, enviar un correo, un pago.",
-  "help.asks_outside": "Después de que el agente lea contenido externo (una página web, un correo, un archivo descargado), sus comandos preguntan hasta que abras una sesión nueva con /new.",
+  "help.asks_outside": "Después de que el agente lea contenido externo (una página web, un correo, un archivo descargado), sus comandos preguntan hasta que abras una nueva sesión con /new; los cambios de archivos, incluidos rm, mv o cp simples, siguen con su Deshacer.",
   "help.asks_title": "Qué pregunta, y por qué",
   "help.asks_unknown": "Programas que tenure no conoce: una herramienta de base de datos o de la nube, un comando desconocido.",
   "help.benchmark_body": "Tu benchmark es el historial verificado de cada modelo sobre tu propio trabajo, por tipo de acción, con el rango del 95 % de su tasa de fallos. Un modelo entra en la clasificación cuando tiene {n} resultados verificados en un tipo. Una puntuación pública, cuando aparece, es contexto: capacidad en tareas de otros, no fiabilidad en las tuyas.",

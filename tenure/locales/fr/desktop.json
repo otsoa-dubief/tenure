@@ -141,7 +141,7 @@
   "help.asks_files": "Les modifications de fichiers gardent leur bouton Annuler, comme un simple rm, mv, cp, sed -i ou echo > fichier sur des fichiers du projet : un changement fait sans demander peut être défait.",
   "help.asks_irreversible": "Ce qui ne s'annule pas : une suppression récursive, un motif * ou une variable dans une commande de fichiers, jeter du travail git non commité, tout ce qui passe par sudo.",
   "help.asks_leaves": "Ce qui sort de la machine : publier, déployer, pousser, envoyer un e-mail, un paiement.",
-  "help.asks_outside": "Après que l'agent a lu un contenu extérieur (une page web, un e-mail, un fichier téléchargé), ses commandes vous sont demandées jusqu'à ce que vous ouvriez une nouvelle session avec /new.",
+  "help.asks_outside": "Après que l'agent a lu un contenu extérieur (une page web, un e-mail, un fichier téléchargé), ses commandes demandent jusqu'à ce que vous ouvriez une nouvelle session avec /new ; les modifications de fichiers, simples rm, mv ou cp compris, continuent avec leur bouton Annuler.",
   "help.asks_title": "Ce qui vous est demandé, et pourquoi",
   "help.asks_unknown": "Les programmes que tenure ne connaît pas : un outil de base de données ou de cloud, une commande inconnue.",
   "help.benchmark_body": "Votre benchmark est l'historique vérifié de chaque modèle sur votre propre travail, par type d'action, avec la fourchette à 95 % de son taux de fautes. Un modèle est classé dès qu'il a {n} résultats vérifiés sur un type. Un score public, quand il est affiché, sert de contexte : la capacité sur les tâches d'autres, pas la fiabilité sur les vôtres.",

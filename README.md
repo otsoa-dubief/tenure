@@ -53,7 +53,7 @@ What tenure asks that Hermes alone would not:
 - programs outside the list above (database and unknown CLIs, or a package runner starting one), until they earn it;
 - shell it cannot read safely (`for`, `if`, `python -c`), and the agent's own skills, plugins and secrets;
 - every command, for the rest of a session that just read outside content (web, mail, downloads, `git pull`);
-  file writes keep going with their undo, and `/new` starts afresh;
+  file changes (writes and plain file commands) keep going with their undo, and `/new` starts afresh;
 - other writing through the shell (`tee`, a pipe into a file; a covered tool's own output, `pytest > log`, is fine), local
   scripts (`./run.sh`, `bash x.sh`) and `docker`. For these and inline code (`python -c`, `for`, `if`), "Allow
   for this session" stops the questions for that kind of command until the session ends (the answer that allows it counts once, like any approval; what the grant lets through
@@ -62,8 +62,8 @@ What tenure asks that Hermes alone would not:
 **In practice.** In one ordinary coding session of 30 calls (writing files, npm, pytest, git, `rm`, `mv`, `sed -i`,
 `echo >>`, a web page, a push), the trusted start asks 3 questions Hermes would not: `rm *.log`, `git push`, and a
 command right after the web page. Hermes asks 2 more by itself; the study start asks 23. Put the web page fourth
-instead and every later command asks until `/new`: 17 questions if you allow each once, 3 if you pick "Allow for this
-session" the first time. Replay it: `HERMES_AGENT_DIR=<Hermes source> python scripts/friction.py` (the session is in
+instead and every later command asks until `/new` (file changes keep going with their undo): 11 questions if you
+allow each once, 3 if you pick "Allow for this session" the first time. Replay it: `HERMES_AGENT_DIR=<Hermes source> python scripts/friction.py` (the session is in
 `tests/friction.py`; without Hermes' source, Hermes' own questions count as tenure's). The undo covers text files up
 to 5 MB per action: a binary or larger file asks.
 
