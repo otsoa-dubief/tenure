@@ -21,6 +21,7 @@ provides_hooks:
   - pre_tool_call
   - post_approval_response
   - post_tool_call
+  - post_llm_call
   - subagent_start
   - subagent_stop
 config_schema:
