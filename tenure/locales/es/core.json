@@ -14,7 +14,7 @@
     "one": "Uno de ellos, heredado del agente anterior, es provisional.",
     "other": "{n} de ellos, heredados del agente anterior, son provisionales."
   },
-  "ask.why.series": "{type} (impacto {stakes}) pregunta antes: {series}/{required} acciones limpias seguidas, {sessions} de {needed} sesiones, antes de actuar por su cuenta.",
+  "ask.why.series": "{type} (impacto {stakes}) pregunta antes: {series}/{required} éxitos verificados seguidos, {sessions} de {needed} sesiones, antes de actuar por su cuenta.",
   "ask.why.suspended": "Esta sesión leyó contenido externo, así que cada acción vuelve a preguntar (suspendido: contenido externo leído). Abre una sesión nueva (/new) para trabajar como antes.",
   "ask.why.suspended_trusted": "Esta sesión leyó contenido externo: los comandos preguntan hasta una sesión nueva (/new); las ediciones de archivos siguen, con su deshacer.",
   "ask.why.trial": {

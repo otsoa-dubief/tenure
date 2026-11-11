@@ -28,8 +28,6 @@ DYNAMIC = {
     "tier.name.": ["ask", "notify", "alone"],
     "stakes.": ["low", "medium", "high"],
     "stakes.group.": ["low", "medium", "high"],
-    "settings.stakes.": ["low", "medium", "high"],
-    "settings.stakes_risk.": ["low", "medium", "high"],
     "preset.": ["careful", "balanced", "fast", "custom"],
     "view.": ["map", "models", "switch", "passport", "undo", "settings"],
     "event.fault.": ["refusal", "spot", "check", "undo", "flag"],
@@ -125,7 +123,7 @@ def test_keys_and_values_are_well_formed():
             names = [set(PLACEHOLDER.findall(v)) for v in value.values()]
             assert all(n == names[0] for n in names), f"{key}: plural forms disagree on placeholders"
             assert "n" in names[0] or any("{count}" in v or "{wait}" in v or "{left}" in v for v in value.values()) \
-                or key in {"counters.actions.label", "settings.checks_in_row"}, key
+                or key in {"counters.actions.label"}, key
         else:
             assert isinstance(value, str), key
         for text in _texts(value):
@@ -175,8 +173,8 @@ def test_keyboard_letters_stay_and_smoke_texts_are_in_english():
     assert en["page.title"] == "Tenure"
     assert en["view.models"] == "Your benchmark"
     assert "public capability on their tasks, not reliability on yours" in en["models.lede_bold"]
-    assert en["preset.careful"] == "careful" and en["settings.apply"] == "Apply"
-    assert en["settings.in_force"] == "in force: {value}"
+    assert en["preset.careful"] == "careful" and en["settings.save"] == "Save"
+    assert en["settings.in_force"] == "In force"
 
 
 def test_locale_comes_from_the_dashboard_sdk():

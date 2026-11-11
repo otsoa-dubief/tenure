@@ -567,7 +567,7 @@ def setup_preset(name: str = "") -> str:
     name = name.strip().lower()
     if name not in params.PRESETS:
         return tr("cli.setup.unknown", name=repr(name)) + " " + presets_text(cfg["spot"])
-    err = _save_setting(core, "preset", name)
+    err = _save_setting(core, "preset", name) or _save_setting(core, "risks", {})   # a preset replaces own risks
     if err:
         return warn + tr("cli.setup.save_failed", error=err, setting=f"{SETTINGS}.preset", name=name)
     return warn + tr("cli.setup.in_force", name=name) + "\n" + presets_text(core.settings()["spot"])

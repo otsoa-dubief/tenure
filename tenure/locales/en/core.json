@@ -14,7 +14,7 @@
     "one": "{n} of them carried over from the previous agent, provisional.",
     "other": "{n} of them carried over from the previous agent, provisional."
   },
-  "ask.why.series": "{type} ({stakes} stakes) asks first: {series}/{required} clean runs in a row, {sessions} of {needed} sessions, before it acts on its own.",
+  "ask.why.series": "{type} ({stakes} stakes) asks first: {series}/{required} verified successes in a row, {sessions} of {needed} sessions, before it acts on its own.",
   "ask.why.suspended": "This session read external content, so every action asks again (suspended: external content read). Start a new session (/new) to work as before.",
   "ask.why.suspended_trusted": "This session read outside content: commands ask until a new session (/new); file edits continue, with their undo.",
   "ask.why.trial": {

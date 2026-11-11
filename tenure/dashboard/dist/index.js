@@ -223,7 +223,7 @@ const TENURE_LOCALES = {
     "legend.capped": "capped: always asks",
     "legend.carried": "from the previous model, provisional",
     "legend.notify": "acts, then tells you, with an undo (reversible types)",
-    "legend.series": "clean runs in a row, of the N needed",
+    "legend.series": "verified successes in a row, of the N needed",
     "legend.trusted": "trusted start: acts like Hermes alone until its first mistake, nothing earned",
     "map.aria": "Agents by action type",
     "map.empty.after": ", and climbs only on verified successes: reversible types reach the middle tier after a run of verified successes without a fault, and T3 after a full series of N from two sessions.",
@@ -238,6 +238,9 @@ const TENURE_LOCALES = {
       "one": "risk {risk} · {n} in a row to act on its own",
       "other": "risk {risk} · {n} in a row to act on its own"
     },
+    "meta.preset": "Preset",
+    "meta.profile": "Profile",
+    "meta.start": "Start",
     "missing.always_asks": "always asks",
     "missing.earned": "earned · spot-checked",
     "missing.more_to_t2": {
@@ -283,6 +286,7 @@ const TENURE_LOCALES = {
     "page.anim_on": "motion on",
     "page.anim_reduced": "Your system asks for reduced motion: animations stay off",
     "page.anim_title": "Animations: on or off, remembered in this browser",
+    "page.animations": "Animations",
     "page.error": "Could not read tenure: {error}",
     "page.live": "live · ",
     "page.loading": "Loading the record…",
@@ -351,47 +355,58 @@ const TENURE_LOCALES = {
       "other": "{n} suspended: external content read"
     },
     "profile.this_dashboard": " · this dashboard",
-    "settings.about.body": "After a type's first mistake (or with the study's start), the same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending). On top of the rule, for tiers earned on evidence: spot checks (once a type is cleared, {spot} of its actions still asks), two distinct sessions in the series that reaches T3, and suspension after a session reads external content.",
-    "settings.about.carry": "Carry-over is our addition; strict mode is the study.",
-    "settings.about.title": "About the rule",
-    "settings.apply": "Apply",
-    "settings.checks_in_row": {
-      "one": " check in a row",
-      "other": " checks in a row"
-    },
-    "settings.empty.body": "The balanced preset applies until the first action is recorded.",
-    "settings.empty.title": "No settings logged yet",
-    "settings.in_force": "in force: {value}",
-    "settings.in_force_profile": "In force in profile {profile}.",
-    "settings.no_change": "No change",
-    "settings.preset_aria": "Preset",
-    "settings.read_only.body": "This dashboard process cannot write tenure's settings (Hermes gives plugins no other public writer). Run:",
-    "settings.read_only.bold": "Read-only here.",
-    "settings.reset": "Reset",
-    "settings.risk_help": "The share of errors you accept running unchecked, per stakes level. N is the series of verified successes in a row a type needs to act on its own.",
-    "settings.risk_title": "Accepted risk",
+    "settings.advanced_docs": "Every key is explained by hermes tenure explain and in tenure's README.",
+    "settings.advanced_help": "Action-type overrides, and every key in Hermes' own form.",
+    "settings.advanced_title": "Advanced",
+    "settings.advanced_types": "Reclassify action types (free, low, medium, high or cap per pattern) in Hermes' Settings → Plugins → Tenure, or in config.yaml:",
+    "settings.animations_help": "The bars that print, the passport that develops, the bands. The same switch as in the page header; it stays off when your system asks for reduced motion.",
+    "settings.custom_help": "Your own share of unchecked errors per stakes level: pick 1 in k, type your own k, or cap (always asks). The series a type needs follows at once. Saved, it makes the preset custom, unless it matches one.",
+    "settings.custom_title": "Accepted risk per stakes level",
+    "settings.enabled_help": "Turn tenure off without uninstalling it.",
+    "settings.enabled_off": "Off",
+    "settings.enabled_on": "On",
+    "settings.enabled_title": "Tenure on or off",
+    "settings.enabled_unknown": "The agent half does not report this state yet: pick one to set it.",
+    "settings.enabled_warn": "Off: tenure stops deciding; Hermes asks as usual. The ledger and every record stay as they are.",
+    "settings.in_force": "In force",
+    "settings.no_writer": "This Hermes does not let the Desktop save tenure's settings: use the command below.",
+    "settings.none": "This profile has no tenure record yet: the defaults apply until its first action.",
+    "settings.one_in": "1 in",
+    "settings.or_config": "Or in Hermes' config.yaml, under plugins.entries.tenure.settings:",
+    "settings.or_terminal": "Or in a terminal:",
+    "settings.pending": "The last change is not in the ledger yet: it applies from the next action.",
+    "settings.preset_desc_balanced": "The default. High-stakes types always ask.",
+    "settings.preset_desc_careful": "Asks the longest. Even high-stakes types can earn their tier, after a long series.",
+    "settings.preset_desc_custom": "Your own accepted risk per stakes level, set in Hermes' config.",
+    "settings.preset_desc_fast": "Earns autonomy soonest at low and medium stakes. High-stakes types always ask.",
+    "settings.preset_help": "How much evidence an action type needs before it acts on its own, per stakes level: the series of verified successes in a row, and the share of unchecked errors it accepts.",
+    "settings.risk": "1 unchecked error in {k} accepted",
+    "settings.risk_invalid": "A whole number of 2 or more.",
     "settings.rung_cap": "cap",
-    "settings.same_as": "Same as: {cmds}",
-    "settings.saved": "Settings saved.",
-    "settings.saved_long": "Saved. The new settings are logged in the ledger and apply from the next action.",
-    "settings.stakes.high": "High stakes",
-    "settings.stakes.low": "Low stakes",
-    "settings.stakes.medium": "Medium stakes",
-    "settings.stakes_risk.high": "high stakes risk",
-    "settings.stakes_risk.low": "low stakes risk",
-    "settings.stakes_risk.medium": "medium stakes risk",
-    "settings.start.change": "Read-only here. To change it, run in a terminal:",
-    "settings.start.or_terminal": "Or in a terminal:",
-    "settings.start.probation": "Study start (probation)",
-    "settings.start.probation_body": "Each action type starts on Probation (T1): it asks first and earns its tier on evidence, as in the study.",
-    "settings.start.title": "Start",
-    "settings.start.trusted": "Trusted start",
-    "settings.start.trusted_body": "Each action type acts as Hermes alone would until its first fault or revoke: a reversible change acts, then tells you, with an undo. Its first fault puts it on Probation (T1), and from there it earns its tier on evidence. Leaving the machine and money still ask.",
-    "settings.start.use_probation": "Use the study start (probation)",
-    "settings.start.use_trusted": "Use the trusted start",
-    "settings.strict": "Strict mode",
-    "settings.strict_off": "Off: a new model inherits part of the previous record, provisionally",
-    "settings.strict_on": "On: a new model starts with an empty record (the study's rule)",
+    "settings.save": "Save",
+    "settings.save_failed": "Not saved: {error}",
+    "settings.saved": "Saved and logged in the ledger: it applies from the next action.",
+    "settings.saves_here": "Changes save at once, through Hermes' own settings writer, and are logged in the ledger; they apply from the next action. The same settings are in Hermes' Settings → Plugins → Tenure.",
+    "settings.saving": "Saving…",
+    "settings.series": {
+      "one": "{n} verified success in a row",
+      "other": "{n} verified successes in a row"
+    },
+    "settings.spot_change": "Set it in Hermes' config.yaml, under plugins.entries.tenure.settings (a share between 0 and 1):",
+    "settings.spot_custom": "Your own value: 1 in k",
+    "settings.spot_desc": "Once a type is tenured, 1 of its actions in {k} still asks, at random: a model that turns bad gets caught.",
+    "settings.spot_title": "Spot checks",
+    "settings.spot_value": "1 in {k}",
+    "settings.start_help": "What an action type does before its first fault.",
+    "settings.start_probation": "The study's start: every action type asks first (T1) and earns each tier from your answers.",
+    "settings.start_trusted": "Covered types (file edits, memory, subagents, known development tools) ask nothing until their first fault, as Hermes alone would. A fault puts that type on Probation (T1), and it earns its tier back. Leaving the machine and money always ask.",
+    "settings.strict_desc_off": "A new model inherits the previous model's record at low and medium stakes, halved and provisional until its own approvals confirm it. High stakes start over.",
+    "settings.strict_desc_on": "A new model starts with an empty record on every action type, as in the study.",
+    "settings.strict_help": "What a new model inherits when you switch models.",
+    "settings.strict_off": "Strict mode off",
+    "settings.strict_on": "Strict mode on",
+    "settings.strict_title": "Strict mode on model change",
+    "settings.use": "Use",
     "stakes.group.high": "high stakes",
     "stakes.group.low": "low stakes",
     "stakes.group.medium": "medium stakes",
@@ -399,6 +414,8 @@ const TENURE_LOCALES = {
     "stakes.low": "low",
     "stakes.medium": "medium",
     "stale.message": "Last refresh failed ({error}). Showing the data from {time}.",
+    "start.probation": "Study start (probation)",
+    "start.trusted": "Trusted start",
     "switch.count.carried": {
       "one": "{n} carried",
       "other": "{n} carried"
@@ -518,6 +535,10 @@ const TENURE_LOCALES = {
     "transitions.why.on_evidence": "on evidence",
     "transitions.why.trial_open": "trial open",
     "transitions.why_changed": "without a fault: revoked, or the settings or stakes changed",
+    "type.always_asks": "always asks",
+    "type.stakes_high": "high stakes",
+    "type.stakes_low": "low stakes",
+    "type.stakes_medium": "medium stakes",
     "undo.button": "Undo",
     "undo.collapse": "Hide",
     "undo.confirm": "Undo #{id}?",
@@ -815,7 +836,7 @@ const TENURE_LOCALES = {
     "legend.capped": "مقيَّد: يسأل دائمًا",
     "legend.carried": "من النموذج السابق، مؤقت",
     "legend.notify": "ينفّذ ثم يُبلغ مع إمكانية التراجع (الأنواع القابلة للتراجع)",
-    "legend.series": "نجاحات سليمة على التوالي، من أصل N مطلوبة",
+    "legend.series": "نجاحات موثَّقة على التوالي، من أصل N مطلوبة",
     "legend.trusted": "بداية موثوقة: يعمل مثل Hermes وحده حتى أول خطأ له، دون أي اكتساب",
     "map.aria": "الوكلاء حسب نوع الإجراء",
     "map.empty.after": "، ولا يصعد إلا بنجاحات موثّقة: تبلغ الأنواع القابلة للتراجع المستوى الأوسط بعد سلسلة من النجاحات الموثّقة دون إخفاق، وT3 بعد سلسلة كاملة من N على جلستين.",
@@ -834,6 +855,9 @@ const TENURE_LOCALES = {
       "many": "المخاطرة {risk} · {n} على التوالي ليعمل وحده",
       "other": "المخاطرة {risk} · {n} على التوالي ليعمل وحده"
     },
+    "meta.preset": "الإعداد المسبق",
+    "meta.profile": "الملف الشخصي",
+    "meta.start": "البداية",
     "missing.always_asks": "يسأل دائمًا",
     "missing.earned": "مكتسب · فحص عشوائي",
     "missing.more_to_t2": {
@@ -895,6 +919,7 @@ const TENURE_LOCALES = {
     "page.anim_on": "الحركة مفعّلة",
     "page.anim_reduced": "يطلب نظامك تقليل الحركة: تبقى الحركة متوقفة",
     "page.anim_title": "الحركة: مفعّلة أو متوقفة، وتُحفظ في هذا المتصفح",
+    "page.animations": "الرسوم المتحركة",
     "page.error": "تعذّرت قراءة tenure: {error}",
     "page.live": "مباشر · ",
     "page.loading": "جارٍ تحميل السجل…",
@@ -979,51 +1004,62 @@ const TENURE_LOCALES = {
       "other": "{n} معلّقة: قُرئ محتوى خارجي"
     },
     "profile.this_dashboard": " · هذه اللوحة",
-    "settings.about.body": "بعد أول خطأ لنوع ما (أو مع بداية الدراسة)، القاعدة نفسها كما في دراسة مسجّلة مسبقًا، أُعيد تشغيلها على أكثر من 6,000 وكيل محاكى (النتائج قيد الانتظار). فوق القاعدة، للمستويات المكتسبة بالأدلة: فحوص عشوائية (بعد اعتماد النوع، يظل {spot} من إجراءاته يسأل)، وجلستان مختلفتان في السلسلة التي تبلغ T3، وتعليق بعد أن تقرأ جلسة محتوى خارجيًا.",
-    "settings.about.carry": "النقل إضافة منا؛ الوضع الصارم هو الدراسة.",
-    "settings.about.title": "عن القاعدة",
-    "settings.apply": "تطبيق",
-    "settings.checks_in_row": {
-      "zero": " فحوص على التوالي",
-      "one": " فحص على التوالي",
-      "two": " فحصان على التوالي",
-      "few": " فحوص على التوالي",
-      "many": " فحصًا على التوالي",
-      "other": " فحص على التوالي"
-    },
-    "settings.empty.body": "يسري الإعداد المسبق «متوازن» حتى يُسجَّل أول إجراء.",
-    "settings.empty.title": "لم تُسجَّل إعدادات بعد",
-    "settings.in_force": "الساري: {value}",
-    "settings.in_force_profile": "ساري في الملف الشخصي {profile}.",
-    "settings.no_change": "لا تغيير",
-    "settings.preset_aria": "الإعداد المسبق",
-    "settings.read_only.body": "لا تستطيع عملية هذه اللوحة كتابة إعدادات tenure (لا يوفر Hermes للإضافات وسيلة كتابة عامة أخرى). شغّل:",
-    "settings.read_only.bold": "للقراءة فقط هنا.",
-    "settings.reset": "إعادة ضبط",
-    "settings.risk_help": "نسبة الأخطاء التي تقبل أن تُنفَّذ دون فحص، لكل درجة خطورة. N هي سلسلة النجاحات الموثّقة على التوالي التي يحتاجها النوع ليعمل وحده.",
-    "settings.risk_title": "المخاطرة المقبولة",
+    "settings.advanced_docs": "كل مفتاح مشروح عبر hermes tenure explain وفي ملف README الخاص بـ tenure.",
+    "settings.advanced_help": "إعادة تصنيف أنواع الإجراءات، وكل المفاتيح في نموذج Hermes الخاص.",
+    "settings.advanced_title": "متقدّم",
+    "settings.advanced_types": "أعد تصنيف أنواع الإجراءات (free أو low أو medium أو high أو cap لكل نمط) في الإعدادات ← الإضافات ← Tenure في Hermes، أو في config.yaml:",
+    "settings.animations_help": "الأشرطة التي تُطبع، والجواز الذي يظهر تدريجيًا، والأشرطة العريضة. المفتاح نفسه الموجود في رأس الصفحة؛ ويبقى متوقفًا إذا طلب نظامك تقليل الحركة.",
+    "settings.custom_help": "نسبتك الخاصة من الأخطاء غير المفحوصة لكل مستوى خطورة: اختر 1 من كل k، أو اكتب قيمة k الخاصة بك، أو قيد (يسأل دائمًا). تتحدّث السلسلة التي يحتاجها النوع فورًا. بعد الحفظ يصبح الإعداد المسبق مخصصًا، ما لم يطابق أحدها.",
+    "settings.custom_title": "المخاطرة المقبولة لكل مستوى خطورة",
+    "settings.enabled_help": "أوقف tenure دون إلغاء تثبيته.",
+    "settings.enabled_off": "متوقف",
+    "settings.enabled_on": "مفعّل",
+    "settings.enabled_title": "تشغيل tenure أو إيقافه",
+    "settings.enabled_unknown": "لا يُبلغ جزء الوكيل عن هذه الحالة بعد: اختر واحدة لضبطها.",
+    "settings.enabled_warn": "متوقف: يكفّ tenure عن اتخاذ القرار؛ ويسأل Hermes كالمعتاد. يبقى الدفتر وكل السجلات كما هي.",
+    "settings.in_force": "سارٍ",
+    "settings.no_writer": "لا يسمح Hermes هذا لـ Desktop بحفظ إعدادات tenure: استخدم الأمر أدناه.",
+    "settings.none": "لا سجل tenure لهذا الملف الشخصي بعد: تسري القيم الافتراضية حتى أول إجراء له.",
+    "settings.one_in": "1 من كل",
+    "settings.or_config": "أو في ملف config.yaml الخاص بـ Hermes، تحت plugins.entries.tenure.settings:",
+    "settings.or_terminal": "أو في الطرفية:",
+    "settings.pending": "آخر تغيير لم يُسجَّل في الدفتر بعد: يسري من الإجراء التالي.",
+    "settings.preset_desc_balanced": "الإعداد الافتراضي. الأنواع عالية الخطورة تسأل دائمًا.",
+    "settings.preset_desc_careful": "يسأل أطول مدة. حتى الأنواع عالية الخطورة يمكنها اكتساب مستواها بعد سلسلة طويلة.",
+    "settings.preset_desc_custom": "مخاطرتك المقبولة الخاصة لكل مستوى خطورة، محددة في إعدادات Hermes.",
+    "settings.preset_desc_fast": "يكتسب الاستقلالية أسرع عند الخطورة المنخفضة والمتوسطة. الأنواع عالية الخطورة تسأل دائمًا.",
+    "settings.preset_help": "مقدار الأدلة التي يحتاجها نوع الإجراء قبل أن يعمل وحده، حسب مستوى الخطورة: سلسلة النجاحات الموثّقة على التوالي، ونسبة الأخطاء غير المفحوصة المقبولة.",
+    "settings.risk": "يُقبل خطأ واحد غير مفحوص من كل {k}",
+    "settings.risk_invalid": "عدد صحيح من 2 فأكثر.",
     "settings.rung_cap": "قيد",
-    "settings.same_as": "يكافئ: {cmds}",
-    "settings.saved": "حُفظت الإعدادات.",
-    "settings.saved_long": "حُفظت. الإعدادات الجديدة مسجّلة في الدفتر وتسري من الإجراء التالي.",
-    "settings.stakes.high": "خطورة عالية",
-    "settings.stakes.low": "خطورة منخفضة",
-    "settings.stakes.medium": "خطورة متوسطة",
-    "settings.stakes_risk.high": "مخاطرة الخطورة العالية",
-    "settings.stakes_risk.low": "مخاطرة الخطورة المنخفضة",
-    "settings.stakes_risk.medium": "مخاطرة الخطورة المتوسطة",
-    "settings.start.change": "للقراءة فقط هنا. لتغييره، شغّل في الطرفية:",
-    "settings.start.or_terminal": "أو في الطرفية:",
-    "settings.start.probation": "بداية بالدراسة (فترة اختبار)",
-    "settings.start.probation_body": "يبدأ كل نوع إجراء في فترة اختبار (T1): يسأل أولًا ويكتسب مستواه بالأدلة، كما في الدراسة.",
-    "settings.start.title": "البداية",
-    "settings.start.trusted": "بداية موثوقة",
-    "settings.start.trusted_body": "يعمل كل نوع إجراء كما يعمل Hermes وحده حتى أول إخفاق أو سحب: التغيير القابل للتراجع ينفّذ ثم يُبلغك مع إمكانية التراجع. أول إخفاق له يضعه في فترة اختبار (T1)، ومن هناك يكتسب مستواه بالأدلة. مغادرة الجهاز والمال يسألان دائمًا.",
-    "settings.start.use_probation": "استخدم بداية الدراسة (فترة الاختبار)",
-    "settings.start.use_trusted": "استخدم بداية الثقة",
-    "settings.strict": "الوضع الصارم",
-    "settings.strict_off": "معطّل: يرث النموذج الجديد جزءًا من السجل السابق، مؤقتًا",
-    "settings.strict_on": "مفعّل: يبدأ النموذج الجديد بسجل فارغ (قاعدة الدراسة)",
+    "settings.save": "حفظ",
+    "settings.save_failed": "لم يُحفظ: {error}",
+    "settings.saved": "حُفظ وسُجّل في الدفتر: يسري من الإجراء التالي.",
+    "settings.saves_here": "تُحفظ التغييرات فورًا عبر أداة كتابة الإعدادات الخاصة بـ Hermes نفسه، وتُسجَّل في الدفتر؛ وتسري من الإجراء التالي. الإعدادات نفسها موجودة في الإعدادات ← الإضافات ← Tenure في Hermes.",
+    "settings.saving": "جارٍ الحفظ…",
+    "settings.series": {
+      "zero": "{n} نجاحات موثّقة على التوالي",
+      "one": "{n} نجاح موثّق على التوالي",
+      "two": "{n} نجاحين موثّقين على التوالي",
+      "few": "{n} نجاحات موثّقة على التوالي",
+      "many": "{n} نجاحًا موثّقًا على التوالي",
+      "other": "{n} نجاح موثّق على التوالي"
+    },
+    "settings.spot_change": "اضبطه في ملف config.yaml الخاص بـ Hermes، تحت plugins.entries.tenure.settings (نسبة بين 0 و1):",
+    "settings.spot_custom": "قيمتك الخاصة: 1 من كل k",
+    "settings.spot_desc": "بعد تثبيت النوع، يظل إجراء واحد من كل {k} من إجراءاته يسأل، عشوائيًا: فيُكشف النموذج الذي يسوء أداؤه.",
+    "settings.spot_title": "الفحوص العشوائية",
+    "settings.spot_value": "1 من كل {k}",
+    "settings.start_help": "ما يفعله نوع الإجراء قبل أول إخفاق له.",
+    "settings.start_probation": "بداية الدراسة: كل نوع إجراء يسأل أولًا (T1) ويكتسب كل مستوى من إجاباتك.",
+    "settings.start_trusted": "الأنواع المشمولة (تعديل الملفات، والذاكرة، والوكلاء الفرعيون، وأدوات التطوير المعروفة) لا تسأل شيئًا حتى أول إخفاق لها، كما يعمل Hermes وحده. الإخفاق يضع ذلك النوع في فترة اختبار (T1)، ثم يستعيد مستواه. مغادرة الجهاز والمال يسألان دائمًا.",
+    "settings.strict_desc_off": "يرث النموذج الجديد سجل النموذج السابق عند الخطورة المنخفضة والمتوسطة، منصّفًا ومؤقتًا حتى تؤكده موافقاته الخاصة. الخطورة العالية تبدأ من الصفر.",
+    "settings.strict_desc_on": "يبدأ النموذج الجديد بسجل فارغ في كل نوع إجراء، كما في الدراسة.",
+    "settings.strict_help": "ما يرثه النموذج الجديد عند تبديل النماذج.",
+    "settings.strict_off": "الوضع الصارم متوقف",
+    "settings.strict_on": "الوضع الصارم مفعّل",
+    "settings.strict_title": "الوضع الصارم عند تغيير النموذج",
+    "settings.use": "استخدام",
     "stakes.group.high": "خطورة عالية",
     "stakes.group.low": "خطورة منخفضة",
     "stakes.group.medium": "خطورة متوسطة",
@@ -1031,6 +1067,8 @@ const TENURE_LOCALES = {
     "stakes.low": "منخفضة",
     "stakes.medium": "متوسطة",
     "stale.message": "فشل آخر تحديث ({error}). تُعرض بيانات {time}.",
+    "start.probation": "بداية بالدراسة (فترة اختبار)",
+    "start.trusted": "بداية موثوقة",
     "switch.count.carried": {
       "zero": "{n} منقولة",
       "one": "{n} منقول",
@@ -1198,6 +1236,10 @@ const TENURE_LOCALES = {
     "transitions.why.on_evidence": "بالأدلة",
     "transitions.why.trial_open": "اختبار مفتوح",
     "transitions.why_changed": "دون إخفاق: سحب، أو تغيّرت الإعدادات أو مستوى الخطورة",
+    "type.always_asks": "يسأل دائمًا",
+    "type.stakes_high": "خطورة عالية",
+    "type.stakes_low": "خطورة منخفضة",
+    "type.stakes_medium": "خطورة متوسطة",
     "undo.button": "تراجع",
     "undo.collapse": "طيّ",
     "undo.confirm": "التراجع عن #{id}؟",
@@ -1429,7 +1471,7 @@ const TENURE_LOCALES = {
     "legend.capped": "limitado: siempre pregunta",
     "legend.carried": "del modelo anterior, provisional",
     "legend.notify": "actúa y luego avisa, con opción de deshacer (tipos reversibles)",
-    "legend.series": "acciones limpias seguidas, de las N necesarias",
+    "legend.series": "éxitos verificados seguidos, de los N necesarios",
     "legend.trusted": "inicio de confianza: actúa como Hermes solo hasta su primer error, nada ganado",
     "map.aria": "Agentes por tipo de acción",
     "map.empty.after": ", y solo sube con éxitos verificados: los tipos reversibles llegan al nivel intermedio tras una serie de éxitos verificados sin fallos, y a T3 tras una serie completa de N en dos sesiones.",
@@ -1444,6 +1486,9 @@ const TENURE_LOCALES = {
       "one": "riesgo {risk} · {n} éxito para actuar por su cuenta",
       "other": "riesgo {risk} · {n} éxitos seguidos para actuar por su cuenta"
     },
+    "meta.preset": "Preajuste",
+    "meta.profile": "Perfil",
+    "meta.start": "Inicio",
     "missing.always_asks": "siempre pregunta",
     "missing.earned": "ganado · control aleatorio",
     "missing.more_to_t2": {
@@ -1489,6 +1534,7 @@ const TENURE_LOCALES = {
     "page.anim_on": "animaciones activadas",
     "page.anim_reduced": "Tu sistema pide reducir el movimiento: las animaciones quedan desactivadas",
     "page.anim_title": "Animaciones: activadas o no, se recuerda en este navegador",
+    "page.animations": "Animaciones",
     "page.error": "No se pudo leer tenure: {error}",
     "page.live": "en directo · ",
     "page.loading": "Cargando el historial…",
@@ -1557,47 +1603,58 @@ const TENURE_LOCALES = {
       "other": "{n} suspendidas: contenido externo leído"
     },
     "profile.this_dashboard": " · este panel",
-    "settings.about.body": "Tras el primer error de un tipo (o con el inicio del estudio), la misma regla que un estudio prerregistrado, reproducida en más de 6000 agentes simulados (resultados pendientes). Además de la regla, para los niveles ganados con pruebas: controles aleatorios (una vez autorizado un tipo, sigue preguntando en {spot} acciones), dos sesiones distintas en la serie que llega a T3, y suspensión cuando una sesión lee contenido externo.",
-    "settings.about.carry": "La herencia es un añadido nuestro; el modo estricto es el estudio.",
-    "settings.about.title": "Sobre la regla",
-    "settings.apply": "Aplicar",
-    "settings.checks_in_row": {
-      "one": " comprobación",
-      "other": " comprobaciones seguidas"
-    },
-    "settings.empty.body": "El preajuste equilibrado se aplica hasta que se registre la primera acción.",
-    "settings.empty.title": "Aún no hay configuración registrada",
-    "settings.in_force": "en vigor: {value}",
-    "settings.in_force_profile": "En vigor en el perfil {profile}.",
-    "settings.no_change": "Sin cambios",
-    "settings.preset_aria": "Preajuste",
-    "settings.read_only.body": "El proceso de este panel no puede escribir la configuración de tenure (Hermes no ofrece a los plugins otra vía pública de escritura). Ejecuta:",
-    "settings.read_only.bold": "Solo lectura aquí.",
-    "settings.reset": "Restablecer",
-    "settings.risk_help": "La proporción de errores que aceptas que se ejecuten sin comprobar, por nivel de impacto. N es la serie de éxitos verificados seguidos que necesita un tipo para actuar por su cuenta.",
-    "settings.risk_title": "Riesgo aceptado",
+    "settings.advanced_docs": "Cada clave se explica con hermes tenure explain y en el README de tenure.",
+    "settings.advanced_help": "Reclasificación de tipos de acción, y todas las claves en el formulario propio de Hermes.",
+    "settings.advanced_title": "Avanzado",
+    "settings.advanced_types": "Reclasifica tipos de acción (free, low, medium, high o cap por patrón) en Ajustes → Plugins → Tenure de Hermes, o en config.yaml:",
+    "settings.animations_help": "Las barras que se imprimen, el pasaporte que se revela, las bandas. El mismo interruptor que en la cabecera de la página; sigue apagado si tu sistema pide reducir el movimiento.",
+    "settings.custom_help": "Tu propia proporción de errores sin revisar por nivel de impacto: elige 1 de cada k, escribe tu propio k, o tope (siempre pregunta). La serie que necesita un tipo se actualiza al instante. Al guardarlo, el preajuste pasa a personalizado, salvo que coincida con uno.",
+    "settings.custom_title": "Riesgo aceptado por nivel de impacto",
+    "settings.enabled_help": "Desactiva tenure sin desinstalarlo.",
+    "settings.enabled_off": "Desactivado",
+    "settings.enabled_on": "Activado",
+    "settings.enabled_title": "Tenure activado o desactivado",
+    "settings.enabled_unknown": "La parte del agente aún no informa de este estado: elige uno para fijarlo.",
+    "settings.enabled_warn": "Desactivado: tenure deja de decidir; Hermes pregunta como siempre. El registro y todos los historiales se quedan como están.",
+    "settings.in_force": "En vigor",
+    "settings.no_writer": "Este Hermes no deja que Desktop guarde los ajustes de tenure: usa el comando de abajo.",
+    "settings.none": "Este perfil aún no tiene historial de tenure: se aplican los valores por defecto hasta su primera acción.",
+    "settings.one_in": "1 de cada",
+    "settings.or_config": "O en el config.yaml de Hermes, bajo plugins.entries.tenure.settings:",
+    "settings.or_terminal": "O en una terminal:",
+    "settings.pending": "El último cambio aún no está en el registro: se aplica desde la siguiente acción.",
+    "settings.preset_desc_balanced": "El ajuste por defecto. Los tipos de impacto alto siempre preguntan.",
+    "settings.preset_desc_careful": "Pregunta durante más tiempo. Incluso los tipos de impacto alto pueden ganar su nivel, tras una serie larga.",
+    "settings.preset_desc_custom": "Tu propio riesgo aceptado por nivel de impacto, definido en la configuración de Hermes.",
+    "settings.preset_desc_fast": "Gana autonomía antes con impacto bajo y medio. Los tipos de impacto alto siempre preguntan.",
+    "settings.preset_help": "Cuánta evidencia necesita un tipo de acción antes de actuar por su cuenta, por nivel de impacto: la serie de éxitos verificados seguidos y la proporción de errores sin revisar que acepta.",
+    "settings.risk": "se acepta 1 error sin revisar de cada {k}",
+    "settings.risk_invalid": "Un número entero de 2 o más.",
     "settings.rung_cap": "tope",
-    "settings.same_as": "Equivale a: {cmds}",
-    "settings.saved": "Configuración guardada.",
-    "settings.saved_long": "Guardado. La nueva configuración queda anotada en el registro y se aplica desde la próxima acción.",
-    "settings.stakes.high": "Impacto alto",
-    "settings.stakes.low": "Impacto bajo",
-    "settings.stakes.medium": "Impacto medio",
-    "settings.stakes_risk.high": "riesgo con impacto alto",
-    "settings.stakes_risk.low": "riesgo con impacto bajo",
-    "settings.stakes_risk.medium": "riesgo con impacto medio",
-    "settings.start.change": "Solo lectura aquí. Para cambiarlo, ejecuta en una terminal:",
-    "settings.start.or_terminal": "O en una terminal:",
-    "settings.start.probation": "Inicio en estudio (período de prueba)",
-    "settings.start.probation_body": "Cada tipo de acción empieza en Período de prueba (T1): pregunta antes y se gana su nivel con evidencia, como en el estudio.",
-    "settings.start.title": "Inicio",
-    "settings.start.trusted": "Inicio de confianza",
-    "settings.start.trusted_body": "Cada tipo de acción actúa como lo haría Hermes solo hasta su primer fallo o revocación: un cambio reversible actúa y luego te avisa, con opción de deshacer. Su primer fallo lo pasa a Período de prueba (T1), y desde ahí se gana su nivel con evidencia. Salir de la máquina y el dinero siguen preguntando.",
-    "settings.start.use_probation": "Usar el inicio del estudio (prueba)",
-    "settings.start.use_trusted": "Usar el inicio con confianza",
-    "settings.strict": "Modo estricto",
-    "settings.strict_off": "Desactivado: un modelo nuevo hereda parte del historial anterior, de forma provisional",
-    "settings.strict_on": "Activado: un modelo nuevo empieza con un historial vacío (la regla del estudio)",
+    "settings.save": "Guardar",
+    "settings.save_failed": "No guardado: {error}",
+    "settings.saved": "Guardado y anotado en el registro: se aplica desde la siguiente acción.",
+    "settings.saves_here": "Los cambios se guardan al momento, con el propio sistema de ajustes de Hermes, y se anotan en el registro; se aplican desde la siguiente acción. Los mismos ajustes están en Ajustes → Plugins → Tenure de Hermes.",
+    "settings.saving": "Guardando…",
+    "settings.series": {
+      "one": "{n} éxito verificado seguido",
+      "other": "{n} éxitos verificados seguidos"
+    },
+    "settings.spot_change": "Defínelo en el config.yaml de Hermes, bajo plugins.entries.tenure.settings (una proporción entre 0 y 1):",
+    "settings.spot_custom": "Tu propio valor: 1 de cada k",
+    "settings.spot_desc": "Cuando un tipo es titular, 1 de cada {k} de sus acciones sigue preguntando, al azar: un modelo que empeora queda al descubierto.",
+    "settings.spot_title": "Controles aleatorios",
+    "settings.spot_value": "1 de cada {k}",
+    "settings.start_help": "Lo que hace un tipo de acción antes de su primer fallo.",
+    "settings.start_probation": "El inicio del estudio: cada tipo de acción pregunta antes (T1) y gana cada nivel a partir de tus respuestas.",
+    "settings.start_trusted": "Los tipos cubiertos (edición de archivos, memoria, subagentes, herramientas de desarrollo conocidas) no preguntan nada hasta su primer fallo, como Hermes solo. Un fallo pone ese tipo en período de prueba (T1), y vuelve a ganarse su nivel. Salir de la máquina y el dinero siempre preguntan.",
+    "settings.strict_desc_off": "Un modelo nuevo hereda el historial del anterior con impacto bajo y medio, a la mitad y provisional hasta que sus propias aprobaciones lo confirmen. El impacto alto empieza de cero.",
+    "settings.strict_desc_on": "Un modelo nuevo empieza con un historial vacío en cada tipo de acción, como en el estudio.",
+    "settings.strict_help": "Lo que hereda un modelo nuevo cuando cambias de modelo.",
+    "settings.strict_off": "Modo estricto desactivado",
+    "settings.strict_on": "Modo estricto activado",
+    "settings.strict_title": "Modo estricto al cambiar de modelo",
+    "settings.use": "Usar",
     "stakes.group.high": "impacto alto",
     "stakes.group.low": "impacto bajo",
     "stakes.group.medium": "impacto medio",
@@ -1605,6 +1662,8 @@ const TENURE_LOCALES = {
     "stakes.low": "bajo",
     "stakes.medium": "medio",
     "stale.message": "La última actualización falló ({error}). Se muestran los datos de las {time}.",
+    "start.probation": "Inicio en estudio (período de prueba)",
+    "start.trusted": "Inicio de confianza",
     "switch.count.carried": {
       "one": "{n} heredado",
       "other": "{n} heredados"
@@ -1724,6 +1783,10 @@ const TENURE_LOCALES = {
     "transitions.why.on_evidence": "por la evidencia",
     "transitions.why.trial_open": "a prueba",
     "transitions.why_changed": "sin fallo: revocado, o cambiaron los ajustes o el impacto",
+    "type.always_asks": "siempre pregunta",
+    "type.stakes_high": "impacto alto",
+    "type.stakes_low": "impacto bajo",
+    "type.stakes_medium": "impacto medio",
     "undo.button": "Deshacer",
     "undo.collapse": "Plegar",
     "undo.confirm": "¿Deshacer n.º {id}?",
@@ -1951,7 +2014,7 @@ const TENURE_LOCALES = {
     "legend.capped": "plafonné : demande toujours",
     "legend.carried": "hérité du modèle précédent, provisoire",
     "legend.notify": "agit, puis prévient, annulable (types réversibles)",
-    "legend.series": "succès d'affilée, sur les N requis",
+    "legend.series": "succès vérifiés d'affilée, sur les N requis",
     "legend.trusted": "départ en confiance : agit comme Hermes seul jusqu'à sa première erreur, rien d'acquis",
     "map.aria": "Agents par type d'action",
     "map.empty.after": ", et ne monte que sur des succès vérifiés : les types réversibles atteignent le niveau intermédiaire après une série de succès vérifiés sans faute, et T3 après une série complète de N sur deux sessions.",
@@ -1966,6 +2029,9 @@ const TENURE_LOCALES = {
       "one": "risque {risk} · {n} d'affilée pour agir seul",
       "other": "risque {risk} · {n} d'affilée pour agir seul"
     },
+    "meta.preset": "Préréglage",
+    "meta.profile": "Profil",
+    "meta.start": "Départ",
     "missing.always_asks": "demande toujours",
     "missing.earned": "acquis · contrôlé au hasard",
     "missing.more_to_t2": {
@@ -2011,6 +2077,7 @@ const TENURE_LOCALES = {
     "page.anim_on": "animations activées",
     "page.anim_reduced": "Votre système demande de réduire les animations : elles restent désactivées",
     "page.anim_title": "Animations : activées ou non, mémorisé dans ce navigateur",
+    "page.animations": "Animations",
     "page.error": "Impossible de lire tenure : {error}",
     "page.live": "en direct · ",
     "page.loading": "Chargement de l'historique…",
@@ -2079,47 +2146,58 @@ const TENURE_LOCALES = {
       "other": "{n} suspendues : ont lu du contenu externe"
     },
     "profile.this_dashboard": " · ce tableau de bord",
-    "settings.about.body": "Après la première erreur d'un type (ou avec le départ de l'étude), la règle d'une étude préenregistrée, rejouée sur plus de 6 000 agents simulés (résultats à venir). Par-dessus la règle, pour les paliers gagnés sur preuves : contrôles aléatoires (une fois un type validé, {spot} de ses actions vous est encore demandée), deux sessions distinctes dans la série qui mène à T3, et suspension dès qu'une session lit du contenu externe.",
-    "settings.about.carry": "L'héritage vient de nous ; le mode strict suit l'étude.",
-    "settings.about.title": "À propos de la règle",
-    "settings.apply": "Appliquer",
-    "settings.checks_in_row": {
-      "one": " vérification d'affilée",
-      "other": " vérifications d'affilée"
-    },
-    "settings.empty.body": "Le préréglage équilibré s'applique jusqu'à ce que la première action soit enregistrée.",
-    "settings.empty.title": "Aucun paramètre enregistré pour l'instant",
-    "settings.in_force": "en vigueur : {value}",
-    "settings.in_force_profile": "En vigueur dans le profil {profile}.",
-    "settings.no_change": "Aucun changement",
-    "settings.preset_aria": "Préréglage",
-    "settings.read_only.body": "Ce tableau de bord ne peut pas écrire les paramètres de tenure (Hermes n'offre aux plugins aucune autre façon publique de le faire). Lancez :",
-    "settings.read_only.bold": "Lecture seule ici.",
-    "settings.reset": "Réinitialiser",
-    "settings.risk_help": "La part d'erreurs que vous acceptez de voir s'exécuter sans vérification, par niveau d'enjeu. N est la série de succès vérifiés d'affilée dont un type a besoin pour agir seul.",
-    "settings.risk_title": "Risque accepté",
+    "settings.advanced_docs": "Chaque clé est expliquée par hermes tenure explain et dans le README de tenure.",
+    "settings.advanced_help": "Reclassements de types d'action, et toutes les clés dans le formulaire de Hermes.",
+    "settings.advanced_title": "Avancé",
+    "settings.advanced_types": "Reclassez des types d'action (free, low, medium, high ou cap par motif) dans Paramètres → Plugins → Tenure de Hermes, ou dans config.yaml :",
+    "settings.animations_help": "Les barres qui s'impriment, le passeport qui se développe, les bandeaux. Le même interrupteur que dans l'en-tête de la page ; il reste éteint si votre système demande de réduire les animations.",
+    "settings.custom_help": "Votre propre part d'erreurs non vérifiées par niveau d'enjeu : choisissez 1 sur k, tapez votre propre k, ou cap (demande toujours). La série qu'il faut à un type suit aussitôt. Une fois enregistré, le préréglage devient personnalisé, sauf s'il correspond à l'un d'eux.",
+    "settings.custom_title": "Risque accepté par niveau d'enjeu",
+    "settings.enabled_help": "Désactiver tenure sans le désinstaller.",
+    "settings.enabled_off": "Désactivé",
+    "settings.enabled_on": "Activé",
+    "settings.enabled_title": "Tenure activé ou désactivé",
+    "settings.enabled_unknown": "La partie agent ne rapporte pas encore cet état : choisissez-en un pour le fixer.",
+    "settings.enabled_warn": "Désactivé : tenure ne décide plus ; Hermes demande comme d'habitude. Le registre et tous les historiques restent tels quels.",
+    "settings.in_force": "En vigueur",
+    "settings.no_writer": "Ce Hermes ne laisse pas le Desktop enregistrer les paramètres de tenure : utilisez la commande ci-dessous.",
+    "settings.none": "Ce profil n'a pas encore d'historique tenure : les valeurs par défaut s'appliquent jusqu'à sa première action.",
+    "settings.one_in": "1 sur",
+    "settings.or_config": "Ou dans le config.yaml de Hermes, sous plugins.entries.tenure.settings :",
+    "settings.or_terminal": "Ou dans un terminal :",
+    "settings.pending": "Le dernier changement n'est pas encore au registre : il s'applique dès l'action suivante.",
+    "settings.preset_desc_balanced": "Le réglage par défaut. Les types à enjeu élevé demandent toujours.",
+    "settings.preset_desc_careful": "Demande le plus longtemps. Même les types à enjeu élevé peuvent gagner leur niveau, après une longue série.",
+    "settings.preset_desc_custom": "Votre propre risque accepté par niveau d'enjeu, réglé dans la configuration de Hermes.",
+    "settings.preset_desc_fast": "Gagne son autonomie au plus tôt à enjeu faible et moyen. Les types à enjeu élevé demandent toujours.",
+    "settings.preset_help": "Les preuves qu'un type d'action doit réunir avant d'agir seul, par niveau d'enjeu : la série de succès vérifiés d'affilée, et la part d'erreurs non vérifiées acceptée.",
+    "settings.risk": "1 erreur non vérifiée sur {k} acceptée",
+    "settings.risk_invalid": "Un nombre entier de 2 ou plus.",
     "settings.rung_cap": "cap",
-    "settings.same_as": "Équivaut à : {cmds}",
-    "settings.saved": "Paramètres enregistrés.",
-    "settings.saved_long": "Enregistré. Les nouveaux paramètres sont consignés dans le registre et s'appliquent dès la prochaine action.",
-    "settings.stakes.high": "Enjeu élevé",
-    "settings.stakes.low": "Enjeu faible",
-    "settings.stakes.medium": "Enjeu moyen",
-    "settings.stakes_risk.high": "risque à enjeu élevé",
-    "settings.stakes_risk.low": "risque à enjeu faible",
-    "settings.stakes_risk.medium": "risque à enjeu moyen",
-    "settings.start.change": "En lecture seule ici. Pour le changer, lancez dans un terminal :",
-    "settings.start.or_terminal": "Ou dans un terminal :",
-    "settings.start.probation": "Départ à l'étude (probation)",
-    "settings.start.probation_body": "Chaque type d'action commence en Probation (T1) : il demande d'abord et gagne son niveau sur preuves, comme dans l'étude.",
-    "settings.start.title": "Départ",
-    "settings.start.trusted": "Départ en confiance",
-    "settings.start.trusted_body": "Chaque type d'action agit comme Hermes seul le ferait jusqu'à sa première faute ou révocation : une modification réversible agit, puis vous prévient, avec un bouton Annuler. Sa première faute le place en Probation (T1), puis il gagne son niveau sur preuves. Sortir de la machine et l'argent restent demandés.",
-    "settings.start.use_probation": "Passer au départ de l'étude (probation)",
-    "settings.start.use_trusted": "Passer au départ en confiance",
-    "settings.strict": "Mode strict",
-    "settings.strict_off": "Désactivé : un nouveau modèle hérite d'une partie de l'historique précédent, à titre provisoire",
-    "settings.strict_on": "Activé : un nouveau modèle démarre avec un historique vide (la règle de l'étude)",
+    "settings.save": "Enregistrer",
+    "settings.save_failed": "Non enregistré : {error}",
+    "settings.saved": "Enregistré et inscrit au registre : s'applique dès l'action suivante.",
+    "settings.saves_here": "Les changements s'enregistrent aussitôt, par l'outil d'écriture des paramètres de Hermes lui-même, et sont inscrits au registre ; ils s'appliquent dès l'action suivante. Les mêmes paramètres figurent dans Paramètres → Plugins → Tenure de Hermes.",
+    "settings.saving": "Enregistrement…",
+    "settings.series": {
+      "one": "{n} succès vérifié d'affilée",
+      "other": "{n} succès vérifiés d'affilée"
+    },
+    "settings.spot_change": "Réglez-le dans le config.yaml de Hermes, sous plugins.entries.tenure.settings (une part entre 0 et 1) :",
+    "settings.spot_custom": "Votre propre valeur : 1 sur k",
+    "settings.spot_desc": "Une fois un type titulaire, 1 de ses actions sur {k} vous est encore demandée, au hasard : un modèle qui se dégrade est repéré.",
+    "settings.spot_title": "Contrôles aléatoires",
+    "settings.spot_value": "1 sur {k}",
+    "settings.start_help": "Ce que fait un type d'action avant sa première faute.",
+    "settings.start_probation": "Le départ de l'étude : chaque type d'action demande d'abord (T1) et gagne chaque niveau à partir de vos réponses.",
+    "settings.start_trusted": "Les types couverts (modifications de fichiers, mémoire, sous-agents, outils de développement connus) ne demandent rien jusqu'à leur première faute, comme Hermes seul. Une faute met ce type en Probation (T1), et il regagne son niveau. Sortir de la machine et l'argent demandent toujours.",
+    "settings.strict_desc_off": "Un nouveau modèle hérite de l'historique du précédent à enjeu faible et moyen, divisé par deux et provisoire jusqu'à ce que ses propres validations le confirment. L'enjeu élevé repart de zéro.",
+    "settings.strict_desc_on": "Un nouveau modèle part d'un historique vide sur chaque type d'action, comme dans l'étude.",
+    "settings.strict_help": "Ce dont hérite un nouveau modèle quand vous changez de modèle.",
+    "settings.strict_off": "Mode strict désactivé",
+    "settings.strict_on": "Mode strict activé",
+    "settings.strict_title": "Mode strict au changement de modèle",
+    "settings.use": "Choisir",
     "stakes.group.high": "enjeu élevé",
     "stakes.group.low": "enjeu faible",
     "stakes.group.medium": "enjeu moyen",
@@ -2127,6 +2205,8 @@ const TENURE_LOCALES = {
     "stakes.low": "faible",
     "stakes.medium": "moyen",
     "stale.message": "La dernière actualisation a échoué ({error}). Données de {time} affichées.",
+    "start.probation": "Départ à l'étude (probation)",
+    "start.trusted": "Départ en confiance",
     "switch.count.carried": {
       "one": "{n} hérité",
       "other": "{n} hérités"
@@ -2246,6 +2326,10 @@ const TENURE_LOCALES = {
     "transitions.why.on_evidence": "sur preuves",
     "transitions.why.trial_open": "essai ouvert",
     "transitions.why_changed": "sans faute : révocation, ou réglages ou enjeu modifiés",
+    "type.always_asks": "demande toujours",
+    "type.stakes_high": "enjeu élevé",
+    "type.stakes_low": "enjeu faible",
+    "type.stakes_medium": "enjeu moyen",
     "undo.button": "Annuler",
     "undo.collapse": "Replier",
     "undo.confirm": "Annuler le n° {id} ?",
@@ -2453,7 +2537,7 @@ const TENURE_LOCALES = {
     "legend.capped": "受限：始终询问",
     "legend.carried": "继承自上一个模型，暂定",
     "legend.notify": "先执行后告知，可撤销（可逆类型）",
-    "legend.series": "连续成功次数，共需 N 次",
+    "legend.series": "连续已验证的成功次数，共需 N 次",
     "legend.trusted": "信任起步：首次失误前像单独使用 Hermes 一样执行，未赢得任何级别",
     "map.aria": "按操作类型列出的智能体",
     "map.empty.after": " 开始，且只凭已验证的成功晋升：可逆类型在连续若干次无失误的已验证成功后升到中间级别，在来自两个会话的完整 N 次连续成功后升到 T3。",
@@ -2467,6 +2551,9 @@ const TENURE_LOCALES = {
     "map.th.risk": {
       "other": "风险率 {risk} · 连续 {n} 次后自主执行"
     },
+    "meta.preset": "预设",
+    "meta.profile": "配置文件",
+    "meta.start": "起点",
     "missing.always_asks": "始终询问",
     "missing.earned": "已赢得 · 接受抽查",
     "missing.more_to_t2": {
@@ -2508,6 +2595,7 @@ const TENURE_LOCALES = {
     "page.anim_on": "动画已开启",
     "page.anim_reduced": "你的系统要求减少动态效果：动画保持关闭",
     "page.anim_title": "动画：开启或关闭，记在此浏览器中",
+    "page.animations": "动画",
     "page.error": "无法读取 tenure：{error}",
     "page.live": "实时 · ",
     "page.loading": "正在加载记录…",
@@ -2572,46 +2660,57 @@ const TENURE_LOCALES = {
       "other": "{n} 个已暂停：读取了外部内容"
     },
     "profile.this_dashboard": " · 此仪表盘",
-    "settings.about.body": "在某类操作第一次失误之后（或使用研究起步时），采用与一项预注册研究相同的规则，在 6,000 多个模拟智能体上重放（结果待定）。在此规则之上，对凭证据赢得的层级：抽查（类型放行后，仍有 {spot} 的操作会先询问）、晋升到 T3 的连续记录须来自两个不同会话，以及会话读取外部内容后暂停。",
-    "settings.about.carry": "继承是我们的补充；严格模式即研究原规则。",
-    "settings.about.title": "关于规则",
-    "settings.apply": "应用",
-    "settings.checks_in_row": {
-      "other": " 次连续检查"
-    },
-    "settings.empty.body": "在记录第一个操作之前，使用平衡预设。",
-    "settings.empty.title": "还没有记录设置",
-    "settings.in_force": "当前生效：{value}",
-    "settings.in_force_profile": "在配置文件 {profile} 中生效。",
-    "settings.no_change": "无更改",
-    "settings.preset_aria": "预设",
-    "settings.read_only.body": "此仪表盘进程无法写入 tenure 的设置（Hermes 没有为插件提供其他公开的写入方式）。请运行：",
-    "settings.read_only.bold": "此处只读。",
-    "settings.reset": "重置",
-    "settings.risk_help": "按风险等级，你愿意接受的未经检查即运行的错误比例。N 是一个类型自主执行前所需的连续已验证成功次数。",
-    "settings.risk_title": "可接受风险",
+    "settings.advanced_docs": "每个设置项都可通过 hermes tenure explain 和 tenure 的 README 查看说明。",
+    "settings.advanced_help": "操作类型的重新分类，以及 Hermes 自带表单中的全部设置项。",
+    "settings.advanced_title": "高级",
+    "settings.advanced_types": "在 Hermes 的「设置 → 插件 → Tenure」中，或在 config.yaml 中，重新分类操作类型（每个模式取 free、low、medium、high 或 cap）：",
+    "settings.animations_help": "逐步打印的进度条、显影的护照、横幅。与页面顶部的开关相同；系统要求减少动态效果时保持关闭。",
+    "settings.custom_help": "按风险级别设定你自己的未经检查错误比例：选择 1/k，输入你自己的 k，或选择受限（始终询问）。类型所需的连续记录随即更新。保存后预设变为自定义，除非与某个预设一致。",
+    "settings.custom_title": "各风险级别的可接受风险",
+    "settings.enabled_help": "关闭 tenure 而不卸载它。",
+    "settings.enabled_off": "关",
+    "settings.enabled_on": "开",
+    "settings.enabled_title": "开启或关闭 tenure",
+    "settings.enabled_unknown": "智能体部分尚未报告此状态：选择一项即可设定。",
+    "settings.enabled_warn": "关闭：tenure 不再做决定；Hermes 照常询问。账本和所有记录保持不变。",
+    "settings.in_force": "生效中",
+    "settings.no_writer": "此 Hermes 不允许 Desktop 保存 tenure 的设置：请使用下方命令。",
+    "settings.none": "此配置文件还没有 tenure 记录：在第一个操作之前使用默认设置。",
+    "settings.one_in": "1/",
+    "settings.or_config": "或在 Hermes 的 config.yaml 中，于 plugins.entries.tenure.settings 下：",
+    "settings.or_terminal": "或在终端中：",
+    "settings.pending": "最近一次修改尚未记入账本：从下一个操作起生效。",
+    "settings.preset_desc_balanced": "默认设置。高风险类型始终询问。",
+    "settings.preset_desc_careful": "询问时间最长。即使高风险类型，经过很长的连续记录后也能赢得级别。",
+    "settings.preset_desc_custom": "你自己按风险级别设定的可接受风险，写在 Hermes 的配置中。",
+    "settings.preset_desc_fast": "在低风险和中风险上最快赢得自主权。高风险类型始终询问。",
+    "settings.preset_help": "按风险级别，一个操作类型在自主执行之前需要多少证据：连续已验证成功的次数，以及可接受的未经检查错误比例。",
+    "settings.risk": "可接受 1/{k} 的未经检查错误",
+    "settings.risk_invalid": "请输入 2 或以上的整数。",
     "settings.rung_cap": "受限",
-    "settings.same_as": "等同于：{cmds}",
-    "settings.saved": "设置已保存。",
-    "settings.saved_long": "已保存。新设置已记入账本，从下一个操作起生效。",
-    "settings.stakes.high": "高风险",
-    "settings.stakes.low": "低风险",
-    "settings.stakes.medium": "中风险",
-    "settings.stakes_risk.high": "高风险的可接受风险",
-    "settings.stakes_risk.low": "低风险的可接受风险",
-    "settings.stakes_risk.medium": "中风险的可接受风险",
-    "settings.start.change": "此处只读。如需更改，请在终端中运行：",
-    "settings.start.or_terminal": "或在终端中：",
-    "settings.start.probation": "考察起步（试用期）",
-    "settings.start.probation_body": "每个操作类型都从试用期 (T1) 开始：先询问，并凭证据赢得级别，与研究一致。",
-    "settings.start.title": "起点",
-    "settings.start.trusted": "信任起步",
-    "settings.start.trusted_body": "在首次失误或被收回之前，每个操作类型都像单独使用 Hermes 一样执行：可逆的更改先执行后告知，可撤销。首次失误会让它进入试用期 (T1)，此后凭证据赢得级别。离开本机和涉及金钱的操作仍会询问。",
-    "settings.start.use_probation": "改用研究起步（试用期）",
-    "settings.start.use_trusted": "改用信任起步",
-    "settings.strict": "严格模式",
-    "settings.strict_off": "关闭：新模型以暂定方式继承上一个模型的部分记录",
-    "settings.strict_on": "开启：新模型从空记录开始（研究原规则）",
+    "settings.save": "保存",
+    "settings.save_failed": "未保存：{error}",
+    "settings.saved": "已保存并记入账本：从下一个操作起生效。",
+    "settings.saves_here": "修改会立即通过 Hermes 自己的设置写入器保存，并记入账本；从下一个操作起生效。同样的设置也在 Hermes 的「设置 → 插件 → Tenure」中。",
+    "settings.saving": "正在保存…",
+    "settings.series": {
+      "other": "连续 {n} 次已验证的成功"
+    },
+    "settings.spot_change": "在 Hermes 的 config.yaml 中，于 plugins.entries.tenure.settings 下设置（0 到 1 之间的比例）：",
+    "settings.spot_custom": "自定义值：1/k",
+    "settings.spot_desc": "类型转正后，它的操作中每 {k} 个仍会随机抽查 1 个：变差的模型会被发现。",
+    "settings.spot_title": "抽查",
+    "settings.spot_value": "每 {k} 个抽查 1 个",
+    "settings.start_help": "操作类型在第一次失误之前的行为。",
+    "settings.start_probation": "研究的起点：每个操作类型都先询问（T1），并根据你的回答赢得每个级别。",
+    "settings.start_trusted": "覆盖的类型（文件编辑、记忆、子智能体、常见开发工具）在第一次失误之前什么都不问，与 Hermes 单独运行时一样。一次失误会让该类型进入试用期（T1），之后重新赢得级别。离开本机的操作和涉及金钱的操作始终询问。",
+    "settings.strict_desc_off": "新模型继承上一个模型在低风险和中风险上的记录，减半且为暂定，直到它自己的批准加以确认。高风险从零开始。",
+    "settings.strict_desc_on": "新模型在每个操作类型上都从空记录开始，与研究中一致。",
+    "settings.strict_help": "切换模型时，新模型继承什么。",
+    "settings.strict_off": "严格模式：关",
+    "settings.strict_on": "严格模式：开",
+    "settings.strict_title": "切换模型时的严格模式",
+    "settings.use": "使用",
     "stakes.group.high": "高风险",
     "stakes.group.low": "低风险",
     "stakes.group.medium": "中风险",
@@ -2619,6 +2718,8 @@ const TENURE_LOCALES = {
     "stakes.low": "低",
     "stakes.medium": "中",
     "stale.message": "上次刷新失败（{error}）。显示的是 {time} 的数据。",
+    "start.probation": "考察起步（试用期）",
+    "start.trusted": "信任起步",
     "switch.count.carried": {
       "other": "{n} 项继承"
     },
@@ -2726,6 +2827,10 @@ const TENURE_LOCALES = {
     "transitions.why.on_evidence": "基于证据",
     "transitions.why.trial_open": "考察期中",
     "transitions.why_changed": "无失误：被收回，或设置、风险等级已变更",
+    "type.always_asks": "始终询问",
+    "type.stakes_high": "高风险",
+    "type.stakes_low": "低风险",
+    "type.stakes_medium": "中风险",
     "undo.button": "撤销",
     "undo.collapse": "收起",
     "undo.confirm": "撤销 #{id}？",
@@ -4557,126 +4662,249 @@ const TENURE_LOCALES = {
   }
 
   // ------------------------------------------------------------------------------------------------- settings
-  function SettingsView(props) {
-    var cur = props.settings;
-    var presetS = useState(null), preset = presetS[0], setPreset = presetS[1];
-    var risksS = useState(null), risks = risksS[0], setRisks = risksS[1];
-    var strictS = useState(null), strict = strictS[0], setStrict = strictS[1];
-    var readOnly = props.readOnly, setReadOnly = props.onReadOnly;
-    var msgS = useState(null), msg = msgS[0], setMsg = msgS[1];
-    if (!cur) return h(Empty, { title: t("settings.empty.title") }, t("settings.empty.body"));
-    var pr = preset || cur.preset;
-    var rk = risks || cur.risks;
-    var sx = strict == null ? cur.strict : strict;
-    var custom = pr === "custom";
-    var dirty = pr !== cur.preset || sx !== cur.strict || STAKES.some(function (s) { return rk[s] !== cur.risks[s]; });
+  // params.DEFAULT_PRESET / DEFAULT_START / DEFAULT_SPOT: what applies before a profile logged any settings.
+  var DEFAULTS = { preset: "balanced", start: "trusted", spot: 0.1, strict: false };
+  var TYPES_YAML = "plugins:\n  entries:\n    tenure:\n      settings:\n        types:\n          \"mcp:notion:*\": medium      # free | low | medium | high | cap";
+  function stakesName(s) { return s === "low" ? t("type.stakes_low") : s === "medium" ? t("type.stakes_medium") : t("type.stakes_high"); }
+  function presetDesc(id) { return id === "careful" ? t("settings.preset_desc_careful") : id === "fast" ? t("settings.preset_desc_fast") : t("settings.preset_desc_balanced"); }
+  function hermesCmd(profile, rest) { return profile && profile !== "default" ? "hermes -p " + profile + " tenure " + rest : "hermes tenure " + rest; }
+  /** The preset whose risks these are, else custom. */
+  function presetOf(r) {
+    return Object.keys(PRESETS).filter(function (n) {
+      return STAKES.every(function (l) { return PRESETS[n][l] == null ? r[l] == null : r[l] != null && Math.abs(1 / r[l] - 1 / PRESETS[n][l]) < 1e-6; });
+    })[0] || "custom";
+  }
+  /** A preset's risks as POST /settings takes them, so that choosing it also replaces risk values of your own. */
+  function presetRisks(id) { var o = {}; STAKES.forEach(function (l) { o[l] = PRESETS[id][l] == null ? "cap" : "1/" + Math.round(1 / PRESETS[id][l]); }); return o; }
+  function kOf(bar) { return bar > 0 ? String(Math.round(1 / bar)) : ""; }
+  function riskYaml(r) { return "risks: {" + STAKES.map(function (l) { return l + ": " + (r[l] == null ? "cap" : "1/" + r[l]); }).join(", ") + "}"; }
 
-    function pickPreset(name) { setPreset(name); setRisks(Object.assign({}, PRESETS[name])); }
-    function pickRisk(level, k) {
-      var next = Object.assign({}, rk); next[level] = k == null ? null : 1 / k;
-      var match = Object.keys(PRESETS).filter(function (n) {
-        return STAKES.every(function (s) { return PRESETS[n][s] === next[s] || (PRESETS[n][s] != null && next[s] != null && Math.abs(PRESETS[n][s] - next[s]) < 1e-12); });
-      })[0];
-      setRisks(next); setPreset(match || "custom");
-    }
-    function cmds() {
-      var out = [];
-      if (pr !== cur.preset || (custom && dirty)) {
-        if (!custom) out.push("hermes tenure setup " + pr);
-        else STAKES.forEach(function (s) {
-          if (rk[s] !== cur.risks[s]) out.push("hermes config set plugins.entries.tenure.settings.risks." + s + " " + (rk[s] == null ? "cap" : "1/" + Math.round(1 / rk[s])));
-        });
-      }
-      if (sx !== cur.strict) out.push("hermes tenure strict " + (sx ? "on" : "off"));
-      return out;
-    }
-    function apply() {
-      var body = {};
-      if (custom) body.risks = (function () { var r = {}; STAKES.forEach(function (s) { r[s] = rk[s] == null ? "cap" : "1/" + Math.round(1 / rk[s]); }); return r; })();
-      else if (pr !== cur.preset) body.preset = pr;
-      if (sx !== cur.strict) body.strict = sx;
+  /** Saves through POST /settings (Hermes' own plugin-settings writer). State: idle | saving | saved | error |
+   *  nowriter (501/403: this Hermes cannot save here, the command is the way). The tab's poll (every 2 s) re-reads
+   *  the settings, so the page shows what is in force, never what was asked. */
+  function useSaver(props) {
+    var s = useState({ state: "idle", error: "" }), st = s[0], setSt = s[1];
+    var timer = useRef(0);
+    useEffect(function () { return function () { clearTimeout(timer.current); }; }, []);
+    function run(body) {
+      clearTimeout(timer.current);
+      setSt({ state: "saving", error: "" });
       apiPost("/settings", body, { raw: props.raw }).then(function () {
-        setMsg({ tone: "ok", text: t("settings.saved_long") });
-        setPreset(null); setRisks(null); setStrict(null);
-        props.onDone(t("settings.saved"), "success");
+        setSt({ state: "saved", error: "" });
+        timer.current = setTimeout(function () { setSt(function (x) { return x.state === "saved" ? { state: "idle", error: "" } : x; }); }, 6000);
       }, function (e) {
-        if (errStatus(e) === 501) setReadOnly(true);
-        else setMsg({ tone: "fault", text: errText(e) });
+        var code = errStatus(e);
+        if (code === 501 || code === 403) { setSt({ state: "nowriter", error: errText(e) }); props.onReadOnly(true); }
+        else setSt({ state: "error", error: errText(e) });
       });
     }
-    var commands = cmds();
-    var startTrusted = props.start === "trusted";
-    var shownCmds = commands.length ? commands : ["hermes tenure setup " + (cur.preset === "custom" ? "balanced" : cur.preset)];
-    return h("div", { className: "tnr-settings" },
-      h("section", { className: "tnr-dial" },
-        h("div", { className: "tnr-dial-head" },
-          h("div", null, h(Eyebrow, { n: 1 }, t("settings.risk_title")),
-            h("div", { className: "tnr-dim tnr-small" }, t("settings.risk_help"))),
-          h("div", { className: "tnr-seg", role: "radiogroup", "aria-label": t("settings.preset_aria") },
-            ["careful", "balanced", "fast"].map(function (n) {
-              return h("button", {
-                key: n, type: "button", role: "radio", "aria-checked": pr === n, disabled: readOnly,
-                className: cx("tnr-seg-btn", pr === n && "is-on"), onClick: function () { pickPreset(n); }
-              }, presetName(n));
+    return [st, run];
+  }
+  function SaveStatus(props) {
+    var st = props.st;
+    if (st.state === "idle") return null;
+    var text = st.state === "saving" ? t("settings.saving") : st.state === "saved" ? t("settings.saved") :
+      st.state === "nowriter" ? t("settings.no_writer") : t("settings.save_failed", { error: st.error });
+    return h("p", { className: "tnr-save", "data-state": st.state, role: "status" }, text);
+  }
+  /** The command that does the same in a terminal: secondary under a control, the way when saving here is refused. */
+  function OrTerminal(props) {
+    return h("div", { className: "tnr-or", "data-strong": props.st && props.st.state === "nowriter" ? "true" : "false" },
+      h("div", { className: "tnr-dim tnr-small" }, props.config ? t("settings.or_config") : t("settings.or_terminal")),
+      h(CopyCmd, { cmd: props.text }));
+  }
+  function Seg(props) {
+    return h("div", { className: "tnr-seg", role: "group", "aria-label": props.label },
+      props.options.map(function (o) {
+        var on = props.value === o.id;
+        return h("button", { key: String(o.id), type: "button", "aria-pressed": on, disabled: props.busy,
+          className: cx("tnr-seg-btn", on && "is-on"), onClick: function () { if (!on) props.onPick(o.id); } }, o.label);
+      }));
+  }
+  /** One option: its name, "In force" or a Use button, what it means. */
+  function Option(props) {
+    return h("div", { className: "tnr-opt", "data-current": props.current ? "true" : "false" },
+      h("div", { className: "tnr-opt-head" }, props.head,
+        props.current ? h("span", { className: "tnr-chip-in" }, t("settings.in_force")) :
+          h(Btn, { disabled: props.busy, onClick: props.onUse }, t("settings.use"))),
+      props.children);
+  }
+  function RiskLines(props) {
+    return h("dl", { className: "tnr-levels" }, STAKES.map(function (s) {
+      var bar = props.risks ? props.risks[s] : null;
+      return h("div", { key: s }, h("dt", null, stakesName(s)),
+        bar == null || !(bar > 0) ? h("dd", null, t("type.always_asks")) :
+          h("dd", null, h("b", null, t("settings.series", { n: studyN(bar) })), h("span", null, t("settings.risk", { k: Math.round(1 / bar) }))));
+    }));
+  }
+  /** A row of options that save on Use (preset, start, strict). */
+  function OptionsControl(props) {
+    var sv = useSaver(props), st = sv[0], run = sv[1];
+    var busy = st.state === "saving" || props.readOnly;
+    return h("div", { className: "tnr-ctl" },
+      h("div", { className: "tnr-opts" }, props.options.map(function (o) {
+        return h(Option, { key: String(o.id), busy: busy, current: props.current === o.id, head: o.head,
+          onUse: function () { run(props.bodyOf(o.id)); } }, o.body);
+      })),
+      h(SaveStatus, { st: st }),
+      h("div", { className: "tnr-or-list" }, props.options.filter(function (o) { return o.id !== props.current; }).map(function (o) {
+        return h(OrTerminal, { key: String(o.id), st: st, text: props.cmdOf(o.id) });
+      })));
+  }
+  /** Accepted risk per stakes level: segmented buttons 1/20 … 1/1000 and cap, plus a "1 in k" of your own, with the
+   *  series it implies shown live; one Save for the three levels. */
+  function RiskEditor(props) {
+    var risks = props.risks;
+    function init() { var d = {}; STAKES.forEach(function (l) { d[l] = risks && risks[l] > 0 ? kOf(risks[l]) : null; }); return d; }
+    function initCustom(d) { var c = {}; STAKES.forEach(function (l) { c[l] = d[l] != null && LADDER.indexOf(Number(d[l])) < 0 ? d[l] : ""; }); return c; }
+    var dS = useState(init), draft = dS[0], setDraft = dS[1];
+    var cS = useState(function () { return initCustom(init()); }), custom = cS[0], setCustom = cS[1];
+    var key = JSON.stringify(risks || {});
+    useEffect(function () { var d = init(); setDraft(d); setCustom(initCustom(d)); }, [key]);
+    var sv = useSaver(props), st = sv[0], run = sv[1];
+    function valid(l) { return custom[l] === "" || (/^\d+$/.test(custom[l]) && Number(custom[l]) >= 2); }
+    var allValid = STAKES.every(valid);
+    var changed = STAKES.some(function (l) {
+      return draft[l] == null ? !!(risks && risks[l] > 0) : !(risks && risks[l] > 0) || kOf(risks[l]) !== draft[l];
+    });
+    function set(obj, l, v) { var o = Object.assign({}, obj); o[l] = v; return o; }
+    function pick(l, k) { setDraft(function (d) { return set(d, l, k == null ? null : String(k)); }); setCustom(function (c) { return set(c, l, ""); }); }
+    function type(l, v) {
+      var text = v.replace(/[^\d]/g, "");
+      setCustom(function (c) { return set(c, l, text); });
+      if (/^\d+$/.test(text) && Number(text) >= 2) setDraft(function (d) { return set(d, l, String(Number(text))); });
+    }
+    var busy = st.state === "saving" || props.readOnly;
+    return h("div", { className: "tnr-opt tnr-risk" },
+      h("div", { className: "tnr-dial-rows" }, STAKES.map(function (s, i) {
+        var cap = draft[s] == null, k = Number(draft[s]);
+        return h("div", { key: s, className: "tnr-dial-row tnr-in", style: { "--i": i } },
+          h("div", { className: "tnr-dial-level" }, h("span", { className: "tnr-stakes-dot tnr-stakes--" + s }), stakesName(s)),
+          h("div", { className: "tnr-ladder", role: "group", "aria-label": stakesName(s) },
+            LADDER.map(function (n) {
+              var on = n == null ? cap : !cap && custom[s] === "" && k === n;
+              return h("button", { key: String(n), type: "button", "aria-pressed": on, disabled: busy,
+                className: cx("tnr-rung", on && "is-on"), onClick: function () { pick(s, n); } }, n == null ? t("settings.rung_cap") : "1/" + n);
             }),
-            custom ? h("span", { className: "tnr-seg-btn is-on is-static" }, presetName("custom")) : null)),
-        h("div", { className: "tnr-dial-rows" },
-          STAKES.map(function (s) {
-            var n = studyN(rk[s]), was = studyN(cur.risks[s]);
-            return h("div", { key: s, className: "tnr-dial-row tnr-in", style: { "--i": STAKES.indexOf(s) } },
-              h("div", { className: "tnr-dial-level" }, h("span", { className: "tnr-stakes-dot tnr-stakes--" + s }), t("settings.stakes." + s)),
-              h("div", { className: "tnr-ladder", role: "radiogroup", "aria-label": t("settings.stakes_risk." + s) },
-                LADDER.map(function (k) {
-                  var on = k == null ? rk[s] == null : rk[s] != null && Math.abs(1 / rk[s] - k) < 1e-6;
-                  return h("button", {
-                    key: String(k), type: "button", role: "radio", "aria-checked": on, disabled: readOnly,
-                    className: cx("tnr-rung", on && "is-on"), onClick: function () { pickRisk(s, k); }
-                  }, k == null ? t("settings.rung_cap") : "1/" + k);
-                })),
-              h("div", { className: "tnr-dial-n" },
-                n == null ? h("span", null, h("b", null, t("common.capped")), h("span", { className: "tnr-dim" }, " · " + t("missing.always_asks"))) :
-                  h("span", null, h("span", { className: "tnr-dim" }, oneIn(rk[s]) + " " + t("common.arrow") + " "), h("b", { className: "tnr-mono" }, num(n)),
-                    h("span", { className: "tnr-dim" }, t("settings.checks_in_row", { n: n }))),
-                n !== was ? h("span", { className: "tnr-dial-was tnr-small" }, t("settings.in_force", { value: was == null ? t("common.capped") : num(was) })) : null));
-          })),
-        h("div", { className: "tnr-dial-row tnr-dial-strict" },
-          h("div", { className: "tnr-dial-level" }, t("settings.strict")),
-          h("label", { className: "tnr-switch-toggle" },
-            h("input", { type: "checkbox", checked: sx, disabled: readOnly, onChange: function (e) { setStrict(e.target.checked); } }),
+            h("label", { className: "tnr-risk-k" }, h("span", null, t("settings.one_in")),
+              h("input", { type: "text", inputMode: "numeric", placeholder: "k", value: custom[s], disabled: props.readOnly,
+                "aria-invalid": valid(s) ? undefined : "true", "aria-label": stakesName(s) + " · " + t("settings.one_in"),
+                onChange: function (e) { type(s, e.target.value); } }))),
+          h("div", { className: "tnr-dial-n" }, h("b", null, cap ? t("type.always_asks") : t("settings.series", { n: studyN(1 / k) }))));
+      })),
+      h("div", { className: "tnr-dial-foot" },
+        h(Btn, { kind: "primary", disabled: !allValid || !changed || busy, onClick: function () {
+          var r = {}; STAKES.forEach(function (l) { r[l] = draft[l] == null ? "cap" : "1/" + draft[l]; }); run({ risks: r });
+        } }, t("settings.save")),
+        !allValid ? h("span", { className: "tnr-dim tnr-small" }, t("settings.risk_invalid")) : null),
+      h(SaveStatus, { st: st }),
+      h(OrTerminal, { config: true, st: st, text: riskYaml(draft) }));
+  }
+  /** Spot checks: 1 in 5 / 10 / 20, or a whole number of your own. */
+  function SpotControl(props) {
+    var k = Math.round(1 / props.spot), presets = [5, 10, 20];
+    var cS = useState(presets.indexOf(k) >= 0 ? "" : String(k)), custom = cS[0], setCustom = cS[1];
+    useEffect(function () { setCustom(presets.indexOf(k) >= 0 ? "" : String(k)); }, [k]);
+    var sv = useSaver(props), st = sv[0], run = sv[1];
+    var ok = /^\d+$/.test(custom) && Number(custom) >= 2;
+    var busy = st.state === "saving" || props.readOnly;
+    return h("div", { className: "tnr-opt", "data-current": "true" },
+      h("div", { className: "tnr-opt-head" }, h("span", { className: "tnr-opt-name" }, t("settings.spot_value", { k: k })),
+        h("span", { className: "tnr-chip-in" }, t("settings.in_force"))),
+      h("p", { className: "tnr-small" }, t("settings.spot_desc", { k: k })),
+      h("div", { className: "tnr-row-end" },
+        h(Seg, { busy: busy, label: t("settings.spot_title"), onPick: function (id) { run({ spot: 1 / id }); },
+          options: presets.map(function (n) { return { id: n, label: t("settings.spot_value", { k: n }) }; }), value: presets.indexOf(k) >= 0 ? k : null }),
+        h("label", { className: "tnr-risk-k" }, h("span", null, t("settings.one_in")),
+          h("input", { type: "text", inputMode: "numeric", placeholder: String(k), value: custom, disabled: props.readOnly,
+            "aria-label": t("settings.spot_custom"), onChange: function (e) { setCustom(e.target.value.replace(/[^\d]/g, "")); } })),
+        h(Btn, { disabled: !ok || Number(custom) === k || busy, onClick: function () { run({ spot: 1 / Number(custom) }); } }, t("settings.save"))),
+      h(SaveStatus, { st: st }),
+      h("div", { className: "tnr-or" }, h("div", { className: "tnr-dim tnr-small" }, t("settings.spot_change")), h(CopyCmd, { cmd: "spot_check: " + props.spot })));
+  }
+  /** Tenure on / off. */
+  function EnabledControl(props) {
+    var sv = useSaver(props), st = sv[0], run = sv[1];
+    var enabled = props.enabled;
+    return h("div", { className: "tnr-opt", "data-current": enabled === true ? "true" : "false" },
+      h("div", { className: "tnr-row-end" },
+        h(Seg, { busy: st.state === "saving" || props.readOnly, label: t("settings.enabled_title"), onPick: function (id) { run({ enabled: id === "on" }); },
+          options: [{ id: "on", label: t("settings.enabled_on") }, { id: "off", label: t("settings.enabled_off") }],
+          value: enabled == null ? null : enabled ? "on" : "off" }),
+        enabled == null ? h("span", { className: "tnr-dim tnr-small" }, t("settings.enabled_unknown")) : null),
+      h("p", { className: "tnr-small", "data-warn": enabled === false ? "true" : "false" }, t("settings.enabled_warn")),
+      h(SaveStatus, { st: st }),
+      h(OrTerminal, { config: true, st: st, text: "enabled: " + (enabled === false ? "true" : "false") }));
+  }
+  function SettingRow(props) {
+    return h("section", { className: "tnr-srow" },
+      h(Eyebrow, { n: props.n }, props.title),
+      props.help ? h("p", { className: "tnr-dim tnr-small tnr-srow-help" }, props.help) : null,
+      props.children);
+  }
+
+  /** The settings in force in this profile, each one changeable here, in the same eight sections and words as the
+   *  Desktop page: saved through POST /settings (Hermes' own plugin-settings writer), then re-read, so what shows is
+   *  what is in force. The equivalent command stays under each control, and is the way when saving is refused. */
+  function SettingsView(props) {
+    var s = props.settings;
+    var profile = props.profile || "default";
+    var start = props.start || DEFAULTS.start;
+    var spot = s && s.spot > 0 && s.spot < 1 ? s.spot : DEFAULTS.spot;
+    var strict = s ? !!s.strict : DEFAULTS.strict;
+    var enabled = s && typeof s.enabled === "boolean" ? s.enabled : null;
+    var risks = (s && s.risks) || PRESETS[(s && s.preset) || DEFAULTS.preset] || PRESETS.balanced;
+    // Risk values of their own override the preset: the preset shown is the one they match, else custom.
+    var preset = presetOf(risks);
+    var k = Math.round(1 / spot);
+    var trustedStart = start === "trusted";
+    var common = { raw: props.raw, onReadOnly: props.onReadOnly, readOnly: props.readOnly };
+    function ctl(extra) { return Object.assign({}, common, extra); }
+    var anim = props.anim;
+    return h("div", { className: "tnr-settings" },
+      h("header", { className: "tnr-shero" },
+        h("div", { className: "tnr-eyebrow" }, "#" + t("view.settings"), h("span", { className: "tnr-dim" }, " · "), t("meta.profile") + " ", h("bdi", null, profile)),
+        h("h2", { className: "tnr-shero-name" }, presetName(preset)),
+        h("p", { className: "tnr-dim tnr-small" }, t(trustedStart ? "start.trusted" : "start.probation") + " · " + t("settings.spot_title") + " " +
+          t("settings.spot_value", { k: k }) + " · " + t(strict ? "settings.strict_on" : "settings.strict_off")),
+        h("p", { className: "tnr-small" }, t("settings.saves_here")),
+        s && s.pending ? h("p", { className: "tnr-small" }, t("settings.pending")) : null,
+        !s ? h("p", { className: "tnr-small" }, t("settings.none")) : null),
+      h(SettingRow, { n: 1, title: t("meta.preset"), help: t("settings.preset_help") },
+        h(OptionsControl, ctl({ current: preset, bodyOf: function (id) { return { preset: id, risks: presetRisks(id) }; }, cmdOf: function (id) { return hermesCmd(profile, "setup " + id); },
+          options: ["careful", "balanced", "fast"].map(function (id) {
+            return { id: id, head: h("span", { className: "tnr-opt-name" }, presetName(id)),
+              body: h(Fragment, null, h("p", { className: "tnr-small" }, presetDesc(id)), h(RiskLines, { risks: PRESETS[id] })) };
+          }) }))),
+      h(SettingRow, { n: 2, title: t("settings.custom_title"), help: t("settings.custom_help") },
+        preset === "custom" ? h("p", { className: "tnr-small" }, t("settings.preset_desc_custom")) : null,
+        h(RiskEditor, ctl({ risks: risks }))),
+      h(SettingRow, { n: 3, title: t("meta.start"), help: t("settings.start_help") },
+        h(OptionsControl, ctl({ current: start, bodyOf: function (id) { return { start: id }; }, cmdOf: function (id) { return hermesCmd(profile, "start " + id); },
+          options: [true, false].map(function (tr) {
+            return { id: tr ? "trusted" : "probation",
+              head: h("span", { className: "tnr-opt-name tnr-opt-start" }, h(TierChip, { tier: tr ? "trusted" : "ask", still: true }), t(tr ? "start.trusted" : "start.probation")),
+              body: h("p", { className: "tnr-small" }, t(tr ? "settings.start_trusted" : "settings.start_probation")) };
+          }) }))),
+      h(SettingRow, { n: 4, title: t("settings.spot_title") }, h(SpotControl, ctl({ spot: spot }))),
+      h(SettingRow, { n: 5, title: t("settings.strict_title"), help: t("settings.strict_help") },
+        h(OptionsControl, ctl({ current: strict ? "on" : "off", bodyOf: function (id) { return { strict: id === "on" }; },
+          cmdOf: function (id) { return hermesCmd(profile, id === "on" ? "strict on" : "strict off"); },
+          options: [false, true].map(function (on) {
+            return { id: on ? "on" : "off", head: h("span", { className: "tnr-opt-name" }, t(on ? "settings.strict_on" : "settings.strict_off")),
+              body: h("p", { className: "tnr-small" }, t(on ? "settings.strict_desc_on" : "settings.strict_desc_off")) };
+          }) }))),
+      h(SettingRow, { n: 6, title: t("page.animations"), help: t("settings.animations_help") },
+        h("div", { className: "tnr-opt" },
+          h("label", { className: "tnr-switch-toggle", title: anim.reduced ? t("page.anim_reduced") : undefined, "data-off": anim.reduced ? "true" : "false" },
+            h("input", { type: "checkbox", checked: anim.on && !anim.reduced, disabled: anim.reduced, onChange: function (e) { anim.set(e.target.checked); } }),
             h("span", { className: "tnr-toggle-track", "aria-hidden": true }),
-            h("span", null, sx ? t("settings.strict_on") : t("settings.strict_off"))),
-          h("div", { className: "tnr-dial-n tnr-dim tnr-small" }, t("profile.spot", { rate: oneIn(cur.spot) }))),
-        readOnly ? h("div", { className: "tnr-readonly" },
-          h("div", null, h("b", null, t("settings.read_only.bold")), " " + t("settings.read_only.body")),
-          shownCmds.map(function (c) { return h(CopyCmd, { key: c, cmd: c }); }))
-          : h("div", { className: "tnr-dial-foot" },
-            h(Btn, { kind: dirty ? "primary" : undefined, disabled: !dirty, onClick: apply }, dirty ? t("settings.apply") : t("settings.no_change")),
-            dirty ? h(Btn, { kind: "ghost", onClick: function () { setPreset(null); setRisks(null); setStrict(null); } }, t("settings.reset")) : null,
-            h("span", { className: "tnr-dim tnr-small" }, dirty ? t("settings.same_as", { cmds: commands.join("  &&  ") }) :
-              t("settings.in_force_profile", { profile: props.profile })))),
-      msg ? h("div", { className: "tnr-msg tnr-tone--" + msg.tone }, msg.text) : null,
-      props.start ? h("section", { className: "tnr-start", "data-start": props.start },
-        h(Eyebrow, { n: 2 }, t("settings.start.title")),
-        h("div", { className: "tnr-start-row" },
-          h(TierChip, { tier: startTrusted ? "trusted" : "ask", still: true }),
-          h("b", null, startTrusted ? t("settings.start.trusted") : t("settings.start.probation"))),
-        h("p", { className: "tnr-small" }, startTrusted ? t("settings.start.trusted_body") : t("settings.start.probation_body")),
-        readOnly ? null : h("div", { className: "tnr-dial-foot" },
-          h(Btn, { onClick: function () {
-            apiPost("/settings", { start: startTrusted ? "probation" : "trusted" }, { raw: props.raw }).then(function () {
-              setMsg({ tone: "ok", text: t("settings.saved_long") });
-              props.onDone(t("settings.saved"), "success");
-            }, function (e) {
-              if (errStatus(e) === 501) setReadOnly(true);
-              else setMsg({ tone: "fault", text: errText(e) });
-            });
-          } }, startTrusted ? t("settings.start.use_probation") : t("settings.start.use_trusted"))),
-        h("div", { className: "tnr-dim tnr-small" }, readOnly ? t("settings.start.change") : t("settings.start.or_terminal")),
-        h(CopyCmd, { cmd: "hermes tenure start " + (startTrusted ? "probation" : "trusted") })) : null,
-      h("section", { className: "tnr-about" },
-        h(Eyebrow, { n: props.start ? 3 : 2 }, t("settings.about.title")),
-        h("p", null, t("settings.about.body", { spot: oneIn(cur.spot) })),
-        h("p", { className: "tnr-dim" }, t("settings.about.carry"))));
+            h("span", null, t("page.animations"))))),
+      h(SettingRow, { n: 7, title: t("settings.enabled_title"), help: t("settings.enabled_help") }, h(EnabledControl, ctl({ enabled: enabled }))),
+      h(SettingRow, { n: 8, title: t("settings.advanced_title"), help: t("settings.advanced_help") },
+        h("p", { className: "tnr-small" }, t("settings.advanced_types")),
+        h("pre", { className: "tnr-pre" }, TYPES_YAML),
+        h("p", { className: "tnr-dim tnr-small" }, t("settings.advanced_docs"))));
   }
 
   // ------------------------------------------------------------------------------------------------------ help
@@ -4878,8 +5106,9 @@ const TENURE_LOCALES = {
     else if (view === "switch") body = h(SwitchView, { rows: rows, raw: raw, version: version });
     else if (view === "passport") body = h(PassportView, { rows: rows, raw: raw, version: version });
     else if (view === "undo") body = h(UndoView, { undoable: activity && activity.undoable, current: currentProfile, onDone: done, raw: raw });
-    else body = h(SettingsView, { settings: current && current.settings, start: startOf(current), profile: currentProfile, raw: raw, onDone: done,
-      readOnly: settingsRO, onReadOnly: setSettingsRO });
+    else body = h(SettingsView, { settings: current && current.settings, start: startOf(current), profile: currentProfile, raw: raw,
+      readOnly: settingsRO, onReadOnly: setSettingsRO,
+      anim: { on: animOn, reduced: reduced, set: function (on) { writeAnimPref(on); setAnimOn(on); } } });
 
     var moving = animOn && !reduced;
     return h("div", { className: "tnr", "data-tone": tone, "data-anim": moving ? "on" : "off", ref: rootRef, tabIndex: -1, onKeyDown: onKey,

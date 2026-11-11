@@ -126,7 +126,7 @@ async function run() {
 
         // Settings (s): move the dial to "careful" and see N change live, without applying it.
         await page.locator(".tnr").first().focus(); await page.keyboard.press("s");
-        await page.waitForSelector(".tnr-dial", { timeout: 10000 });
+        await page.waitForSelector(".tnr-settings", { timeout: 10000 });
         await page.getByRole("radio", { name: "careful" }).click();
         if (!(await page.getByText("in force: 52").isVisible())) fail(`${prefix}: the dial does not show the new N against the current one`);
         await page.mouse.move(0, 0);

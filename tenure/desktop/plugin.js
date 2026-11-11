@@ -241,7 +241,7 @@ const TENURE_LOCALES = {
     "settings.advanced_title": "Advanced",
     "settings.advanced_types": "Reclassify action types (free, low, medium, high or cap per pattern) in Hermes' Settings → Plugins → Tenure, or in config.yaml:",
     "settings.animations_help": "The bars that print, the passport that develops, the bands. The same switch as in the page header; it stays off when your system asks for reduced motion.",
-    "settings.custom_help": "Your own share of unchecked errors per stakes level: 1 in k, or always asks. The series a type needs follows as you type. Saved, it makes the preset custom, unless it matches one.",
+    "settings.custom_help": "Your own share of unchecked errors per stakes level: pick 1 in k, type your own k, or cap (always asks). The series a type needs follows at once. Saved, it makes the preset custom, unless it matches one.",
     "settings.custom_title": "Accepted risk per stakes level",
     "settings.enabled_help": "Turn tenure off without uninstalling it.",
     "settings.enabled_off": "Off",
@@ -262,13 +262,17 @@ const TENURE_LOCALES = {
     "settings.preset_desc_fast": "Earns autonomy soonest at low and medium stakes. High-stakes types always ask.",
     "settings.preset_help": "How much evidence an action type needs before it acts on its own, per stakes level: the series of verified successes in a row, and the share of unchecked errors it accepts.",
     "settings.risk": "1 unchecked error in {k} accepted",
-    "settings.risk_invalid": "A whole number of 2 or more, or always asks.",
+    "settings.risk_invalid": "A whole number of 2 or more.",
+    "settings.rung_cap": "cap",
     "settings.save": "Save",
     "settings.save_failed": "Not saved: {error}",
     "settings.saved": "Saved and logged in the ledger: it applies from the next action.",
     "settings.saves_here": "Changes save at once, through Hermes' own settings writer, and are logged in the ledger; they apply from the next action. The same settings are in Hermes' Settings → Plugins → Tenure.",
     "settings.saving": "Saving…",
-    "settings.series": "{n} in a row",
+    "settings.series": {
+      "one": "{n} verified success in a row",
+      "other": "{n} verified successes in a row"
+    },
     "settings.spot_change": "Set it in Hermes' config.yaml, under plugins.entries.tenure.settings (a share between 0 and 1):",
     "settings.spot_custom": "Your own value: 1 in k",
     "settings.spot_desc": "Once a type is tenured, 1 of its actions in {k} still asks, at random: a model that turns bad gets caught.",
@@ -567,7 +571,7 @@ const TENURE_LOCALES = {
     "settings.advanced_title": "متقدّم",
     "settings.advanced_types": "أعد تصنيف أنواع الإجراءات (free أو low أو medium أو high أو cap لكل نمط) في الإعدادات ← الإضافات ← Tenure في Hermes، أو في config.yaml:",
     "settings.animations_help": "الأشرطة التي تُطبع، والجواز الذي يظهر تدريجيًا، والأشرطة العريضة. المفتاح نفسه الموجود في رأس الصفحة؛ ويبقى متوقفًا إذا طلب نظامك تقليل الحركة.",
-    "settings.custom_help": "نسبتك الخاصة من الأخطاء غير المفحوصة لكل مستوى خطورة: 1 من كل k، أو يسأل دائمًا. تتحدّث السلسلة التي يحتاجها النوع أثناء الكتابة. بعد الحفظ يصبح الإعداد المسبق مخصصًا، ما لم يطابق أحدها.",
+    "settings.custom_help": "نسبتك الخاصة من الأخطاء غير المفحوصة لكل مستوى خطورة: اختر 1 من كل k، أو اكتب قيمة k الخاصة بك، أو قيد (يسأل دائمًا). تتحدّث السلسلة التي يحتاجها النوع فورًا. بعد الحفظ يصبح الإعداد المسبق مخصصًا، ما لم يطابق أحدها.",
     "settings.custom_title": "المخاطرة المقبولة لكل مستوى خطورة",
     "settings.enabled_help": "أوقف tenure دون إلغاء تثبيته.",
     "settings.enabled_off": "متوقف",
@@ -588,13 +592,21 @@ const TENURE_LOCALES = {
     "settings.preset_desc_fast": "يكتسب الاستقلالية أسرع عند الخطورة المنخفضة والمتوسطة. الأنواع عالية الخطورة تسأل دائمًا.",
     "settings.preset_help": "مقدار الأدلة التي يحتاجها نوع الإجراء قبل أن يعمل وحده، حسب مستوى الخطورة: سلسلة النجاحات الموثّقة على التوالي، ونسبة الأخطاء غير المفحوصة المقبولة.",
     "settings.risk": "يُقبل خطأ واحد غير مفحوص من كل {k}",
-    "settings.risk_invalid": "عدد صحيح من 2 فأكثر، أو يسأل دائمًا.",
+    "settings.risk_invalid": "عدد صحيح من 2 فأكثر.",
+    "settings.rung_cap": "قيد",
     "settings.save": "حفظ",
     "settings.save_failed": "لم يُحفظ: {error}",
     "settings.saved": "حُفظ وسُجّل في الدفتر: يسري من الإجراء التالي.",
     "settings.saves_here": "تُحفظ التغييرات فورًا عبر أداة كتابة الإعدادات الخاصة بـ Hermes نفسه، وتُسجَّل في الدفتر؛ وتسري من الإجراء التالي. الإعدادات نفسها موجودة في الإعدادات ← الإضافات ← Tenure في Hermes.",
     "settings.saving": "جارٍ الحفظ…",
-    "settings.series": "{n} على التوالي",
+    "settings.series": {
+      "zero": "{n} نجاحات موثّقة على التوالي",
+      "one": "{n} نجاح موثّق على التوالي",
+      "two": "{n} نجاحين موثّقين على التوالي",
+      "few": "{n} نجاحات موثّقة على التوالي",
+      "many": "{n} نجاحًا موثّقًا على التوالي",
+      "other": "{n} نجاح موثّق على التوالي"
+    },
     "settings.spot_change": "اضبطه في ملف config.yaml الخاص بـ Hermes، تحت plugins.entries.tenure.settings (نسبة بين 0 و1):",
     "settings.spot_custom": "قيمتك الخاصة: 1 من كل k",
     "settings.spot_desc": "بعد تثبيت النوع، يظل إجراء واحد من كل {k} من إجراءاته يسأل، عشوائيًا: فيُكشف النموذج الذي يسوء أداؤه.",
@@ -875,7 +887,7 @@ const TENURE_LOCALES = {
     "settings.advanced_title": "Avanzado",
     "settings.advanced_types": "Reclasifica tipos de acción (free, low, medium, high o cap por patrón) en Ajustes → Plugins → Tenure de Hermes, o en config.yaml:",
     "settings.animations_help": "Las barras que se imprimen, el pasaporte que se revela, las bandas. El mismo interruptor que en la cabecera de la página; sigue apagado si tu sistema pide reducir el movimiento.",
-    "settings.custom_help": "Tu propia proporción de errores sin revisar por nivel de impacto: 1 de cada k, o siempre pregunta. La serie que necesita un tipo se actualiza mientras escribes. Al guardarlo, el preajuste pasa a personalizado, salvo que coincida con uno.",
+    "settings.custom_help": "Tu propia proporción de errores sin revisar por nivel de impacto: elige 1 de cada k, escribe tu propio k, o tope (siempre pregunta). La serie que necesita un tipo se actualiza al instante. Al guardarlo, el preajuste pasa a personalizado, salvo que coincida con uno.",
     "settings.custom_title": "Riesgo aceptado por nivel de impacto",
     "settings.enabled_help": "Desactiva tenure sin desinstalarlo.",
     "settings.enabled_off": "Desactivado",
@@ -896,13 +908,17 @@ const TENURE_LOCALES = {
     "settings.preset_desc_fast": "Gana autonomía antes con impacto bajo y medio. Los tipos de impacto alto siempre preguntan.",
     "settings.preset_help": "Cuánta evidencia necesita un tipo de acción antes de actuar por su cuenta, por nivel de impacto: la serie de éxitos verificados seguidos y la proporción de errores sin revisar que acepta.",
     "settings.risk": "se acepta 1 error sin revisar de cada {k}",
-    "settings.risk_invalid": "Un número entero de 2 o más, o siempre pregunta.",
+    "settings.risk_invalid": "Un número entero de 2 o más.",
+    "settings.rung_cap": "tope",
     "settings.save": "Guardar",
     "settings.save_failed": "No guardado: {error}",
     "settings.saved": "Guardado y anotado en el registro: se aplica desde la siguiente acción.",
     "settings.saves_here": "Los cambios se guardan al momento, con el propio sistema de ajustes de Hermes, y se anotan en el registro; se aplican desde la siguiente acción. Los mismos ajustes están en Ajustes → Plugins → Tenure de Hermes.",
     "settings.saving": "Guardando…",
-    "settings.series": "{n} seguidas",
+    "settings.series": {
+      "one": "{n} éxito verificado seguido",
+      "other": "{n} éxitos verificados seguidos"
+    },
     "settings.spot_change": "Defínelo en el config.yaml de Hermes, bajo plugins.entries.tenure.settings (una proporción entre 0 y 1):",
     "settings.spot_custom": "Tu propio valor: 1 de cada k",
     "settings.spot_desc": "Cuando un tipo es titular, 1 de cada {k} de sus acciones sigue preguntando, al azar: un modelo que empeora queda al descubierto.",
@@ -1163,7 +1179,7 @@ const TENURE_LOCALES = {
     "settings.advanced_title": "Avancé",
     "settings.advanced_types": "Reclassez des types d'action (free, low, medium, high ou cap par motif) dans Paramètres → Plugins → Tenure de Hermes, ou dans config.yaml :",
     "settings.animations_help": "Les barres qui s'impriment, le passeport qui se développe, les bandeaux. Le même interrupteur que dans l'en-tête de la page ; il reste éteint si votre système demande de réduire les animations.",
-    "settings.custom_help": "Votre propre part d'erreurs non vérifiées par niveau d'enjeu : 1 sur k, ou demande toujours. La série qu'un type doit réunir suit à la frappe. Une fois enregistré, le préréglage devient personnalisé, sauf s'il correspond à l'un d'eux.",
+    "settings.custom_help": "Votre propre part d'erreurs non vérifiées par niveau d'enjeu : choisissez 1 sur k, tapez votre propre k, ou cap (demande toujours). La série qu'il faut à un type suit aussitôt. Une fois enregistré, le préréglage devient personnalisé, sauf s'il correspond à l'un d'eux.",
     "settings.custom_title": "Risque accepté par niveau d'enjeu",
     "settings.enabled_help": "Désactiver tenure sans le désinstaller.",
     "settings.enabled_off": "Désactivé",
@@ -1184,13 +1200,17 @@ const TENURE_LOCALES = {
     "settings.preset_desc_fast": "Gagne son autonomie au plus tôt à enjeu faible et moyen. Les types à enjeu élevé demandent toujours.",
     "settings.preset_help": "Les preuves qu'un type d'action doit réunir avant d'agir seul, par niveau d'enjeu : la série de succès vérifiés d'affilée, et la part d'erreurs non vérifiées acceptée.",
     "settings.risk": "1 erreur non vérifiée sur {k} acceptée",
-    "settings.risk_invalid": "Un nombre entier de 2 ou plus, ou demande toujours.",
+    "settings.risk_invalid": "Un nombre entier de 2 ou plus.",
+    "settings.rung_cap": "cap",
     "settings.save": "Enregistrer",
     "settings.save_failed": "Non enregistré : {error}",
     "settings.saved": "Enregistré et inscrit au registre : s'applique dès l'action suivante.",
     "settings.saves_here": "Les changements s'enregistrent aussitôt, par l'outil d'écriture des paramètres de Hermes lui-même, et sont inscrits au registre ; ils s'appliquent dès l'action suivante. Les mêmes paramètres figurent dans Paramètres → Plugins → Tenure de Hermes.",
     "settings.saving": "Enregistrement…",
-    "settings.series": "{n} d'affilée",
+    "settings.series": {
+      "one": "{n} succès vérifié d'affilée",
+      "other": "{n} succès vérifiés d'affilée"
+    },
     "settings.spot_change": "Réglez-le dans le config.yaml de Hermes, sous plugins.entries.tenure.settings (une part entre 0 et 1) :",
     "settings.spot_custom": "Votre propre valeur : 1 sur k",
     "settings.spot_desc": "Une fois un type titulaire, 1 de ses actions sur {k} vous est encore demandée, au hasard : un modèle qui se dégrade est repéré.",
@@ -1439,7 +1459,7 @@ const TENURE_LOCALES = {
     "settings.advanced_title": "高级",
     "settings.advanced_types": "在 Hermes 的「设置 → 插件 → Tenure」中，或在 config.yaml 中，重新分类操作类型（每个模式取 free、low、medium、high 或 cap）：",
     "settings.animations_help": "逐步打印的进度条、显影的护照、横幅。与页面顶部的开关相同；系统要求减少动态效果时保持关闭。",
-    "settings.custom_help": "按风险级别设定你自己的未经检查错误比例：1/k，或始终询问。类型所需的连续记录会随输入实时更新。保存后预设变为自定义，除非与某个预设一致。",
+    "settings.custom_help": "按风险级别设定你自己的未经检查错误比例：选择 1/k，输入你自己的 k，或选择受限（始终询问）。类型所需的连续记录随即更新。保存后预设变为自定义，除非与某个预设一致。",
     "settings.custom_title": "各风险级别的可接受风险",
     "settings.enabled_help": "关闭 tenure 而不卸载它。",
     "settings.enabled_off": "关",
@@ -1460,13 +1480,16 @@ const TENURE_LOCALES = {
     "settings.preset_desc_fast": "在低风险和中风险上最快赢得自主权。高风险类型始终询问。",
     "settings.preset_help": "按风险级别，一个操作类型在自主执行之前需要多少证据：连续已验证成功的次数，以及可接受的未经检查错误比例。",
     "settings.risk": "可接受 1/{k} 的未经检查错误",
-    "settings.risk_invalid": "请输入 2 或以上的整数，或选择始终询问。",
+    "settings.risk_invalid": "请输入 2 或以上的整数。",
+    "settings.rung_cap": "受限",
     "settings.save": "保存",
     "settings.save_failed": "未保存：{error}",
     "settings.saved": "已保存并记入账本：从下一个操作起生效。",
     "settings.saves_here": "修改会立即通过 Hermes 自己的设置写入器保存，并记入账本；从下一个操作起生效。同样的设置也在 Hermes 的「设置 → 插件 → Tenure」中。",
     "settings.saving": "正在保存…",
-    "settings.series": "连续 {n} 次",
+    "settings.series": {
+      "other": "连续 {n} 次已验证的成功"
+    },
     "settings.spot_change": "在 Hermes 的 config.yaml 中，于 plugins.entries.tenure.settings 下设置（0 到 1 之间的比例）：",
     "settings.spot_custom": "自定义值：1/k",
     "settings.spot_desc": "类型转正后，它的操作中每 {k} 个仍会随机抽查 1 个：变差的模型会被发现。",
@@ -2402,8 +2425,8 @@ const CSS = `
 .tn-opt-name.tn-start{cursor:default;font-size:1.05rem}
 .tn-chip-in{background:var(--tn-acc);color:var(--tn-on);font-family:var(--tn-mono);font-weight:500;font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase}
 .tn-levels{margin:0;display:flex;flex-direction:column}
-.tn-levels>div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:0.1rem 0.75rem;padding-block:0.4rem;border-block-start:1px solid var(--tn-line);font-size:0.72rem}
-.tn-levels dt{color:var(--tn-mut)}
+.tn-levels>div{display:grid;grid-template-columns:max-content minmax(0,1fr);text-align:end;align-items:baseline;gap:0.1rem 0.75rem;padding-block:0.4rem;border-block-start:1px solid var(--tn-line);font-size:0.72rem}
+.tn-levels dt{color:var(--tn-mut);text-align:start}
 .tn-levels dd{margin:0;display:contents;color:var(--tn-fg2);text-align:end}
 .tn-levels dd>b{font:500 0.76rem var(--tn-mono);color:var(--tn-fg);text-align:end;font-variant-numeric:tabular-nums}
 .tn-levels dd>span{grid-column:1 / -1;font-size:0.68rem;color:var(--tn-mut);text-align:start}
@@ -2431,8 +2454,6 @@ const CSS = `
 .tn-risk-k input:focus-visible{border-color:var(--tn-acc)}
 .tn-risk-k input[aria-invalid=true]{border-color:var(--tn-fg)}
 .tn-risk-k input:disabled{opacity:0.4}
-.tn-risk-cap{display:inline-flex;align-items:center;gap:0.35rem;font-size:0.72rem;color:var(--tn-fg2);cursor:pointer}
-.tn-risk-cap input{accent-color:var(--tn-acc)}
 .tn-htext[data-warn=true]{color:var(--tn-fg);border-inline-start:2px solid var(--tn-acc);padding-inline-start:0.5rem}
 .tn-pre{margin:0;padding:0.6rem 0.75rem;overflow-x:auto;font:0.72rem/1.55 var(--tn-mono);color:var(--tn-fg);background:color-mix(in srgb,var(--tn-fg) 5%,transparent);border:1px solid var(--tn-line);direction:ltr;text-align:start}
 .tn-tier{display:flex;flex-wrap:wrap;align-items:baseline;gap:0.3rem 0.7rem;padding-block:0.5rem;border-block-start:1px solid var(--tn-line)}
@@ -3983,19 +4004,44 @@ function riskLines(risks, t) {
   })
 }
 
+/** The preset whose risks these are, else custom. */
+const presetOf = r => Object.keys(PRESETS).find(n => LEVELS.every(l => (PRESETS[n][l] == null ? r[l] == null : r[l] != null && Math.abs(1 / r[l] - 1 / PRESETS[n][l]) < 1e-6))) || 'custom'
+/** A preset's risks as POST /settings takes them, so that choosing it also replaces risk values of your own. */
+const presetRisks = id => Object.fromEntries(LEVELS.map(l => [l, PRESETS[id][l] == null ? 'cap' : '1/' + Math.round(1 / PRESETS[id][l])]))
 const kOf = bar => (bar > 0 ? String(Math.round(1 / bar)) : '')
 const riskYaml = r => `risks: {${LEVELS.map(l => `${l}: ${r[l] == null ? 'cap' : '1/' + r[l]}`).join(', ')}}`
 
-/** Accepted risk per stakes level, edited as "1 in k" or "always asks", with the series it implies, live. */
+// The "1 in k" choices of the risk buttons (the same on the dashboard tab); null = capped (always asks).
+const LADDER = [20, 50, 100, 200, 500, 1000, null]
+
+/**
+ * Accepted risk per stakes level: segmented buttons 1/20 … 1/1000 and cap, plus a "1 in k" of your own, with the
+ * series it implies shown live; one Save for the three levels.
+ */
 function RiskEditor({ risks, profile, t }) {
   const init = () => Object.fromEntries(LEVELS.map(l => [l, risks && risks[l] > 0 ? kOf(risks[l]) : null]))
+  const initCustom = d => Object.fromEntries(LEVELS.map(l => [l, d[l] != null && !LADDER.includes(Number(d[l])) ? d[l] : '']))
   const [draft, setDraft] = useState(init)
+  const [custom, setCustom] = useState(() => initCustom(init()))
   const key = JSON.stringify(risks || {})
-  useEffect(() => setDraft(init()), [key])
+  useEffect(() => {
+    const d = init()
+    setDraft(d)
+    setCustom(initCustom(d))
+  }, [key])
   const [st, run] = useSave(profile)
-  const valid = l => draft[l] == null || (/^\d+$/.test(draft[l]) && Number(draft[l]) >= 2)
+  const valid = l => custom[l] === '' || (/^\d+$/.test(custom[l]) && Number(custom[l]) >= 2)
   const allValid = LEVELS.every(valid)
   const changed = LEVELS.some(l => (draft[l] == null ? !!(risks && risks[l] > 0) : !(risks && risks[l] > 0) || kOf(risks[l]) !== draft[l]))
+  const pick = (level, k) => {
+    setDraft(d => ({ ...d, [level]: k == null ? null : String(k) }))
+    setCustom(c => ({ ...c, [level]: '' }))
+  }
+  const type = (level, v) => {
+    const text = v.replace(/[^\d]/g, '')
+    setCustom(c => ({ ...c, [level]: text }))
+    if (/^\d+$/.test(text) && Number(text) >= 2) setDraft(d => ({ ...d, [level]: String(Number(text)) }))
+  }
   return jsxs('div', {
     className: 'tn-opt',
     children: [
@@ -4011,10 +4057,17 @@ function RiskEditor({ risks, profile, t }) {
                 jsx('dt', { children: t('type.stakes_' + level) }),
                 jsxs('dd', {
                   children: [
-                    jsx('b', { children: cap ? t('type.always_asks') : valid(level) ? t('settings.series', { n: studyN(1 / k) }) : '—' }),
+                    jsx('b', { children: cap ? t('type.always_asks') : t('settings.series', { n: studyN(1 / k) }) }),
                     jsxs('span', {
                       className: 'tn-risk-ctl',
                       children: [
+                        jsx(Seg, {
+                          busy: st.state === 'saving',
+                          label: t('type.stakes_' + level),
+                          onPick: id => pick(level, id === 'cap' ? null : id),
+                          options: LADDER.map(n => ({ id: n == null ? 'cap' : n, label: n == null ? t('settings.rung_cap') : '1/' + n })),
+                          value: cap ? 'cap' : custom[level] !== '' || !LADDER.includes(k) ? null : k
+                        }),
                         jsxs('label', {
                           className: 'tn-risk-k',
                           children: [
@@ -4022,19 +4075,12 @@ function RiskEditor({ risks, profile, t }) {
                             jsx('input', {
                               'aria-invalid': valid(level) ? undefined : 'true',
                               'aria-label': t('type.stakes_' + level) + ' · ' + t('settings.one_in'),
-                              disabled: cap,
                               inputMode: 'numeric',
-                              onChange: e => setDraft(d => ({ ...d, [level]: e.target.value.replace(/[^\d]/g, '') })),
+                              onChange: e => type(level, e.target.value),
+                              placeholder: 'k',
                               type: 'text',
-                              value: cap ? '' : draft[level]
+                              value: custom[level]
                             })
-                          ]
-                        }),
-                        jsxs('label', {
-                          className: 'tn-risk-cap',
-                          children: [
-                            jsx('input', { checked: cap, onChange: e => setDraft(d => ({ ...d, [level]: e.target.checked ? null : kOf(risks && risks[level]) || '50' })), type: 'checkbox' }),
-                            t('type.always_asks')
                           ]
                         })
                       ]
@@ -4062,7 +4108,7 @@ function RiskEditor({ risks, profile, t }) {
         ]
       }),
       jsx(SaveStatus, { st, t }),
-      jsx(OrTerminal, { config: true, st, t, text: riskYaml(Object.fromEntries(LEVELS.map(l => [l, draft[l] == null ? null : draft[l] || '?']))) })
+      jsx(OrTerminal, { config: true, st, t, text: riskYaml(Object.fromEntries(LEVELS.map(l => [l, draft[l]]))) })
     ]
   })
 }
@@ -4159,12 +4205,13 @@ function SettingsView({ data, t }) {
   const s = here && !here.error ? here.settings : null
   const profile = (here && here.profile) || (data && data.current) || 'default'
   const types = here && here.agents ? here.agents.flatMap(a => a.types || []) : []
-  const preset = (s && s.preset) || DEFAULTS.preset
   const start = startOf(s, types) || DEFAULTS.start
   const spot = s && s.spot > 0 && s.spot < 1 ? s.spot : DEFAULTS.spot
   const strict = s ? !!s.strict : DEFAULTS.strict
   const enabled = s && typeof s.enabled === 'boolean' ? s.enabled : savedSettings.enabled
-  const risks = (s && s.risks) || PRESETS[preset] || PRESETS.balanced
+  const risks = (s && s.risks) || PRESETS[(s && s.preset) || DEFAULTS.preset] || PRESETS.balanced
+  // Risk values of their own override the preset: the preset shown is the one they match, else custom.
+  const preset = presetOf(risks)
   const k = Math.round(1 / spot)
   const trustedStart = start === 'trusted'
   const presetOpt = id => ({
@@ -4203,7 +4250,7 @@ function SettingsView({ data, t }) {
           n: 1,
           title: t('meta.preset'),
           children: jsx(OptionsControl, {
-            bodyOf: id => ({ preset: id }),
+            bodyOf: id => ({ preset: id, risks: presetRisks(id) }),
             cmdOf: id => hermesCmd(profile, 'setup ' + id),
             current: preset,
             options: ['careful', 'balanced', 'fast'].map(presetOpt),
