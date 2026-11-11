@@ -25,7 +25,22 @@
   <a href="#commands">Commands</a>
 </p>
 
+<p align="center"><img alt="Tenure: revocable trust for your agent. The dithered emblem fills as autonomy is earned and crumbles on a mistake." src="docs/images/hero.gif" width="820"></p>
+
 <p align="center"><img alt="Illustration of the earned tiers after a first mistake: T1 asks first, T2 acts then tells you, T3 acts on its own; one fault and the type drops back" src="docs/images/tiers.svg" width="820"><br><sub>Illustration of the rule, not a screenshot.</sub></p>
+
+## A real session, in Hermes Desktop
+
+Screenshots from one real session (Claude Sonnet 5.5 through Nous, on a demo project, prompts typed by a script). The images are not edited.
+
+| | |
+|---|---|
+| <img alt="Tenure page in Hermes Desktop: file:shell and file:write trusted; the files the agent wrote and the rm it ran, each with an undo" src="docs/images/desktop-trusted.png"> | <img alt="Undo action 4? restores the files, counts as a fault" src="docs/images/desktop-undo.png"> |
+| **1. It works.** Files written and a plain `rm` ran without a question; each one acted, then told you, with an undo. | **2. One mistake.** You undo the `rm`: the file comes back, and it counts as a fault of `file:shell`. |
+| <img alt="Fault caught, file:shell: On probation, 17 more to reach Under review; file:write still trusted" src="docs/images/desktop-probation.png"> | <img alt="Hermes approval prompt: tenure, file:shell rm notes/a2.txt asks first after a mistake: 17 more approvals and it acts again, then tells you, with an undo" src="docs/images/desktop-asks-first.png"> |
+| **3. That kind only.** `file:shell` goes on probation; `file:write` keeps its trust. | **4. It asks first.** The next `rm` goes through Hermes' own approval prompt; each approval earns the trust back. |
+
+<p align="center"><img alt="The signed autonomy passport of claude-sonnet-5.5: file:shell T1 probation 1/21, file:write trusted (not earned), 1 fault / 7 verified outcomes, ledger cb0baa71, ED25519" src="docs/images/desktop-passport.png" width="560"><br><sub>The signed passport of that session (<code>hermes tenure verify</code> checks it against the ledger).</sub></p>
 
 ## The problem
 
@@ -80,7 +95,7 @@ Prefer the preregistered study's start, where every type begins on probation? `h
 ## Install in 60 seconds
 
 ```bash
-hermes plugins install otsoa-dubief/tenure/tenure
+hermes plugins install otsoa-dubief/tenure/tenure   # once listed in the catalog: hermes plugins install tenure
 hermes gateway restart          # if a gateway is running
 hermes tenure setup          # the three presets side by side
 ```
