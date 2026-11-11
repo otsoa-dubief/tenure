@@ -6,12 +6,13 @@
   "ask.why.capped": {
     "other": "{type}（{stakes}风险）受你的设置限制：始终询问（记录中有 {n} 次已验证的成功）。"
   },
+  "ask.why.climb": "{type}（{stakes}风险）出错后先征求同意：再批准 {n} 次后，它会重新先执行再通知你，并可撤销。",
   "ask.why.other_stakes": "{type} 的记录是在{earned}风险下赢得的，而此操作为{stakes}风险：需要询问。",
   "ask.why.provisional": {
     "other": "其中 {n} 次继承自上一个智能体，暂定。"
   },
   "ask.why.series": "{type}（{stakes}风险）先询问：已连续成功 {series}/{required} 次，会话 {sessions}/{needed} 个，达标后才会自主执行。",
-  "ask.why.suspended": "此会话读取了外部内容，因此每次操作都会重新询问（已暂停：读取了外部内容）。",
+  "ask.why.suspended": "此会话读取了外部内容，因此每次操作都会重新询问（已暂停：读取了外部内容）。 开启新会话（/new）即可像之前一样工作。",
   "ask.why.trial": {
     "other": "{type} 因失误处于考察期：还需 {n} 次已验证的成功，且不能有失误。"
   },

@@ -7,13 +7,14 @@
     "one": "{type} (enjeu {stakes}) est plafonné par vos paramètres : toujours demandé ({n} succès vérifié à son actif).",
     "other": "{type} (enjeu {stakes}) est plafonné par vos paramètres : toujours demandé ({n} succès vérifiés à son actif)."
   },
+  "ask.why.climb": "{type} (enjeu {stakes}) demande d'abord après une erreur : encore {n} accords et il agit de nouveau, puis vous prévient, avec une annulation.",
   "ask.why.other_stakes": "{type} a gagné son historique à enjeu {earned}, mais cette action est à enjeu {stakes} : il demande.",
   "ask.why.provisional": {
     "one": "Dont {n} hérité de l'agent précédent, à titre provisoire.",
     "other": "Dont {n} hérités de l'agent précédent, à titre provisoire."
   },
   "ask.why.series": "{type} (enjeu {stakes}) demande d'abord : {series}/{required} succès d'affilée sans faute, {sessions} sessions sur {needed}, avant d'agir seul.",
-  "ask.why.suspended": "Cette session a lu du contenu externe : chaque action vous est de nouveau demandée (session suspendue).",
+  "ask.why.suspended": "Cette session a lu du contenu externe : chaque action vous est de nouveau demandée (session suspendue). Ouvrez une nouvelle session (/new) pour retravailler comme avant.",
   "ask.why.trial": {
     "one": "{type} est à l'essai après une faute : il lui faut encore {n} succès vérifié, sans faute.",
     "other": "{type} est à l'essai après une faute : il lui faut encore {n} succès vérifiés, sans faute."

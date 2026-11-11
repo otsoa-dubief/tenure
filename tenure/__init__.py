@@ -849,9 +849,19 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
         decision = rule.ALLOW                           # nobody can answer a spot check: the earned tier runs
     if not _earned(recorded, act, s, n, decision) or ST.copy_unchecked:
         decision = rule.ASK                             # copy_unchecked: this record may be a copy, not yet settled
-    if decision == rule.ASK and not suspended and not ST.copy_unchecked and trusted(cfg, s, n, act.stakes):
-        decision = rule.WATCH                           # trusted start: run as Hermes would, with an undo if possible
+    if (decision == rule.ASK and not ST.copy_unchecked and trusted(cfg, s, n, act.stakes)
+            and (not suspended or (act.reversible and act.type.startswith("file:")))):
+        decision = rule.WATCH                           # after outside content: undoable file writes only                           # trusted start: run as Hermes would, with an undo if possible
     return recorded, s, decision, suspended
+
+
+def _to_t2(s: rule.TypeState) -> int:
+    """Verified successes the type still needs to act again, then tell (the middle tier's Wald score)."""
+    a, step, ln_b = params.wald_steps(s.stakes)
+    w, k = s.wald, 0
+    while w > ln_b + rule.TOL and k < 1000:
+        w, k = max(w + step, ln_b - a), k + 1
+    return max(k, 1)
 
 
 def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool,
@@ -871,6 +881,8 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
         why = tr("ask.why.other_stakes", type=act.type, earned=stakes_name(earned_at), stakes=stakes)
     elif unsaved:
         why = tr("ask.why.unsaved", type=act.type)
+    elif s.tier == rule.T1 and s.faults and act.reversible and act.stakes in params.WALD:
+        why = tr("ask.why.climb", type=act.type, stakes=stakes, n=_to_t2(s))   # the next step, not the far one
     else:
         why = tr("ask.why.series", type=act.type, stakes=stakes, series=s.series, required=rule.required(s, n),
                  sessions=len(s.sessions), needed=rule.SESSIONS)
@@ -1035,7 +1047,8 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             watched = decision == rule.WATCH
             if watched:                                     # files saved: act then tell, with an undo; else run alone
                 files = bool(snap) or bool(classify.files_written(tool, args, cwd))
-                decision = rule.NOTIFY if files else rule.ALLOW   # files that could not be saved: ask (below)
+                decision = (rule.NOTIFY if snap else rule.ASK if suspended   # suspended: never without an undo
+                            else rule.NOTIFY if files else rule.ALLOW)    # files that could not be saved: ask (below)
             if decision != rule.NOTIFY:
                 snap = None                                 # the record changed since the preview: no undo needed
             unsaved = decision == rule.NOTIFY and snap is None

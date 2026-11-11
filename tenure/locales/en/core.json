@@ -7,13 +7,14 @@
     "one": "{type} ({stakes} stakes) is capped by your settings: always asked ({n} verified success on record).",
     "other": "{type} ({stakes} stakes) is capped by your settings: always asked ({n} verified successes on record)."
   },
+  "ask.why.climb": "{type} ({stakes} stakes) asks first after a mistake: {n} more approvals and it acts again, then tells you, with an undo.",
   "ask.why.other_stakes": "{type} earned its record at {earned} stakes, and this action has {stakes} stakes: it asks.",
   "ask.why.provisional": {
     "one": "{n} of them carried over from the previous agent, provisional.",
     "other": "{n} of them carried over from the previous agent, provisional."
   },
   "ask.why.series": "{type} ({stakes} stakes) asks first: {series}/{required} clean runs in a row, {sessions} of {needed} sessions, before it acts on its own.",
-  "ask.why.suspended": "This session read external content, so every action asks again (suspended: external content read).",
+  "ask.why.suspended": "This session read external content, so every action asks again (suspended: external content read). Start a new session (/new) to work as before.",
   "ask.why.trial": {
     "one": "{type} is on trial after a fault: {n} more verified success needed, without a fault.",
     "other": "{type} is on trial after a fault: {n} more verified successes needed, without a fault."

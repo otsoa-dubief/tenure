@@ -4250,6 +4250,15 @@ EXTERNAL_PROGRAMS = frozenset({"curl", "wget", "http", "https", "xh", "xhs", "ly
 GIT_EXTERNAL = frozenset({"clone", "pull", "fetch"})
 
 
+LOCAL_URL = re.compile(r"(?:https?://)?(?:localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(?::\d+)?(?:[/?#].*)?", re.I)
+
+
+def _local_only(args: list[str]) -> bool:
+    """Every word of a curl or wget call that is not an option is a URL on this machine (localhost, 127.0.0.1)."""
+    words = [a for a in args if not a.startswith("-")]
+    return bool(words) and all(LOCAL_URL.fullmatch(w) for w in words)
+
+
 def _seg_reads_external(tokens: list[str], depth: int) -> bool:
     if depth > MAX_DEPTH:
         return False
@@ -4266,6 +4275,8 @@ def _seg_reads_external(tokens: list[str], depth: int) -> bool:
     if not toks:
         return False
     prog, args = os.path.basename(toks[0]), toks[1:]
+    if prog in ("curl", "wget") and _local_only(args):
+        return False                                     # this machine's own server: nothing written by others
     if prog in EXTERNAL_PROGRAMS:
         return True
     if prog == "git":

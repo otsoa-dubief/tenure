@@ -59,10 +59,10 @@ def test_a_revoke_takes_the_trust_back(plugin):
     assert ctx.call("terminal", NPM) == "approved"
 
 
-def test_a_suspended_session_still_asks(plugin):
+def test_a_suspended_session_asks_for_commands(plugin):
     mod, ctx = plugin(TRUST)
     ctx.call("web_search", {"query": "x"})
-    assert ctx.call("write_file", write("s1")) == "approved"
+    assert ctx.call("terminal", {"command": "make build"}) == "approved"
 
 
 def test_trust_earns_no_tier_keeps_its_undo_and_claims_no_guarantee(plugin):
@@ -231,3 +231,33 @@ def test_under_cron_trusted_actions_run_keep_their_undo_and_teach_nothing(plugin
     assert ctx.call("write_file", write("cr")) == "ran" and "/tenure undo" in ctx.posted[-1]
     assert ctx.call("terminal", NPM) == "ran"
     assert state(mod, "file:write").successes == 0 and ctx.prompts == []
+
+
+def test_after_outside_content_trusted_file_writes_keep_their_undo_and_commands_ask(plugin):
+    mod, ctx = plugin(TRUST)
+    ctx.call("web_search", {"query": "x"})
+    assert ctx.call("write_file", write("after-web")) == "ran" and "/tenure undo" in ctx.posted[-1]
+    assert ctx.call("terminal", NPM) == "approved"
+    assert "/new" in ctx.prompts[-1]["message"]
+
+
+def test_a_local_curl_does_not_suspend_the_session(plugin):
+    mod, ctx = plugin(TRUST)
+    ctx.call("terminal", {"command": "curl -s http://localhost:3000/health"})
+    ctx.call("terminal", {"command": "curl -s http://127.0.0.1:8080/"})
+    assert ctx.call("terminal", NPM) == "ran"
+
+
+def test_after_a_fault_the_ask_names_the_next_step(plugin):
+    mod, ctx = plugin(TRUST)
+    ctx.call("write_file", write("f1"))
+    mod.cli.slash(f"undo {int(ctx.posted[-1].rsplit(' ', 1)[1])}")
+    ctx.call("write_file", write("f2"))
+    msg = ctx.prompts[-1]["message"]
+    assert "more approvals" in msg and "then tells you" in msg and "/52" not in msg
+
+
+def test_pip_is_covered_like_npm(plugin):
+    mod, ctx = plugin(TRUST)
+    assert ctx.call("terminal", {"command": "pip install requests"}) == "ran"
+    assert ctx.call("terminal", {"command": "pip3 install -e ."}) == "ran"

@@ -43,7 +43,7 @@ UNTRUSTED_VERBS = frozenset({"publish", "deploy", "unpublish", "yank", "login", 
                              "remote", "dcommit", "imap-send", "uploadarchives", "perform", "x", "dlx"})
 TRUSTED_PROGRAMS = frozenset({
     "npm", "pnpm", "yarn", "bun", "node", "deno", "tsc", "eslint", "prettier", "jest", "vitest",
-    "python", "python3", "pytest", "uv", "poetry", "ruff", "black", "mypy", "isort",
+    "python", "python3", "pytest", "uv", "poetry", "pip", "pip3", "ruff", "black", "mypy", "isort",
     "cargo", "rustc", "go", "make", "cmake", "gradle", "mvn", "swift", "dotnet",
     "git", "mkdir", "touch", "cd", "pushd", "popd", "export", "sleep", "set",
 })
