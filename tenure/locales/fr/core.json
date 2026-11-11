@@ -232,6 +232,7 @@
   "cli.strict.save_failed": "Impossible d'enregistrer le mode strict ({error}). Définissez {setting}: {value}",
   "cli.tier.held": "{tier} (retenu : paramètres)",
   "cli.tier.trusted": "En confiance (jusqu'à une erreur)",
+  "cli.tier.uncovered": "demande (non couvert)",
   "cli.undo.footer": "En annuler une : {command} <numéro>",
   "cli.undo.footer_more": "Les {shown} plus récentes sur {total}. En annuler une : {command} <numéro>",
   "cli.undo.more_files": {

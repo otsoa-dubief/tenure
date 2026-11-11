@@ -53,7 +53,8 @@ What tenure asks that Hermes alone would not:
   file writes keep going with their undo, and `/new` starts afresh;
 - writing through the shell (`echo … > file`, `tee`; a covered tool's own output, `pytest > log`, is fine), local
   scripts (`./run.sh`, `bash x.sh`) and `docker`. For these and inline code (`python -c`, `for`, `if`), "Allow
-  for this session" stops the questions for that kind of command until the session ends (never counted as evidence).
+  for this session" stops the questions for that kind of command until the session ends (the answer that allows it counts once, like any approval; what the grant lets through
+  afterwards counts for nothing).
 
 Prefer the preregistered study's start, where every type begins on probation? `hermes tenure start probation`.
 

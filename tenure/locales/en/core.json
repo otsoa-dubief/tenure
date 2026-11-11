@@ -231,6 +231,7 @@
   "cli.strict.save_failed": "Could not save strict mode ({error}). Set {setting}: {value}",
   "cli.tier.held": "{tier} (held: settings)",
   "cli.tier.trusted": "Trusted (until a mistake)",
+  "cli.tier.uncovered": "asks (not covered)",
   "cli.undo.footer": "Undo one: {command} <number>",
   "cli.undo.footer_more": "The {shown} newest of {total}. Undo one: {command} <number>",
   "cli.undo.more_files": {

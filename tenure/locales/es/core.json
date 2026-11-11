@@ -232,6 +232,7 @@
   "cli.strict.save_failed": "No se pudo guardar el modo estricto ({error}). Define {setting}: {value}",
   "cli.tier.held": "{tier} (retenido: configuración)",
   "cli.tier.trusted": "Con confianza (hasta un error)",
+  "cli.tier.uncovered": "pregunta (no cubierto)",
   "cli.undo.footer": "Deshacer una: {command} <número>",
   "cli.undo.footer_more": "Las {shown} más recientes de {total}. Deshacer una: {command} <número>",
   "cli.undo.more_files": {

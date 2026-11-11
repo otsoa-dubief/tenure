@@ -190,11 +190,11 @@ if START == "trusted":
 from tools import approval_context  # noqa: E402
 check("runs under the Hermes default approvals.mode (smart): tenure's own asks still reach the owner",
       approval_context._get_approval_mode(), "smart")
-check("six hooks registered", sorted(h for h in ("pre_api_request", "pre_tool_call", "post_approval_response",
-                                                 "post_tool_call", "subagent_start", "subagent_stop")
-                                       if plugins.has_hook(h)),
-      ["post_approval_response", "post_tool_call", "pre_api_request", "pre_tool_call", "subagent_start",
-       "subagent_stop"])
+check("seven hooks registered", sorted(h for h in ("pre_api_request", "pre_tool_call", "post_approval_response",
+                                                   "post_tool_call", "post_llm_call", "subagent_start", "subagent_stop")
+                                         if plugins.has_hook(h)),
+      ["post_approval_response", "post_llm_call", "post_tool_call", "pre_api_request", "pre_tool_call",
+       "subagent_start", "subagent_stop"])
 core.ST.rng = Picks()
 plugins.invoke_hook("pre_api_request", model="model-a", provider="test", session_id="it-1")
 with open(os.path.join(project, "README.md"), "w") as f:

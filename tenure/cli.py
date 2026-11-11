@@ -127,6 +127,9 @@ def _tier_cell(s: rule.TypeState, n: int | None, cfg: dict | None = None) -> str
     eff = effective_tier(s, n)
     if cfg is not None and eff != rule.T3 and _core().trusted(cfg, s, n, s.stakes):
         return tr("cli.tier.trusted")
+    if (cfg is not None and cfg.get("start") == "trusted" and eff == rule.T1 and not s.faults and not s.distrusted
+            and not rule.trust_covers(s.key)):
+        return tr("cli.tier.uncovered")                  # never faulted: not on probation, just outside the trust
     return tr("cli.tier.held", tier=tier_name(eff)) if _RANK[s.tier] > _RANK[eff] else tier_name(eff)
 
 
@@ -726,6 +729,8 @@ def slash(raw_args="", **kwargs):
     try:
         parser = _Parser(prog="/tenure", add_help=False)
         _add_subcommands(parser)
+        if (raw_args or "").strip() in ("help", "-h", "--help"):
+            return _usage()
         try:
             ns = parser.parse_args(shlex.split(raw_args or ""))
         except _Usage as e:

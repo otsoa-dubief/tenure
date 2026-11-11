@@ -343,6 +343,7 @@
   "cli.strict.save_failed": "تعذّر حفظ الوضع الصارم ({error}). اضبط {setting}: {value}",
   "cli.tier.held": "{tier} (مُثبَّت: الإعدادات)",
   "cli.tier.trusted": "موثوق (حتى أول خطأ)",
+  "cli.tier.uncovered": "يسأل (غير مشمول)",
   "cli.undo.footer": "للتراجع عن واحد: {command} <الرقم>",
   "cli.undo.footer_more": "الأحدث {shown} من {total}. للتراجع عن واحد: {command} <الرقم>",
   "cli.undo.more_files": {

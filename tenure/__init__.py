@@ -1126,7 +1126,11 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 per_session = (cfg.get("start") == "trusted" and not nobody and decision == rule.ASK
                                and (act.type in params.SESSION_TYPES or (suspended and trusted(cfg, s, n, act.stakes))
                                     or _uncovered_local(act, s, n)))
-                key = f"{PREFIX}:session:{act.type}:{session}" if per_session else f"{PREFIX}:{kind}:{act.type}:{uid}"
+                # After outside content, one session answer covers every covered type (one key for the session);
+                # inline code and uncovered local commands are allowed one type at a time.
+                scope = ("suspended" if suspended and trusted(cfg, s, n, act.stakes) and act.type not in params.SESSION_TYPES
+                         else act.type)
+                key = f"{PREFIX}:session:{scope}:{session}" if per_session else f"{PREFIX}:{kind}:{act.type}:{uid}"
                 st.add_pending(uid, phase="nobody" if nobody else "asked", rule_key=key, **row)
                 directive = {"action": "approve", "rule_key": key,
                              "message": _ask_message(act, s, n, cfg["spot"], decision=decision, suspended=suspended,

@@ -278,7 +278,7 @@ def test_after_outside_content_a_session_answer_covers_that_command(plugin):
     ctx.call("web_search", {"query": "x"})
     assert ctx.call("terminal", NPM, answer="session") == "approved"
     assert ctx.call("terminal", NPM) == "ran"
-    assert ctx.call("terminal", {"command": "make build"}) == "approved"                    # one type at a time
+    assert ctx.call("terminal", {"command": "make build"}) == "ran"                         # one answer covers them
 
 
 def test_everyday_diagnostics_and_money(plugin):
@@ -334,3 +334,26 @@ def test_writes_in_one_turn_share_one_edited_message(plugin):
     mod.post_llm_call(session_id="s1")                                  # the turn ends: the next write posts anew
     ctx.call("write_file", write("g9"))
     assert len([p for p in ctx.posted if "acted" in p]) == 2
+
+
+def test_after_outside_content_one_session_answer_covers_every_covered_command(plugin):
+    mod, ctx = plugin(TRUST)
+    ctx.call("web_search", {"query": "x"})
+    assert ctx.call("terminal", NPM, answer="session") == "approved"
+    assert ctx.call("terminal", {"command": "make build"}) == "ran"
+    assert ctx.call("terminal", {"command": "python -m pytest"}) == "ran"
+
+
+def test_help_prints_the_usage_without_an_error(plugin):
+    mod, ctx = plugin(TRUST)
+    for arg in ("help", "-h", "--help"):
+        out = mod.cli.slash(arg)
+        assert "invalid choice" not in out and "status" in out and "start trusted|probation" in out
+
+
+def test_a_never_faulted_uncovered_type_is_not_called_probation(plugin):
+    mod, ctx = plugin(TRUST)
+    ctx.call("terminal", {"command": "rm old.py"})
+    text = mod.cli.slash("status")
+    row = [ln for ln in text.splitlines() if "shell:rm" in ln][0]
+    assert "asks (not covered)" in row and "T1" not in row

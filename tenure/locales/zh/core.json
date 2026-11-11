@@ -203,6 +203,7 @@
   "cli.strict.save_failed": "无法保存严格模式（{error}）。请设置 {setting}: {value}",
   "cli.tier.held": "{tier}（受设置压制）",
   "cli.tier.trusted": "信任中（直到失误）",
+  "cli.tier.uncovered": "先询问（未覆盖）",
   "cli.undo.footer": "撤销其中一个：{command} <编号>",
   "cli.undo.footer_more": "共 {total} 个中最新的 {shown} 个。撤销其中一个：{command} <编号>",
   "cli.undo.more_files": {
