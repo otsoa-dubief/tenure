@@ -434,38 +434,12 @@ def _session_cwd() -> str:
     return os.environ.get("TERMINAL_CWD") or os.getcwd()
 
 
-def _hermes_terminal_cwd(task_id: str) -> str:
-    """The cwd Hermes recorded for the session's terminal (where its next command runs), read the way its terminal
-    tool reads it, when that tool is loaded in this process; else ""."""
-    import sys
-    term = sys.modules.get("tools.terminal_tool")
-    getter = getattr(term, "get_session_cwd", None)
-    if not callable(getter):
-        return ""
-    key = ""
-    approval = sys.modules.get("tools.approval")
-    try:
-        if callable(getattr(approval, "get_current_session_key", None)):
-            key = approval.get_current_session_key(default="") or ""
-    except Exception:
-        key = ""
-    try:
-        return str(getter(key or task_id or "") or "")
-    except Exception:
-        return ""
-
-
 def call_cwd(tool: str, args: dict, session_id="", task_id="") -> str:
-    """The working directory a call runs in (R36): a terminal call's own ``workdir``, else the terminal cwd Hermes
-    recorded for the session, else the one its last command reported (followed in post_tool_call), else the
-    session's cwd. A `cd` approved in one call is still in force in the next."""
-    base = ""
-    hermes = _hermes_terminal_cwd(str(task_id or session_id or ""))
-    if hermes:
-        base = hermes
-    else:
-        with ST.mem:
-            base = ST.cwds.get(str(session_id or task_id or ""), "")
+    """The working directory a call runs in (R36): a terminal call's own ``workdir``, else the one the session's last
+    command reported (followed in post_tool_call), else the session's cwd (``ctx.session_cwd()``). A `cd` approved
+    in one call is still in force in the next."""
+    with ST.mem:
+        base = ST.cwds.get(str(session_id or task_id or ""), "")
     base = base or _session_cwd()
     workdir = args.get("workdir") if tool == "terminal" else None
     if isinstance(workdir, str) and workdir.strip():

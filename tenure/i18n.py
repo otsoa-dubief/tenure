@@ -3,9 +3,9 @@
 """Owner-facing text of the Python side (chat notices, approval prompt text, ``hermes tenure`` and ``/tenure``).
 
 Catalogs: ``tenure/locales/<lang>/core.json``, flat dotted keys; a value is a string or an object of CLDR plural
-categories selected by the variable ``n``. The language is resolved at every call: Hermes' own
-``agent.i18n.get_language()`` (``HERMES_LANGUAGE`` > ``display.language`` > en, per profile) when Hermes can be
-imported, else ``HERMES_LANGUAGE``, else en. Fallback chain: exact id, base language (``zh-hant`` -> ``zh``), en; a
+categories selected by the variable ``n``. The language is resolved at every call, in Hermes' own order:
+``HERMES_LANGUAGE``, else ``display.language`` from the profile's config (public ``hermes_cli.config.load_config``,
+re-read every few seconds), else en. Fallback chain: exact id, base language (``zh-hant`` -> ``zh``), en; a
 missing key gives the en value, then the key itself; a missing variable leaves its ``{placeholder}``. Never raises.
 """
 from __future__ import annotations
@@ -14,6 +14,7 @@ import json
 import os
 import re
 import threading
+import time
 import unicodedata
 
 LOCALES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "locales")
@@ -21,6 +22,8 @@ SURFACE = "core"
 DEFAULT = "en"
 
 _cache: dict[tuple[str, str], dict] = {}
+_config_lang: dict[str, tuple[str, float]] = {}
+CONFIG_TTL = 5.0
 _lock = threading.Lock()
 _VAR = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
@@ -33,16 +36,33 @@ def normalize(lang) -> str:
     return s if re.fullmatch(r"[a-z]{2,3}(-[a-z0-9]{1,8})*", s) else DEFAULT
 
 
-def language() -> str:
-    """The owner's language now (Hermes resolves it per profile when present)."""
+def _config_language() -> str:
+    """``display.language`` of this profile's config, through Hermes' public reader; "" when unset or unreadable.
+    Read again at most every CONFIG_TTL seconds (a change in Settings shows within that time)."""
+    now = time.monotonic()
+    with _lock:
+        hit = _config_lang.get("value")
+        if hit is not None and now - hit[1] < CONFIG_TTL:
+            return hit[0]
+    lang = ""
     try:
-        from agent.i18n import get_language
-        lang = get_language()
-        if isinstance(lang, str) and lang.strip():
-            return normalize(lang)
+        from hermes_cli.config import load_config
+        display = (load_config() or {}).get("display") or {}
+        value = display.get("language") if isinstance(display, dict) else None
+        lang = value.strip() if isinstance(value, str) else ""
     except Exception:
-        pass
-    return normalize(os.environ.get("HERMES_LANGUAGE") or DEFAULT)
+        lang = ""
+    with _lock:
+        _config_lang["value"] = (lang, now)
+    return lang
+
+
+def language() -> str:
+    """The owner's language now, in Hermes' own order: ``HERMES_LANGUAGE``, else ``display.language``, else en."""
+    env = os.environ.get("HERMES_LANGUAGE") or ""
+    if env.strip():
+        return normalize(env)
+    return normalize(_config_language() or DEFAULT)
 
 
 def chain(lang) -> list[str]:
@@ -76,6 +96,7 @@ def catalog(lang: str) -> dict:
 def reset_cache() -> None:
     with _lock:
         _cache.clear()
+        _config_lang.clear()
 
 
 # ----------------------------------------------------------------------------------------------- plurals

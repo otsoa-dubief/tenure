@@ -4832,7 +4832,7 @@ const TENURE_LOCALES = {
       agents.forEach(function (r) { seen[r.agent.model] = 1; });
       return Object.keys(seen).sort();
     }, [agents]);
-    // Every model Hermes' own picker offers, by provider (GET /switch-models); "Other model" types any id.
+    // Every model tenure has on record, by provider (GET /switch-models); "Other model" types any id.
     var provS = useState([]), providers = provS[0], setProviders = provS[1];
     var otherS = useState(false), other = otherS[0], setOther = otherS[1];
     useEffect(function () {

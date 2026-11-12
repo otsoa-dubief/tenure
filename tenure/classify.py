@@ -439,7 +439,9 @@ def _plain_hermes(text: str) -> tuple[str, str] | None:
 #    profiles/<name>) or entry, or when it runs inside one. Workspaces below a home level are not home levels. 3. R36:
 #    a `cd` (pushd, env -C) to a level, an entry or a target that cannot be resolved is capped even alone.
 HERMES_BIN = re.compile(r"(?:^|/)bin/hermes(?:-agent|-acp)?$")
-HERMES_VAR = re.compile(r"\$(?:HERMES_HOME|\{HERMES_HOME\})(?:/+\.?)*/*")   # `$HERMES_HOME` alone: a level
+# `$HERMES_HOME` alone, or followed only by slashes and `.` components: a level. One reading per word (each
+# character after the first slash is either a slash or a `.` that ends a component), so the match is linear.
+HERMES_VAR = re.compile(r"\$(?:HERMES_HOME|\{HERMES_HOME\})(?:/(?:/|\.(?=/|\Z))*)?")
 GLOB = re.compile(r"[*?\[]")
 USER_HOMES = re.compile(r"/(?:home|users)/[^/]+|/root|/var/root")
 _TARGETS: dict = {}                                      # per process: Hermes' executables and package folders

@@ -70,21 +70,6 @@ def test_the_terminal_cwd_is_followed_between_calls(plugin, tmp_path):
     assert all(":cap:" not in p["rule_key"] for p in ctx.prompts[n:])
 
 
-def test_the_terminal_cwd_is_read_from_hermes_when_it_records_one(plugin, monkeypatch):
-    mod, ctx = plugin({"preset": "fast"})
-    level = os.path.join(os.environ["HERMES_HOME"], "profiles", "coder")
-    tools = types.ModuleType("tools")
-    term = types.ModuleType("tools.terminal_tool")
-    term.get_session_cwd = lambda key: level if key == "s1" else None
-    appr = types.ModuleType("tools.approval")
-    appr.get_current_session_key = lambda default="": ""
-    tools.terminal_tool, tools.approval = term, appr
-    for name, m in (("tools", tools), ("tools.terminal_tool", term), ("tools.approval", appr)):
-        monkeypatch.setitem(sys.modules, name, m)
-    ctx.call("terminal", {"command": "tar xf /tmp/e.tar"}, answer="deny", result=_result())
-    assert ":cap:" in ctx.prompts[-1]["rule_key"]
-
-
 def test_a_workdir_argument_is_the_cwd_of_its_call(plugin):
     mod, ctx = plugin({"preset": "fast"})
     level = os.path.join(os.environ["HERMES_HOME"], "profiles", "coder")

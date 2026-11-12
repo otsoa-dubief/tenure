@@ -21,6 +21,7 @@ import importlib.util
 import json
 import pathlib
 import os
+import shlex
 import sqlite3
 import sys
 import threading
@@ -400,31 +401,25 @@ def _community() -> dict:
     return {"board": community.load_board(path), "path": path}
 
 
-def _hermes_inventory() -> dict:
-    """Hermes' own model picker payload (the providers this Hermes is set up for), read from its disk cache."""
-    from hermes_cli import inventory
-    return inventory.build_models_payload(inventory.load_picker_context(), canonical_order=True,
-                                          non_blocking_catalogs=True)
-
-
-def _hermes_models() -> list[dict]:
-    """[{slug, name, models}] from Hermes' picker; [] when Hermes cannot say (older Hermes, no provider set up)."""
-    try:
-        rows = _hermes_inventory().get("providers") or []
-    except Exception:
-        return []
-    out = []
-    for r in rows:
-        models = [m if isinstance(m, str) else str((m or {}).get("id") or "") for m in (r.get("models") or [])]
-        models = [m for m in models if m]
-        if r.get("slug") and models:
-            out.append({"slug": str(r["slug"]), "name": str(r.get("name") or r["slug"]), "models": models})
-    return out
-
-
 def _switch_models() -> dict:
-    """The models a switch can be previewed to: every model of every provider Hermes' own picker offers."""
-    return {"providers": _hermes_models()}
+    """The models a switch can be previewed to: every model tenure has on record in a readable profile, by provider
+    (``model@provider``). Hermes has no public model-list seam yet; the page's "Other model" field takes any id."""
+    core = _core()
+    seen: dict[str, set] = {}
+    for p in _profiles():
+        try:
+            with _open(core, p) as st:
+                if st is None:
+                    continue
+                agents = st.agents()
+        except (_Unreadable, sqlite3.Error):
+            continue
+        for agent in agents:
+            model, provider = core.personal.split_agent(agent)
+            if model:
+                seen.setdefault(provider, set()).add(model)
+    return {"providers": [{"slug": slug, "name": slug, "models": sorted(models)}
+                          for slug, models in sorted(seen.items())]}
 
 
 def _get(fn, *args):
@@ -597,10 +592,6 @@ def _undo(body: UndoBody, raw: bool) -> dict:
 def _set_settings(body: SettingsBody, raw: bool) -> dict:
     core = _core()
     ctx = core.ST.ctx
-    write = _settings_writer(ctx)
-    if write is None:
-        raise HTTPException(501, "this process cannot write settings: run `hermes tenure setup`, or use Hermes' "
-                                 "Settings > Plugins > Tenure")
     changes = {}
     if body.preset is not None:
         if body.preset.strip().lower() not in core.params.PRESETS:
@@ -626,6 +617,12 @@ def _set_settings(body: SettingsBody, raw: bool) -> dict:
         changes["enabled"] = body.enabled
     if not changes:
         raise HTTPException(422, "give preset, risks, spot, strict, start or enabled")
+    write = _settings_writer(ctx)
+    if write is None:
+        commands = "; ".join(f"hermes config set plugins.entries.tenure.settings.{k} {_cli_value(v)}"
+                             for k, v in changes.items())
+        raise HTTPException(501, "this process cannot write the plugin's settings: use Hermes' Settings > Plugins > "
+                                 f"Tenure or `hermes tenure setup`, or run: {commands}")
     try:
         write(changes)
     except PermissionError as e:
@@ -641,17 +638,20 @@ def _set_settings(body: SettingsBody, raw: bool) -> dict:
 
 
 def _settings_writer(ctx):
-    """How this process writes the plugin's settings: the plugin context when the agent loaded it, else Hermes'
-    public plugin-settings writer (``hermes_cli.plugins_settings.save_plugin_settings``, the one Hermes' own Settings
-    page uses: schema-checked, locked, refuses managed installs). None when neither exists."""
+    """How this process writes the plugin's settings: the plugin context (``ctx.set_config``) when the agent loaded
+    it, else None (the owner is pointed at Hermes' Settings page or ``hermes config set``)."""
     if ctx is not None and callable(getattr(ctx, "set_config", None)):
         return lambda changes: [ctx.set_config(k, v) for k, v in changes.items()]
-    try:
-        from hermes_cli.plugins_settings import save_plugin_settings
-    except Exception:
-        return None
-    plugin_dir = pathlib.Path(__file__).resolve().parent.parent
-    return lambda changes: save_plugin_settings("tenure", plugin_dir, changes)
+    return None
+
+
+def _cli_value(v) -> str:
+    """A setting as ``hermes config set`` takes it: booleans lower case, a dict as JSON, quoted for a shell."""
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, dict):
+        return shlex.quote(json.dumps(v, separators=(",", ":")))
+    return shlex.quote(str(v))
 
 
 @router.post("/revoke")

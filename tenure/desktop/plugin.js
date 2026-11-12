@@ -7483,7 +7483,7 @@ function SwitchView({ data, t }) {
   }, [])
   const a = agents.find(x => x.key === from) || agents[0] || null
   const models = [...new Set(agents.map(x => displayName(x.model)))].sort()
-  // Every model Hermes' own picker offers, by provider (GET /switch-models); "Other model" types any id.
+  // Every model tenure has on record, by provider (GET /switch-models); "Other model" types any id.
   const { data: catalog } = useQuery({ queryKey: ['tenure', 'switch-models'], queryFn: () => rest('/switch-models'), staleTime: 300000 })
   const providers = (catalog && catalog.providers) || []
   const [other, setOther] = useState(false)

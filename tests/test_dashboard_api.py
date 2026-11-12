@@ -336,12 +336,19 @@ def test_post_settings(env):
         assert client.post(client.base + "/settings", json=bad).status_code == 422, bad
 
 
-def test_post_settings_is_501_without_set_config(env):
+def test_post_settings_is_501_without_set_config(env, monkeypatch):
+    """Settings are written only through the plugin context; elsewhere the owner is pointed at Hermes' own ways."""
+    import types
     core, api, client, root = env
-    core.ST.ctx = object()
-    assert client.post(client.base + "/settings", json={"preset": "fast"}).status_code == 501
-    core.ST.ctx = None
-    assert client.post(client.base + "/settings", json={"preset": "fast"}).status_code == 501
+    writer = types.ModuleType("hermes_cli.plugins_settings")
+    writer.save_plugin_settings = lambda *a, **k: pytest.fail("private writer used")
+    monkeypatch.setitem(sys.modules, "hermes_cli.plugins_settings", writer)
+    for ctx in (object(), None):
+        core.ST.ctx = ctx
+        r = client.post(client.base + "/settings", json={"preset": "fast"})
+        assert r.status_code == 501
+        detail = r.json()["detail"]
+        assert "hermes config set plugins.entries.tenure.settings.preset" in detail and "Settings" in detail
 
 
 def fake_hermes_config(monkeypatch, settings):
@@ -594,22 +601,24 @@ def test_a_copy_that_has_not_started_shows_no_earned_tier_and_signs_nothing(env)
     assert r.status_code == 409 and "has not started" in r.json()["detail"]
 
 
-def test_models_lists_the_models_of_hermes_picker(env, monkeypatch):
+def test_switch_models_are_the_models_on_record_by_provider(env):
+    """No private Hermes model list: the switch preview offers the models tenure has seen act (every profile), and
+    "Other model" types any id."""
     core, api, client, root = env
-    monkeypatch.setattr(api, "_hermes_models", lambda: [
-        {"slug": "anthropic", "name": "Anthropic", "models": ["claude-opus-5-5", "claude-sonnet-5-5"]},
-        {"slug": "nous", "name": "Nous Portal", "models": ["hermes-5"]}])
+    seed(core, root, "claude-opus-5-5@anthropic", 2)
+    seed(core, root / "profiles" / "work", "claude-sonnet-5-5@anthropic", 2)
     r = get(client, "/switch-models")
     assert r.status_code == 200, r.text
-    d = r.json()
-    assert [p["slug"] for p in d["providers"]] == ["anthropic", "nous"]
-    assert d["providers"][0]["models"] == ["claude-opus-5-5", "claude-sonnet-5-5"]
+    by = {p["slug"]: p for p in r.json()["providers"]}
+    assert by["anthropic"]["models"] == ["claude-opus-5-5", "claude-sonnet-5-5"]
+    models = [m for p in by.values() for m in p["models"]]
+    assert len(models) == len(set(models)) and core.personal.split_agent(A)[0] in models
 
 
-def test_models_survives_without_hermes_inventory(env, monkeypatch):
+def test_switch_models_skip_an_unreadable_profile(env):
     core, api, client, root = env
-    def boom():
-        raise RuntimeError("no hermes here")
-    monkeypatch.setattr(api, "_hermes_inventory", boom)
+    bad = root / "profiles" / "broken" / "plugin-data" / "tenure"
+    bad.mkdir(parents=True)
+    (bad / "tenure.db").write_bytes(b"not a database")
     r = get(client, "/switch-models")
-    assert r.status_code == 200 and r.json()["providers"] == []
+    assert r.status_code == 200 and r.json()["providers"]

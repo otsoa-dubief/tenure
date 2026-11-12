@@ -37,9 +37,7 @@ STRICT_SUFFIXED = ("cli.status.header.profile", "cli.status.header.here")
 @pytest.fixture(autouse=True)
 def _english(monkeypatch):
     monkeypatch.delenv("HERMES_LANGUAGE", raising=False)
-    monkeypatch.delitem(sys.modules, "agent", raising=False)
-    monkeypatch.delitem(sys.modules, "agent.i18n", raising=False)
-    i18n.reset_cache()
+    fake_config(monkeypatch, {})                 # no Hermes language unless a test sets one
     yield
     i18n.reset_cache()
 
@@ -175,18 +173,32 @@ def test_plural_object_falls_back_to_other(tmp_path, monkeypatch):
     assert i18n.tr("cli.count.types", lang="ar", n=100) == "100 نوع"
 
 
-def test_language_comes_from_hermes_then_the_environment(monkeypatch):
+def test_language_is_the_environment_then_display_language_of_the_config(monkeypatch):
+    """Hermes' own order (HERMES_LANGUAGE > display.language > en), read through the public config reader."""
+    assert i18n.language() == "en"
+    fake_hermes(monkeypatch, lang="zh-hant")
+    i18n.reset_cache()
+    assert i18n.language() == "zh-hant"
     monkeypatch.setenv("HERMES_LANGUAGE", "es")
     assert i18n.language() == "es"
-    fake_hermes(monkeypatch, lang="zh-hant")
-    assert i18n.language() == "zh-hant"
+
+
+def test_a_config_without_display_language_is_english(monkeypatch):
+    cfg = fake_config(monkeypatch, {"display": {"theme": "dark"}})
+    assert i18n.language() == "en"
+    cfg.load_config = lambda: None
+    i18n.reset_cache()
+    assert i18n.language() == "en"
 
 
 def test_a_broken_hermes_falls_back_to_the_environment(monkeypatch):
     monkeypatch.setenv("HERMES_LANGUAGE", "fr")
     mod = fake_hermes(monkeypatch, lang="ar")
-    mod.get_language = lambda: (_ for _ in ()).throw(RuntimeError("no home"))
+    mod.load_config = lambda: (_ for _ in ()).throw(RuntimeError("no home"))
+    i18n.reset_cache()
     assert i18n.language() == "fr"
+    monkeypatch.delenv("HERMES_LANGUAGE")
+    assert i18n.language() == "en"
 
 
 # ----------------------------------------------------------------------------------------------- the owner's text
@@ -222,16 +234,18 @@ def test_status_output_switches_language(plugin, tmp_path, monkeypatch):  # noqa
     assert mod.cli.slash("status").splitlines()[0].startswith("tenure: this profile, preset")
 
 
-def fake_hermes(monkeypatch, *, lang="en", core=None, desktop=None):
-    pkg, mod = types.ModuleType("agent"), types.ModuleType("agent.i18n")
-    core = core or {}
-    mod.get_language = lambda: lang
-    mod.t = lambda key, lang=None, **kw: core.get((lang or "en", key), core.get(("en", key), key))
-    mod.surface_catalog = lambda l, surface="core": dict(desktop or {}) if surface == "desktop" else {}
-    pkg.i18n = mod
-    monkeypatch.setitem(sys.modules, "agent", pkg)
-    monkeypatch.setitem(sys.modules, "agent.i18n", mod)
+def fake_config(monkeypatch, config):
+    pkg, mod = types.ModuleType("hermes_cli"), types.ModuleType("hermes_cli.config")
+    mod.load_config = lambda: config
+    pkg.config = mod
+    monkeypatch.setitem(sys.modules, "hermes_cli", pkg)
+    monkeypatch.setitem(sys.modules, "hermes_cli.config", mod)
+    i18n.reset_cache()
     return mod
+
+
+def fake_hermes(monkeypatch, *, lang="en"):
+    return fake_config(monkeypatch, {"display": {"language": lang}})
 
 
 # ------------------------------------------------------------------------------------------------ approval prompt

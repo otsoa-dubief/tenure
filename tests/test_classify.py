@@ -920,3 +920,23 @@ def test_windows_escapes_keep_their_reading(monkeypatch):
     monkeypatch.setattr(C, "os", fake)
     assert cmd(r"""awk 'BEGIN{system("git\x20push")}'""") == ("shell:complex", C.HIGH)
     assert cmd(r"rm -rf ~\.hermes\config.yaml")[1] == C.CAP
+
+
+# ------------------------------------------------------------------------------- regex cost (catalog review)
+def test_hermes_home_variable_has_one_reading():
+    for word in ("$HERMES_HOME", "${HERMES_HOME}", "$HERMES_HOME/", "$HERMES_HOME//./", "$HERMES_HOME/.",
+                 "$HERMES_HOME/././/"):
+        assert C.HERMES_VAR.fullmatch(word), word
+    for word in ("$HERMES_HOME/..", "$HERMES_HOME/x", "$HERMES_HOME/.x", "$HERMES_HOME.", "$HERMES_HOMEx"):
+        assert not C.HERMES_VAR.fullmatch(word), word
+
+
+def test_a_long_slash_run_after_hermes_home_is_read_at_once():
+    import subprocess
+    import sys
+    word = "$HERMES_HOME" + "/" * 60 + "x"
+    code = ("import sys; from tenure import classify as C; w = sys.argv[1]; C.HERMES_VAR.fullmatch(w); "
+            "C.classify('terminal', {'command': 'cat ' + w}, cwd='/tmp')")
+    done = subprocess.run([sys.executable, "-c", code, word], timeout=10, capture_output=True, text=True,
+                          cwd=str(__import__("pathlib").Path(__file__).resolve().parent.parent))
+    assert done.returncode == 0, done.stderr
