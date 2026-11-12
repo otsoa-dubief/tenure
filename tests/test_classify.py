@@ -940,3 +940,22 @@ def test_a_long_slash_run_after_hermes_home_is_read_at_once():
     done = subprocess.run([sys.executable, "-c", code, word], timeout=10, capture_output=True, text=True,
                           cwd=str(__import__("pathlib").Path(__file__).resolve().parent.parent))
     assert done.returncode == 0, done.stderr
+
+
+def test_a_sed_script_of_blanks_is_read_at_once():
+    import subprocess
+    import sys
+    code = ("from tenure import classify as C; s = ' ' * 3000 + '!'; C._sed_plain(s); C._SED_CMD.search('C:' + s); "
+            "C.classify('terminal', {'command': \"sed -i '\" + s + \"' notes.txt\"}, cwd='/tmp')")
+    done = subprocess.run([sys.executable, "-c", code], timeout=10, capture_output=True, text=True,
+                          cwd=str(__import__("pathlib").Path(__file__).resolve().parent.parent))
+    assert done.returncode == 0, done.stderr
+
+
+def test_long_blanks_between_strings_of_inline_code_are_read_at_once():
+    import time
+    for gap in (" " * 200000, " " * 200000 + ")" + " " * 200000):
+        code = "open('a'" + gap + ",'b').write('x')"
+        start = time.perf_counter()
+        C._code_strings(code)
+        assert time.perf_counter() - start < 1, len(gap)

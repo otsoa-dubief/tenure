@@ -1626,7 +1626,7 @@ def _undo_sed(args: list[str], cwd: str, home: str) -> list[str] | None:
 
 _SED_ADDR = r"(?:\d+|\$|/(?:\\.|[^/\\\n])*/I?)"
 _SED_CMD = re.compile(
-    rf"[ \t]*(?:{_SED_ADDR}(?:[ \t]*,[ \t]*{_SED_ADDR})?)?[ \t]*!?[ \t]*"
+    rf"[ \t]*(?:{_SED_ADDR}(?:[ \t]*,[ \t]*{_SED_ADDR})?[ \t]*)?(?:![ \t]*)?"     # each blank has one place
     r"(?:s(?P<d>[^\\\n\sa-zA-Z0-9])(?:\\.|(?!(?P=d))[^\\\n])*(?P=d)(?:\\.|(?!(?P=d))[^\\\n])*(?P=d)[gpIi0-9]*|d)[ \t]*")
 
 
@@ -4891,10 +4891,10 @@ def _code_strings(code: str, unread: list | None = None) -> list[tuple[str, bool
         run = run or [text]
         gap = code[end:lits[n + 1][0]] if n + 1 < len(lits) else None
         nxt = lits[n + 1][2] if n + 1 < len(lits) else ""
-        if gap is not None and len(run) < 16 and re.fullmatch(r"\s*\+?\s*", gap):
+        if gap is not None and len(run) < 16 and re.fullmatch(r"\s*(?:\+\s*)?", gap):
             run[-1] = run[-1] + nxt                          # 'a' 'b' and 'a' + 'b'
             out.append(("/".join(run), True))
-        elif (gap is not None and len(run) < 16 and re.fullmatch(r"\s*\)?\s*[,/]\s*", gap)
+        elif (gap is not None and len(run) < 16 and re.fullmatch(r"\s*(?:\)\s*)?[,/]\s*", gap)
               and not nxt.startswith(("/", "~"))):
             run = [x.rstrip("/") for x in run] + [nxt]       # os.path.join('a', 'b'), Path('a') / 'b'
             out.append(("/".join(run), True))
