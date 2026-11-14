@@ -9,6 +9,7 @@ from tenure import fields as F
     ("accountNumber", "account_number"), ("userIBAN", "user_iban"), ("IBANCode", "iban_code"),
     ("Mot de passe", "mot_de_passe"), ("iban_fr__c", "iban_fr"), ("IBAN__C", "iban"), ("i​ban", "iban"),
     ("ıban", "iban"), ("hasło", "haslo"), ("beløb", "belob"), ("cœur", "coeur"), ("contact[email]", "contact_email"),
+    ("userÉmail", "user_email"), ("cléApi", "cle_api"), ("ÉtatCompte", "etat_compte"),
     ("user:email", "user_email"), ("E-mail", "e_mail"), ("___", ""), ("​", "")])
 def test_canonical(raw, canon):
     assert F.canonical(raw) == canon

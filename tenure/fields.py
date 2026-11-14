@@ -125,13 +125,29 @@ def load(setting: object = None) -> Vocabulary:
                                      {n: "high" for n in CATEGORIES}, "", (), True)
     return _cache[key]
 
+def _split_camel(s: str) -> str:
+    out = []
+
+    for i, current in enumerate(s):
+        if i > 0:
+            previous = s[i - 1]
+            next_char = s[i + 1] if i + 1 < len(s) else ""
+
+            boundary_1 = (previous.islower() or previous.isdigit()) and current.isupper()
+            boundary_2 = previous.isupper() and current.isupper() and next_char.islower()
+
+            if boundary_1 or boundary_2:
+                out.append("_")
+
+        out.append(current)
+
+    return "".join(out)
 
 def canonical(key: str) -> str:
     """Canonical form of a field name (spec 4.4.1); ``""`` when nothing is left."""
     s = unicodedata.normalize("NFKC", str(key))
     s = "".join(c for c in s if unicodedata.category(c) != "Cf")
-    s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s)
-    s = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", s)
+    s = _split_camel(s)
     s = s.casefold()
     s = "".join(c for c in unicodedata.normalize("NFKD", s) if unicodedata.category(c) != "Mn")
     s = "".join(_FOLD.get(c, c) for c in s)
