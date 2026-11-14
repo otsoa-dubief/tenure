@@ -1235,6 +1235,16 @@ def test_malformed_fields_setting(plugin):
         assert v.stakes["finance"] == "high"
     mod, ctx = plugin({"fields": {"enable": ["finances"]}})
     assert mod.settings()["vocabulary"].unknown == ("finances",)
+    for typed, level in (("low", "low"), ("High", "high"), (" medium ", "medium")):
+        mod, ctx = plugin({"fields": {"stakes": {"finance": typed, "secret": "critical"}}})
+        v = mod.settings()["vocabulary"]
+        assert v.stakes["finance"] == level and v.stakes["secret"] == "high"
+        assert v.unknown == ("stakes.secret: 'critical'",)
+    mod, ctx = plugin({"fields": {"enable": "identity", "add": {"finance": [1]}}})
+    v = mod.settings()["vocabulary"]
+    assert "identity" in v.active and v.unknown == ("add.finance: 1",)
+    mod, ctx = plugin({"fields": ["finance"]})
+    assert mod.settings()["vocabulary"].unknown == ("fields: ['finance']",)
 
 
 def test_fingerprint_unchanged_without_fields_but_tracks_vocabulary(plugin):

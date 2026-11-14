@@ -227,7 +227,7 @@
     "other": "{n} autres agents ont un historique ({agents}) : {command}"
   },
   "cli.status.fields.broken": "Catégories de champs : le vocabulaire intégré est illisible, les types sensibles ne sont donc pas découpés.",
-  "cli.status.fields.unknown": "Catégories de champs : noms inconnus dans tes réglages, ignorés : {names}",
+  "cli.status.fields.unknown": "Catégories de champs : noms inconnus ou valeurs invalides dans tes réglages, ignorés : {names}",
   "cli.status.held": "retenu par {held}",
   "cli.status.paused": "Apprentissage en pause ici : personne ne répond aux demandes d'approbation ({why}). Les niveaux acquis restent appliqués.",
   "cli.status.trusted_start": "Départ en confiance : les types agissent comme avec Hermes seul jusqu'à leur première erreur ({command} pour le départ de l'étude).",

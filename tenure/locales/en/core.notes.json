@@ -3,7 +3,7 @@
   "carry.new_agent": "{carried} {reset} {vetoed} are counts of action types.",
   "cli.col.number": "Column header of the undo id. Keep it very short (1-3 characters).",
   "cli.status.fields.broken": "Status line: the field-category vocabulary file could not be read.",
-  "cli.status.fields.unknown": "Status line. {names} are category names typed in the settings that the vocabulary does not know (a likely typo); they are listed, comma-separated.",
+  "cli.status.fields.unknown": "Status line. {names} lists, comma-separated, the category names typed in the settings that the vocabulary does not know (a likely typo) and the invalid values, each as \"where: value\" (for example \"stakes.finance: 'critical'\").",
   "cli.status.held": "Note in a type row of the status table. {held} is the action type (tool or other kind) whose unredeemed fault holds this sensitive kind back.",
   "cli.count.agents": "Count phrase inserted into other sentences (cli.revoke.done).",
   "cli.count.checks": "Count phrase used in the 'record' column: '{faults} / {checks}'. English keeps the plural for 1 to stay byte-identical with v1.",

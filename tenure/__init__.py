@@ -383,9 +383,11 @@ def settings() -> dict:
     spot = parse_risk(_get("spot_check", params.DEFAULT_SPOT), params.DEFAULT_SPOT)
     overrides = _get("types")
     start = str(_get("start", params.DEFAULT_START) or params.DEFAULT_START).strip().lower()
-    raw_fields = _get("fields")
-    raw_fields = raw_fields if isinstance(raw_fields, dict) else {}
-    return dict(vocabulary=fields.load(raw_fields or None), fields=raw_fields, preset=preset, risks=risks, spot=params.DEFAULT_SPOT if spot is None else spot,
+    typed = _get("fields")                              # a mistyped block is reported by the vocabulary, then ignored
+    raw_fields = typed if isinstance(typed, dict) else {}
+    vocabulary = fields.load(raw_fields or (typed if typed not in (None, "") else None))
+    return dict(vocabulary=vocabulary, fields=raw_fields, preset=preset, risks=risks,
+                spot=params.DEFAULT_SPOT if spot is None else spot,
                 strict=_truthy(_get("strict", False)), overrides=overrides if isinstance(overrides, dict) else {},
                 enabled=_truthy(_get("enabled", True)),
                 start=start if start in params.STARTS else params.DEFAULT_START)
