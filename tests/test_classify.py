@@ -1020,6 +1020,11 @@ def test_tool_name_shaped_like_a_category_is_not_split():
                                                                        "mcp:crm:update:@finance")):
         assert C.classify(name, {"iban": "x"}).type == parent
 
+def test_tool_with_at_segment_in_name_is_still_split():
+    a = C.classify("mcp__gh__@me_update", {"iban": "x"})
+    assert a.type == "mcp:gh:@me_update:@finance" and a.stakes == "high"
+    assert C.classify("mcp__@acme__update", {"iban": "x"}).type == "mcp:@acme:update:@finance"
+
 def test_read_tool_raised_by_override_is_still_a_read():
     a = C.classify("mcp__crm__search", {"query": "acme"}, overrides={"mcp:crm:*": "medium"})
     assert a.type == 'mcp:crm:search'
