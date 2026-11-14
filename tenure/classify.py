@@ -4952,6 +4952,8 @@ def _strings(value, depth: int = 0, out: list | None = None) -> list:
     """Every string in a tool's arguments, keys and nested values included; a None marks nesting too deep to read."""
     out = [] if out is None else out
     if len(out) > 2000:
+        if out[-1] is not None:
+            out.append(None)                # once: the rest is not read, so the arguments count as unreadable
         return out
     if depth > 8:
         out.append(None)
@@ -4960,7 +4962,7 @@ def _strings(value, depth: int = 0, out: list | None = None) -> list:
         out.append(value)
     elif isinstance(value, dict):
         for k, v in value.items():
-            if isinstance(k, str):
+            if isinstance(k, str) and len(out) <= 2000:
                 out.append(k)
             _strings(v, depth + 1, out)
     elif isinstance(value, (list, tuple)):
