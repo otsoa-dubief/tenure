@@ -238,10 +238,11 @@ those calls earn trust, use `fields: {stakes: {unclassified: medium}}`.
 - `gmail` `create_filter` with a `query` goes from medium stakes to `@unclassified`.
 - Custom fields written by id (Jira `customfield_*`, Airtable `fld…`, Asana and ClickUp `custom_fields`) go from
   medium stakes to `@unclassified`.
-- An `mcp:` or `tool:` call with more than 2000 strings in its arguments (about 500 small records), reads included,
-  is now high stakes. It used to be read only up to 2000 strings.
+- An `mcp:` or `tool:` call with more than 2000 strings in its arguments, reads included, is now high stakes. It
+  used to be read only up to 2000 strings.
 - Arguments nested deeper than 8 levels (a Jira description with nested bullet lists in ADF, deeply nested Notion
-  blocks) go to `@unclassified` and ask. They were already high stakes: this is not a new freedom, but they ask.
+  blocks) go to `@unclassified`. They already asked under `balanced`; only the type name changes (it was
+  high stakes, unreadable arguments, and is now `…:@unclassified`).
 
 Limits are in [docs/self-protection.md](docs/self-protection.md#field-categories-and-their-limits).
 
