@@ -1000,7 +1000,7 @@ def test_cap_and_free_untouched():
 def test_odd_arguments_never_raise():
     for args in ({1: "x", None: "y"}, ["iban"], {"___": 1, "\u200b": 2}, None):
         assert C.classify("mcp__x__update_y", args).type == "mcp:x:update_y"
-    assert C.classify("mcp__x__update_y", {"iban": b"x"}).type == "mcp:x:update_y:@finance"   # la clé compte
+    assert C.classify("mcp__x__update_y", {"iban": b"x"}).type == "mcp:x:update_y:@finance"   # the key counts
 
 def test_fields_error_keeps_parent_high(monkeypatch):
     monkeypatch.setattr(F, "categorize", lambda *a, **k: 1 / 0)
@@ -1013,6 +1013,12 @@ def test_child_rules_only_raise_and_clamped_not_split():
     clamped = "mcp__x__" + "a" * 47 + "_0123abcd"     # 64 characters, the form Hermes shortens to (CLAMPED)
     assert len(clamped) == 64 and C._clamped(clamped)
     assert ":@" not in C.classify(clamped, {"iban": "x"}).type
+
+
+def test_tool_name_shaped_like_a_category_is_not_split():
+    for name, parent in (("mcp__crm__@finance", "mcp:crm:@finance"), ("mcp__crm:update__@finance",
+                                                                       "mcp:crm:update:@finance")):
+        assert C.classify(name, {"iban": "x"}).type == parent
 
 def test_read_tool_raised_by_override_is_still_a_read():
     a = C.classify("mcp__crm__search", {"query": "acme"}, overrides={"mcp:crm:*": "medium"})

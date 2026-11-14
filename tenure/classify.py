@@ -5222,7 +5222,8 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
     before = stakes                                      # "a read" is judged before the owner's override
     stakes = _override(t, stakes, overrides)
     if (t.startswith(("mcp:", "tool:")) and stakes != CAP and tool_name not in TOOLS
-            and not tool_name.startswith("kanban_") and not _clamped(tool_name) and ":@" not in tool_name):
+            and not tool_name.startswith("kanban_") and not _clamped(tool_name)
+            and ":@" not in tool_name and ":@" not in t):      # a name already shaped like a category type
         t, stakes = _categorized(t, stakes, before, tool_name, args, overrides, vocabulary)
     rev = rev and t in ("file:write", "file:shell")  # only a change inside the project can be undone
     return Action(type=t, stakes=stakes, reversible=rev, summary=_summary(tool_name, args, t))
