@@ -244,6 +244,17 @@ def test_post_revoke_logs_input_event(env):
     assert client.post(client.base + "/revoke", json={"agent": A}).status_code == 422
 
 
+def test_post_revoke_tool_revokes_its_categories(env):
+    core, api, client, root = env
+    cat = "mcp:crm:update_contact:@finance"
+    st = core.store.Store(os.path.join(str(root), "plugin-data", "tenure", "tenure.db"))
+    with st.transaction():
+        st.put_state(A, core.rule.TypeState(key=cat, stakes="medium", tier=core.rule.T3, series=300, sessions=["a", "b"]))
+    r = client.post(client.base + "/revoke", json={"agent": A, "type": "mcp:crm:update_contact"})
+    assert r.status_code == 200 and cat in r.json()["revoked"]
+    assert core.store_().recorded(A, cat).tier == core.rule.T1
+
+
 def test_post_flag_records_a_flag_fault(env):
     core, api, client, root = env
     r = client.post(client.base + "/flag", json={"agent": A, "type": "file:write", "note": "wrong file"})

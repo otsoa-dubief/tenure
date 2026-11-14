@@ -29,7 +29,7 @@ import shlex
 import sys
 import time
 
-from . import community, i18n, params, passport, personal, rule, store, undo
+from . import community, fields, i18n, params, passport, personal, rule, store, undo
 from .i18n import ljust, tr, width
 
 ENOUGH = 20                                     # checks before a rate is called measured
@@ -356,7 +356,8 @@ def revoke(type_key: str, agent: str | None = None, model: str | None = None, ev
         agents = _targets(core, st, agent=agent, model=model, every=every)
         for ag in agents:
             for _, s in st.states(ag):
-                if type_key not in ("all", s.key):
+                # a tool also takes its sensitive category types back (validated by parent_of, never a bare prefix)
+                if type_key not in ("all", s.key) and fields.parent_of(s.key) != type_key:
                     continue
                 if (type_key == "all" and s.tier == rule.T1 and not s.series and not s.provisional and s.wald >= 0
                         and not core.trusted(cfg, s, params.required_n(cfg["risks"], s.stakes), s.stakes)):

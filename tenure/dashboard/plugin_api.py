@@ -547,11 +547,22 @@ def _revoke(body: RevokeBody, raw: bool) -> dict:
     done = []
     with core.txn() as st:
         known = _known(st, body.agent)
-        keys = list(known) if every else _wanted(core, known, body.type)
-        if not keys:
-            raise HTTPException(404, f"no record of {body.type} for {body.agent}")
-        if len(keys) > 1:
-            raise HTTPException(409, f"{body.type} names {len(keys)} action types: use the raw names (raw=1)")
+        if every:
+            keys = list(known)
+        else:
+            keys = _wanted(core, known, body.type)
+            # taking a tool back takes its sensitive category types back (found by prefix, validated by parent_of)
+            kids = {}
+            for k in known:
+                par = core.fields.parent_of(k)
+                if par and k not in keys and (par == body.type or core.passport.redact_type(par) == body.type):
+                    kids[k] = par
+            owners = {core.fields.parent_of(k) or k for k in keys} | set(kids.values())
+            if not keys and not kids:
+                raise HTTPException(404, f"no record of {body.type} for {body.agent}")
+            if len(owners) > 1:
+                raise HTTPException(409, f"{body.type} names {len(owners)} action types: use the raw names (raw=1)")
+            keys = keys + list(kids)
         for key in keys:
             s = known[key]
             if (every and s.tier == core.rule.T1 and not s.series and not s.provisional and s.wald >= 0
