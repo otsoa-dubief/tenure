@@ -55,3 +55,93 @@ def test_load_never_raises_on_bad_setting():
         v = F.load(s)
         assert isinstance(v, F.Vocabulary)
     assert "nope" in F.load({"enable": ["nope"]}).unknown
+
+
+V = F.load()
+
+
+def cat(args, server="x", free=False):
+    return F.categorize(server, args, V, free=free)
+
+
+@pytest.mark.parametrize("args,want", [
+    ({"records": [{"id": "rec1", "fields": {"IBAN": "FR76"}}]}, {"finance"}),            # Airtable
+    ({"page_id": "p", "properties": {"Mot de passe": {"rich_text": []}}}, {"secret"}),   # Notion
+    ({"id": 4, "client_secret": "s"}, {"secret"}),                                          # plat
+    ({"issue_fields": [{"field_name": "bank_account", "value": "x"}]}, {"finance"}),       # champ en valeur
+    ({"fields": [{"name": "iban", "value": "x"}]}, {"finance"}),
+    ([{"op": "replace", "path": "/iban", "value": "x"}], {"finance"}),
+    ({"update_mask": "name,iban"}, {"finance"}),
+    ({"fields": '{"customfield_10016": 5}'}, {"unclassified"}),                            # Jira en chaîne + opaque
+    ({"fields": {"fld0123456789abcd": "x"}}, {"unclassified"}),
+    ({"custom_fields": {"1201234567": "x"}}, {"unclassified"}),
+    ({"fields": {"іban": "x"}}, {"unclassified"}),
+    ({"query": "UPDATE t SET iban=1"}, {"unclassified"}),
+    ({"a": json.dumps(json.dumps(json.dumps(json.dumps({"x": 1}))))}, {"unclassified"}),     # 4e niveau de chaîne JSON
+    ({"iban": "x", "password": "y"}, {"secret", "finance"}),
+])
+def test_categorize_shapes(args, want):
+    assert cat(args) == frozenset(want)
+
+
+@pytest.mark.parametrize("args", [
+    {"owner": "o", "repo": "r", "title": "[BUG] crash"}, {"cardId": "c", "name": "n"}, {"page_token": "t"},
+    {"max_tokens": 5, "token_count": 1}, {"from": "2026-01-01", "to": "2026-02-01"},
+    {"messages": [{"role": "user", "content": "hi"}]},
+    {"description": {"type": "doc", "content": [{"type": "taskItem", "attrs": {"state": "DONE"}}]}},
+    {"телефон_2": "x", "客户ID": "y", "hasło_konta": "z"}, {"record_id": "r", "range": "A1:B2"},
+    {"filterByFormula": "x"}, {"content": '{"password": 1}', "path": "x.json"}, {"amount": 5, "status": "won"},
+])
+def test_categorize_non_regression(args):
+    assert cat(args) == frozenset()
+
+
+def test_rest_generic_even_on_free_tools():
+    assert cat({"method": "delete", "url": "/v1/x"}, free=True) == {"unclassified"}
+    assert cat({"iban": "x"}, free=True) == frozenset()
+
+
+def test_rich_text_nodes():
+    assert cat({"body": {"type": "doc", "attrs": {"iban": "x"}}}) == frozenset()          # attrs d'un nœud ignorés
+    assert cat({"type": "doc", "attrs": {"iban": "x"}}) == {"finance"}                    # jamais à la racine
+    assert cat({"body": {"type": "doc", "content": [{"iban": "x"}]}}) == {"finance"}      # on descend dans content
+    assert cat({"type": "incident", "content": "x", "iban": "y"}) == {"finance"}
+
+
+def test_json_strings():
+    assert cat({"a": "﻿ " + json.dumps({"iban": 1})}) == {"finance"}               # BOM et espace
+    assert cat({"a": json.dumps(json.dumps(json.dumps({"iban": 1})))}) == {"finance"}      # 3 niveaux décodés
+    assert cat({"a": "[" * 100_000 + "]" * 100_000}) == {"unclassified"}                   # RecursionError
+    assert cat({"a": "[" + " " * 1_000_001 + "]"}) == {"unclassified"}                     # > 1 Mo
+    assert cat({"method": "PATCH", "url": "/x", "body": json.dumps({"iban": 1})}) >= {"finance", "unclassified"}
+
+
+def test_more_unclassified_and_lists():
+    assert cat({"fields": {"00N5e00000ABCDE": "x"}}) == {"unclassified"}
+    assert cat({"fields": {"123e4567-e89b-12d3-a456-426614174000": "x"}}) == {"unclassified"}
+    for k in ("sql", "script", "formula", "jql", "statement"):
+        assert cat({k: "x"}) == {"unclassified"}
+    assert cat({"fields": ["name", "iban"]}) == {"finance"} and cat({"columns": ["password"]}) == {"secret"}
+    assert cat({"ſecret": "x"}) == {"secret"} and cat({"id_token": "t"}) == {"secret"}
+
+
+def test_page_access_token_counts():
+    assert cat({"page_access_token": "t"}) == {"secret"}
+
+
+def test_bounds():
+    assert cat({"records": [{f"k{i}": 1} for i in range(6000)]}) == {"unclassified"}
+    deep = {}; d = deep
+    for _ in range(12): d["a"] = {}; d = d["a"]
+    assert cat(deep) == {"unclassified"}
+
+
+def test_disabled_categories_and_their_exceptions():
+    v = F.load({"enable": ["access", "lifecycle", "recipients"]})
+    c = lambda a, s="x": F.categorize(s, a, v, free=False)
+    assert c({"owner": "o", "repo": "r"}, "github") == frozenset()
+    assert c({"owner": "o", "repo": ""}, "github") == {"access"}
+    assert c({"owner": "o", "repo": "r"}, "crm") == {"access"}
+    assert c({"role": "admin"}) == {"access"} and c({"role": "user", "content": "x"}) == frozenset()
+    assert c({"stateId": "s"}) == {"lifecycle"} and c({"send_to": ["a@b.c"]}) == {"recipients"}
+    assert c({"to": "a@b.c"}) == {"recipients"} and c({"to": "2026-02-01"}) == frozenset()
