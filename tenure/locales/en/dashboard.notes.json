@@ -1,6 +1,7 @@
 {
   "cell.asked_suffix": "Follows a number in a narrow map cell (\"12 asked\"): leading space kept; max ~8 chars.",
   "cell.held": "{tier} is a tier code (T1/T2/T3). The stored tier is higher than the one in force because the risk settings hold it down.",
+  "cell.held_by": "{type} is an action type name. A sensitive kind of a tool that would act on its own waits because this linked type carries an unredeemed fault. Narrow map cell: keep short.",
   "common.arrow": "Direction arrow between two states (before -> after). Use ← in right-to-left languages.",
   "common.capped": "Capped = this stakes level never earns autonomy: the agent always asks.",
   "common.list_sep": "Separator between profile names in a list.",

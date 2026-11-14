@@ -2,6 +2,7 @@
   "cell.asked_suffix": " demandés",
   "cell.capped_by_settings": "Plafonné par les paramètres de risque",
   "cell.held": "{tier} enregistré, retenu par vos paramètres",
+  "cell.held_by": "retenu par {type}",
   "cell.kind_irreversible": "{type} · {stakes}, irréversible",
   "cell.kind_reversible": "{type} · {stakes}, réversible",
   "cell.provisional_long": {

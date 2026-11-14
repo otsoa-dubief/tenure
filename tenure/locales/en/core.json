@@ -225,6 +225,9 @@
     "one": "{n} other agent has a record ({agents}): {command}",
     "other": "{n} other agents have a record ({agents}): {command}"
   },
+  "cli.status.fields.broken": "Field categories: the built-in vocabulary could not be read, so sensitive kinds are not split.",
+  "cli.status.fields.unknown": "Field categories: unknown names in your settings, ignored: {names}",
+  "cli.status.held": "held by {held}",
   "cli.status.paused": "Learning paused here: nobody answers approvals ({why}). Earned tiers still run.",
   "cli.status.trusted_start": "Trusted start: types act as with Hermes alone until their first mistake ({command} for the study's start).",
   "cli.strict.off": "Strict mode off: a new model inherits half of the previous model's record, unless a public benchmark vetoes the type.",

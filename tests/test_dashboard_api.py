@@ -622,3 +622,16 @@ def test_switch_models_skip_an_unreadable_profile(env):
     (bad / "tenure.db").write_bytes(b"not a database")
     r = get(client, "/switch-models")
     assert r.status_code == 200 and r.json()["providers"]
+
+
+def test_type_row_names_the_type_that_holds_a_sensitive_kind(env):
+    core, api, client, root = env
+    P, F_ = "mcp:crm:update_contact", "mcp:crm:update_contact:@finance"
+    st = core.store.Store(os.path.join(str(root), "plugin-data", "tenure", "tenure.db"))
+    with st.transaction():
+        st.put_state(A, core.rule.TypeState(key=P, stakes="medium", lengthened=True))
+        st.put_state(A, core.rule.TypeState(key=F_, stakes="medium", tier=core.rule.T3, series=300,
+                                            sessions=["a", "b"]))
+    st.db.close()
+    types = {t["type"]: t for t in get(client, "/agents").json()["profiles"][0]["agents"][0]["types"]}
+    assert types[F_]["held"] == P and types[P]["held"] is None and types["file:write"]["held"] is None

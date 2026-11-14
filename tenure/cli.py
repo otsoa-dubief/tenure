@@ -186,6 +186,8 @@ def _status_agent(st, agent: str, cfg: dict) -> list[str]:
         notes = [tr("cli.status.note.provisional", n=s.provisional)] if s.provisional else []
         notes += [tr("cli.status.note.trial", n=s.trial_left)] if s.trial_left else []
         notes += [tr("cli.status.note.trial_wait", n=s.trial_wait)] if s.trial_wait else []
+        held = _core()._held_by(st, agent, s.key) if eff != rule.T1 else None   # the guard plays only where it acts
+        notes += [tr("cli.status.held", held=held)] if held else []
         cells.append([s.key, _stakes(s.stakes), _tier_cell(s, n, cfg), series, sessions, _record(s.faults, s.successes),
                       tr("cli.status.notes", guarantee=guar, notes=tr("cli.list.joiner").join(notes)) if notes
                       else guar])
@@ -222,6 +224,11 @@ def status_text(agent: str | None = None, *, profile: str | None = None, model: 
         lines.append(tr("cli.status.paused", why=why))
     if not profile and not cfg["enabled"]:
         lines.append(tr("cli.status.disabled", setting=f"{SETTINGS}.enabled"))
+    vocab = None if profile else cfg.get("vocabulary")
+    if vocab is not None and vocab.broken:
+        lines.append(tr("cli.status.fields.broken"))
+    if vocab is not None and vocab.unknown:
+        lines.append(tr("cli.status.fields.unknown", names=_join(vocab.unknown)))
     for a in agents:
         lines += [""] + _status_agent(st, a, cfg)
     others = [] if (agent or model or every) else [a for a in st.agents() if a not in agents]

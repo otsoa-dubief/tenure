@@ -178,7 +178,7 @@ def _settings(core, st, own: bool = False) -> dict:
             "start": ev.get("start") if ev.get("start") in params.STARTS else "probation"}
 
 
-def _type_row(core, cfg: dict, s, raw: bool = False) -> dict:
+def _type_row(core, cfg: dict, s, raw: bool = False, held: str | None = None) -> dict:
     rule, params = core.rule, core.params
     n = params.required_n(cfg["risks"], s.stakes)
     return {"type": _name(core, s.key, raw), "stakes": s.stakes, "reversible": s.reversible,
@@ -194,7 +194,18 @@ def _type_row(core, cfg: dict, s, raw: bool = False) -> dict:
             "successes": s.successes, "faults": s.faults, "neutrals": s.neutrals, "spot_checks": s.spot_checks,
             "provisional": s.provisional, "trial_left": s.trial_left, "trial_wait": s.trial_wait,
             "unresolved_fault": s.unresolved_fault, "unresolved_fault_label": "fault on record",
+            # The linked type that holds a sensitive kind back (spec §4.6); the effective tier ignores it by design.
+            "held": (None if held is None or cfg.get("copy_pending")
+                     or rule.effective_tier(s, n, s.stakes) == rule.T1 else _name(core, held, raw)),
             "guarantee": rule.guarantee(s, n, cfg["spot"])}
+
+
+def _held(core, st, agent: str, s) -> str | None:
+    """The linked type holding a sensitive kind back; ``_type_row`` shows it only where the kind would otherwise act."""
+    try:
+        return core._held_by(st, agent, s.key)
+    except Exception:
+        return None
 
 
 def _agent_rows(core, st, cfg: dict, suspended: int, raw: bool) -> list[dict]:
@@ -204,7 +215,7 @@ def _agent_rows(core, st, cfg: dict, suspended: int, raw: bool) -> list[dict]:
     out = []
     for agent, states in by_agent.items():
         model, provider = core.personal.split_agent(agent)
-        types = [_type_row(core, cfg, s, raw) for s in states]
+        types = [_type_row(core, cfg, s, raw, held=_held(core, st, agent, s)) for s in states]
         out.append({"agent": agent, "model": model, "provider": provider, "types": types,
                     "provisional": any(t["provisional"] for t in types),
                     "trial": any(t["trial_left"] or t["trial_wait"] for t in types),
@@ -574,7 +585,7 @@ def _flag(body: FlagBody, raw: bool) -> dict:
                             result="fault", source="flag")
         st.bump(body.agent, "faults")
         s = st.get_state(body.agent, key, s.stakes, s.reversible)
-        row = _type_row(core, cfg, s, raw)
+        row = _type_row(core, cfg, s, raw, held=_held(core, st, body.agent, s))
     return {"agent": body.agent, "type": _name(core, key, raw), "tier": s.tier, "state": row}
 
 

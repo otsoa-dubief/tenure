@@ -2,6 +2,7 @@
   "cell.asked_suffix": " preguntas",
   "cell.capped_by_settings": "Limitado por la configuración de riesgo",
   "cell.held": "{tier} guardado, retenido por tu configuración",
+  "cell.held_by": "retenido por {type}",
   "cell.kind_irreversible": "{type} · {stakes}, irreversible",
   "cell.kind_reversible": "{type} · {stakes}, reversible",
   "cell.provisional_long": {
