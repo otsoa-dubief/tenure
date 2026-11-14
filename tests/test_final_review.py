@@ -157,3 +157,13 @@ def test_manifest_declares_every_registered_hook(plugin):
     block = manifest.split("provides_hooks:\n", 1)[1].split("\n", len(ctx.hooks) + 1)
     declared = {line.strip()[2:] for line in block if line.startswith("  - ")}
     assert declared == set(ctx.hooks)
+
+
+def test_config_schema_declares_every_setting():
+    import re
+    manifest = (ROOT / "tenure" / "plugin.yaml").read_text(encoding="utf-8")
+    schema = manifest.split("config_schema:\n", 1)[1]
+    declared = set(re.findall(r"^  (\w+):\n", schema, re.M))
+    source = (ROOT / "tenure" / "__init__.py").read_text(encoding="utf-8")
+    body = source.split("def settings() -> dict:", 1)[1].split("\ndef ", 1)[0]
+    assert set(re.findall(r'_get\("(\w+)"', body)) <= declared

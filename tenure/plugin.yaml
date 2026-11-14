@@ -57,6 +57,11 @@ config_schema:
     default: {}
     description: "Reclassify action types: {pattern: free|low|medium|high|cap}, e.g. {'mcp:notion:*': medium}"
     required: false
+  fields:
+    type: dict
+    default: {}
+    description: "Sensitive field categories: {enable: [...], disable: [...], add: {category: [field, ...]}, remove: {...}, stakes: {category: low|medium|high}}, e.g. {enable: [amount], stakes: {finance: medium}}"
+    required: false
   enabled:
     type: bool
     default: true
