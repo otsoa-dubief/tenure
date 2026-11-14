@@ -9,6 +9,7 @@
     "other": "{type} (enjeu {stakes}) demande toujours ({n} succès vérifiés enregistrés)."
   },
   "ask.why.climb": "{type} (enjeu {stakes}) demande d'abord après une erreur : encore {n} accords et il agit de nouveau, puis vous prévient, avec une annulation.",
+  "ask.why.held": "{type} demande d'abord : {held} a commis une erreur qu'il n'a pas encore rattrapée, et tant que ce n'est pas fait, ce type d'action attend votre accord.",
   "ask.why.other_stakes": "{type} a gagné son historique à enjeu {earned}, mais cette action est à enjeu {stakes} : il demande.",
   "ask.why.provisional": {
     "one": "Dont {n} hérité de l'agent précédent, à titre provisoire.",
