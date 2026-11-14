@@ -24,7 +24,8 @@
       "entries": [
         "iban",
         "bic",
-        "swift",
+        "swift_code",
+        "swift_bic",
         "rib",
         "bank",
         "banque",

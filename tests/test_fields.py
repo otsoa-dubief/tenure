@@ -58,6 +58,11 @@ def test_mistyped_setting_values():
     assert F.load(["finance"]).unknown == ("fields: ['finance']",)
 
 
+def test_swift_needs_its_qualifier():
+    assert cat({"swift_version": "5.9"}) == frozenset() and cat({"swift": "x"}) == frozenset()
+    assert cat({"swift_code": "x"}) == {"finance"} and cat({"swiftBic": "x"}) == {"finance"}
+
+
 def test_default_vocabulary():
     v = F.load()
     assert v.active == F.DEFAULT_ON and v.stakes["finance"] == "high" and "iban" in v.entries["finance"]
