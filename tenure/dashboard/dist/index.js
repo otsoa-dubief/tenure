@@ -35,6 +35,7 @@ const TENURE_LOCALES = {
     "cell.asked_suffix": " asked",
     "cell.capped_by_settings": "Capped by the risk settings",
     "cell.held": "stored {tier}, held back by your settings",
+    "cell.held_by": "held by {type}",
     "cell.kind_irreversible": "{type} · {stakes}, irreversible",
     "cell.kind_reversible": "{type} · {stakes}, reversible",
     "cell.provisional_long": {
@@ -659,6 +660,7 @@ const TENURE_LOCALES = {
     "cell.asked_suffix": " بسؤال",
     "cell.capped_by_settings": "مقيَّد بإعدادات المخاطرة",
     "cell.held": "{tier} مخزَّن، تُقيّده إعداداتك",
+    "cell.held_by": "مُثبَّت بسبب {type}",
     "cell.kind_irreversible": "{type} · {stakes}، لا يمكن التراجع عنه",
     "cell.kind_reversible": "{type} · {stakes}، يمكن التراجع عنه",
     "cell.provisional_long": {
@@ -1447,6 +1449,7 @@ const TENURE_LOCALES = {
     "cell.asked_suffix": " preguntas",
     "cell.capped_by_settings": "Limitado por la configuración de riesgo",
     "cell.held": "{tier} guardado, retenido por tu configuración",
+    "cell.held_by": "retenido por {type}",
     "cell.kind_irreversible": "{type} · {stakes}, irreversible",
     "cell.kind_reversible": "{type} · {stakes}, reversible",
     "cell.provisional_long": {
@@ -2074,6 +2077,7 @@ const TENURE_LOCALES = {
     "cell.asked_suffix": " demandés",
     "cell.capped_by_settings": "Plafonné par les paramètres de risque",
     "cell.held": "{tier} enregistré, retenu par vos paramètres",
+    "cell.held_by": "retenu par {type}",
     "cell.kind_irreversible": "{type} · {stakes}, irréversible",
     "cell.kind_reversible": "{type} · {stakes}, réversible",
     "cell.provisional_long": {
@@ -2701,6 +2705,7 @@ const TENURE_LOCALES = {
     "cell.asked_suffix": " 次询问",
     "cell.capped_by_settings": "受风险设置限制",
     "cell.held": "已赢得 {tier}，被你的设置压低",
+    "cell.held_by": "被 {type} 压制",
     "cell.kind_irreversible": "{type} · {stakes}，不可逆",
     "cell.kind_reversible": "{type} · {stakes}，可逆",
     "cell.provisional_long": {
@@ -4150,6 +4155,7 @@ const TENURE_LOCALES = {
         " · " + t("cell.sessions", { n: ty.sessions, count: String(ty.sessions) }),
       t("cell.record", { successes: String(ty.successes), faults: String(ty.faults), neutrals: String(ty.neutrals),
         spot: String(ty.spot_checks) })];
+    if (ty.held) lines.push(t("cell.held_by", { type: ty.held }));
     if (ty.provisional) lines.push(t("cell.provisional_long", { n: ty.provisional, count: String(ty.provisional) }));
     if (ty.unresolved_fault) lines.push(t("flag.fault_on_record_title"));
     return lines.join("\n");
@@ -4401,6 +4407,7 @@ const TENURE_LOCALES = {
                     h(DitherBar, Object.assign(barProps(ty), { className: "tnr-card-type-bar", delay: 120 + x.i * 40 })),
                     h("span", { className: "tnr-card-type-miss tnr-tone--" + miss.tone },
                       ty.tier !== ty.effective_tier && !ty.trusted ? t("cell.held", { tier: TIER[ty.tier] }) :
+                        ty.held ? t("cell.held_by", { type: ty.held }) :
                         ty.provisional ? t("flag.carried_over_n", { n: ty.provisional }) + " · " + miss.text :
                           ty.unresolved_fault ? t("flag.fault_on_record") + " · " + miss.text : miss.text));
                 })));

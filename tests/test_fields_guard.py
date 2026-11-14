@@ -89,3 +89,18 @@ def test_no_field_name_or_value_leaves(plugin):
         with open(path, encoding="utf-8") as f:
             dump += f.read()
     assert "FR7612345" not in dump and "secret-note" not in dump and '"iban"' not in dump
+
+
+def test_status_shows_held(plugin):
+    mod, ctx = plugin(CAREFUL); seed(mod, P, lengthened=True); seed(mod, F_, **T3)
+    from tenure import cli
+    assert i18n.tr("cli.status.held", held=P) in cli.status_text(agent=A)
+
+
+def test_status_signals_unknown_and_broken_vocabulary(plugin, monkeypatch, tmp_path):
+    from tenure import cli, fields as F
+    mod, ctx = plugin({"fields": {"enable": ["finances"]}}); seed(mod, P)
+    assert "finances" in cli.status_text(agent=A)
+    bad = tmp_path / "v.json"; bad.write_text("{"); monkeypatch.setattr(F, "DATA_PATH", bad)
+    mod, ctx = plugin({}); seed(mod, P)
+    assert i18n.tr("cli.status.fields.broken") in cli.status_text(agent=A)

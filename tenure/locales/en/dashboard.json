@@ -2,6 +2,7 @@
   "cell.asked_suffix": " asked",
   "cell.capped_by_settings": "Capped by the risk settings",
   "cell.held": "stored {tier}, held back by your settings",
+  "cell.held_by": "held by {type}",
   "cell.kind_irreversible": "{type} · {stakes}, irreversible",
   "cell.kind_reversible": "{type} · {stakes}, reversible",
   "cell.provisional_long": {

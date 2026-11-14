@@ -226,6 +226,9 @@
     "one": "Otro agente tiene historial ({agents}): {command}",
     "other": "{n} agentes más tienen historial ({agents}): {command}"
   },
+  "cli.status.fields.broken": "Categorías de campos: no se pudo leer el vocabulario integrado, así que los tipos sensibles no se dividen.",
+  "cli.status.fields.unknown": "Categorías de campos: nombres desconocidos en tu configuración, ignorados: {names}",
+  "cli.status.held": "retenido por {held}",
   "cli.status.paused": "Aprendizaje en pausa aquí: nadie responde a las aprobaciones ({why}). Los niveles ganados siguen activos.",
   "cli.status.trusted_start": "Inicio con confianza: los tipos actúan como con Hermes solo hasta su primer error ({command} para el inicio del estudio).",
   "cli.strict.off": "Modo estricto desactivado: un modelo nuevo hereda la mitad del historial del modelo anterior, salvo que un benchmark público vete el tipo.",

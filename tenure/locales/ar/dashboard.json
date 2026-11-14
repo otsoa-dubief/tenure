@@ -2,6 +2,7 @@
   "cell.asked_suffix": " بسؤال",
   "cell.capped_by_settings": "مقيَّد بإعدادات المخاطرة",
   "cell.held": "{tier} مخزَّن، تُقيّده إعداداتك",
+  "cell.held_by": "مُثبَّت بسبب {type}",
   "cell.kind_irreversible": "{type} · {stakes}، لا يمكن التراجع عنه",
   "cell.kind_reversible": "{type} · {stakes}، يمكن التراجع عنه",
   "cell.provisional_long": {

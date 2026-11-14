@@ -197,6 +197,9 @@
   "cli.status.others": {
     "other": "另有 {n} 个智能体有记录（{agents}）：{command}"
   },
+  "cli.status.fields.broken": "字段类别：无法读取内置词表，因此不拆分敏感类型。",
+  "cli.status.fields.unknown": "字段类别：设置中有未知名称，已忽略：{names}",
+  "cli.status.held": "被 {held} 压制",
   "cli.status.paused": "此处学习已暂停：没人应答审批（{why}）。已赢得的级别照常运行。",
   "cli.status.trusted_start": "信任起步：各类操作在第一次失误之前像只有 Hermes 时一样运行（{command} 可改为研究起步）。",
   "cli.strict.off": "严格模式已关闭：新模型继承上一个模型一半的记录，除非公开基准否决该类型。",
