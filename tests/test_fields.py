@@ -25,7 +25,7 @@ def test_entry_matches(key, entry, hit):
 
 
 def test_mixed_script():
-    assert F.mixed_script(F.canonical("іban"))           # і cyrillique
+    assert F.mixed_script(F.canonical("іban"))           # Cyrillic і
     assert not F.mixed_script(F.canonical("телефон_2")) and not F.mixed_script(F.canonical("客户ID"))
 
 
@@ -128,15 +128,15 @@ def test_rest_generic_even_on_free_tools():
 
 
 def test_rich_text_nodes():
-    assert cat({"body": {"type": "doc", "attrs": {"iban": "x"}}}) == frozenset()          # attrs d'un nœud ignorés
-    assert cat({"type": "doc", "attrs": {"iban": "x"}}) == {"finance"}                    # jamais à la racine
-    assert cat({"body": {"type": "doc", "content": [{"iban": "x"}]}}) == {"finance"}      # on descend dans content
+    assert cat({"body": {"type": "doc", "attrs": {"iban": "x"}}}) == frozenset()          # a node's attrs are ignored
+    assert cat({"type": "doc", "attrs": {"iban": "x"}}) == {"finance"}                    # never at the root
+    assert cat({"body": {"type": "doc", "content": [{"iban": "x"}]}}) == {"finance"}      # content is walked into
     assert cat({"type": "incident", "content": "x", "iban": "y"}) == {"finance"}
 
 
 def test_json_strings():
-    assert cat({"a": "﻿ " + json.dumps({"iban": 1})}) == {"finance"}               # BOM et espace
-    assert cat({"a": json.dumps(json.dumps(json.dumps({"iban": 1})))}) == {"finance"}      # 3 niveaux décodés
+    assert cat({"a": "﻿ " + json.dumps({"iban": 1})}) == {"finance"}               # BOM and a space
+    assert cat({"a": json.dumps(json.dumps(json.dumps({"iban": 1})))}) == {"finance"}      # 3 levels decoded
     assert cat({"a": "[" * 100_000 + "]" * 100_000}) == {"unclassified"}                   # RecursionError
     assert cat({"a": "[" + " " * 1_000_001 + "]"}) == {"unclassified"}                     # > 1 Mo
     assert cat({"method": "PATCH", "url": "/x", "body": json.dumps({"iban": 1})}) >= {"finance", "unclassified"}

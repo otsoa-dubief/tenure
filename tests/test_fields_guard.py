@@ -96,14 +96,18 @@ def test_earned_notes_never_open_finance(plugin):
 
 
 def test_no_field_name_or_value_leaves(plugin):
-    mod, ctx = plugin(CAREFUL)
-    ctx.call("mcp__crm__update_contact", {"iban": "FR7612345", "notes": "secret-note"})
+    mod, ctx = plugin({**CAREFUL, "fields": {**CAREFUL["fields"], "add": {"finance": ["zqx_acct"]}}})
+    assert ctx.call("mcp__crm__update_contact", {"zqx_acct": "VQW7731KX", "notes": "plmz-note-4417"}) == "approved"
+    assert state(mod, F_) is not None                                       # the owner's entry did split the call
     from tenure import cli
     dump = json.dumps([r["event"] for r in mod.store_().ledger()]) + cli.passport_cmd(agent=A) + cli.card_text()
-    for path in glob.glob(os.path.join(mod.data_dir(), "passport-*.json")):    # passport_cmd writes the passport
+    paths = glob.glob(os.path.join(mod.data_dir(), "passport-*.json"))      # passport_cmd writes the passport
+    assert paths
+    for path in paths:
         with open(path, encoding="utf-8") as f:
             dump += f.read()
-    assert "FR7612345" not in dump and "secret-note" not in dump and '"iban"' not in dump
+    for leak in ("zqx_acct", "VQW7731KX", "plmz-note-4417", "plmz"):
+        assert leak not in dump, leak
 
 
 def test_status_shows_held(plugin):
@@ -122,7 +126,7 @@ def test_status_signals_unknown_and_broken_vocabulary(plugin, monkeypatch, tmp_p
 
 
 def test_revoke_tool_revokes_its_categories(plugin):
-    mod, ctx = plugin(CAREFUL); seed(mod, F_, **T3)                 # outil sans état
+    mod, ctx = plugin(CAREFUL); seed(mod, F_, **T3)                 # the tool has no state
     from tenure import cli
     out = cli.revoke("mcp:crm:update_contact", agent=A)
     assert state(mod, F_).tier == rule.T1 and "@finance" in out
