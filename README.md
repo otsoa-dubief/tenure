@@ -374,6 +374,14 @@ project files an action is about to change, to snapshot them for undo (24 hours,
 
 </details>
 
+## Contributors
+
+- [Otsoa Dubief](https://github.com/otsoa-dubief): code, study, docs.
+- [Assia Aittaleb](https://github.com/A2SIA-AA): ideas. Field-level sensitivity ([#1](https://github.com/otsoa-dubief/tenure/issues/1), shipped in [#3](https://github.com/otsoa-dubief/tenure/pull/3)) and intent checks ([#2](https://github.com/otsoa-dubief/tenure/issues/2)).
+
+Ideas, bug reports and pull requests are all credited here. Issues labelled
+[good first issue](https://github.com/otsoa-dubief/tenure/labels/good%20first%20issue) are a good place to start.
+
 ## License
 
 Apache-2.0 · © 2026 Otsoa Dubief. Benchmark data: Epoch AI, CC BY 4.0, see [NOTICE](tenure/NOTICE).
