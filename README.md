@@ -211,9 +211,9 @@ record; a call that touches no active category keeps its tool's type, as before.
   `fields: {enable: [...]}`.
 - **`@unclassified`:** what cannot be read is treated as the most sensitive. Opaque field ids (Jira `customfield_10016`,
   Airtable `fld…`, Salesforce `00N…`, numeric or UUID keys under Asana and ClickUp `custom_fields`), a free string that
-  writes (`sql`, `query`, `formula`, `jql`, `script`), a generic REST call (`method` POST, PUT, PATCH or DELETE with a
-  `path`, `endpoint` or `url`), mixed Latin and Cyrillic, Greek or Armenian letters in one key, and arguments too deep
-  or too big to read.
+  writes (`sql`, `query`, `statement`, `formula`, `jql`, `script`), a generic REST call (`method` POST, PUT, PATCH or
+  DELETE with a `path`, `endpoint` or `url`), mixed Latin and Cyrillic, Greek or Armenian letters in one key, and
+  arguments too deep or too big to read.
 - **No credit from the tool.** A new category starts untrusted: no success of the tool counts for it. While the tool
   has a fault not yet redeemed, its categories ask too. The tool's own stakes stay a floor: a category never lowers
   them.

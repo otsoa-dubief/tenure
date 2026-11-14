@@ -186,8 +186,8 @@ an `update_mask`, a list under `fields` or `columns`). A JSON document inside a 
 added to an otherwise sensitive call gives a new type, so it asks. Fields hidden from the vocabulary go to
 `@unclassified`: opaque ids (`customfield_10016`, `fld…`, `00N…`, numeric or UUID keys under a container), mixed
 Latin and Cyrillic, Greek or Armenian letters, a fourth level of JSON in a string, a free string that writes
-(`sql`, `query`, `formula`, `jql`, `script`), a generic REST write, arguments deeper than 8 levels, more than 5000 distinct keys
-or a JSON string over 1 MB. These ask under `balanced`.
+(`sql`, `query`, `statement`, `formula`, `jql`, `script`), a generic REST write, arguments deeper than 8 levels, more
+than 5000 distinct keys or a JSON string over 1 MB. These ask under `balanced`.
 
 **Fixed with it.** Reading arguments stopped silently at 2000 strings: a path to Hermes' own config placed after
 about 1100 records was never seen and the call kept its medium stakes. A call with more than 2000 strings in its
