@@ -20,7 +20,7 @@ import itertools
 import os
 import re
 
-from . import params
+from . import fields, params
 import shlex
 import stat as _stat
 import sys
@@ -5148,8 +5148,26 @@ def _args_hit(args: dict, cwd, home: str, reading: bool = False, commands: bool 
     return ("tool:unreadable-args", HIGH) if deep else None
 
 
+def _categorized(t: str, stakes: str, before: str, tool_name: str, args: dict, overrides: dict | None,
+                 vocabulary: fields.Vocabulary | None) -> tuple[str, str]:
+    """A call touching a sensitive field is its own type ``<parent>:@<cats>`` (spec 4.1); its stakes only go up."""
+    try:
+        vocab = vocabulary if vocabulary is not None else fields.load()
+        split = _mcp_split(tool_name) if t.startswith("mcp:") else None
+        cats = fields.categorize(split[0] if split else None, args, vocab, free=(before == FREE))
+        if not cats:
+            return t, stakes
+        child = fields.child_type(t, cats)
+        level = fields.stakes_for(cats, vocab)
+        raised = stakes if RANK[stakes] >= RANK[level] else level
+        ruled = _override(child, raised, overrides)
+        return child, ruled if RANK[ruled] > RANK[raised] else raised   # a rule on a category type only raises
+    except Exception:                                    # never raise in the hook: today's type, at least high
+        return t, stakes if RANK[stakes] >= RANK[HIGH] else HIGH
+
+
 def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overrides: dict | None = None,
-             home: str | None = None) -> Action:
+             home: str | None = None, vocabulary: fields.Vocabulary | None = None) -> Action:
     args = args if isinstance(args, dict) else {}
     home = home or os.path.expanduser("~")
     _CACHE.memo, _CACHE.roots, _CACHE.cwd, _CACHE.home = {}, None, cwd, home
@@ -5201,6 +5219,10 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
             stakes = HIGH
         if stakes == FREE and _saves_to_disk(args):
             stakes = MEDIUM                              # a "read" told where to write
+    before = stakes                                      # "a read" is judged before the owner's override
     stakes = _override(t, stakes, overrides)
+    if (t.startswith(("mcp:", "tool:")) and stakes != CAP and tool_name not in TOOLS
+            and not tool_name.startswith("kanban_") and not _clamped(tool_name) and ":@" not in tool_name):
+        t, stakes = _categorized(t, stakes, before, tool_name, args, overrides, vocabulary)
     rev = rev and t in ("file:write", "file:shell")  # only a change inside the project can be undone
     return Action(type=t, stakes=stakes, reversible=rev, summary=_summary(tool_name, args, t))

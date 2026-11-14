@@ -402,3 +402,43 @@ def categorize(server: str | None, args: object, vocab: Vocabulary, *, free: boo
     if reader.unclassified:
         hits.add("unclassified")
     return frozenset(hits & vocab.active)
+
+
+# ------------------------------------------------------------------------------------------------ category types
+_RANK = {"free": 0, "low": 1, "medium": 2, "high": 3, "cap": 4}   # same order as classify.RANK (not imported: cycle)
+
+
+def child_type(parent: str, cats: frozenset[str]) -> str:
+    """``<parent>:@<cat1>+<cat2>…``, categories in the fixed order of ``CATEGORIES`` (spec 4.1)."""
+    return parent + ":@" + "+".join(c for c in CATEGORIES if c in cats)
+
+
+def _split(type_: str) -> tuple[str, list[str]] | None:
+    if not isinstance(type_, str) or not type_.startswith(("mcp:", "tool:")):
+        return None
+    parent, sep, last = type_.rpartition(":")
+    if not sep or not last.startswith("@") or not parent.startswith(("mcp:", "tool:")) or parent in ("mcp:", "tool:"):
+        return None
+    names = last[1:].split("+")
+    if not all(n in CATEGORIES for n in names):
+        return None
+    return parent, names
+
+
+def parent_of(type_: str) -> str | None:
+    """The parent of a category type, or None: only an ``mcp:``/``tool:`` type whose last segment is ``@`` followed by
+    shipped category names joined by ``+`` (``shell:npx:@angular/cli`` has none)."""
+    s = _split(type_)
+    return s[0] if s else None
+
+
+def categories_of(type_: str) -> frozenset[str]:
+    s = _split(type_)
+    return frozenset(s[1]) if s else frozenset()
+
+
+def stakes_for(cats: frozenset[str], vocab: Vocabulary) -> str:
+    """The highest stakes among the categories touched (unknown level → high)."""
+    levels = [vocab.stakes.get(c, "high") for c in cats]
+    levels = [lv if lv in _RANK else "high" for lv in levels]
+    return max(levels, key=_RANK.__getitem__) if levels else "low"
