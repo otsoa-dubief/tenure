@@ -104,3 +104,17 @@ def test_status_signals_unknown_and_broken_vocabulary(plugin, monkeypatch, tmp_p
     bad = tmp_path / "v.json"; bad.write_text("{"); monkeypatch.setattr(F, "DATA_PATH", bad)
     mod, ctx = plugin({}); seed(mod, P)
     assert i18n.tr("cli.status.fields.broken") in cli.status_text(agent=A)
+
+
+def test_revoke_tool_revokes_its_categories(plugin):
+    mod, ctx = plugin(CAREFUL); seed(mod, F_, **T3)                 # outil sans état
+    from tenure import cli
+    out = cli.revoke("mcp:crm:update_contact", agent=A)
+    assert state(mod, F_).tier == rule.T1 and "@finance" in out
+
+
+def test_revoke_does_not_touch_a_longer_tool_name(plugin):
+    mod, ctx = plugin(CAREFUL); seed(mod, "mcp:crm:update_contact_email", **T3); seed(mod, F_, **T3)
+    from tenure import cli
+    cli.revoke("mcp:crm:update_contact", agent=A)
+    assert state(mod, "mcp:crm:update_contact_email").tier == rule.T3
