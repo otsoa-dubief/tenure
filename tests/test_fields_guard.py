@@ -60,9 +60,24 @@ def test_old_resolved_fault_on_t3_tool_does_not_hold(plugin):
     assert ctx.call("mcp__crm__update_contact", {"iban": "x"}) == "ran"
 
 
-def test_low_fault_wait_holds(plugin):
-    mod, ctx = plugin(CAREFUL); seed(mod, P, stakes="low", trial_wait=50); seed(mod, F_, **T3)
+LOW_TOOL = {**CAREFUL, "types": {P: "low"}}
+
+
+def test_low_fault_holds_until_back_at_t3(plugin):
+    from tenure import cli
+    mod, ctx = plugin(LOW_TOOL); seed(mod, P, stakes="low", **T3); seed(mod, F_, **T3)
+    assert ctx.call("mcp__crm__update_contact", {"iban": "x"}) == "ran"
+    cli.flag(P, agent=A)                                  # a real low-stakes fault: no trial, no wait, no lengthening
+    s = state(mod, P)
+    assert s.faults == 1 and s.tier != rule.T3 and not (s.lengthened or s.trial_left or s.trial_wait)
     assert ctx.call("mcp__crm__update_contact", {"iban": "x"}) == "approved"
+    assert i18n.tr("ask.why.held", type=F_, held=P) in ctx.prompts[-1]["message"]
+    for i in range(400):                                  # the tool earns T3 back: the hold lifts
+        if state(mod, P).tier == rule.T3:
+            break
+        ctx.call("mcp__crm__update_contact", {"notes": "x"}, session=f"s{i % 3}")
+    assert state(mod, P).tier == rule.T3 and state(mod, P).faults == 1
+    assert ctx.call("mcp__crm__update_contact", {"iban": "x"}) == "ran"
 
 
 def test_no_session_answer_for_a_category(plugin):
