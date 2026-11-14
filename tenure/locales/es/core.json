@@ -9,6 +9,7 @@
     "other": "{type} (impacto {stakes}) siempre pregunta ({n} éxitos verificados registrados)."
   },
   "ask.why.climb": "{type} (impacto {stakes}) pregunta primero tras un error: {n} aprobaciones más y vuelve a actuar, y luego te avisa, con deshacer.",
+  "ask.why.held": "{type} pregunta primero: {held} tiene un error que aún no ha compensado y, hasta que lo haga, este tipo de acción espera tu aprobación.",
   "ask.why.other_stakes": "{type} ganó su historial con impacto {earned}, y esta acción tiene impacto {stakes}: pregunta.",
   "ask.why.provisional": {
     "one": "Uno de ellos, heredado del agente anterior, es provisional.",

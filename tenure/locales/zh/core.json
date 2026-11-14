@@ -8,6 +8,7 @@
     "other": "{type}（{stakes}风险）总是先询问（已记录 {n} 次已验证成功）。"
   },
   "ask.why.climb": "{type}（{stakes}风险）出错后先征求同意：再批准 {n} 次后，它会重新先执行再通知你，并可撤销。",
+  "ask.why.held": "{type} 先询问：{held} 有一次尚未弥补的错误，在弥补之前，这类操作需等待你的同意。",
   "ask.why.other_stakes": "{type} 的记录是在{earned}风险下赢得的，而此操作为{stakes}风险：需要询问。",
   "ask.why.provisional": {
     "other": "其中 {n} 次继承自上一个智能体，暂定。"

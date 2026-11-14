@@ -878,7 +878,32 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
     if (decision == rule.ASK and not ST.copy_unchecked and trusted(cfg, s, n, act.stakes)
             and (not suspended or (act.reversible and act.type.startswith("file:")))):
         decision = rule.WATCH                           # after outside content: undoable file writes only                           # trusted start: run as Hermes would, with an undo if possible
+    if decision != rule.ASK and _held_by(st, agent, act.type):
+        decision = rule.ASK                             # a sensitive kind waits while its tool's fault is unredeemed
     return recorded, s, decision, suspended
+
+
+def _marked(s: rule.TypeState | None) -> bool:
+    """A recorded type with a fault not yet redeemed: on trial, lengthened (a medium or high fault, cleared on the way
+    back to T3), or waiting after a low fault (which sets a wait without lengthening). Never the permanent marks
+    (unresolved_fault, distrusted): those would hold a sensitive kind for life."""
+    return s is not None and (s.trial_left > 0 or s.lengthened or (s.trial_wait > 0 and not s.lengthened))
+
+
+def _held_by(st: store.Store, agent: str, type_key: str) -> str | None:
+    """The first marked type linked to a category type, or None: its parent first, then every other recorded type of
+    the same parent whose categories overlap, in key order. Read only: nothing is written on the linked types, and
+    ``st.recorded`` never fabricates a state the way ``get_state`` does."""
+    parent = fields.parent_of(type_key)
+    if parent is None:
+        return None
+    if _marked(st.recorded(agent, parent)):
+        return parent
+    cats = fields.categories_of(type_key)
+    for k, s in sorted(((s.key, s) for a, s in st.states(agent) if a == agent), key=lambda kv: kv[0]):
+        if k != type_key and fields.parent_of(k) == parent and fields.categories_of(k) & cats and _marked(s):
+            return k
+    return None
 
 
 def _uncovered_local(act, s: rule.TypeState, n) -> bool:
@@ -898,7 +923,8 @@ def _to_t2(s: rule.TypeState) -> int:
 
 
 def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool,
-                 earned_at: str | None, per_session: bool = False, trusted_start: bool = False) -> str:
+                 earned_at: str | None, per_session: bool = False, trusted_start: bool = False,
+                 held: str | None = None) -> str:
     stakes = stakes_name(act.stakes)
     if decision == rule.SPOT:
         return tr("ask.spot", summary=act.summary, type=act.type, spot=round(1 / spot))
@@ -918,6 +944,8 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
         why = tr("ask.why.untrusted", type=act.type, stakes=stakes)
     elif s.tier == rule.T1 and s.faults and act.reversible and act.stakes in params.WALD:
         why = tr("ask.why.climb", type=act.type, stakes=stakes, n=_to_t2(s))   # the next step, not the far one
+    elif held:
+        why = tr("ask.why.held", type=act.type, held=held)
     else:
         why = tr("ask.why.series", type=act.type, stakes=stakes, series=s.series, required=rule.required(s, n),
                  sessions=len(s.sessions), needed=rule.SESSIONS)
@@ -1108,6 +1136,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 # never let a write run without its undo.
                 no_undo = act.reversible and not snap and bool(classify.files_written(tool, args, cwd))
                 per_session = (cfg.get("start") == "trusted" and not nobody and decision == rule.ASK and not no_undo
+                               and fields.parent_of(act.type) is None           # never for a category kind
                                and (act.type in params.SESSION_TYPES or (suspended and trusted(cfg, s, n, act.stakes))
                                     or _uncovered_local(act, s, n)))
                 # After outside content, one session answer covers every covered type (one key for the session);
@@ -1119,7 +1148,8 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 directive = {"action": "approve", "rule_key": key,
                              "message": _ask_message(act, s, n, cfg["spot"], decision=decision, suspended=suspended,
                                                      unsaved=unsaved, per_session=per_session, trusted_start=cfg.get("start") == "trusted",
-                                                     earned_at=recorded.stakes if recorded else None)}
+                                                     earned_at=recorded.stakes if recorded else None,
+                                                     held=_held_by(st, agent, act.type))}
         if taken and taken != snap:
             undo.discard(taken, data_dir())
         taken = None
