@@ -884,10 +884,12 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
 
 
 def _marked(s: rule.TypeState | None) -> bool:
-    """A recorded type with a fault not yet redeemed: on trial, lengthened (a medium or high fault, cleared on the way
-    back to T3), or waiting after a low fault (which sets a wait without lengthening). Never the permanent marks
-    (unresolved_fault, distrusted): those would hold a sensitive kind for life."""
-    return s is not None and (s.trial_left > 0 or s.lengthened or (s.trial_wait > 0 and not s.lengthened))
+    """A recorded type with a fault not yet redeemed: on trial, waiting after a failed trial, lengthened (a medium or
+    high fault, cleared on the way back to T3), or faulted and not back at T3 (a low fault sets no trial, wait or
+    lengthening; it clears the same way). Never the permanent marks (unresolved_fault, distrusted): those would hold a
+    sensitive kind for life."""
+    return s is not None and (s.trial_left > 0 or s.trial_wait > 0 or s.lengthened
+                              or (s.faults > 0 and s.tier != rule.T3))
 
 
 def _held_by(st: store.Store, agent: str, type_key: str) -> str | None:
