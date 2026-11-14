@@ -173,11 +173,10 @@ spelling tenure does not know can slip through (see Limits). Every case found so
   If your agent must never be able to reach Hermes' files, keep code-running types at `cap`
   (`types: {"shell:npm*": cap, "shell:make*": cap, "code:execute": cap}`).
 
-
 ## Field categories and their limits
 
 An MCP or plugin call is split by the kind of field it touches (see the README, "Field categories"). It is a check on
-what the arguments say, read before the call runs, and it only ever makes a call ask more, never less than before.
+what the arguments say, read before the call runs, and, apart from the limits below and your own `fields:` choices, it only makes a call ask more.
 Tested in `tests/test_fields.py` and the classifier tests.
 
 **Covered.** The same field under another spelling: case (`IBAN`, `iban`), camelCase (`userIBAN`), separators
