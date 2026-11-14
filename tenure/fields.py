@@ -38,10 +38,6 @@ class Vocabulary:
 _cache: dict = {}
 
 
-def _names(value) -> list[str]:
-    return [str(x) for x in value] if isinstance(value, (list, tuple, set, frozenset)) else []
-
-
 def _build(setting) -> Vocabulary:
     try:
         raw = json.loads(DATA_PATH.read_text(encoding="utf-8"))
@@ -57,14 +53,36 @@ def _build(setting) -> Vocabulary:
         active, version, broken = {"unclassified"}, "", True
     unknown: list[str] = []
 
-    def note(name: str) -> None:
-        if name not in unknown:
-            unknown.append(name)
+    def note(text: str) -> None:
+        if text not in unknown:
+            unknown.append(text)
 
+    def strings(value, where: str) -> list[str]:
+        """The strings of a list, a bare string as a one-item list; anything else is reported, then ignored."""
+        if value is None:
+            return []
+        if isinstance(value, str):
+            value = [value]
+        if not isinstance(value, (list, tuple, set, frozenset)):
+            note(f"{where}: {value!r}")
+            return []
+        out = []
+        for x in value:
+            out.append(x) if isinstance(x, str) else note(f"{where}: {x!r}")
+        return out
+
+    def block(key: str):
+        value = s.get(key)
+        if value is not None and not isinstance(value, dict):
+            note(f"{key}: {value!r}")
+        return ((str(k).strip().lower(), v) for k, v in value.items()) if isinstance(value, dict) else ()
+
+    if setting is not None and not isinstance(setting, dict):
+        note(f"fields: {setting!r}")
     s = setting if isinstance(setting, dict) else {}
-    for name in _names(s.get("enable")):
+    for name in (n.strip().lower() for n in strings(s.get("enable"), "enable")):
         active.add(name) if name in CATEGORIES else note(name)
-    for name in _names(s.get("disable")):
+    for name in (n.strip().lower() for n in strings(s.get("disable"), "disable")):
         if name not in CATEGORIES:
             note(name)
         elif name == "unclassified":
@@ -72,20 +90,22 @@ def _build(setting) -> Vocabulary:
         else:
             active.discard(name)
     for key, op in (("add", frozenset.union), ("remove", frozenset.difference)):
-        block = s.get(key)
-        for name, items in (block.items() if isinstance(block, dict) else ()):
-            name = str(name)
+        for name, items in block(key):
             if name not in CATEGORIES:
                 note(name)
                 continue
-            entries[name] = op(entries[name], frozenset(_names(items)))
-    block = s.get("stakes")
-    for name, level in (block.items() if isinstance(block, dict) else ()):
-        name = str(name)
+            canon = set()
+            for item in strings(items, f"{key}.{name}"):
+                c = canonical(item)     # matched against canonical keys: written as the owner likes
+                canon.add(c) if c else note(f"{key}.{name}: {item!r}")
+            entries[name] = op(entries[name], frozenset(canon))
+    for name, level in block("stakes"):
         if name not in CATEGORIES:
             note(name)
-        elif level in _STAKES:
-            stakes[name] = level
+        elif isinstance(level, str) and level.strip().lower() in _STAKES:
+            stakes[name] = level.strip().lower()
+        else:
+            note(f"stakes.{name}: {level!r}")
     return Vocabulary(entries, frozenset(active), stakes, version, tuple(unknown), broken)
 
 

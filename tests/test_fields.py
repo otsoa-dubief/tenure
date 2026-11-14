@@ -37,6 +37,27 @@ def test_load_options():
     assert v.stakes["finance"] == "medium" and "unclassified" in v.unknown
 
 
+def test_owner_entries_are_canonical():
+    for written, key in (("numeroCompte", "numero_compte"), ("Numéro Compte", "numero_compte"),
+                         ("tva-intra", "tva_intra")):
+        v = F.load({"add": {"finance": [written]}})
+        assert F.categorize("x", {key: 1}, v, free=False) == {"finance"}, written
+    v = F.load({"remove": {"finance": ["Bank"]}})
+    assert "bank" not in v.entries["finance"] and F.categorize("x", {"bank": 1}, v, free=False) == frozenset()
+    assert F.load({"add": {"finance": ["___"]}}).unknown == ("add.finance: '___'",)
+
+
+def test_mistyped_setting_values():
+    v = F.load({"enable": "identity", "disable": "Secret", "add": {"finance": "tva-intra"},
+                "stakes": {"finance": " High ", "amount": "critical", "access": 2, "nope": "low"}})
+    assert "identity" in v.active and "secret" not in v.active and "tva_intra" in v.entries["finance"]
+    assert v.stakes["finance"] == "high" and v.stakes["amount"] == "medium" and v.stakes["access"] == "medium"
+    assert v.unknown == ("stakes.amount: 'critical'", "stakes.access: 2", "nope")
+    v = F.load({"enable": [1, None, "nope"], "add": 5, "stakes": [1], "remove": {"finance": 3}})
+    assert set(v.unknown) == {"enable: 1", "enable: None", "nope", "add: 5", "stakes: [1]", "remove.finance: 3"}
+    assert F.load(["finance"]).unknown == ("fields: ['finance']",)
+
+
 def test_default_vocabulary():
     v = F.load()
     assert v.active == F.DEFAULT_ON and v.stakes["finance"] == "high" and "iban" in v.entries["finance"]
