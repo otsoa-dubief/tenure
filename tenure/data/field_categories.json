@@ -1,0 +1,128 @@
+{
+  "version": "1",
+  "categories": {
+    "secret": {
+      "stakes": "high",
+      "on": true,
+      "entries": [
+        "password",
+        "passwd",
+        "mot_de_passe",
+        "mdp",
+        "token",
+        "secret",
+        "api_key",
+        "apikey",
+        "credential",
+        "private_key",
+        "client_secret"
+      ]
+    },
+    "finance": {
+      "stakes": "high",
+      "on": true,
+      "entries": [
+        "iban",
+        "bic",
+        "swift",
+        "rib",
+        "bank",
+        "banque",
+        "bancaire",
+        "account_number",
+        "routing_number",
+        "sort_code",
+        "card_number",
+        "credit_card",
+        "payout",
+        "payment_method"
+      ]
+    },
+    "unclassified": {
+      "stakes": "high",
+      "on": true,
+      "entries": []
+    },
+    "amount": {
+      "stakes": "medium",
+      "on": false,
+      "entries": [
+        "amount",
+        "montant",
+        "price",
+        "prix",
+        "tax",
+        "vat",
+        "salary",
+        "salaire"
+      ]
+    },
+    "access": {
+      "stakes": "medium",
+      "on": false,
+      "entries": [
+        "role",
+        "permission",
+        "owner",
+        "assignee",
+        "requester",
+        "member",
+        "admin",
+        "reviewer",
+        "acl"
+      ]
+    },
+    "recipients": {
+      "stakes": "medium",
+      "on": false,
+      "entries": [
+        "attendee",
+        "recipient",
+        "to",
+        "cc",
+        "bcc",
+        "send_to",
+        "reply_to",
+        "send_updates",
+        "notify",
+        "follower",
+        "subscriber"
+      ]
+    },
+    "identity": {
+      "stakes": "medium",
+      "on": false,
+      "entries": [
+        "email",
+        "e_mail",
+        "mail",
+        "courriel",
+        "phone",
+        "telephone",
+        "mobile",
+        "address",
+        "adresse",
+        "birth",
+        "birthday",
+        "date_of_birth",
+        "ssn"
+      ]
+    },
+    "lifecycle": {
+      "stakes": "medium",
+      "on": false,
+      "entries": [
+        "status",
+        "statut",
+        "state",
+        "active",
+        "archived",
+        "in_trash",
+        "closed",
+        "transition",
+        "deleted",
+        "stage"
+      ]
+    }
+  }
+}
