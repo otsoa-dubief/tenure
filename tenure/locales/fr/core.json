@@ -226,7 +226,7 @@
     "one": "{n} autre agent a un historique ({agents}) : {command}",
     "other": "{n} autres agents ont un historique ({agents}) : {command}"
   },
-  "cli.status.fields.broken": "Catégories de champs : le vocabulaire intégré est illisible, les types sensibles ne sont donc pas découpés.",
+  "cli.status.fields.broken": "Catégories de champs : le vocabulaire intégré est illisible, seules les règles structurelles de @unclassified s'appliquent donc.",
   "cli.status.fields.unknown": "Catégories de champs : noms inconnus ou valeurs invalides dans tes réglages, ignorés : {names}",
   "cli.status.held": "retenu par {held}",
   "cli.status.paused": "Apprentissage en pause ici : personne ne répond aux demandes d'approbation ({why}). Les niveaux acquis restent appliqués.",

@@ -226,7 +226,7 @@
     "one": "Otro agente tiene historial ({agents}): {command}",
     "other": "{n} agentes más tienen historial ({agents}): {command}"
   },
-  "cli.status.fields.broken": "Categorías de campos: no se pudo leer el vocabulario integrado, así que los tipos sensibles no se dividen.",
+  "cli.status.fields.broken": "Categorías de campos: no se pudo leer el vocabulario integrado, así que solo se aplican las reglas estructurales de @unclassified.",
   "cli.status.fields.unknown": "Categorías de campos: nombres desconocidos o valores no válidos en tu configuración, ignorados: {names}",
   "cli.status.held": "retenido por {held}",
   "cli.status.paused": "Aprendizaje en pausa aquí: nadie responde a las aprobaciones ({why}). Los niveles ganados siguen activos.",
