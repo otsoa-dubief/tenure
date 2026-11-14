@@ -45,7 +45,7 @@ import uuid
 from collections import OrderedDict
 from contextlib import contextmanager
 
-from . import benchmarks, classify, i18n, params, passport, personal, proofs, rule, store, undo
+from . import benchmarks, classify, fields, i18n, params, passport, personal, proofs, rule, store, undo
 from .i18n import tr
 
 log = logging.getLogger("tenure")
@@ -383,7 +383,9 @@ def settings() -> dict:
     spot = parse_risk(_get("spot_check", params.DEFAULT_SPOT), params.DEFAULT_SPOT)
     overrides = _get("types")
     start = str(_get("start", params.DEFAULT_START) or params.DEFAULT_START).strip().lower()
-    return dict(preset=preset, risks=risks, spot=params.DEFAULT_SPOT if spot is None else spot,
+    raw_fields = _get("fields")
+    raw_fields = raw_fields if isinstance(raw_fields, dict) else {}
+    return dict(vocabulary=fields.load(raw_fields or None), fields=raw_fields, preset=preset, risks=risks, spot=params.DEFAULT_SPOT if spot is None else spot,
                 strict=_truthy(_get("strict", False)), overrides=overrides if isinstance(overrides, dict) else {},
                 enabled=_truthy(_get("enabled", True)),
                 start=start if start in params.STARTS else params.DEFAULT_START)
@@ -398,7 +400,12 @@ def settings_event(cfg: dict) -> dict:
 def settings_fingerprint(cfg: dict) -> str:
     """The settings event plus the type overrides: changing an override is a settings change too."""
     types = {str(k): str(v) for k, v in (cfg.get("overrides") or {}).items()}
-    text = json.dumps({**settings_event(cfg), "types": types}, sort_keys=True, separators=(",", ":"))
+    vocab = cfg.get("vocabulary") or fields.load(cfg.get("fields") or None)
+    resolved = {"entries": {n: sorted(e) for n, e in sorted(vocab.entries.items())}, "active": sorted(vocab.active),
+                "stakes": dict(sorted(vocab.stakes.items())), "version": vocab.version}
+    vhash = hashlib.sha256(json.dumps(resolved, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    text = json.dumps({**settings_event(cfg), "types": types, "vocabulary": vhash}, sort_keys=True,
+                      separators=(",", ":"))
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
@@ -1052,7 +1059,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             return None
         tool, args = str(tool_name or ""), (args if isinstance(args, dict) else {})
         cwd = call_cwd(tool, args, session_id, task_id)
-        act = classify.classify(tool, args, cwd=cwd, overrides=cfg["overrides"])
+        act = classify.classify(tool, args, cwd=cwd, overrides=cfg["overrides"], vocabulary=cfg["vocabulary"])
         if act.stakes == classify.FREE:
             return None
         _purge()
@@ -1207,7 +1214,9 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         with _locked():
             rows = store_().pending_rows(session, call)
         if not session and rows:            # outside any session, call ids recur: the type must match too
-            kind = classify.classify(tool, args, cwd=cwd, overrides=settings()["overrides"]).type
+            cfg2 = settings()
+            kind = classify.classify(tool, args, cwd=cwd, overrides=cfg2["overrides"],
+                                     vocabulary=cfg2["vocabulary"]).type
             rows = [r for r in rows if r["type"] == kind]
             if len(rows) > 1:
                 _ambiguous(rows)

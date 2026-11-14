@@ -1220,3 +1220,29 @@ def test_replay_after_a_stakes_change_matches_the_live_states(plugin):
     for d in list(live.values()) + list(replayed.values()):
         d.pop("changed_at")
     assert replayed == live
+
+
+# ------------------------------------------------------------------------------------- fields: setting
+def test_fields_setting_reaches_classification(plugin):
+    mod, ctx = plugin({"fields": {"enable": ["identity"]}})
+    assert "identity" in mod.settings()["vocabulary"].active
+
+
+def test_malformed_fields_setting(plugin):
+    for bad in (["finance"], {"add": {"finance": [1, None]}}, {"enable": "identity"}, {"stakes": {"finance": "huge"}}):
+        mod, ctx = plugin({"fields": bad})
+        v = mod.settings()["vocabulary"]
+        assert v.stakes["finance"] == "high"
+    mod, ctx = plugin({"fields": {"enable": ["finances"]}})
+    assert mod.settings()["vocabulary"].unknown == ("finances",)
+
+
+def test_fingerprint_unchanged_without_fields_but_tracks_vocabulary(plugin):
+    mod, _ = plugin({})
+    a = mod.settings_fingerprint(mod.settings())
+    mod2, _ = plugin({"fields": {}})
+    assert mod2.settings_fingerprint(mod2.settings()) == a
+    mod3, _ = plugin({"fields": {"add": {"finance": ["numero_compte"]}}})
+    assert mod3.settings_fingerprint(mod3.settings()) != a
+    bare = {k: v for k, v in mod.settings().items() if k not in ("vocabulary", "fields")}
+    assert mod.settings_fingerprint(bare) == a
