@@ -147,6 +147,17 @@ namespaces are unchanged. `"redacted": true` tells the verifier to apply the sam
 before comparing. The hash is not salted: it keeps a name out of a casual reading, it does not stop someone who
 guesses the name. The ledger itself holds the plain type names.
 
+### 3.2 Field-category types
+
+An `mcp:` or `tool:` type can end in a category set: `mcp:<server>:<tool>:@finance`, `mcp:<server>:<tool>:@secret+finance`.
+The last segment starts with `@` and holds only category names (`secret`, `finance`, `unclassified`, `amount`, `access`,
+`recipients`, `identity`, `lifecycle`) joined by `+`, in that fixed order. Everything before it is the parent type.
+Other types containing `@` (`shell:npx:@angular/cli`) have no parent. A category type is an ordinary type: the same
+rule replays it, and a field name or value never appears in it. The classifier decides the categories from the
+call's arguments, so there is **no new ledger event** and the replay is unchanged. The guard that keeps a faulty
+tool's categories asking reads the recorded states at decision time and writes nothing; revoking a tool also revokes
+its category types, one existing `revoke` event each.
+
 ## 4. Verification
 
 `verify(passport, rows)` returns a list of problems, never an exception: malformed input gives problems that start

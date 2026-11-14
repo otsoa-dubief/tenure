@@ -173,3 +173,38 @@ spelling tenure does not know can slip through (see Limits). Every case found so
   If your agent must never be able to reach Hermes' files, keep code-running types at `cap`
   (`types: {"shell:npm*": cap, "shell:make*": cap, "code:execute": cap}`).
 
+
+## Field categories and their limits
+
+An MCP or plugin call is split by the kind of field it touches (see the README, "Field categories"). It is a check on
+what the arguments say, read before the call runs, and it only ever makes a call ask more, never less than before.
+Tested in `tests/test_fields.py` and the classifier tests.
+
+**Covered.** The same field under another spelling: case (`IBAN`, `iban`), camelCase (`userIBAN`), separators
+(`Mot de passe`, `iban_fr__c`), plurals (`api_keys`), invisible and compatibility characters, accents and a few
+Latin letters (`ıban`, `ø`). A field named in a value (`{"field_name": "iban"}`, `{name, value}`, a JSON Patch `path`,
+an `update_mask`, a list under `fields` or `columns`). A JSON document inside a string, up to 3 levels. A decoy field
+added to an otherwise sensitive call gives a new type, so it asks. Fields hidden from the vocabulary go to
+`@unclassified`: opaque ids (`customfield_10016`, `fld…`, `00N…`, numeric or UUID keys under a container), mixed
+Latin and Cyrillic, Greek or Armenian letters, a fourth level of JSON in a string, a free string that writes
+(`sql`, `query`, `formula`, `jql`, `script`), a generic REST write, arguments deeper than 8 levels, more than 5000 distinct keys
+or a JSON string over 1 MB. These ask under `balanced`.
+
+**Fixed with it.** Reading arguments stopped silently at 2000 strings: a path to Hermes' own config placed after
+about 1100 records was never seen and the call kept its medium stakes. A call with more than 2000 strings in its
+arguments, reads included, is now high stakes, so it asks. The self-protection caps are unchanged.
+
+**Limits, stated plainly.**
+
+- A fault on a category does not hold back the tool. A call that passes the field in a form tenure does not recognise
+  but the server accepts (`iBAN` as a value of a made-up key, `{k, v}` pairs, a positional list, an alias the
+  vocabulary lacks) falls back on the tool and escapes the category's probation. Before categories, the same fault
+  would have put the whole tool on probation.
+- SQL inside a tool that is free to run (`query`, `read_query`), positional columns (Sheets), and the meaning of a
+  free string are not read.
+- A tool's mark may not lift by itself: it lifts only on successes of the related type. A tool that is now used only
+  with sensitive fields, or a high-stakes tool held at its cap, keeps it, and after a model change `carry_over` can
+  reopen a trial on a tool that has an old unresolved fault. This errs towards asking, and changes nothing under
+  `balanced`, where the default categories always ask.
+- A tool whose own name contains `:@` is not split. A hostile server could name a tool like another's category type
+  (theoretical: API tool names allow neither `:` nor `@`).

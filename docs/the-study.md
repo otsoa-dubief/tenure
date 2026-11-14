@@ -23,6 +23,12 @@ Adaptations:
 - evidence is re-based when the stakes of a type change;
 - a trial is the next 3 real actions, asked; the study replays 3 hidden variants of the faulty case.
 
+Field categories are a classification precision: an MCP call is split by the kind of field it touches (`secret`,
+`finance`, `unclassified` by default), so a fault on a bank field no longer lands on the tool's plain calls. The
+rule itself is applied to the finer types as it is to any type. No success of a tool ever counts for its
+categories (the study's pieces 2 and 8), and the guard that makes a faulty tool keep its categories asking reads
+only faults not yet redeemed.
+
 Carry-over is our addition; strict mode is the study. The public-benchmark veto is our addition too.
 
 This page will give the results, whatever they are, when the study is published. The README section [The study behind the rule](../README.md#the-study-behind-the-rule) describes the question, the preregistration and the experiment now running.

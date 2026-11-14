@@ -194,6 +194,57 @@ zero), the original's undo snapshots are dropped, and the copy signs its passpor
 ledger records it (`copy` event), so a passport replay recomputes the same tiers. A profile that only moved (a
 restored backup, a renamed folder) keeps everything.
 
+## Field categories
+
+One MCP tool can fix a typo or change a bank account. Since a type is `mcp:<server>:<tool>`, both used to share one
+record: a mistake on an IBAN put plain notes on probation, and 50 clean notes earned the right to change an IBAN
+unasked. So tenure also reads which **kind of field** an MCP or plugin call touches, from the names of its arguments
+(at any depth, inside a JSON string, or passed as a value: `{"field_name": "iban"}`), and splits the type by category:
+`mcp:<server>:update_record:@finance`, `…:@secret+finance`. Each set of categories earns and loses trust on its own
+record; a call that touches no active category keeps its tool's type, as before.
+
+- **On by default:** `secret` (password, token, api key, private key...) and `finance` (IBAN, BIC, card number,
+  payout, payment method...). Both are high stakes, and so is `@unclassified` (below). Under the default `balanced`
+  preset, high stakes has no accepted risk: a call that touches any of them **always asks**. Trust per category
+  matters under `careful`, or if you lower a category's stakes.
+- **Shipped off, medium stakes:** `amount`, `access`, `recipients`, `identity`, `lifecycle`. Turn them on with
+  `fields: {enable: [...]}`.
+- **`@unclassified`:** what cannot be read is treated as the most sensitive. Opaque field ids (Jira `customfield_10016`,
+  Airtable `fld…`, Salesforce `00N…`, numeric or UUID keys under Asana and ClickUp `custom_fields`), a free string that
+  writes (`sql`, `query`, `formula`, `jql`, `script`), a generic REST call (`method` POST, PUT, PATCH or DELETE with a
+  `path`, `endpoint` or `url`), mixed Latin and Cyrillic, Greek or Armenian letters in one key, and arguments too deep
+  or too big to read.
+- **No credit from the tool.** A new category starts untrusted: no success of the tool counts for it. While the tool
+  has a fault not yet redeemed, its categories ask too. The tool's own stakes stay a floor: a category never lowers
+  them.
+- **Private.** Only category names enter the ledger, the passport and the dashboard, never a field name or a value.
+
+```yaml
+fields:
+  enable:  [identity, lifecycle]            # shipped off, turn on
+  disable: [finance]                         # on by default, turn off
+  add:     {finance: [numero_compte]}        # extra names for a category
+  remove:  {finance: [bank]}                 # names to drop
+  stakes:  {finance: medium, identity: high} # stakes per category, up or down
+```
+
+Lowering a category's stakes or turning it off is your choice. The `@unclassified` rules cannot be turned off; to let
+those calls earn trust, use `fields: {stakes: {unclassified: medium}}`.
+
+**Effects to expect, all of them "asks" under `balanced`:**
+
+- `stripe_api_write` goes from medium to high stakes.
+- `fetch` with `method: DELETE` was free; it now asks (so do POST, PUT and PATCH on a free tool).
+- `gmail` `create_filter` with a `query` goes from medium stakes to `@unclassified`.
+- Custom fields written by id (Jira `customfield_*`, Airtable `fld…`, Asana and ClickUp `custom_fields`) go from
+  medium stakes to `@unclassified`.
+- An `mcp:` or `tool:` call with more than 2000 strings in its arguments (about 500 small records), reads included,
+  is now high stakes. It used to be read only up to 2000 strings.
+- Arguments nested deeper than 8 levels (a Jira description with nested bullet lists in ADF, deeply nested Notion
+  blocks) go to `@unclassified` and ask. They were already high stakes: this is not a new freedom, but they ask.
+
+Limits are in [docs/self-protection.md](docs/self-protection.md#field-categories-and-their-limits).
+
 ## The guarantee
 
 You pick the risk you accept per stakes level. tenure turns it into a number of verified successes in a row with
@@ -265,6 +316,7 @@ spot_check: 0.1             # share of a cleared type's actions that still ask
 start: trusted              # trusted | probation (the study's start: every type asks until it earns autonomy)
 strict: false
 types: {"mcp:notion:*": medium, "shell:git:push": cap}   # reclassify action types
+fields: {enable: [identity]}   # field categories, see "Field categories"
 enabled: true
 ```
 

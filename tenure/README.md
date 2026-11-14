@@ -15,6 +15,9 @@ first, and earns its autonomy back on verified evidence, following a rule prereg
   one in ten spot-checked).
 - **Always asks** what leaves the machine (push, publish, deploy, uploads, payments) and what cannot be undone;
   after the agent reads outside content (web, mail, downloads), commands ask for the rest of the session.
+- **Field categories**: an MCP call that touches a secret or a bank field (IBAN, password, token...), or a field it
+  cannot read (custom field ids, free SQL, generic REST writes), earns trust apart from its tool and always asks
+  under the default preset. Other categories ship off; `fields:` turns them on.
 - **Signed autonomy passport**, hash-chained and replayable (`hermes tenure verify`), a per-model benchmark of
   your own work, a switch preview before changing model, a Desktop page and a dashboard tab, five languages.
 - **Local**: no network call, no LLM call. Linux, macOS and Windows (on Windows, plain shell file commands ask
