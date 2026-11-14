@@ -1226,3 +1226,9 @@ def test_9_9_a_mention_of_hermes_in_text_nobody_runs_is_not_capped(w9, cmd):
 ])
 def test_9_9_a_string_that_is_run_as_a_command_is_still_capped(w9, cmd):
     assert wsh(w9, cmd)[1] == CAP, cmd
+
+
+def test_protected_path_after_many_records_is_not_lowered():
+    args = {"records": [{"id": str(i), "note": "x"} for i in range(1100)], "file": "~/.hermes/config.yaml"}
+    act = c.classify("mcp__crm__update_contact", args, cwd="/tmp")
+    assert c.RANK[act.stakes] >= c.RANK[c.HIGH]
