@@ -959,3 +959,67 @@ def test_long_blanks_between_strings_of_inline_code_are_read_at_once():
         start = time.perf_counter()
         C._code_strings(code)
         assert time.perf_counter() - start < 1, len(gap)
+
+
+# ------------------------------------------------- field categories (spec 2026-11-14 §4.1, §4.7)
+from tenure import fields as F
+
+def test_category_type_and_stakes():
+    a = C.classify("mcp__airtable__update_records", {"records": [{"id": "r", "fields": {"IBAN": "x"}}]})
+    assert (a.type, a.stakes) == ("mcp:airtable:update_records:@finance", "high")
+    assert F.parent_of(a.type) == "mcp:airtable:update_records" and F.categories_of(a.type) == {"finance"}
+
+def test_plain_call_keeps_todays_type():
+    a = C.classify("mcp__airtable__update_records", {"records": [{"id": "r", "fields": {"Notes": "x"}}]})
+    assert (a.type, a.stakes) == ("mcp:airtable:update_records", "medium")
+
+def test_override_on_tool_never_lowers_a_category():
+    a = C.classify("mcp__notion__update_page", {"properties": {"IBAN": "x"}}, overrides={"mcp:notion:*": "medium"})
+    assert a.stakes == "high"
+    b = C.classify("mcp__hubspot__manage_crm_objects", {"properties": {"notes": "x"}},
+                   overrides={"mcp:hubspot:manage_crm_objects": "medium"})
+    assert b.stakes == "medium"
+
+def test_category_override_lowers_via_fields_stakes_only():
+    v = F.load({"stakes": {"finance": "medium"}})
+    a = C.classify("mcp__x__update_y", {"iban": "x"}, vocabulary=v)
+    assert a.stakes == "medium"
+
+def test_stripe_api_write_and_fetch_delete():
+    assert C.classify("mcp__stripe__stripe_api_write", {"method": "POST", "path": "/v1/x"}).type.endswith(":@unclassified")
+    assert C.classify("mcp__fetch__fetch", {"method": "DELETE", "url": "https://x"}).stakes == "high"
+
+def test_shell_types_with_at_have_no_parent():
+    assert F.parent_of("shell:npx:@angular/cli") is None and F.parent_of("mcp:a:b:@nope") is None
+
+def test_cap_and_free_untouched():
+    a = C.classify("mcp__crm__update_contact", {"iban": "x", "path": "~/.hermes/config.yaml"}, cwd="/tmp")
+    assert a.stakes == "cap" and "@" not in a.type
+    assert C.classify("mcp__crm__get_contact", {"iban": "x"}).type == "mcp:crm:get_contact"
+
+def test_odd_arguments_never_raise():
+    for args in ({1: "x", None: "y"}, ["iban"], {"___": 1, "\u200b": 2}, None):
+        assert C.classify("mcp__x__update_y", args).type == "mcp:x:update_y"
+    assert C.classify("mcp__x__update_y", {"iban": b"x"}).type == "mcp:x:update_y:@finance"   # la clé compte
+
+def test_fields_error_keeps_parent_high(monkeypatch):
+    monkeypatch.setattr(F, "categorize", lambda *a, **k: 1 / 0)
+    a = C.classify("mcp__x__update_y", {"iban": "x"})
+    assert a.type == "mcp:x:update_y" and C.RANK[a.stakes] >= C.RANK[C.HIGH]
+
+def test_child_rules_only_raise_and_clamped_not_split():
+    assert C.classify("mcp__x__update_y", {"iban": "x"}, overrides={"mcp:x:update_y:@finance": "low"}).stakes == "high"
+    assert C.classify("mcp__x__update_y", {"iban": "x"}, overrides={"mcp:x:update_y:@finance": "cap"}).stakes == "cap"
+    clamped = "mcp__x__" + "a" * 47 + "_0123abcd"     # 64 characters, the form Hermes shortens to (CLAMPED)
+    assert len(clamped) == 64 and C._clamped(clamped)
+    assert ":@" not in C.classify(clamped, {"iban": "x"}).type
+
+def test_read_tool_raised_by_override_is_still_a_read():
+    a = C.classify("mcp__crm__search", {"query": "acme"}, overrides={"mcp:crm:*": "medium"})
+    assert a.type == 'mcp:crm:search'
+
+def test_huge_batch_is_bounded_and_fast():
+    import time
+    t = time.monotonic()
+    a = C.classify("mcp__x__update_y", {"records": [{"id": i, "note": "n"} for i in range(50_000)]})
+    assert C.RANK[a.stakes] >= C.RANK[C.HIGH] and time.monotonic() - t < 3.0
