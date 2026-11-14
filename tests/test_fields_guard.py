@@ -7,7 +7,7 @@ import os
 
 from test_plugin import A, plugin, state  # noqa: F401  (pytest fixture)
 
-from tenure import rule
+from tenure import i18n, rule
 
 
 def seed(mod, key, stakes="medium", **kw):
@@ -30,7 +30,14 @@ def test_new_category_asks_even_if_tool_is_t3(plugin):
 def test_marked_tool_holds_an_earned_category(plugin):
     mod, ctx = plugin(CAREFUL); seed(mod, P, lengthened=True); seed(mod, F_, **T3)
     assert ctx.call("mcp__crm__update_contact", {"iban": "x"}) == "approved"
-    assert ctx.prompts[-1]["message"].count("mcp:crm:update_contact") >= 2      # the kind and the tool holding it
+    assert i18n.tr("ask.why.held", type=F_, held=P) in ctx.prompts[-1]["message"]
+
+
+def test_trusted_start_names_the_holding_tool(plugin):
+    mod, ctx = plugin({"start": "trusted", "fields": {"stakes": {"finance": "medium"}}})
+    seed(mod, P, lengthened=True); seed(mod, F_, **T3)
+    assert ctx.call("mcp__crm__update_contact", {"iban": "x"}) == "approved"
+    assert i18n.tr("ask.why.held", type=F_, held=P) in ctx.prompts[-1]["message"]
 
 
 def test_tool_without_state_does_not_hold(plugin):
@@ -44,7 +51,8 @@ def test_overlapping_combination_holds(plugin):
     seed(mod, "mcp:crm:update_contact:@secret+finance", trial_left=2)
     seed(mod, "mcp:crm:update_contact:@secret+finance+unclassified", **T3)
     assert ctx.call("mcp__crm__update_contact", {"iban": "x", "password": "p", "fld0123456789abcd": 1}) == "approved"
-    assert "@secret+finance" in ctx.prompts[-1]["message"]
+    assert i18n.tr("ask.why.held", type="mcp:crm:update_contact:@secret+finance+unclassified",
+                   held="mcp:crm:update_contact:@secret+finance") in ctx.prompts[-1]["message"]
 
 
 def test_old_resolved_fault_on_t3_tool_does_not_hold(plugin):

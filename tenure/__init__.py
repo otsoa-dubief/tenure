@@ -940,12 +940,12 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
         why = tr("ask.why.other_stakes", type=act.type, earned=stakes_name(earned_at), stakes=stakes)
     elif unsaved:
         why = tr("ask.why.unsaved", type=act.type)
+    elif held:                                          # before the trusted start's own reasons: name what holds it
+        why = tr("ask.why.held", type=act.type, held=held)
     elif trusted_start and _uncovered_local(act, s, n):
         why = tr("ask.why.untrusted", type=act.type, stakes=stakes)
     elif s.tier == rule.T1 and s.faults and act.reversible and act.stakes in params.WALD:
         why = tr("ask.why.climb", type=act.type, stakes=stakes, n=_to_t2(s))   # the next step, not the far one
-    elif held:
-        why = tr("ask.why.held", type=act.type, held=held)
     else:
         why = tr("ask.why.series", type=act.type, stakes=stakes, series=s.series, required=rule.required(s, n),
                  sessions=len(s.sessions), needed=rule.SESSIONS)
