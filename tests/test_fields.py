@@ -145,3 +145,11 @@ def test_disabled_categories_and_their_exceptions():
     assert c({"role": "admin"}) == {"access"} and c({"role": "user", "content": "x"}) == frozenset()
     assert c({"stateId": "s"}) == {"lifecycle"} and c({"send_to": ["a@b.c"]}) == {"recipients"}
     assert c({"to": "a@b.c"}) == {"recipients"} and c({"to": "2026-02-01"}) == frozenset()
+
+
+def test_field_named_in_value_under_container():
+    assert cat({"custom_fields": [{"field_id": "1201234567", "value": 1}]}) == {"unclassified"}
+    assert cat({"custom_fields": [{"id": "123e4567-e89b-12d3-a456-426614174000", "value": 1}]}) == {"unclassified"}
+    assert cat({"data": {"id": "1234567", "type": "x"}}) == frozenset()     # JSON:API
+    assert cat({"fields": [{"id": "1234567"}]}) == frozenset()
+    assert cat({"key": "123456"}) == frozenset()

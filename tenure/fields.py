@@ -175,6 +175,7 @@ _FIELD_VALUE_KEYS = frozenset({"field_name", "field", "field_id", "key", "proper
 _FIELD_LIST_KEYS = frozenset({"fields", "columns", "properties"})
 _RICH_KEYS = frozenset({"type", "content", "attrs", "text", "marks", "version", "annotations", "plain_text", "href"})
 _CONTAINERS = frozenset({"fields", "properties", "custom_fields", "column_values", "data", "values"})
+_ID_NAMES_FIELD = frozenset({"custom_fields", "column_values"})
 _FREE_STRING = frozenset({"sql", "query", "statement", "formula", "jql", "script"})
 _REST_METHOD_KEYS = frozenset({"method", "http_method", "verb"})
 _REST_WRITE = frozenset({"POST", "PUT", "PATCH", "DELETE"})
@@ -304,17 +305,18 @@ class _Reader:
             if cat not in self.hits and not self.exempt(cat, entry, canon, value, root):
                 self.hits.add(cat)
 
-    def walk(self, value, depth: int, container: str | None, root: bool, decode: bool, level: int) -> None:
+    def walk(self, value, depth: int, container: str | None, root: bool, decode: bool, level: int,
+             in_list: bool = False) -> None:
         if self.stop:
             return
         if isinstance(value, (dict, list, tuple)) and depth > MAX_DEPTH:
             self.flag()
             return
         if isinstance(value, dict):
-            self.obj(value, depth, container, root, level)
+            self.obj(value, depth, container, root, level, in_list)
         elif isinstance(value, (list, tuple)):
             for item in value:
-                self.walk(item, depth + 1, container, root, decode, level)
+                self.walk(item, depth + 1, container, root, decode, level, True)
                 if self.stop:
                     return
         elif isinstance(value, str) and decode:
@@ -339,7 +341,7 @@ class _Reader:
             return
         self.walk(obj, depth + 1, container, root, True, level + 1)
 
-    def obj(self, d: dict, depth: int, container: str | None, root: bool, level: int) -> None:
+    def obj(self, d: dict, depth: int, container: str | None, root: bool, level: int, in_list: bool = False) -> None:
         items = [(_key(k), v) for k, v in d.items()]
         canons = [self.canon(k) for k, _ in items]
         by_canon: dict[str, object] = {}
@@ -348,6 +350,10 @@ class _Reader:
         node = not root and bool(items) and set(canons) <= _RICH_KEYS
         if _rest_dict(d):
             self.flag()
+        # a list item directly under a container: the fields it names in values are tested as opaque ids there,
+        # and under custom_fields / column_values its `id` names a field too (ClickUp, monday)
+        fv_container = container if in_list else None
+        id_names_field = in_list and container in _ID_NAMES_FIELD
         for ck, (k, v) in zip(canons, items):
             if self.stop:
                 return
@@ -357,10 +363,10 @@ class _Reader:
             if ck in _FREE_STRING and isinstance(v, str):
                 self.flag()
             if isinstance(v, str):
-                if ck in _FIELD_VALUE_KEYS:
-                    self.candidate(v, None, _MISSING, False)
+                if ck in _FIELD_VALUE_KEYS or (id_names_field and ck == "id"):
+                    self.candidate(v, fv_container, _MISSING, False)
                 elif ck == "name" and "value" in by_canon:
-                    self.candidate(v, None, by_canon["value"], False)
+                    self.candidate(v, fv_container, by_canon["value"], False)
                 elif ck == "path" and "op" in by_canon:
                     for seg, cont in _pointer_segments(v):
                         self.candidate(seg, cont, by_canon.get("value", _MISSING), False)
