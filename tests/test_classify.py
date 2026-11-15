@@ -1072,7 +1072,7 @@ def test_summary_nested_target_and_cap():
 
 
 def test_summary_global_cap_400_with_prefix():
-    args = {f"contact_id{i}" if False else f"id_{i}_id": "z" * 120 for i in range(6)}
+    args = {f"id_{i}_id": "z" * 120 for i in range(6)}
     s = C._summary("mcp__crm__u", args, "mcp:crm:u")
     assert len(s) == 400 and s.endswith("…")     # the prefix `type: tool(` counts in the 400
 
@@ -1096,3 +1096,18 @@ def test_summary_control_chars_visible():
     s = C._summary("mcp__x__u", {"contact_id": "ab‮cd"}, "mcp:x:u")
     assert "‮" not in s and "�" in s
     assert "a b c" in C._summary("mcp__x__u", {"contact_id": "a\nb\tc"}, "mcp:x:u")
+
+
+def test_summary_nested_target_keeps_siblings():
+    s = C._summary("mcp__crm__u", {"params": {"contact_id": 1, "delete": True}}, "mcp:crm:u")
+    assert 'params.contact_id=1' in s and 'params={"delete":true}' in s
+
+
+def test_summary_huge_batch_is_cheap_and_masked():
+    import time
+    recs = [{"id": i, "fields": {"Password": "p%d" % i, "n": i}} for i in range(50_000)]
+    args = {"records": recs, "url": "https://u:p@h.io/?k=v"}
+    t0 = time.perf_counter()
+    s = C._summary("mcp__at__create", args, "mcp:at:create")
+    assert time.perf_counter() - t0 < 0.2
+    assert '"Password":"•••"' in s and "p1" not in s and "u:p@" not in s and "k=•••" in s
