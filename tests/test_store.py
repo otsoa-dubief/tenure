@@ -366,3 +366,181 @@ def test_log_validates_event_kind(st):
         with pytest.raises(ValueError):
             st.log({})
     assert len(st.ledger()) == len(store.INPUT_KINDS | store.DERIVED_KINDS)
+
+
+# ------------------------------------------------------------------------------------------------- recent
+def _tables(path):
+    db = sqlite3.connect(path)
+    try:
+        return {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+    finally:
+        db.close()
+
+
+def _drop_recent(path):
+    """A schema 3 database written by the code before the table ``recent``, with ledger rows."""
+    w = store.Store(path)
+    with w.transaction():
+        w.log({"event": "revoke", "agent": A, "type": "file:write"})
+        w.log({"event": "settings", "risks": {"low": 0.2}, "spot": 0.1, "strict": False, "rule": "x"})
+        w.bump(A, "actions")
+        w.db.execute("DROP TABLE IF EXISTS recent")
+    rows = w.ledger()
+    w.db.close()
+    assert "recent" not in _tables(path)
+    return rows
+
+
+def test_recent_is_one_of_the_tables():
+    assert "recent" in store.TABLES and store.SCHEMA_VERSION == "3"
+
+
+def test_recent_added_without_touching_ledger(tmp_path):
+    path = str(tmp_path / "tenure.db")
+    before = _drop_recent(path)
+    s = store.Store(path)
+    assert "recent" in _tables(path)
+    assert s.get_meta("schema") == "3" and s.totals(A)["actions"] == 1
+    after = s.ledger()
+    assert store.verify(after) == [] and [r["hash"] for r in after] == [r["hash"] for r in before]
+    assert not [f for f in os.listdir(tmp_path) if ".bak-" in f]                 # nothing dropped, nothing copied
+    cols = [r[1] for r in s.db.execute("PRAGMA table_info(recent)")]
+    assert cols == ["n", "session", "agent", "type", "at", "flagged", "undo_id"]
+    indexed = {r[0] for r in s.db.execute("SELECT sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'recent'")}
+    assert any("(session)" in q for q in indexed) and any("(at)" in q for q in indexed)
+
+
+def test_open_current_db_takes_no_write_lock(tmp_path, monkeypatch):
+    """Guard: opening a database that already has every table only reads, so another writer never delays it."""
+    path = str(tmp_path / "tenure.db")
+    store.Store(path).db.close()
+    monkeypatch.setattr(store, "BUSY_TIMEOUT", 0.2)
+    other = sqlite3.connect(path, isolation_level=None)
+    other.execute("BEGIN IMMEDIATE")
+    try:
+        t0 = time.monotonic()
+        s = store.Store(path)
+        assert time.monotonic() - t0 < 0.15 and s.get_meta("schema") == "3"
+    finally:
+        other.execute("ROLLBACK")
+        other.close()
+
+
+def test_a_locked_database_without_recent_still_opens(tmp_path, monkeypatch):
+    """The table cannot be added while another process writes: the store opens without it, every recent method is
+    empty or does nothing, and the next open adds it."""
+    path = str(tmp_path / "tenure.db")
+    _drop_recent(path)
+    monkeypatch.setattr(store, "BUSY_TIMEOUT", 0.2)
+    other = sqlite3.connect(path, isolation_level=None)
+    other.execute("BEGIN IMMEDIATE")
+    try:
+        s = store.Store(path)
+    finally:
+        other.execute("ROLLBACK")
+        other.close()
+    assert "recent" not in _tables(path) and store.verify(s.ledger()) == []
+    with s.transaction():
+        assert s.add_recent("s", A, "file:write", at=time.time(), flagged=False, undo_id=None) is None
+        s.mark_flagged(1)
+        s.flag_by_undo(1)
+        s.clear_recent()
+    assert s.recent(1) is None and s.recent_rows(None) == [] and s.count_recent("s") == 0
+    s.db.close()
+    s = store.Store(path)
+    assert "recent" in _tables(path)
+    with s.transaction():
+        assert s.add_recent("s", A, "file:write", at=time.time(), flagged=False, undo_id=None) == 1
+
+
+def test_open_readonly_without_recent(tmp_path):
+    """Guard: the dashboard opens a database the plugin has not reopened since the table was added."""
+    path = str(tmp_path / "tenure.db")
+    _drop_recent(path)
+    r = store.Store.open_readonly(path)
+    assert r.get_meta("schema") == "3" and store.verify(r.ledger()) == []
+    assert "recent" not in _tables(path)
+
+
+def test_recent_methods_read_nothing_from_a_readonly_store_without_the_table(tmp_path):
+    path = str(tmp_path / "tenure.db")
+    _drop_recent(path)
+    r = store.Store.open_readonly(path)
+    assert r.recent(1) is None and r.recent_rows(None) == [] and r.recent_rows("s") == [] and r.count_recent("") == 0
+
+
+def test_open_readonly_reads_recent(tmp_path):
+    path = str(tmp_path / "tenure.db")
+    w = store.Store(path)
+    with w.transaction():
+        n = w.add_recent("s", A, "file:write", at=time.time(), flagged=True, undo_id=4)
+    r = store.Store.open_readonly(path)
+    assert r.recent(n) == {"n": n, "session": "s", "agent": A, "type": "file:write", "at": r.recent(n)["at"],
+                           "flagged": True, "undo_id": 4}
+
+
+def test_a_recreated_old_schema_has_recent(tmp_path):
+    path = str(tmp_path / "tenure.db")
+    w = store.Store(path)
+    with w.transaction():
+        w.set_meta("schema", "2")
+    w.db.close()
+    s = store.Store(path)
+    assert s.get_meta("schema") == "3" and "recent" in _tables(path)
+
+
+def test_numbers_never_reused_after_purge(st):
+    now = time.time()
+    with st.transaction():
+        a = st.add_recent("s", A, "file:write", at=now - 25 * 3600, flagged=False, undo_id=None)
+        b = st.add_recent("s", A, "file:write", at=now - 24.5 * 3600, flagged=False, undo_id=None)
+    assert (a, b) == (1, 2)
+    with st.transaction():
+        c = st.add_recent("s", A, "shell:npm", at=now, flagged=False, undo_id=None)    # purges both, same write
+    assert c == 3 and st.db.execute("SELECT n FROM recent").fetchall() == [(3,)]
+    with st.transaction():
+        st.db.execute("DELETE FROM recent")                                           # even after a full purge
+        assert st.add_recent("s", A, "shell:npm", at=now, flagged=False, undo_id=None) == 4
+
+
+def test_recent_rows_are_filtered_to_24_hours_without_a_write(st, monkeypatch):
+    now = time.time()
+    with st.transaction():
+        old = st.add_recent("s1", A, "file:write", at=now - 3600, flagged=False, undo_id=None)
+        for i in range(25):
+            st.add_recent("s1" if i % 2 else "s2", A, f"t{i}", at=now + i, flagged=False, undo_id=None)
+    rows = st.recent_rows("s1")
+    assert len(rows) == 13 and [r["type"] for r in rows[:2]] == ["t23", "t21"]            # newest first
+    assert rows[-1]["n"] == old and all(r["session"] == "s1" for r in rows)
+    assert len(st.recent_rows(None)) == 20 and len(st.recent_rows(None, limit=50)) == 26
+    assert st.count_recent(exclude_session="s1") == 13 and st.count_recent(exclude_session="x") == 26
+    monkeypatch.setattr(store.time, "time", lambda: now + 23.5 * 3600)              # the old row is now 24.5 h old
+    assert st.recent(old) is None and old not in [r["n"] for r in st.recent_rows("s1", limit=50)]
+    assert st.count_recent(exclude_session="s2") == 12
+    assert st.db.execute("SELECT COUNT(*) FROM recent").fetchone()[0] == 26                # nothing was deleted
+    assert st.recent(9999) is None
+
+
+def test_flags_on_recent_and_undo(st):
+    with st.transaction():
+        u = st.add_undo(A, "file:write", "snap")
+        n = st.add_recent("s", A, "file:write", at=time.time(), flagged=False, undo_id=u)
+        m = st.add_recent("s", A, "file:write", at=time.time(), flagged=False, undo_id=None)
+    assert st.recent(n)["flagged"] is False and st.recent(n)["undo_id"] == u
+    with st.transaction():
+        st.flag_by_undo(u)                                     # an undo marks its action flagged
+        st.mark_flagged(m)
+    assert st.recent(n)["flagged"] is True and st.recent(m)["flagged"] is True
+    assert st.get_undo(u)["fault"] is False
+    with st.transaction():
+        st.mark_undo_fault(u)                                  # a flag marks its snapshot: the undo counts no fault
+    assert st.get_undo(u)["fault"] is True
+
+
+def test_recent_writes_outside_a_transaction_raise(st):
+    calls = [lambda: st.add_recent("s", A, "t", at=time.time(), flagged=False, undo_id=None),
+             lambda: st.mark_flagged(1), lambda: st.flag_by_undo(1), lambda: st.mark_undo_fault(1),
+             lambda: st.clear_recent()]
+    for call in calls:
+        with pytest.raises(RuntimeError, match="outside a transaction"):
+            call()

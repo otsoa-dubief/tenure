@@ -320,7 +320,7 @@
   "tier.short.notify": "T2 actúa y luego avisa",
   "undo.already": "La acción {id} ya está deshecha.",
   "undo.done": "Deshacer {id}: archivos restaurados. Contado como fallo de {type} para {agent}; ahora está en {tier}.",
-  "undo.done_already_fault": "Deshacer {id}: archivos restaurados. La comprobación automática ya había contado esta acción como fallo de {type}; no se registra un segundo fallo.",
+  "undo.done_already_fault": "Deshacer {id}: archivos restaurados. Esta acción ya había contado como fallo de {type} (comprobación automática o señalamiento); no se registra un segundo fallo.",
   "undo.expired": {
     "one": "La entrada de deshacer {id} tiene más de {n} h: la instantánea ya no se conserva.",
     "other": "La entrada de deshacer {id} tiene más de {n} h: la instantánea ya no se conserva."

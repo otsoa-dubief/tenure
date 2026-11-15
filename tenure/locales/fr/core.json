@@ -320,7 +320,7 @@
   "tier.short.notify": "T2 agit, puis prévient",
   "undo.already": "L'action {id} est déjà annulée.",
   "undo.done": "Annulation {id} : fichiers restaurés. Comptée comme une faute de {type} pour {agent} ; il est maintenant en {tier}.",
-  "undo.done_already_fault": "Annulation {id} : fichiers restaurés. La vérification automatique avait déjà compté cette action comme une faute de {type} ; aucune seconde faute n'est enregistrée.",
+  "undo.done_already_fault": "Annulation {id} : fichiers restaurés. Cette action avait déjà compté comme une faute de {type} (vérification automatique ou signalement) ; aucune seconde faute n'est enregistrée.",
   "undo.expired": {
     "one": "L'annulation {id} date de plus de {n} h : l'instantané n'est plus conservé.",
     "other": "L'annulation {id} date de plus de {n} h : l'instantané n'est plus conservé."
