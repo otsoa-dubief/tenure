@@ -225,3 +225,20 @@ def test_mask_shapes_and_depth():
         out = out["a"]
     assert out == "…"
     assert F.mask("plain text") == "plain text"
+
+
+def test_mask_url_leading_whitespace():
+    v = F.mask("  \n https://u:p@h.io/a?k=v")
+    assert "u:p@" not in v and "k=•••" in v and v.startswith("https://•••@h.io")
+
+
+def test_mask_url_fragment_pairs():
+    v = F.mask("https://h.io/cb#access_token=abc&state=xyz")
+    assert v == "https://h.io/cb#access_token=•••&state=•••"
+    assert F.mask("https://h.io/doc#top") == "https://h.io/doc#top"
+
+
+def test_mask_url_bare_query_parts():
+    v = F.mask("https://h.io/a?abc123")
+    assert v == "https://h.io/a?•••" and "%" not in v
+    assert F.mask("https://h.io/a?abc123&p=2") == "https://h.io/a?•••&p=•••"

@@ -17,6 +17,7 @@ from __future__ import annotations
 import fnmatch
 import functools
 import itertools
+import json
 import os
 import re
 
@@ -25,6 +26,7 @@ import shlex
 import stat as _stat
 import sys
 import threading
+import unicodedata
 from dataclasses import dataclass
 
 FREE, LOW, MEDIUM, HIGH, CAP = "free", "low", "medium", "high", "cap"
@@ -4936,16 +4938,66 @@ def sensitive_path(path: str, cwd: str | None = None, home: str | None = None) -
         _CACHE.memo = _CACHE.roots = None
 
 
+_SUMMARY_ARGS = 6        # arguments shown, then "…"
+_SUMMARY_TARGET = 120    # a target is shown whole up to here, then its start (80) and end (39)
+_SUMMARY_OTHER = 40
+_SUMMARY_CAP = 400
+
+
+def _clean(text: str) -> str:
+    """Whitespace folded to one space, then any remaining Cf/Cc character shown as U+FFFD."""
+    text = " ".join(text.split())
+    return "".join("\ufffd" if unicodedata.category(c) in ("Cf", "Cc") else c for c in text)
+
+
+def _show(value) -> str:
+    if isinstance(value, str):
+        return value
+    try:
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":"), default=str)
+    except Exception:
+        return str(value)
+
+
 def _summary(tool: str, args: dict, t: str) -> str:
+    """The line an approval prompt shows: the target of the call first and whole, secrets masked (spec 4.1)."""
+    if not isinstance(args, dict):
+        args = {}
     if tool == "terminal":
-        what = str(args.get("command", ""))
-    elif "path" in args:
-        what = str(args.get("path"))
-    else:
-        keys = [f"{k}={str(v)[:40]}" for k, v in list(args.items())[:3]]
-        what = f"{tool}({', '.join(keys)})"
-    what = " ".join(what.split())
-    return f"{t}: {what[:200]}"
+        what = _clean(str(args.get("command", "")))
+        return f"{t}: {what[:200]}"
+    if tool in ("write_file", "patch") and "path" in args:
+        what = _clean(str(args.get("path")))
+        return f"{t}: {what[:200]}"
+    masked = fields.mask(args)
+    targets: list[tuple[str, object]] = []
+    others: list[tuple[str, object]] = []
+    for k, v in masked.items():
+        key = str(k)
+        if fields.is_target(key):
+            targets.append((key, v))
+        elif isinstance(v, dict):
+            nested = [(f"{key}.{sk}", sv) for sk, sv in v.items() if fields.is_target(str(sk))]
+            if nested:                      # `params.contact_id=4821`; `params` itself is not repeated
+                targets += nested
+            else:
+                others.append((key, v))
+        else:
+            others.append((key, v))
+    parts = []
+    for is_target, group in ((True, targets), (False, others)):
+        for key, v in group:
+            text = _clean(_show(v))
+            if is_target:
+                if len(text) > _SUMMARY_TARGET:
+                    text = text[:80] + "\u2026" + text[-39:]
+            elif len(text) > _SUMMARY_OTHER:
+                text = text[:_SUMMARY_OTHER] + "\u2026"
+            parts.append(f"{_clean(key)}={text}")
+    if len(parts) > _SUMMARY_ARGS:
+        parts = parts[:_SUMMARY_ARGS] + ["\u2026"]
+    out = f"{t}: {tool}({', '.join(parts)})"
+    return out if len(out) <= _SUMMARY_CAP else out[:_SUMMARY_CAP - 1] + "\u2026"
 
 
 def _strings(value, depth: int = 0, out: list | None = None) -> list:

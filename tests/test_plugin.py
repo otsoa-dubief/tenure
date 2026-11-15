@@ -1256,3 +1256,12 @@ def test_fingerprint_unchanged_without_fields_but_tracks_vocabulary(plugin):
     assert mod3.settings_fingerprint(mod3.settings()) != a
     bare = {k: v for k, v in mod.settings().items() if k not in ("vocabulary", "fields")}
     assert mod.settings_fingerprint(bare) == a
+
+
+def test_secret_masking_survives_fields_disable_secret(plugin):
+    """`is_secret` ignores the `fields:` vocabulary: the prompt still masks `password` with `secret` disabled."""
+    mod, ctx = plugin({"fields": {"disable": ["secret"]}})
+    ctx.call("mcp__crm__update_contact", {"contact_id": "4821", "password": "hunter2-xyz"})
+    assert ctx.prompts, "the call must reach an approval prompt"
+    msg = ctx.prompts[-1]["message"]
+    assert "contact_id=4821" in msg and "password=•••" in msg and "hunter2" not in msg
