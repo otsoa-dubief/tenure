@@ -27,7 +27,8 @@ from .rule import TypeState
 GENESIS = "0" * 64
 SCHEMA_VERSION = "3"
 BUSY_TIMEOUT = 5.0             # seconds a writer waits for another process's transaction, well under a hook's limit
-TABLES = ("types", "pending", "sessions", "undo", "stats", "meta", "ledger")
+TABLES = ("types", "pending", "sessions", "undo", "stats", "meta", "ledger", "recent")
+RECENT_WINDOW = 24 * 3600      # seconds a numbered action stays in ``recent``
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS types (agent TEXT NOT NULL, key TEXT NOT NULL, state TEXT NOT NULL,
                                   PRIMARY KEY (agent, key));
@@ -47,6 +48,15 @@ CREATE TABLE IF NOT EXISTS stats (agent TEXT NOT NULL, day TEXT NOT NULL, action
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS ledger (seq INTEGER PRIMARY KEY AUTOINCREMENT, at REAL, event TEXT, prev TEXT, hash TEXT);
 """
+# Added to a schema 3 database without changing its version (``Store._ensure_recent``). Its shape is fixed: a future
+# column comes through a guarded ``ALTER TABLE ADD COLUMN``. No argument, path or summary is ever stored in it.
+RECENT_SCHEMA = """
+CREATE TABLE IF NOT EXISTS recent (n INTEGER PRIMARY KEY AUTOINCREMENT, session TEXT, agent TEXT, type TEXT, at REAL,
+                                   flagged INTEGER DEFAULT 0, undo_id INTEGER);
+CREATE INDEX IF NOT EXISTS recent_session ON recent (session);
+CREATE INDEX IF NOT EXISTS recent_at ON recent (at);
+"""
+RECENT_COLS = ("n", "session", "agent", "type", "at", "flagged", "undo_id")
 INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke", "copy"})
 DISTRUST = "distrust:"     # meta key prefix: a type that lost the trusted start in this profile
 DERIVED_KINDS = frozenset({"tier", "trial", "confirmed", "revoked", "neutral_expired"})   # display only
@@ -115,6 +125,7 @@ class Store:
         except sqlite3.DatabaseError:
             pass
         self._ensure_schema()
+        self._ensure_recent()
         if new and os.name == "posix":
             os.chmod(path, 0o600)
 
@@ -136,6 +147,7 @@ class Store:
             self.db.close()
             raise RuntimeError(f"tenure store: {path} is not a schema {SCHEMA_VERSION} database "
                                f"(found {version!r}); open it once with the plugin first")
+        self.has_recent = self._recent_exists()
         return self
 
     def _ensure_schema(self) -> None:
@@ -171,6 +183,32 @@ class Store:
             self.db.execute("ROLLBACK")
             raise
         self.db.execute("COMMIT")
+
+    def _recent_exists(self) -> bool:
+        return self.db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'recent'").fetchone() \
+            is not None
+
+    def _ensure_recent(self) -> None:
+        """Add the table ``recent`` to a schema 3 database that lacks it, without touching the version, the ledger
+        or any other table. Reads first: a database that has it takes no write lock. When another process holds the
+        write lock past the timeout, the store opens without the table (every ``recent`` method is then empty or does
+        nothing) and the next open tries again: an action never fails because of it."""
+        self.has_recent = self._recent_exists()
+        if self.has_recent:
+            return
+        try:
+            self.db.execute("BEGIN IMMEDIATE")
+        except sqlite3.OperationalError:                 # database is locked: try at the next open
+            return
+        try:
+            for stmt in RECENT_SCHEMA.split(";"):
+                if stmt.strip():
+                    self.db.execute(stmt)
+        except BaseException:
+            self.db.execute("ROLLBACK")
+            raise
+        self.db.execute("COMMIT")
+        self.has_recent = True
 
     def _backup(self, version: str | None) -> None:
         """Copy a database about to be dropped, when it holds any table, before anything is lost."""
@@ -322,6 +360,75 @@ class Store:
     def mark_undone(self, id: int) -> None:
         self._write()
         self.db.execute("UPDATE undo SET undone = 1 WHERE id = ?", (id,))
+
+    def mark_undo_fault(self, id: int) -> None:
+        """The action of this undo entry already counted as a fault (a flag): undoing it counts no second one."""
+        self._write()
+        self.db.execute("UPDATE undo SET fault = 1 WHERE id = ?", (id,))
+
+    # ------------------------------------------------------------------------------------------------- recent
+    # Numbered actions of the last 24 hours: session (anonymised), agent, type, time, already a fault, undo id.
+    # Without the table (see _ensure_recent), reads are empty and writes do nothing.
+    @staticmethod
+    def _recent(row) -> dict:
+        d = dict(zip(RECENT_COLS, row))
+        d["flagged"] = bool(d["flagged"])
+        return d
+
+    def add_recent(self, session: str, agent: str, type_key: str, at: float, *, flagged: bool,
+                   undo_id: int | None) -> int | None:
+        """Number one settled action and purge the rows older than 24 hours, in the same write. Numbers are never
+        reused (AUTOINCREMENT), even after every row is purged. None without the table."""
+        self._write()
+        if not self.has_recent:
+            return None
+        self.db.execute("DELETE FROM recent WHERE at < ?", (at - RECENT_WINDOW,))
+        cur = self.db.execute("INSERT INTO recent (session, agent, type, at, flagged, undo_id) "
+                              "VALUES (?, ?, ?, ?, ?, ?)", (session, agent, type_key, at, int(bool(flagged)), undo_id))
+        return int(cur.lastrowid)
+
+    def recent(self, n: int) -> dict | None:
+        """Action number ``n``, when it is less than 24 hours old."""
+        if not self.has_recent:
+            return None
+        row = self.db.execute("SELECT %s FROM recent WHERE n = ? AND at >= ?" % ", ".join(RECENT_COLS),
+                              (n, time.time() - RECENT_WINDOW)).fetchone()
+        return None if row is None else self._recent(row)
+
+    def recent_rows(self, session: str | None, limit: int = 20) -> list[dict]:
+        """The newest numbered actions of the last 24 hours, of one session (every session for None)."""
+        if not self.has_recent:
+            return []
+        q = "SELECT %s FROM recent WHERE at >= ?" % ", ".join(RECENT_COLS)
+        args: list = [time.time() - RECENT_WINDOW]
+        if session is not None:
+            q += " AND session = ?"
+            args.append(session)
+        rows = self.db.execute(q + " ORDER BY n DESC LIMIT ?", (*args, int(limit))).fetchall()
+        return [self._recent(r) for r in rows]
+
+    def count_recent(self, exclude_session: str) -> int:
+        """Numbered actions of the last 24 hours outside one session."""
+        if not self.has_recent:
+            return 0
+        return self.db.execute("SELECT COUNT(*) FROM recent WHERE at >= ? AND session IS NOT ?",
+                               (time.time() - RECENT_WINDOW, exclude_session)).fetchone()[0]
+
+    def mark_flagged(self, n: int) -> None:
+        self._write()
+        if self.has_recent:
+            self.db.execute("UPDATE recent SET flagged = 1 WHERE n = ?", (n,))
+
+    def flag_by_undo(self, undo_id: int) -> None:
+        """An undone action counts as signalled: it cannot be flagged afterwards."""
+        self._write()
+        if self.has_recent:
+            self.db.execute("UPDATE recent SET flagged = 1 WHERE undo_id = ?", (undo_id,))
+
+    def clear_recent(self) -> None:
+        self._write()
+        if self.has_recent:
+            self.db.execute("DELETE FROM recent")
 
     # --------------------------------------------------------------------------------------------------- stats
     def bump(self, agent: str, field: str, n: int = 1, at: float | None = None) -> None:

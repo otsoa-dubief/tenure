@@ -280,7 +280,7 @@
   "tier.short.notify": "T2 先执行后告知",
   "undo.already": "操作 {id} 已经撤销过。",
   "undo.done": "撤销 {id}：文件已恢复。已记为 {agent} 在 {type} 上的一次失误；现为 {tier}。",
-  "undo.done_already_fault": "撤销 {id}：文件已恢复。自动检查已将此操作记为 {type} 的一次失误；不会重复记录。",
+  "undo.done_already_fault": "撤销 {id}：文件已恢复。此操作已被记为 {type} 的一次失误（自动检查或标记）；不会重复记录。",
   "undo.expired": {
     "other": "撤销条目 {id} 已超过 {n} 小时：快照已不再保留。"
   },

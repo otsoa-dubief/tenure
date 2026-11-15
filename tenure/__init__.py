@@ -218,10 +218,10 @@ def _check_copied(st: store.Store) -> None:
     The database records a salted hash of its Hermes home, the identity of its file on disk and a random store id. A
     different file (a copy, not a rename) whose store id another profile of the same install still holds is a copy:
     a ``copy`` event is logged (replayed by passports), every type restarts as after a model change (half the
-    series, provisional; strict mode: empty), the original's undo snapshots, pending asks, keys and exported files
-    are dropped, and the copy gets ids of its own. A different file that no other profile claims moved (a restored
-    backup): nothing changes. Raises when it cannot conclude (CopyCheckFailed, or any error: the transaction rolls
-    back, file removals included); store_() then makes every action ask and tries again."""
+    series, provisional; strict mode: empty), the original's undo snapshots, pending asks, numbered actions, keys
+    and exported files are dropped, and the copy gets ids of its own. A different file that no other profile claims
+    moved (a restored backup): nothing changes. Raises when it cannot conclude (CopyCheckFailed, or any error: the
+    transaction rolls back, file removals included); store_() then makes every action ask and tries again."""
     home = os.path.realpath(_hermes_home())
     fid = _file_id(st.path)
     salt, mark, sid, recorded_fid = (st.get_meta(k) for k in (SALT_META, HOME_META, STORE_ID_META, FILE_META))
@@ -245,6 +245,7 @@ def _check_copied(st: store.Store) -> None:
                                                     strict=strict))
             st.db.execute("UPDATE undo SET undone = 1 WHERE undone = 0")
             st.db.execute("DELETE FROM pending")
+            st.clear_recent()
             st.db.execute("DELETE FROM meta WHERE key = ?", (UNDO_KEY,))
             st.set_meta(COPIED_META, str(time.time()))
             _drop_copied_files()                         # before the commit: a failure rolls everything back
@@ -782,12 +783,13 @@ class UndoMessage(str):
 
 
 def undo_entry(st: store.Store, id: int) -> UndoMessage:
-    """Revert one act-then-notify action (files back to their snapshot) and count it as a fault of its type, unless
-    its automatic check already did. The one implementation, used by the CLI, the slash command and the dashboard.
-    Call it inside ``txn()``, then call ``cleanup()`` on the result once the transaction has committed: the snapshot
-    is only deleted then, so a failure before the commit leaves the action retryable. Returns a message (a ``str``
-    whose ``ok`` is False when nothing was undone). A partial restore marks nothing undone and records no fault: the
-    snapshot is kept, so the owner can try again. The settings are the configured ones, synced into the ledger."""
+    """Revert one act-then-notify action (files back to their snapshot) and count it as a fault of its type, unless its
+    automatic check or a flag already did; undone, its numbered action counts as flagged. The one implementation,
+    used by the CLI, the slash command and the dashboard. Call it inside ``txn()``, then call ``cleanup()`` on the
+    result once the transaction has committed: the snapshot is only deleted then, so a failure before the commit
+    leaves the action retryable. Returns a message (a ``str`` whose ``ok`` is False when nothing was undone). A
+    partial restore marks nothing undone and records no fault: the snapshot is kept, so the owner can try again. The
+    settings are the configured ones, synced into the ledger."""
     entry = st.get_undo(id)
     if entry is None:
         return UndoMessage(tr("undo.missing", id=id), False)
@@ -807,6 +809,7 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
         return UndoMessage(tr("undo.gone", id=id), False)
     agent, key = entry["agent"], entry["type"]
     st.mark_undone(id)
+    st.flag_by_undo(id)                                   # undone: it cannot be flagged afterwards
     if entry["fault"]:
         return UndoMessage(tr("undo.done_already_fault", id=id, type=key), True, entry["snap_id"])
     recorded = st.recorded(agent, key)
@@ -1033,7 +1036,8 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     (``blocked``), did the tool fail, what did the automatic check of the written files say. The check judges every
     action that ran, even one nobody answered. A background launch (``launched``) is neutral: the command's own
     outcome is not known when the call returns. ``written`` (absolute paths) only names the files in the owner's
-    messages: it is stored nowhere. Returns the owner's messages."""
+    messages: it is stored nowhere. An action that ran gets a number in ``recent`` (a fault is born flagged), handed
+    on as ``p["n"]`` (None without the table) and ``p["n_at"]``. Returns the owner's messages."""
     home = os.path.expanduser("~")
     shown = [_show(x, cwd, home) for x in written or []]
     what = _with_what(_join_shown(shown))
@@ -1068,6 +1072,7 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     _bump(st, agent, result_source[0], checked=phase == "approved",
           alone=not blocked and (acted or phase == "alone"))
     posts = []
+    undo_id = None
     if acted and not blocked and not failed:    # the files were written: the owner can revert them
         undo_id = st.add_undo(agent, key, p["snap_id"], fault=bool(reason))
         _push("acted", {"agent": agent, "type": key, "undo_id": undo_id, "fault": bool(reason),
@@ -1079,6 +1084,10 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
                                key, undo_id, shown))
     elif reason:
         posts.append(tr("settle.check_failed", type=key, reason=reason, what=what))
+    if not blocked:                             # it ran: numbered, so the owner can flag it (a fault is born flagged)
+        at = time.time()
+        p["n"], p["n_at"] = st.add_recent(p["session"], agent, key, at=at, flagged=result_source[0] == "fault",
+                                          undo_id=undo_id), at
     return posts + _say(events, cfg["spot"])
 
 

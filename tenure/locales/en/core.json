@@ -319,7 +319,7 @@
   "tier.short.notify": "T2 acts, then tells you",
   "undo.already": "Action {id} is already undone.",
   "undo.done": "Undo {id}: files restored. Counted as a fault of {type} for {agent}; it is now at {tier}.",
-  "undo.done_already_fault": "Undo {id}: files restored. The automatic check had already counted this action as a fault of {type}; no second fault is recorded.",
+  "undo.done_already_fault": "Undo {id}: files restored. This action had already counted as a fault of {type} (automatic check or flag); no second fault is recorded.",
   "undo.expired": {
     "one": "Undo {id} is older than {n} h: the snapshot is no longer kept.",
     "other": "Undo {id} is older than {n} h: the snapshot is no longer kept."
