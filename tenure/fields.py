@@ -236,6 +236,71 @@ def _token_counts(toks: list[str]) -> bool:
     return False
 
 
+_TARGET_WHOLE = frozenset({"id", "to", "cc", "bcc", "from", "path", "url", "email"})
+_TARGET_WORDS = ("record contact customer client user account issue ticket recipient channel repo owner project deal "
+                 "order invoice file sheet table slug attendee url pull target phone domain branch").split()
+_TARGET_TOKENS = frozenset(w + s for w in _TARGET_WORDS for s in ("", "s", "es"))
+_NOT_TARGET_LAST = frozenset({"body", "content", "text", "message", "description", "note", "notes", "comment",
+                              "size", "limit", "count", "offset", "cursor", "token"})
+_SECRET_WORDS = ("secret password passwd pwd passphrase auth authorization bearer cookie credential otp "
+                 "signature session").split()
+_SECRET_PAIRS = ("api_key", "private_key", "access_key")
+MASK = "\u2022\u2022\u2022"
+_URLISH = re.compile(r"^([A-Za-z][A-Za-z0-9+.\-]*://)([^/?#]*)([^?#]*)(\?[^#]*)?(#.*)?$", re.S)
+
+
+def is_secret(key: str) -> bool:
+    """Does this argument name carry a secret? Independent of the `fields:` vocabulary (spec 9 C3)."""
+    canon = canonical(key)
+    if not canon:
+        return False
+    toks = tokens(canon)
+    if _token_counts(toks):
+        return True
+    return any(entry_matches(canon, toks, e) for e in (*_SECRET_WORDS, *_SECRET_PAIRS))
+
+
+def is_target(key: str) -> bool:
+    """Does this argument name the target of a call (spec 4.1, 9 C2)? A secret never is."""
+    canon = canonical(key)
+    if not canon or is_secret(key):
+        return False
+    toks = tokens(canon)
+    if canon in _TARGET_WHOLE or toks[-1] in ("id", "ids"):
+        return True
+    from .classify import PROSE_KEYS   # lazy: classify imports this module
+    if toks[-1] in _NOT_TARGET_LAST or any(toks[-1] == tokens(canonical(p))[-1] for p in PROSE_KEYS):
+        return False
+    return any(t in _TARGET_TOKENS for t in toks)
+
+
+def _mask_url(s: str) -> str:
+    m = _URLISH.match(s)
+    if not m:
+        return s
+    scheme, auth, path, query, frag = m.groups()
+    if "@" in auth:
+        auth = MASK + "@" + auth.rsplit("@", 1)[1]
+    if query:
+        query = "?" + "&".join(p.split("=", 1)[0] + "=" + MASK if "=" in p else p for p in query[1:].split("&"))
+    return scheme + auth + path + (query or "") + (frag or "")
+
+
+def mask(value: object, _depth: int = 0) -> object:
+    """Deep copy where every value under a secret key is masked, and URLs lose userinfo and query values.
+
+    Known limit: a header list of pairs ``[{"name": "Authorization", "value": ...}]`` is not masked."""
+    if _depth > MAX_DEPTH:
+        return "\u2026"
+    if isinstance(value, dict):
+        return {k: MASK if isinstance(k, str) and is_secret(k) else mask(v, _depth + 1) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [mask(v, _depth + 1) for v in value]
+    if isinstance(value, str):
+        return _mask_url(value)
+    return value
+
+
 def _key(k) -> str:
     return k if isinstance(k, str) else str(k)
 
