@@ -295,20 +295,23 @@ its head and its tail, so two paths that differ at the end stay apart), then at 
 all. A nested `params` shows its target (`params.contact_id=4821`). When an act-then-notify file action tells you, the
 message names the files it changed (the first three, then `+N`).
 
-Values under a key tenure recognises as secret (`password`, `token`, `api_key`, `authorization`, `cookie`...) show as
+Values under a key Tenure recognises as secret (`password`, `token`, `api_key`, `authorization`, `cookie`...) show as
 `•••`, as do the userinfo, the query values and a `#k=v` fragment of a URL. This masks the keys it recognises, and is not
-a guarantee. Known gaps: a secret inside the value of a key that is not recognised, a header list written as
-name/value pairs (`[{"name": "Authorization", "value": ...}]`), and a URL embedded in a sentence. What it shows is
-display only: it is kept in no database, ledger or passport.
+a guarantee. Known gaps: a `terminal` command (first 200 characters) and the path of `write_file` or `patch` are shown
+as written, not masked, which is the most likely place for a secret; a secret inside the value of a key that is not
+recognised; a header list written as name/value pairs (`[{"name": "Authorization", "value": ...}]`); a URL embedded in
+a sentence; a token in a URL path (webhook URLs); nesting deeper than 8 levels (shown as `…`). What it shows is display
+only: it is kept in no database, ledger or passport.
 
 ## Flag one action
 
 Every action that ran gets a number for 24 hours. `/tenure flag` lists the last ones; `/tenure flag 12` reports
 number 12 as an error: the fault lands on the agent that acted and on that type, even if you changed model since, and
-it counts once (an undo and a flag of the same action never count twice). `flag TYPE` works as before.
+it counts once (an undo and a flag of the same action never count twice). `flag TYPE` works as before; `flag N --model` is refused, the number already names the agent.
 
-- **Target in the slash command only.** `/tenure flag` shows each action's target, but only in the process that ran it
-  and until Hermes restarts. `hermes tenure flag` lists number, time, type and agent; for a file action that acted then
+- **Target mostly in the slash command.** `/tenure flag` lists the current session (other actions of the profile are
+  counted, not listed) and shows each target, but only in the process that ran the action and at most until Hermes
+  restarts. `hermes tenure flag` lists the whole profile: number, time, type and agent; for a file action that acted then
   told, it also names the file through its undo snapshot.
 - **No number**: actions that run free, capped, refused, timed out, blocked or ambiguous have none.
 - **What is kept.** A local table `recent` holds the number, session, agent, type and time, no argument, for 24 hours.

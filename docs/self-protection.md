@@ -183,12 +183,17 @@ the field categories already exempt (`max_tokens`, `token_count`, `page_token`) 
 nested objects and lists by key, and in a value that looks like a URL it hides the userinfo, every query value and a
 `#k=v` fragment. It masks the keys it recognises: it is a display aid, not a guarantee.
 
-Known gaps: a secret inside the value of a key that is not recognised (a `notes` field holding a password), a header
-list of name/value pairs (`[{"name": "Authorization", "value": ...}]`), a URL embedded in prose, and nesting deeper than
-8 levels (shown as `…`). The `terminal` command and the path of `write_file` or `patch` are shown without this masking.
+Known gaps:
+
+- A `terminal` command is shown as written, first 200 characters, so a secret typed in it (a header, `--password`,
+  `VAR=value`) is visible in the prompt. The same goes for the path of `write_file` or `patch`.
+- A secret inside the value of a key that is not recognised (a `notes` field holding a password).
+- A header list of name/value pairs (`[{"name": "Authorization", "value": ...}]`).
+- A URL embedded in prose, and a token in a URL path (webhook URLs).
+- Nesting deeper than 8 levels (shown as `…`).
 
 What is shown is display only: it is kept in no database, ledger, passport, dashboard or push message. To flag an action
-after the fact, the slash command remembers the target in the memory of the process that ran it, until Hermes restarts.
+after the fact, the slash command remembers the target in the memory of the process that ran it, at most until Hermes restarts (the memory is bounded).
 
 **What it cannot see.** If the agent read both A and B and wrote B, nothing local and deterministic can tell whether B was
 the right one, short of a rule you write for your own data. Tenure helps you check, it does not guess intent.
