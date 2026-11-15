@@ -180,3 +180,48 @@ def test_field_named_in_value_under_container():
     assert cat({"data": {"id": "1234567", "type": "x"}}) == frozenset()     # JSON:API
     assert cat({"fields": [{"id": "1234567"}]}) == frozenset()
     assert cat({"key": "123456"}) == frozenset()
+
+
+@pytest.mark.parametrize("key,hit", [
+    ("contact_id", True), ("recordId", True), ("to", True), ("cc", True), ("bcc", True), ("from", True),
+    ("issue_number", True), ("message_id", True), ("comment_id", True), ("webhook_url", True),
+    ("attendees", True), ("token_id", True), ("pull_number", True), ("phone", True), ("domain", True), ("branch", True),
+    ("api_key", False), ("client_secret", False), ("user_password", False), ("file_content", False),
+    ("email_body", False), ("ticket_description", False), ("page_size", False), ("token", False),
+    ("photo", False), ("session_id", False), ("auth_id", False), ("", False)])
+def test_is_target(key, hit):
+    assert F.is_target(key) is hit
+
+
+@pytest.mark.parametrize("key,hit", [
+    ("api_key", True), ("Authorization", True), ("client_secret", True), ("cookie", True), ("pwd", True),
+    ("access_key", True), ("credentials", True), ("cookies", True), ("X-Api-Key", True), ("accessKey", True),
+    ("auth_token", True), ("session_id", True), ("password", True),
+    ("max_tokens", False), ("page_token", False), ("token_count", False), ("contact_id", False),
+    ("next_page_token", False), ("author", False), ("token_id", False),
+    ("secretary", True)])   # `secret` is a substring entry in entry_matches: secretary follows it
+def test_is_secret(key, hit):
+    assert F.is_secret(key) is hit
+
+
+def test_mask_nested_and_url():
+    v = F.mask({"headers": {"Authorization": "Bearer x"}, "records": [{"fields": {"Password": "p"}}],
+                "url": "https://u:p@h.io/a?api_key=k&page=2"})
+    assert v["headers"]["Authorization"] == "•••" and v["records"][0]["fields"]["Password"] == "•••"
+    assert "u:p@" not in v["url"] and "api_key=•••" in v["url"] and "page=•••" in v["url"]
+    assert "%" not in v["url"] and v["url"].startswith("https://•••@h.io/a?")
+
+
+def test_mask_shapes_and_depth():
+    src = {1: "a", "t": ("x", {"token": "k"}), "n": 3, "secret": {"a": 1}}
+    v = F.mask(src)
+    assert v == {1: "a", "t": ["x", {"token": "•••"}], "n": 3, "secret": "•••"} and src["t"][1]["token"] == "k"
+    deep = cur = {}
+    for _ in range(F.MAX_DEPTH + 2):
+        cur["a"] = {}
+        cur = cur["a"]
+    out = F.mask(deep)
+    for _ in range(F.MAX_DEPTH + 1):    # depth > MAX_DEPTH is replaced
+        out = out["a"]
+    assert out == "…"
+    assert F.mask("plain text") == "plain text"
