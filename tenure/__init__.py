@@ -41,6 +41,7 @@ import random
 import secrets
 import threading
 import time
+import unicodedata
 import uuid
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -574,11 +575,46 @@ def _push(event: str, payload: dict | None = None) -> None:
 
 
 class Acted(str):
-    """An "acted, then told you" line: actions of one type in one turn share one message, edited in place."""
-    def __new__(cls, text: str, session: str, type_key: str, undo_id: int):
+    """An "acted, then told you" line: actions of one type in one turn share one message, edited in place. It carries
+    the shown paths of the action (display text, kept in memory only, never in the ledger or a push)."""
+    def __new__(cls, text: str, session: str, type_key: str, undo_id: int, shown: list[str] | None = None):
         obj = super().__new__(cls, text)
-        obj.session, obj.type_key, obj.undo_id = session, type_key, undo_id
+        obj.session, obj.type_key, obj.undo_id, obj.shown = session, type_key, undo_id, list(shown or [])
         return obj
+
+
+WHAT_SHOWN = 3                  # files named in a message: the first three, then "+N"
+
+
+def _show(path: str, cwd: str, home: str) -> str:
+    """One written path as the owner reads it: relative to the call's folder, else ``~/...``, else absolute. Control
+    and format characters (a bidi override, a newline) become U+FFFD."""
+    text = str(path)
+    if os.path.isabs(text):
+        for base, prefix in ((cwd, ""), (home, "~/")):
+            if base and os.path.isabs(base):
+                rel = os.path.relpath(text, base)
+                if rel != "." and rel != ".." and not rel.startswith(".." + os.sep):
+                    text = prefix + rel
+                    break
+    return "".join("\ufffd" if unicodedata.category(c) in ("Cc", "Cf") else c for c in text)
+
+
+def _join_shown(shown: list[str]) -> str:
+    """The first three shown paths, then ``+N`` for the others."""
+    uniq = list(dict.fromkeys(shown))
+    head = ", ".join(uniq[:WHAT_SHOWN])
+    return f"{head} +{len(uniq) - WHAT_SHOWN}" if len(uniq) > WHAT_SHOWN else head
+
+
+def _what(paths: list[str], cwd: str, home: str) -> str:
+    """The files an action changed, for the owner's message: ``a.py, b.py, c.py +1``; "" when there are none."""
+    return _join_shown([_show(x, cwd, home) for x in paths or []])
+
+
+def _with_what(files: str) -> str:
+    """The ``{what}`` of a message: a leading space and the files in brackets, or nothing."""
+    return " " + tr("settle.what", files=files) if files else ""
 
 
 ACTED_WINDOW = 600.0            # seconds: without an end-of-turn signal, a later action starts a new message
@@ -598,15 +634,16 @@ def _announce(text: str) -> None:
                 entry = ST.acted.get(key)
                 if entry and now - entry["at"] < ACTED_WINDOW and callable(getattr(entry["handle"], "edit", None)):
                     entry["ids"].append(text.undo_id)
+                    entry["shown"].extend(text.shown)
                     entry["at"] = now
                     ids = entry["ids"]
                     grouped = tr("settle.acted_many", type=text.type_key, n=len(ids), command="/tenure undo",
-                                 id=ids[-1], ids=_ids(ids))
+                                 id=ids[-1], ids=_ids(ids), what=_with_what(_join_shown(entry["shown"])))
                     entry["handle"].edit(grouped)
                     return
             handle = ST.ctx.post_message(str(text))
             with ST.mem:
-                ST.acted[key] = {"ids": [text.undo_id], "handle": handle, "at": now}
+                ST.acted[key] = {"ids": [text.undo_id], "handle": handle, "at": now, "shown": list(text.shown)}
             return
         ST.ctx.post_message(text)
     except Exception:
@@ -991,11 +1028,15 @@ def _background(tool: str, args: dict, result=None) -> bool:
 
 
 def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool, reason: str | None,
-            launched: bool = False) -> list[str]:
+            launched: bool = False, written: list[str] | None = None, cwd: str = "") -> list[str]:
     """The verified outcome of one pending decision, from facts gathered before the transaction: was the call stopped
     (``blocked``), did the tool fail, what did the automatic check of the written files say. The check judges every
     action that ran, even one nobody answered. A background launch (``launched``) is neutral: the command's own
-    outcome is not known when the call returns. Returns the owner's messages."""
+    outcome is not known when the call returns. ``written`` (absolute paths) only names the files in the owner's
+    messages: it is stored nowhere. Returns the owner's messages."""
+    home = os.path.expanduser("~")
+    shown = [_show(x, cwd, home) for x in written or []]
+    what = _with_what(_join_shown(shown))
     phase, agent, key = p["phase"], p["agent"], p["type"]
     acted = phase in ("notify", "unwatched")                # T2 acted, then told the owner (who may not be there)
     decided = acted or phase in ("approved", "alone")       # approved by a person, or run by an earned tier
@@ -1032,12 +1073,12 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         _push("acted", {"agent": agent, "type": key, "undo_id": undo_id, "fault": bool(reason),
                         "profile": _profile_name()})
         if reason:
-            posts.append(tr("settle.acted_fault", type=key, reason=reason, command="/tenure undo", id=undo_id))
+            posts.append(tr("settle.acted_fault", type=key, reason=reason, what=what, command="/tenure undo", id=undo_id))
         else:
-            posts.append(Acted(tr("settle.acted", type=key, command="/tenure undo", id=undo_id), p["session"], key,
-                               undo_id))
+            posts.append(Acted(tr("settle.acted", type=key, what=what, command="/tenure undo", id=undo_id), p["session"],
+                               key, undo_id, shown))
     elif reason:
-        posts.append(tr("settle.check_failed", type=key, reason=reason))
+        posts.append(tr("settle.check_failed", type=key, reason=reason, what=what))
     return posts + _say(events, cfg["spot"])
 
 
@@ -1261,7 +1302,7 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         blocked = str(status or "").strip().lower() == "blocked"
         failed = not blocked and proofs.execution(tool, status, error_type, result) == "failed"
         launched = not blocked and not failed and _background(tool, args, result)
-        reason = None
+        reason, paths = None, []
         if not blocked and not failed and not launched:
             paths = classify.files_written(tool, args, cwd)
             reason = proofs.check_files(paths) if paths else None
@@ -1271,7 +1312,8 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
             p = st.pop_pending(p["id"])                         # settled once, by whoever comes first
             if p is not None:
                 posts += _say(sync_settings(st, cfg), cfg["spot"])
-                posts += _settle(st, cfg, p, blocked=blocked, failed=failed, reason=reason, launched=launched)
+                posts += _settle(st, cfg, p, blocked=blocked, failed=failed, reason=reason, launched=launched,
+                                written=paths, cwd=cwd)
         for text in posts:
             _announce(text)
     except LockTimeout:
