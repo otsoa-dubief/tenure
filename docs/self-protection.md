@@ -176,9 +176,12 @@ spelling tenure does not know can slip through (see Limits). Every case found so
 ## What an approval prompt shows, and what it hides
 
 An approval prompt names the target of the call first (up to 120 characters, head and tail kept), at most 6 arguments,
-400 characters in all. Values under a key recognised as secret are shown as `•••`, whatever the `fields:` setting: a key
-holding `secret`, `password`, `passwd`, `pwd`, `passphrase`, `token`, `auth`, `authorization`, `bearer`, `cookie`,
-`credential`, `otp`, `signature` or `session`, or `api_key`, `private_key`, `access_key`; the pagination and count keys
+400 characters in all, each argument name cut at 40 characters. Values under a key recognised as secret are shown as
+`•••`, whatever the `fields:` setting: a key holding `secret`, `password`, `passwd`, `pwd`, `passphrase`, `token`,
+`auth`, `authorization`, `bearer`, `cookie`, `credential`, `otp`, `signature` or `session`, or `api_key`,
+`private_key`, `access_key` (also written in one word: `apikey`, `privatekey`, `accesskey`, `sessionid`), or any entry
+of the `secret` field category, shipped (`mdp`, `mot_de_passe`, `client_secret`...) or added by you, even when the
+category is off; the pagination and count keys
 the field categories already exempt (`max_tokens`, `token_count`, `page_token`) stay visible. The masking goes through
 nested objects and lists by key, and in a value that looks like a URL it hides the userinfo, every query value and a
 `#k=v` fragment. It masks the keys it recognises: it is a display aid, not a guarantee.
@@ -186,14 +189,18 @@ nested objects and lists by key, and in a value that looks like a URL it hides t
 Known gaps:
 
 - A `terminal` command is shown as written, first 200 characters, so a secret typed in it (a header, `--password`,
-  `VAR=value`) is visible in the prompt. The same goes for the path of `write_file` or `patch`.
+  `VAR=value`) is visible in the prompt. The same goes for the path of `write_file` or `patch`, also cut at 200.
 - A secret inside the value of a key that is not recognised (a `notes` field holding a password).
 - A header list of name/value pairs (`[{"name": "Authorization", "value": ...}]`).
 - A URL embedded in prose, and a token in a URL path (webhook URLs).
-- Nesting deeper than 8 levels (shown as `…`).
+- A compound scheme (`jdbc:mysql://user:pass@host/db`): it is not read as a URL, so its userinfo stays visible.
+- A key written with look-alike letters from another script (a Cyrillic `р` in `раssword`) is not recognised as secret.
+- Values nested deeper than 8 levels are cut (shown as `…`, `{}` or `[]`).
 
 What is shown is display only: it is kept in no database, ledger, passport, dashboard or push message. To flag an action
 after the fact, the slash command remembers the target in the memory of the process that ran it, at most until Hermes restarts (the memory is bounded).
+`/tenure flag` prints that remembered summary into the chat. For an action that ran alone (an earned tier) and was never
+shown in a prompt, it is the first time it appears there, a `terminal` command included, unmasked like in a prompt.
 
 **What it cannot see.** If the agent read both A and B and wrote B, nothing local and deterministic can tell whether B was
 the right one, short of a rule you write for your own data. Tenure helps you check, it does not guess intent.
