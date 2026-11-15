@@ -606,18 +606,26 @@ class Acted(str):
 WHAT_SHOWN = 3                  # files named in a message: the first three, then "+N"
 
 
+SHOWN_CAP = 120                 # one shown path: whole up to here, then its start (80), "…" and its end (39)
+
+
 def _show(path: str, cwd: str, home: str) -> str:
-    """One written path as the owner reads it: relative to the call's folder, else ``~/...``, else absolute. Control
-    and format characters (a bidi override, a newline) become U+FFFD."""
+    """One written path as the owner reads it: relative to the call's folder, else ``~/...``, else absolute (also
+    when the path and the folder are on different Windows drives). Control and format characters (a bidi override, a
+    newline) become U+FFFD. A path longer than 120 characters keeps its start and its end, as a prompt's target."""
     text = str(path)
     if os.path.isabs(text):
         for base, prefix in ((cwd, ""), (home, "~/")):
             if base and os.path.isabs(base):
-                rel = os.path.relpath(text, base)
+                try:
+                    rel = os.path.relpath(text, base)
+                except ValueError:                      # another drive: no relative form
+                    continue
                 if rel != "." and rel != ".." and not rel.startswith(".." + os.sep):
                     text = prefix + rel
                     break
-    return "".join("\ufffd" if unicodedata.category(c) in ("Cc", "Cf") else c for c in text)
+    text = "".join("\ufffd" if unicodedata.category(c) in ("Cc", "Cf") else c for c in text)
+    return text if len(text) <= SHOWN_CAP else text[:80] + "\u2026" + text[-39:]
 
 
 def _join_shown(shown: list[str]) -> str:
@@ -1057,9 +1065,13 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     outcome is not known when the call returns. ``written`` (absolute paths) only names the files in the owner's
     messages: it is stored nowhere. An action that ran gets a number in ``recent`` (a fault is born flagged), handed
     on as ``p["n"]`` and ``p["n_at"]``. Returns the owner's messages."""
-    home = os.path.expanduser("~")
-    shown = [_show(x, cwd, home) for x in written or []]
-    what = _with_what(_join_shown(shown))
+    try:                                                    # display only: it never aborts a settlement
+        home = os.path.expanduser("~")
+        shown = [_show(x, cwd, home) for x in written or []]
+        what = _with_what(_join_shown(shown))
+    except Exception:
+        log.debug("tenure: the written files could not be shown", exc_info=True)
+        shown, what = [], ""
     phase, agent, key = p["phase"], p["agent"], p["type"]
     acted = phase in ("notify", "unwatched")                # T2 acted, then told the owner (who may not be there)
     decided = acted or phase in ("approved", "alone")       # approved by a person, or run by an earned tier
@@ -1343,12 +1355,15 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
                 posts += _say(sync_settings(st, cfg), cfg["spot"])
                 posts += _settle(st, cfg, p, blocked=blocked, failed=failed, reason=reason, launched=launched,
                                 written=paths, cwd=cwd)
-        if p is not None and p.get("n") is not None:            # committed: remember what it did, in memory only
-            summary = classify._summary(tool, args, p["type"])
-            with ST.mem:
-                _remember_summary(path, p["n"], p["n_at"], summary)
         for text in posts:
             _announce(text)
+        if p is not None and p.get("n") is not None:            # committed: remember what it did, in memory only
+            try:
+                summary = classify._summary(tool, args, p["type"], cfg["vocabulary"])
+                with ST.mem:
+                    _remember_summary(path, p["n"], p["n_at"], summary)
+            except Exception:
+                log.debug("tenure: the summary of action %s was not remembered", p["n"], exc_info=True)
     except LockTimeout:
         log.warning("tenure: post_tool_call skipped: the store stayed busy")
     except Exception:
