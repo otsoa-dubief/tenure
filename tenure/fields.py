@@ -274,15 +274,22 @@ def is_target(key: str) -> bool:
     return any(t in _TARGET_TOKENS for t in toks)
 
 
+def _mask_pairs(part: str) -> str:
+    """`a=1&b` -> `a=•••&b`-style: every value is masked, and a bare part (no `=`) is a value itself."""
+    return "&".join(p.split("=", 1)[0] + "=" + MASK if "=" in p else (MASK if p else p) for p in part.split("&"))
+
+
 def _mask_url(s: str) -> str:
-    m = _URLISH.match(s)
+    m = _URLISH.match(s.lstrip())
     if not m:
         return s
     scheme, auth, path, query, frag = m.groups()
     if "@" in auth:
         auth = MASK + "@" + auth.rsplit("@", 1)[1]
     if query:
-        query = "?" + "&".join(p.split("=", 1)[0] + "=" + MASK if "=" in p else p for p in query[1:].split("&"))
+        query = "?" + _mask_pairs(query[1:])
+    if frag and "=" in frag:             # `#access_token=...`; a plain anchor (`#top`) stays
+        frag = "#" + _mask_pairs(frag[1:])
     return scheme + auth + path + (query or "") + (frag or "")
 
 

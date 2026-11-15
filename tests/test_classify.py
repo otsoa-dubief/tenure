@@ -1034,3 +1034,65 @@ def test_huge_batch_is_bounded_and_fast():
     t = time.monotonic()
     a = C.classify("mcp__x__update_y", {"records": [{"id": i, "note": "n"} for i in range(50_000)]})
     assert C.RANK[a.stakes] >= C.RANK[C.HIGH] and time.monotonic() - t < 3.0
+
+
+# ---- the approval prompt summary: the target first and whole, secrets masked (spec 4.1, 9) ----
+
+def test_summary_target_first():
+    s = C._summary("mcp__crm__update_contact", {"notes": "x", "a": 1, "b": 2, "c": 3, "contact_id": "4821"},
+                   "mcp:crm:update_contact")
+    assert s.index("contact_id=4821") < s.index("notes=")
+
+
+def test_summary_long_target_keeps_end():
+    v = "/projects/clients/" + "x" * 150 + "/dupont.json"
+    s = C._summary("mcp__fs2__move", {"target": v}, "mcp:fs2:move")
+    assert "dupont.json" in s and "…" in s
+
+
+def test_summary_target_of_100_chars_whole():
+    v = "a" * 100
+    assert f"contact_id={v})" in C._summary("mcp__x__u", {"contact_id": v}, "mcp:x:u")
+
+
+def test_summary_masks_nested_and_url_secrets():
+    s = C._summary("mcp__h__call", {"url": "https://u:p@h.io/?api_key=k", "headers": {"Authorization": "Bearer z"},
+                                    "api_key": "sk-live-AAAA"}, "mcp:h:call")
+    assert "sk-live" not in s and "Bearer z" not in s and "u:p@" not in s and "api_key=•••" in s
+
+
+def test_summary_secret_keys_masked():
+    s = C._summary("mcp__h__call", {"user_password": "hunter2", "client_secret": "abc"}, "mcp:h:call")
+    assert "user_password=•••" in s and "client_secret=•••" in s and "hunter2" not in s and "abc" not in s
+
+
+def test_summary_nested_target_and_cap():
+    s = C._summary("mcp__crm__u", {"params": {"contact_id": 4821}, **{f"k{i}": i for i in range(10)}}, "mcp:crm:u")
+    assert "params.contact_id=4821" in s and "k5=" not in s and "…" in s and len(s) <= 401
+
+
+def test_summary_global_cap_400_with_prefix():
+    args = {f"contact_id{i}" if False else f"id_{i}_id": "z" * 120 for i in range(6)}
+    s = C._summary("mcp__crm__u", args, "mcp:crm:u")
+    assert len(s) == 400 and s.endswith("…")     # the prefix `type: tool(` counts in the 400
+
+
+def test_summary_mcp_path_shows_owner_repo():
+    s = C._summary("mcp__github__create_or_update_file", {"owner": "o", "repo": "r", "path": "a.py", "content": "x"},
+                   "mcp:github:create_or_update_file")
+    assert "owner=o" in s and "repo=r" in s
+
+
+def test_summary_write_file_path_unchanged():
+    assert C._summary("write_file", {"path": "src/a.py", "content": "x"}, "file:write") == "file:write: src/a.py"
+
+
+def test_summary_mcp_filesystem_write_file_uses_general_rule():
+    s = C._summary("mcp__filesystem__write_file", {"path": "src/a.py", "content": "x"}, "mcp:filesystem:write_file")
+    assert "mcp__filesystem__write_file(" in s and "path=src/a.py" in s
+
+
+def test_summary_control_chars_visible():
+    s = C._summary("mcp__x__u", {"contact_id": "ab‮cd"}, "mcp:x:u")
+    assert "‮" not in s and "�" in s
+    assert "a b c" in C._summary("mcp__x__u", {"contact_id": "a\nb\tc"}, "mcp:x:u")
