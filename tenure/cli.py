@@ -7,6 +7,7 @@
     explain                                    how tenure decides, and what the numbers guarantee
     models [--type T]                          each model's verified record on your own work
     undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list
+    flag [N]                                   alone, the last numbered actions; with a number, report that action as an error
     flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked
     revoke TYPE|all [--model M | --all]        take earned autonomy back without an error
     passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)
@@ -348,6 +349,66 @@ def flag(type_key: str, note: str = "", agent: str | None = None, model: str | N
     return tr("cli.flag.done", type=type_key, agent=agent, tier=tier_name(s.tier))
 
 
+def flag_action(n: int, note: str = "") -> str:
+    """A fault the owner reports on numbered action ``n``: on the agent that acted and its type, by the same path
+    as ``flag`` (stakes of the recorded state). Refused, with nothing written, when the action already counted as a
+    fault or is unknown (or older than 24 hours). The note is not stored."""
+    core = _core()
+    cfg = core.settings()
+    with core.txn() as st:
+        r = st.recent(n)
+        if r is None:
+            raise CliError(tr("cli.flag.action_unknown", n=n, hours=store.RECENT_WINDOW // 3600))
+        if r["flagged"]:
+            raise CliError(tr("cli.flag.action_already", n=n))
+        agent, type_key = r["agent"], r["type"]
+        recorded = st.recorded(agent, type_key)
+        stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
+        core.sync_settings(st, cfg)
+        core.record_outcome(st, cfg, agent=agent, type_key=type_key, stakes=stakes, reversible=reversible,
+                            result="fault", source="flag")
+        st.bump(agent, "faults")
+        st.mark_flagged(n)
+        if r["undo_id"] is not None:
+            st.mark_undo_fault(r["undo_id"])                # the undo that may follow counts no second fault
+        s = st.get_state(agent, type_key, stakes, reversible)
+    return tr("cli.flag.action_done", n=n, type=type_key, agent=agent, tier=tier_name(s.tier))
+
+
+def flag_list(session: str | None, command: str = "hermes tenure flag") -> str:
+    """The last 20 numbered actions of the last 24 hours, newest first: of one session (anonymised), else of the
+    profile. The target shows when this process ran the action (summary in memory, same time); else, for an action
+    that acted then told, the file its undo snapshot would restore. Reads only."""
+    core = _core()
+    st = core.store_()
+    rows = st.recent_rows(session, limit=20)
+    hours = store.RECENT_WINDOW // 3600
+    others = st.count_recent(session) if session is not None else 0
+    lines = []
+    if rows:
+        cells = []
+        for r in rows:
+            what = core.summary_of(st.path, r["n"], r["at"])
+            if what.startswith(r["type"] + ": "):
+                what = what[len(r["type"]) + 2:]
+            uid = r["undo_id"]
+            if not what and uid is not None:
+                entry = st.get_undo(uid)
+                d = undo.describe(entry["snap_id"], core.data_dir()) if entry and entry["snap_id"] else None
+                if d:
+                    what = tr("cli.undo.more_files", file=d["file"], n=d["files"] - 1) if d["files"] > 1 else d["file"]
+            cells.append([str(r["n"]), time.strftime("%H:%M", time.localtime(r["at"])), r["type"], what, r["agent"],
+                          "" if uid is None else str(uid)])
+        lines.append(tr("cli.flag.title_session" if session is not None else "cli.flag.title_profile", hours=hours))
+        lines += ["  " + ln for ln in _table(_cols("number", "time", "type", "target", "agent", "undo"), cells)]
+        lines += ["", tr("cli.flag.footer", command=command)]
+    else:
+        lines.append(tr("cli.flag.none", hours=hours))
+    if others:
+        lines.append(tr("cli.flag.others", n=others))
+    return "\n".join(lines)
+
+
 def revoke(type_key: str, agent: str | None = None, model: str | None = None, every: bool = False) -> str:
     core = _core()
     cfg = core.settings()
@@ -655,10 +716,11 @@ def _add_subcommands(subparser) -> None:
     p.add_argument("--type", help="One action type")
     p = subs.add_parser("undo", help="Restore the files of an action that acted, then told you")
     p.add_argument("id", type=int, nargs="?", help="the number from the notice; without it, the list")
-    p = subs.add_parser("flag", help="Report an error the agent made on its own: counts as a fault, the type drops at least one tier")
-    p.add_argument("type")
+    p = subs.add_parser("flag", help="Report an error the agent made on its own: counts as a fault, the type drops at "
+                                     "least one tier; alone, the last numbered actions")
+    p.add_argument("type", nargs="?", help="an action type, or an action's number; without it, the last actions")
     p.add_argument("note", nargs="*")
-    p.add_argument("--model", help="Start of an agent string (default: the last active agent)")
+    p.add_argument("--model", help="Start of an agent string (default: the last active agent); not with a number")
     p = subs.add_parser("revoke", help="Take earned autonomy back (a type, or all)")
     p.add_argument("type")
     g = p.add_mutually_exclusive_group()
@@ -710,7 +772,16 @@ def execute(ns) -> tuple[str, int]:
             text = undo_action(g("id"))
             return text, 0 if text.ok else 1
         if cmd == "flag":
-            return flag(g("type"), " ".join(g("note") or []), model=g("model")), 0
+            what, note = g("type"), " ".join(g("note") or [])
+            if what is None:
+                if g("model"):
+                    return _usage(), 1
+                return flag_list(g("tenure_session"), g("tenure_command_name") or "hermes tenure flag"), 0
+            if re.fullmatch(r"[0-9]+", what):
+                if g("model"):
+                    raise CliError(tr("cli.flag.action_model", n=what))     # the number already names the agent
+                return flag_action(int(what), note), 0
+            return flag(what, note, model=g("model")), 0
         if cmd == "revoke":
             return revoke(g("type"), model=g("model"), every=bool(g("all"))), 0
         if cmd == "passport":
@@ -745,6 +816,9 @@ def slash(raw_args="", **kwargs):
             ns = parser.parse_args(shlex.split(raw.replace("\\", "/") if os.name == "nt" else raw))
         except _Usage as e:
             return (f"tenure: {e}\n" if str(e) else "") + _usage()
+        # `flag` alone lists the current session (none: the profile); Hermes hands the session id in
+        ns.tenure_session = _core().anon(kwargs.get("session_id") or kwargs.get("session_key")) or None
+        ns.tenure_command_name = "/tenure flag"
         return execute(ns)[0]
     except Exception as e:
         return f"tenure: {type(e).__name__}: {e}"

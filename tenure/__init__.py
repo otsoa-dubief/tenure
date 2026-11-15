@@ -54,6 +54,7 @@ PREFIX = "tenure"
 RULE = rule.VERSION              # the rule named in settings events; the passport computes its fingerprint
 PURGE_EVERY = 3600               # seconds between two clean-ups of undo snapshots past their window, per process
 MAX_SESSIONS = 4096              # sessions whose agent, or suspension, this process remembers
+MAX_SUMMARIES = 500              # numbered actions whose summary this process remembers (spec 4.4)
 LOCK_TIMEOUT = 10.0              # seconds a hook waits for another thread's transaction before giving up
 HOOK_BUDGET = 25.0               # seconds pre_tool_call may take in all (Hermes stops waiting at 30)
 SESSIONLESS_TAINT = 3600         # seconds a read outside any session suspends sessionless calls of this process
@@ -98,6 +99,9 @@ class _State:
         self.tainted: OrderedDict[str, float] = OrderedDict()  # suspended sessions (anonymised) -> since when
         self.acted: dict = {}           # (session, type) -> {"ids", "handle", "at"}: this turn's acted message
         self.cwds: OrderedDict[str, str] = OrderedDict()       # session id -> terminal cwd its last command reported
+        # (store path, action number) -> (its time, the call's summary): `flag` shows the target of an action this
+        # process ran; never stored anywhere
+        self.summaries: OrderedDict[tuple[str, int], tuple[float, str]] = OrderedDict()
         self.last_agent = ""
         self.rng = random.SystemRandom()
         self.purged_at = 0.0
@@ -492,6 +496,21 @@ def _remember(cache: OrderedDict, key: str, value) -> None:
     cache.move_to_end(key)
     while len(cache) > MAX_SESSIONS:
         cache.popitem(last=False)
+
+
+def _remember_summary(path: str, n: int, at: float, summary: str) -> None:
+    """Under ST.mem: the summary of numbered action ``n`` of the store at ``path``, the oldest of 500 dropped first."""
+    ST.summaries[(path, n)] = (at, summary)
+    ST.summaries.move_to_end((path, n))
+    while len(ST.summaries) > MAX_SUMMARIES:
+        ST.summaries.popitem(last=False)
+
+
+def summary_of(path: str, n: int, at: float) -> str:
+    """The remembered summary of action ``n``, only when its time matches the numbered row: else ""."""
+    with ST.mem:
+        hit = ST.summaries.get((path, n))
+    return hit[1] if hit and hit[0] == at else ""
 
 
 def agent_of(session_id="", deadline: float | None = None) -> str:
@@ -1318,11 +1337,16 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         cfg = settings()
         posts = []
         with txn() as st:
+            path = st.path
             p = st.pop_pending(p["id"])                         # settled once, by whoever comes first
             if p is not None:
                 posts += _say(sync_settings(st, cfg), cfg["spot"])
                 posts += _settle(st, cfg, p, blocked=blocked, failed=failed, reason=reason, launched=launched,
                                 written=paths, cwd=cwd)
+        if p is not None and p.get("n") is not None:            # committed: remember what it did, in memory only
+            summary = classify._summary(tool, args, p["type"])
+            with ST.mem:
+                _remember_summary(path, p["n"], p["n_at"], summary)
         for text in posts:
             _announce(text)
     except LockTimeout:

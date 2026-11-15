@@ -128,6 +128,9 @@
   "cli.col.tier_now": "المستوى الآن",
   "cli.col.type": "النوع",
   "cli.col.when": "متى",
+  "cli.col.target": "الهدف",
+  "cli.col.time": "الساعة",
+  "cli.col.undo": "التراجع",
   "cli.count.agents": {
     "zero": "{n} وكلاء",
     "one": "{n} وكيل",
@@ -213,6 +216,22 @@
     "other": "كُتبت الأدلة: {path} ({n} إدخال). تحقق من جواز مقابلها: {command} {path}"
   },
   "cli.flag.done": "tenure: سُجّل إخفاق على {type} لـ {agent}؛ أصبح الآن في {tier}.",
+  "cli.flag.action_done": "tenure: أُبلغ عن الإجراء {n}: سُجّل إخفاق على {type} لـ {agent}؛ أصبح الآن في {tier}.",
+  "cli.flag.action_already": "سبق أن حُسب الإجراء {n} إخفاقًا (فحص تلقائي أو تراجع أو إبلاغ): لم يُسجَّل شيء.",
+  "cli.flag.action_unknown": "لا إجراء {n} في آخر {hours} ساعة: لم يُسجَّل شيء. القائمة: flag بلا رقم.",
+  "cli.flag.action_model": "الإجراء {n} يحدّد بالفعل الوكيل الذي نفّذه: ‎--model لا يُستعمل مع رقم.",
+  "cli.flag.title_session": "آخر الإجراءات المرقّمة في هذه المحادثة ({hours} ساعة)، الأحدث أولًا:",
+  "cli.flag.title_profile": "آخر الإجراءات المرقّمة في هذا الملف الشخصي ({hours} ساعة)، الأحدث أولًا:",
+  "cli.flag.footer": "للإبلاغ عن أحدها كخطأ: {command} <الرقم>",
+  "cli.flag.none": "لا إجراء مرقّمًا في آخر {hours} ساعة.",
+  "cli.flag.others": {
+    "zero": "لا إجراءات أخرى في هذا الملف الشخصي ({n}): hermes tenure flag",
+    "one": "إجراء آخر في هذا الملف الشخصي ({n}): hermes tenure flag",
+    "two": "إجراءان آخران في هذا الملف الشخصي ({n}): hermes tenure flag",
+    "few": "{n} إجراءات أخرى في هذا الملف الشخصي: hermes tenure flag",
+    "many": "{n} إجراءً آخر في هذا الملف الشخصي: hermes tenure flag",
+    "other": "{n} إجراء آخر في هذا الملف الشخصي: hermes tenure flag"
+  },
   "cli.flag.unknown_type": "لا سجل لـ {type} لدى {agent}. الأنواع: {types}.",
   "cli.list.joiner": "؛ ",
   "cli.list.separator": "، ",
@@ -375,7 +394,7 @@
     "many": "الإجراءات المنفّذة وحدها في آخر {n} ساعة (التراجع عن أحدها يُحسب إخفاقًا):",
     "other": "الإجراءات المنفّذة وحدها في آخر {n} ساعة (التراجع عن أحدها يُحسب إخفاقًا):"
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   ما اكتسبه كل وكيل، لكل نوع إجراء\n    setup [careful|balanced|fast]              التوصيات الثلاث؛ مع اسم، يستخدمها\n    explain                                    كيف يقرر tenure، وما الذي تضمنه الأرقام\n    models [--type T]                          السجل الموثّق لكل نموذج على عملك\n    undo [ID]                                  يعيد ملفات إجراء نفّذ ثم أبلغك (يُحسب إخفاقًا)؛ بلا معرّف، القائمة\n    flag TYPE [note] [--model M]               أبلغ عن خطأ ارتكبه الوكيل وحده: تُسحب استقلاليته\n    revoke TYPE|all [--model M | --all]        استرجاع الاستقلالية المكتسبة دون خطأ\n    passport [--agent A] [--out FILE]          يكتب الجواز الموقَّع لوكيل (--no-redact يُبقي أسماء الأنواع)\n    verify PASSPORT [LEDGER]                   يتحقق من جواز؛ مع الدفتر المُصدَّر، يعيد حسابه بإعادة التشغيل\n    anchor                                     سطر واحد للنشر: رأس الدفتر وتاريخه وطوله\n    export [PATH]                              يكتب دفتر الأدلة (أسطر JSON متسلسلة بالتجزئة)\n    start trusted|probation                    trusted: لا سؤال قبل أول خطأ لنوع ما؛ probation: بداية الدراسة\n    strict on|off                              الوضع الصارم: يبدأ النموذج الجديد بسجل فارغ\n    cleanup                                    يسرد مفاتيح tenure الميتة في قائمة السماح الدائمة لـ Hermes\n    share [--out FILE]                         يكتب سجلًا موقَّعًا بالأعداد للمقياس المجتمعي (اختياري، لا يُرسَل شيء)\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   ما اكتسبه كل وكيل، لكل نوع إجراء\n    setup [careful|balanced|fast]              التوصيات الثلاث؛ مع اسم، يستخدمها\n    explain                                    كيف يقرر tenure، وما الذي تضمنه الأرقام\n    models [--type T]                          السجل الموثّق لكل نموذج على عملك\n    undo [ID]                                  يعيد ملفات إجراء نفّذ ثم أبلغك (يُحسب إخفاقًا)؛ بلا معرّف، القائمة\n    flag [N]                                   وحده، آخر الإجراءات المرقّمة؛ مع رقم، أبلغ عن ذلك الإجراء كخطأ\n    flag TYPE [note] [--model M]               أبلغ عن خطأ ارتكبه الوكيل وحده: تُسحب استقلاليته\n    revoke TYPE|all [--model M | --all]        استرجاع الاستقلالية المكتسبة دون خطأ\n    passport [--agent A] [--out FILE]          يكتب الجواز الموقَّع لوكيل (--no-redact يُبقي أسماء الأنواع)\n    verify PASSPORT [LEDGER]                   يتحقق من جواز؛ مع الدفتر المُصدَّر، يعيد حسابه بإعادة التشغيل\n    anchor                                     سطر واحد للنشر: رأس الدفتر وتاريخه وطوله\n    export [PATH]                              يكتب دفتر الأدلة (أسطر JSON متسلسلة بالتجزئة)\n    start trusted|probation                    trusted: لا سؤال قبل أول خطأ لنوع ما؛ probation: بداية الدراسة\n    strict on|off                              الوضع الصارم: يبدأ النموذج الجديد بسجل فارغ\n    cleanup                                    يسرد مفاتيح tenure الميتة في قائمة السماح الدائمة لـ Hermes\n    share [--out FILE]                         يكتب سجلًا موقَّعًا بالأعداد للمقياس المجتمعي (اختياري، لا يُرسَل شيء)\n",
   "cli.verify.after": {
     "zero": "ملاحظة: في الدفتر {n} أحداث بعد هذا الجواز؛ المستويات لم تتغيّر.",
     "one": "ملاحظة: في الدفتر {n} حدث بعد هذا الجواز؛ المستويات لم تتغيّر.",

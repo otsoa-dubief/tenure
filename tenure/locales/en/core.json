@@ -84,6 +84,9 @@
   "cli.col.tier_now": "tier now",
   "cli.col.type": "type",
   "cli.col.when": "when",
+  "cli.col.target": "target",
+  "cli.col.time": "time",
+  "cli.col.undo": "undo",
   "cli.count.agents": {
     "one": "{n} agent",
     "other": "{n} agents"
@@ -137,6 +140,18 @@
     "other": "Evidence written: {path} ({n} entries). Check a passport against it: {command} {path}"
   },
   "cli.flag.done": "tenure: fault recorded on {type} for {agent}; it is now at {tier}.",
+  "cli.flag.action_done": "tenure: action {n} flagged: fault recorded on {type} for {agent}; it is now at {tier}.",
+  "cli.flag.action_already": "Action {n} already counted as a fault (automatic check, undo or flag): nothing recorded.",
+  "cli.flag.action_unknown": "No action {n} in the last {hours} hours: nothing recorded. See the list: flag without a number.",
+  "cli.flag.action_model": "Action {n} already names the agent that acted: --model does not go with a number.",
+  "cli.flag.title_session": "The last numbered actions of this conversation ({hours} h), newest first:",
+  "cli.flag.title_profile": "The last numbered actions of this profile ({hours} h), newest first:",
+  "cli.flag.footer": "Flag one as an error: {command} <number>",
+  "cli.flag.none": "No numbered action in the last {hours} hours.",
+  "cli.flag.others": {
+    "one": "{n} other action in this profile: hermes tenure flag",
+    "other": "{n} other actions in this profile: hermes tenure flag"
+  },
   "cli.flag.unknown_type": "No record of {type} for {agent}. Types: {types}.",
   "cli.list.joiner": "; ",
   "cli.list.separator": ", ",
@@ -251,7 +266,7 @@
     "one": "Actions taken alone in the last {n} hour (undoing one counts as a fault):",
     "other": "Actions taken alone in the last {n} hours (undoing one counts as a fault):"
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   what each agent has earned, per action type\n    setup [careful|balanced|fast]              the three recommendations; with a name, use it\n    explain                                    how tenure decides, and what the numbers guarantee\n    models [--type T]                          each model's verified record on your own work\n    undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list\n    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked\n    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error\n    passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)\n    verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay\n    anchor                                     one line to publish: the ledger's head, date and length\n    export [PATH]                              write the evidence ledger (hash-chained JSON lines)\n    start trusted|probation                    trusted: no question before a type's first mistake; probation: the study's start\n    strict on|off                              strict mode: a new model starts with an empty record\n    cleanup                                    list dead tenure keys in Hermes' permanent allowlist\n    share [--out FILE]                         write a signed record of counts for the community benchmark (opt-in, nothing is sent)\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   what each agent has earned, per action type\n    setup [careful|balanced|fast]              the three recommendations; with a name, use it\n    explain                                    how tenure decides, and what the numbers guarantee\n    models [--type T]                          each model's verified record on your own work\n    undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list\n    flag [N]                                   alone, the last numbered actions; with a number, report that action as an error\n    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked\n    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error\n    passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)\n    verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay\n    anchor                                     one line to publish: the ledger's head, date and length\n    export [PATH]                              write the evidence ledger (hash-chained JSON lines)\n    start trusted|probation                    trusted: no question before a type's first mistake; probation: the study's start\n    strict on|off                              strict mode: a new model starts with an empty record\n    cleanup                                    list dead tenure keys in Hermes' permanent allowlist\n    share [--out FILE]                         write a signed record of counts for the community benchmark (opt-in, nothing is sent)\n",
   "cli.verify.after": {
     "one": "Note: the ledger has {n} event after this passport; the tiers are unchanged.",
     "other": "Note: the ledger has {n} events after this passport; the tiers are unchanged."

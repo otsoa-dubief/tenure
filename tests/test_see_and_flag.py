@@ -184,3 +184,271 @@ def test_the_record_holds_no_argument(plugin):
     rows = [line for line in dump.splitlines() if 'INSERT INTO "recent"' in line]
     assert len(rows) == 2 and not any(secret in r or "src/" in r or "npm test" in r for r in rows)
     assert json.dumps(recent(mod)).count(secret) == 0 and os.path.basename(mod.store_().path) == "tenure.db"
+
+
+# --------------------------------------------------------------------------------------- flag one action (task 5)
+B = "model-b@nous"
+
+
+def slash(mod, line, session="s1"):
+    """The slash command as Hermes calls it: the session id comes in the keyword arguments."""
+    return mod._slash(line, session_id=session)
+
+
+def replay_matches(mod):
+    live = {(a, s.key): s.to_dict() for a, s in mod.store_().states()}
+    replayed = {(a, k): s.to_dict() for a, t in mod.passport.replay(mod.store_().ledger()).items()
+                for k, s in t.items()}
+    for d in list(live.values()) + list(replayed.values()):
+        d.pop("changed_at")
+    return replayed == live
+
+
+def test_flag_n_hits_acting_agent_and_replays(plugin):
+    """The fault falls on the agent that acted and on its type, even after the model changed (spec 4.5)."""
+    mod, ctx = plugin(FAST)
+    climb(ctx, 3)                                                    # model-a
+    n = last(mod)["n"]
+    mod.pre_api_request(model="model-b", provider="nous", session_id="s1")
+    ctx.call("terminal", NPM)                                        # model-b acts on another type
+    fa, fb = state(mod, "file:write").faults, state(mod, "file:write", B)
+    out = slash(mod, f"flag {n}")
+    assert A in out and "file:write" in out and f"{n}" in out
+    b = state(mod, "file:write", B)
+    assert state(mod, "file:write").faults == fa + 1
+    assert (b.faults, b.tier, b.series, b.successes) == (fb.faults, fb.tier, fb.series, fb.successes)
+    assert b.distrusted                         # only its trusted start ends for this type (spec 9, arbitration)
+    e = outcomes(mod)[-1]
+    assert (e["agent"], e["type"], e["result"], e["source"], e["session"]) == (A, "file:write", "fault", "flag", "")
+    assert mod.store_().totals(A)["faults"] == 1 and mod.store_().totals(B)["faults"] == 0
+    assert mod.store_().recent(n)["flagged"] is True
+    assert replay_matches(mod)
+
+
+def test_flag_n_uses_the_recorded_stakes(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 2)
+    s = state(mod, "file:write")
+    slash(mod, "flag 1")
+    e = outcomes(mod)[-1]
+    assert (e["source"], e["stakes"], e["reversible"]) == ("flag", s.stakes, s.reversible)
+
+
+def test_flag_n_twice_is_refused(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 2)
+    slash(mod, "flag 2")
+    count, faults = len(ledger_rows(mod)), state(mod, "file:write").faults
+    out = slash(mod, "flag 2")
+    assert "already" in out
+    assert len(ledger_rows(mod)) == count and state(mod, "file:write").faults == faults
+
+
+def ledger_rows(mod):
+    return mod.store_().ledger()
+
+
+def test_flag_n_unknown_or_too_old(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 1)
+    count = len(ledger_rows(mod))
+    assert "24" in slash(mod, "flag 99")
+    with mod.txn() as st:
+        st.db.execute("UPDATE recent SET at = at - 90000 WHERE n = 1")
+    assert "24" in slash(mod, "flag 1")
+    assert len(ledger_rows(mod)) == count
+
+
+def test_flag_n_of_an_action_born_faulty_is_refused(plugin):
+    mod, ctx = plugin(FAST)
+    ctx.call("write_file", write("bad", "def x(:\n"))                  # failed check: already a fault
+    faults, count = state(mod, "file:write").faults, len(ledger_rows(mod))
+    assert "already" in slash(mod, "flag 1")
+    assert state(mod, "file:write").faults == faults and len(ledger_rows(mod)) == count
+
+
+def test_flag_n_from_another_session_is_accepted(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 1, session="s2")
+    faults = state(mod, "file:write").faults
+    slash(mod, "flag 1", session="s1")
+    assert state(mod, "file:write").faults == faults + 1
+
+
+def test_flag_n_with_a_model_is_refused(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 1)
+    count = len(ledger_rows(mod))
+    out = slash(mod, "flag 1 --model model-a")
+    assert "--model" in out and len(ledger_rows(mod)) == count
+    assert run(mod, "flag 1 --model model-a")[1] == 1
+
+
+def run(mod, line):
+    import shlex
+    p = mod.cli._Parser(prog="x", add_help=False)
+    mod.cli._add_subcommands(p)
+    return mod.cli.execute(p.parse_args(shlex.split(line)))
+
+
+def test_flag_then_undo_one_fault(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    ctx.call("write_file", write("u"))
+    uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    n = last(mod)["n"]
+    faults = state(mod, "file:write").faults
+    slash(mod, f"flag {n}")
+    assert state(mod, "file:write").faults == faults + 1
+    assert mod.store_().get_undo(uid)["fault"] is True
+    out = slash(mod, f"undo {uid}")
+    assert "files restored" in out and "no second fault" in out
+    assert state(mod, "file:write").faults == faults + 1
+    assert len(outcomes(mod, result="fault")) == 1 and replay_matches(mod)
+
+
+def test_undo_then_flag_refused(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    ctx.call("write_file", write("u"))
+    uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    n = last(mod)["n"]
+    slash(mod, f"undo {uid}")
+    faults = state(mod, "file:write").faults
+    assert "already" in slash(mod, f"flag {n}")
+    assert state(mod, "file:write").faults == faults and len(outcomes(mod, result="fault")) == 1
+
+
+def test_flag_type_is_unchanged(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 1)
+    out = slash(mod, "flag file:write a note")
+    assert "fault recorded on file:write" in out and outcomes(mod)[-1]["source"] == "flag"
+
+
+# ------------------------------------------------------------------------------------------------ the list
+def test_slash_lists_the_session_with_the_target(plugin):
+    mod, ctx = plugin(FAST)
+    ctx.call("write_file", {"path": "src/target_one.py", "content": "x = 1\n"})
+    ctx.call("terminal", {"command": "npm test -- --grep target_two"})
+    out = slash(mod, "flag")
+    lines = out.splitlines()
+    assert "src/target_one.py" in out and "target_two" in out
+    assert out.index("target_two") < out.index("target_one")            # newest first
+    assert "shell:npm" in out and "file:write" in out
+    assert not any("hermes tenure flag" in ln for ln in lines)          # nothing elsewhere in the profile
+    assert "/tenure flag" in out
+
+
+def test_slash_list_tells_other_actions_of_the_profile(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 1, session="s1")
+    climb(ctx, 2, session="child")                                     # a subagent has its own session
+    out = slash(mod, "flag")
+    assert "src/as10.py" in out and "childs" not in out.replace("hermes tenure flag", "")
+    assert "2 other actions" in out and "hermes tenure flag" in out
+    climb(ctx, 1, session="other2")
+    assert "3 other actions" in slash(mod, "flag")
+
+
+def test_slash_without_session_lists_the_profile(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 1, session="s1")
+    climb(ctx, 1, session="s2")
+    out = mod._slash("flag")
+    assert "src/as10.py" in out and "src/as20.py" in out and "other action" not in out
+
+
+def test_cli_lists_the_profile_without_the_target_but_a_t2_file(plugin):
+    """Another process: no summary in memory. A T2 action still shows its file, from its undo snapshot."""
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    ctx.call("write_file", write("t2file"))                            # T2: acts, snapshot taken
+    ctx.call("terminal", {"command": "npm test -- --grep hidden_word"})
+    uid = int([p for p in ctx.posted if "/tenure undo" in p][-1].rsplit(" ", 1)[1])
+    with mod.ST.mem:
+        mod.ST.summaries.clear()
+    text, code = run(mod, "flag")
+    assert code == 0 and "hidden_word" not in text and "src/as10.py" not in text
+    assert "t2file.py" in text and str(uid) in text
+    assert "hermes tenure flag" in text and "other action" not in text
+
+
+def test_memory_summary_keyed_by_store(plugin, tmp_path, monkeypatch):
+    """Two profiles in one process, the same number in each: each shows its own target, never the other's."""
+    mod, ctx = plugin(FAST)
+    first = tmp_path / "hermes"
+    reopen(mod, monkeypatch, first)
+    ctx.call("write_file", {"path": "src/first_profile.py", "content": "x = 1\n"})
+    second = tmp_path / "other"
+    reopen(mod, monkeypatch, second)
+    mod.pre_api_request(model="model-a", provider="nous", session_id="s1")
+    ctx.call("write_file", {"path": "src/second_profile.py", "content": "x = 1\n"})
+    assert last(mod)["n"] == 1
+    out = slash(mod, "flag")
+    assert "second_profile" in out and "first_profile" not in out
+    reopen(mod, monkeypatch, first)
+    out = slash(mod, "flag")
+    assert "first_profile" in out and "second_profile" not in out
+
+
+def test_memory_summary_needs_the_same_time(plugin):
+    mod, ctx = plugin(FAST)
+    ctx.call("write_file", {"path": "src/timed.py", "content": "x = 1\n"})
+    assert "timed.py" in slash(mod, "flag")
+    with mod.txn() as st:
+        st.db.execute("UPDATE recent SET at = at - 1 WHERE n = 1")      # another row under the same number
+    assert "timed.py" not in slash(mod, "flag")
+
+
+def test_memory_cleared_no_target(plugin):
+    mod, ctx = plugin(FAST)
+    ctx.call("write_file", {"path": "src/forgot.py", "content": "x = 1\n"})
+    with mod.ST.mem:
+        mod.ST.summaries.clear()
+    out = slash(mod, "flag")
+    assert "forgot.py" not in out and "file:write" in out
+
+
+def test_memory_summaries_are_bounded(plugin):
+    mod, ctx = plugin(FAST)
+    with mod.ST.mem:
+        for i in range(600):
+            mod._remember_summary("x.db", i, 0.0, "s")
+    assert len(mod.ST.summaries) == 500 and ("x.db", 599) in mod.ST.summaries and ("x.db", 0) not in mod.ST.summaries
+
+
+def test_list_is_filtered_to_24_hours_without_writing(plugin, monkeypatch):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 2)
+    later = time.time() + 25 * 3600
+    monkeypatch.setattr(mod.store.time, "time", lambda: later)
+    out = mod.cli.flag_list(None)
+    assert "file:write" not in out
+    db = sqlite3.connect(mod.store_().path)
+    assert db.execute("SELECT COUNT(*) FROM recent").fetchone()[0] == 2  # read only: no purge
+
+
+def test_list_shows_the_agent_and_the_undo_number(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    ctx.call("write_file", write("w"))
+    uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    out = slash(mod, "flag")
+    row13 = [ln for ln in out.splitlines() if ln.strip().startswith("13 ")][0]
+    assert A in row13 and row13.rstrip().endswith(str(uid))
+
+
+def test_empty_list(plugin):
+    mod, ctx = plugin(FAST)
+    out = slash(mod, "flag")
+    assert "24" in out and "file:write" not in out
+
+
+def test_flag_n_stores_no_note(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 1)
+    slash(mod, "flag 1 zebra-quartz-7731 wrong file")
+    assert outcomes(mod)[-1]["source"] == "flag"
+    dump = "\n".join(sqlite3.connect(mod.store_().path).iterdump())
+    assert "zebra-quartz-7731" not in dump and "zebra-quartz-7731" not in json.dumps(mod.store_().ledger())
