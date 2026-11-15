@@ -1111,3 +1111,36 @@ def test_summary_huge_batch_is_cheap_and_masked():
     s = C._summary("mcp__at__create", args, "mcp:at:create")
     assert time.perf_counter() - t0 < 0.2
     assert '"Password":"•••"' in s and "p1" not in s and "u:p@" not in s and "k=•••" in s
+
+
+def test_summary_masks_every_shipped_secret_entry():
+    import json
+    from tenure import fields
+    raw = json.loads(fields.DATA_PATH.read_text(encoding="utf-8"))
+    keys = raw["categories"]["secret"]["entries"] + ["APIKEY", "privatekey", "accesskey", "sessionid", "apiKey"]
+    for key in keys:
+        s = C._summary("mcp__h__call", {key: "zq-hidden-77"}, "mcp:h:call")
+        assert "zq-hidden-77" not in s and f"{key}=•••" in s, key
+        s = C._summary("mcp__h__call", {"headers": {key: "zq-hidden-77"}}, "mcp:h:call")
+        assert "zq-hidden-77" not in s, key
+
+
+def test_summary_masks_an_owner_added_secret_entry_even_when_secret_is_off():
+    from tenure import fields
+    vocab = fields.load({"add": {"secret": ["pin_code"]}, "disable": ["secret"]})
+    s = C._summary("mcp__h__call", {"pin_code": "zq-1234", "body": {"pinCode": "zq-5678"}}, "mcp:h:call", vocab)
+    assert "zq-1234" not in s and "zq-5678" not in s and "pin_code=•••" in s
+    removed = fields.load({"remove": {"secret": ["mdp"]}})        # a built-in entry keeps masking
+    assert "zq-9" not in C._summary("mcp__h__call", {"mdp": "zq-9"}, "mcp:h:call", removed)
+
+
+def test_classify_summary_uses_the_owner_vocabulary():
+    from tenure import fields
+    vocab = fields.load({"add": {"secret": ["pin_code"]}})
+    assert "zq-1234" not in C.classify("mcp__h__call", {"pin_code": "zq-1234"}, vocabulary=vocab).summary
+
+
+def test_summary_caps_key_names_so_the_target_stays_visible():
+    big = "k" * 1000 + "_id"
+    s = C._summary("mcp__x__u", {big: "4821", "y" * 1000: 1}, "mcp:x:u")
+    assert "=4821" in s and ("k" * 39 + "…=4821") in s and "k" * 41 not in s and "y" * 41 not in s
