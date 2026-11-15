@@ -2,11 +2,12 @@
 ``recent``), with its session, agent, type, time, whether it already counted as a fault and its undo id; never an
 argument."""
 import json
+import re
 import os
 import sqlite3
 import time
 
-from test_plugin import A, FAST, NPM, Picks, anon, climb, outcomes, plugin, pre, row, state, to_t3, write  # noqa: F401
+from test_plugin import A, FAST, NPM, Picks, anon, climb, outcomes, plugin, post, pre, row, state, to_t3, write  # noqa: F401
 from test_copied_profile import clone, reopen
 
 
@@ -452,3 +453,91 @@ def test_flag_n_stores_no_note(plugin):
     assert outcomes(mod)[-1]["source"] == "flag"
     dump = "\n".join(sqlite3.connect(mod.store_().path).iterdump())
     assert "zebra-quartz-7731" not in dump and "zebra-quartz-7731" not in json.dumps(mod.store_().ledger())
+
+
+# ---------------------------------------------------------------------------------- final review (15/11)
+def test_a_cross_drive_path_does_not_abort_the_settlement(plugin, monkeypatch):
+    """Windows: relpath raises ValueError across drives; the action still settles, the path stays absolute."""
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)                                                              # T2
+
+    def cross_drive(path, start=None):
+        raise ValueError("path is on mount 'C:', start on mount 'D:'")
+    monkeypatch.setattr(os.path, "relpath", cross_drive)
+    before = len(outcomes(mod))
+    assert ctx.call("write_file", write("w")) == "ran"
+    assert len(outcomes(mod)) == before + 1 and outcomes(mod)[-1]["source"] == "notify"
+    assert last(mod)["n"] == 13 and mod.store_().pending_rows(anon("s1"), "tc-13") == []
+    text = [p for p in ctx.posted if "/tenure undo" in p][-1]
+    full = os.path.join(ctx.cwd, "src", "w.py")                                # absolute, capped at 120
+    assert f"({full[:80]}" in text and f"{full[-39:]})" in text
+
+
+def test_any_display_error_leaves_the_settlement_whole(plugin, monkeypatch):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+
+    def broken(*a, **k):
+        raise RuntimeError("display")
+    monkeypatch.setattr(mod, "_show", broken)
+    assert ctx.call("write_file", write("w")) == "ran"
+    assert outcomes(mod)[-1]["source"] == "notify" and last(mod)["n"] == 13
+    assert re.fullmatch(r"tenure: file:write acted, then told you · /tenure undo \d+", ctx.posted[-1])
+
+
+def test_a_summary_error_does_not_drop_the_t2_notice(plugin, monkeypatch):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    count = len(ctx.posted)
+
+    def broken(*a, **k):
+        raise RuntimeError("summary")
+    assert pre(mod, "write_file", write("w"), "w1") is None                    # T2: no prompt
+    os.makedirs(os.path.join(ctx.cwd, "src"), exist_ok=True)
+    with open(os.path.join(ctx.cwd, "src", "w.py"), "w", encoding="utf-8") as f:
+        f.write("x = 1\n")
+    monkeypatch.setattr(mod.classify, "_summary", broken)                      # fails at settlement only
+    post(mod, "write_file", write("w"), "w1")
+    assert outcomes(mod)[-1]["source"] == "notify"
+    assert len(ctx.posted) > count and "/tenure undo" in ctx.posted[-1]
+
+
+def test_t2_message_caps_each_path_and_keeps_the_undo_id_last(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    deep = "/".join(["d" * 40] * 5)
+    assert ctx.call("write_file", {"path": f"src/{deep}/tail.py", "content": "x = 1\n"}) == "ran"
+    text = ctx.posted[-1]
+    shown = text[text.index("(") + 1:text.rindex(")")]
+    assert len(shown) == 120 and "…" in shown and shown.endswith("tail.py") and shown.startswith("src/d")
+    assert text.rsplit(" ", 1)[1].isdigit()
+
+
+def test_show_caps_with_a_middle_ellipsis():
+    import tenure
+    long = "a" * 100 + "/" + "b" * 100
+    s = tenure._show(long, "", "")
+    assert s == long[:80] + "…" + long[-39:] and len(s) == 120
+    assert tenure._show("a" * 120, "", "") == "a" * 120
+
+
+def test_failed_check_messages_name_the_written_path(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    assert ctx.call("write_file", write("bad2", "def y(:\n")) == "ran"
+    text = [p for p in ctx.posted if "automatic check failed" in p][-1]
+    assert "src/bad2.py" in text and "/tenure undo" in text                    # settle.acted_fault
+    assert ctx.call("write_file", write("bad", "def x(:\n")) == "approved"   # the fault dropped the type
+    text = [p for p in ctx.posted if "automatic check failed" in p][-1]
+    assert "src/bad.py" in text and "/tenure undo" not in text                 # settle.check_failed
+
+
+def test_flag_a_huge_number_is_unknown_on_slash_and_cli(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 1)
+    count = len(ledger_rows(mod))
+    out = slash(mod, "flag 99999999999999999999")
+    assert "24" in out and "Error" not in out
+    text, code = run(mod, "flag 99999999999999999999")
+    assert "24" in text and code == 1
+    assert len(ledger_rows(mod)) == count

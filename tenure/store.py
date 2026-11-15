@@ -405,8 +405,8 @@ class Store:
         return int(cur.lastrowid)
 
     def recent(self, n: int) -> dict | None:
-        """Action number ``n``, when it is less than 24 hours old."""
-        if not self._recent_ready():
+        """Action number ``n``, when it is less than 24 hours old (a number beyond SQLite's integers is none)."""
+        if not 0 < n < 2 ** 63 or not self._recent_ready():
             return None
         row = self.db.execute("SELECT %s FROM recent WHERE n = ? AND at >= ?" % ", ".join(RECENT_COLS),
                               (n, time.time() - RECENT_WINDOW)).fetchone()
