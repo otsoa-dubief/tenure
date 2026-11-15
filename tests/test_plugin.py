@@ -1287,7 +1287,7 @@ def test_what_shows_forward_slashes_when_relpath_returns_backslashes(tmp_path, m
     import ntpath
     import tenure
     cwd, home = str(tmp_path / "proj"), str(tmp_path / "home")
-    monkeypatch.setattr(os.path, "relpath", lambda p, s=None: ("src\\a.py" if s == cwd else "notes\\x.md") if p.startswith(s) else "../out")
+    monkeypatch.setattr(os.path, "relpath", lambda p, s=None: ("src\\a.py" if s == cwd else "notes\\x.md") if p.startswith(s) else ".." + os.sep + "out")
     assert tenure._what([f"{cwd}/src/a.py"], cwd, home) == "src/a.py"
     assert tenure._what([f"{home}/notes/x.md"], cwd, home) == "~/notes/x.md"
     assert tenure._what(["C:\\Users\\o\\f.py"], "", "") == "C:/Users/o/f.py"
