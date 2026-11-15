@@ -34,3 +34,7 @@ python3 -m venv .venv
 ## Security
 
 Please report vulnerabilities privately, not in an issue: see [SECURITY.md](SECURITY.md).
+
+## Code of conduct
+
+This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
