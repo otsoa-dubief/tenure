@@ -624,6 +624,7 @@ def _show(path: str, cwd: str, home: str) -> str:
                 if rel != "." and rel != ".." and not rel.startswith(".." + os.sep):
                     text = prefix + rel
                     break
+    text = text.replace(os.sep, "/").replace("\\", "/")     # one display on every system
     text = "".join("\ufffd" if unicodedata.category(c) in ("Cc", "Cf") else c for c in text)
     return text if len(text) <= SHOWN_CAP else text[:80] + "\u2026" + text[-39:]
 

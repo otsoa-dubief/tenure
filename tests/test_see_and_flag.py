@@ -469,7 +469,7 @@ def test_a_cross_drive_path_does_not_abort_the_settlement(plugin, monkeypatch):
     assert len(outcomes(mod)) == before + 1 and outcomes(mod)[-1]["source"] == "notify"
     assert last(mod)["n"] == 13 and mod.store_().pending_rows(anon("s1"), "tc-13") == []
     text = [p for p in ctx.posted if "/tenure undo" in p][-1]
-    full = os.path.join(ctx.cwd, "src", "w.py")                                # absolute, capped at 120
+    full = os.path.join(ctx.cwd, "src", "w.py").replace(os.sep, "/").replace("\\", "/")   # absolute, slashes, cap 120
     assert f"({full[:80]}" in text and f"{full[-39:]})" in text
 
 
