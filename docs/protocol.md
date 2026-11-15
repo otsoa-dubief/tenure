@@ -54,6 +54,13 @@ at that type's first `fault` outcome or `revoke` event, and a state created afte
 set. Under `start: "trusted"`, a type with `distrusted` unset, at low or medium stakes, not capped and with no open
 trial is covered by the trusted start: it asks nothing Hermes alone would not ask, and carries no guarantee.
 
+**Flagging one action.** A `fault` with source `flag` may come from a flag of one numbered action instead of a type: the
+event is the same (`agent`, `type`, `stakes`, `reversible`, `result`, `source`, `session` empty), with no new field and
+no new event kind. The agent and the type are those of the action, which may not be the agent current at the time of
+the flag. The number lives in a local table `recent` (number, session, agent, type, time, flagged, undo id) that holds
+no argument, name, value or summary, is kept 24 hours and is not part of the ledger, the passport or the rule
+fingerprint. An action counts at most one fault: a flag, an undo or a failed check, whichever comes first.
+
 A replay refuses a ledger with an unknown event kind, an outcome, agent or revoke event before the first settings
 event, or settings of another rule.
 

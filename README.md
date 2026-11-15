@@ -287,6 +287,39 @@ trusted, run Hermes in a container**, with only the project mounted, and keep co
 
 The full rules, every protected entry and every known gap: [docs/self-protection.md](docs/self-protection.md).
 
+## See what you approve
+
+An approval prompt names the target of the call first and whole: the argument that says which record, file, address or
+account (`contact_id`, `to`, `url`, `repo`, a path...) comes before the others, up to 120 characters (a longer one keeps
+its head and its tail, so two paths that differ at the end stay apart), then at most 6 arguments and 400 characters in
+all. A nested `params` shows its target (`params.contact_id=4821`). When an act-then-notify file action tells you, the
+message names the files it changed (the first three, then `+N`).
+
+Values under a key tenure recognises as secret (`password`, `token`, `api_key`, `authorization`, `cookie`...) show as
+`•••`, as do the userinfo, the query values and a `#k=v` fragment of a URL. This masks the keys it recognises, and is not
+a guarantee. Known gaps: a secret inside the value of a key that is not recognised, a header list written as
+name/value pairs (`[{"name": "Authorization", "value": ...}]`), and a URL embedded in a sentence. What it shows is
+display only: it is kept in no database, ledger or passport.
+
+## Flag one action
+
+Every action that ran gets a number for 24 hours. `/tenure flag` lists the last ones; `/tenure flag 12` reports
+number 12 as an error: the fault lands on the agent that acted and on that type, even if you changed model since, and
+it counts once (an undo and a flag of the same action never count twice). `flag TYPE` works as before.
+
+- **Target in the slash command only.** `/tenure flag` shows each action's target, but only in the process that ran it
+  and until Hermes restarts. `hermes tenure flag` lists number, time, type and agent; for a file action that acted then
+  told, it also names the file through its undo snapshot.
+- **No number**: actions that run free, capped, refused, timed out, blocked or ambiguous have none.
+- **What is kept.** A local table `recent` holds the number, session, agent, type and time, no argument, for 24 hours.
+  It is added to an existing database without changing the schema version (when a database is locked by another
+  process at the upgrade, the first open may wait up to the busy timeout once, then carries on without the table and
+  adds it at its next write). No new ledger event: a flag of an action is the same `fault` / `flag` outcome. The rule and
+  the passport are unchanged.
+
+**What it cannot see.** Tenure shows you the target; it does not judge it. If the agent read both A and B and wrote B,
+nothing local and deterministic can tell whether B was the right one, short of a rule you write for your own data.
+
 ## Commands
 
 | Command | What it does |
@@ -296,6 +329,7 @@ The full rules, every protected entry and every known gap: [docs/self-protection
 | `hermes tenure explain` | How it decides, and the guarantee for your settings |
 | `hermes tenure models [--type T]` | Each model's verified record on your own work |
 | `hermes tenure undo [ID]` | Restore the files of an act-then-notify action; without an ID, list what can still be undone |
+| `hermes tenure flag` · `hermes tenure flag N` | List the last numbered actions (24 hours); report action N as an error: the fault lands on the agent that acted, once |
 | `hermes tenure flag TYPE [note]` | Report an error the agent made on its own: revokes that type |
 | `hermes tenure revoke TYPE\|all [--model M\|--all]` | Take earned autonomy back: one type or every type, for the last active agent, one model, or every agent |
 | `hermes tenure passport [--agent A] [--out FILE] [--no-redact]` | Write the signed passport of an agent |

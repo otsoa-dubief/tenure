@@ -173,6 +173,26 @@ spelling tenure does not know can slip through (see Limits). Every case found so
   If your agent must never be able to reach Hermes' files, keep code-running types at `cap`
   (`types: {"shell:npm*": cap, "shell:make*": cap, "code:execute": cap}`).
 
+## What an approval prompt shows, and what it hides
+
+An approval prompt names the target of the call first (up to 120 characters, head and tail kept), at most 6 arguments,
+400 characters in all. Values under a key recognised as secret are shown as `•••`, whatever the `fields:` setting: a key
+holding `secret`, `password`, `passwd`, `pwd`, `passphrase`, `token`, `auth`, `authorization`, `bearer`, `cookie`,
+`credential`, `otp`, `signature` or `session`, or `api_key`, `private_key`, `access_key`; the pagination and count keys
+the field categories already exempt (`max_tokens`, `token_count`, `page_token`) stay visible. The masking goes through
+nested objects and lists by key, and in a value that looks like a URL it hides the userinfo, every query value and a
+`#k=v` fragment. It masks the keys it recognises: it is a display aid, not a guarantee.
+
+Known gaps: a secret inside the value of a key that is not recognised (a `notes` field holding a password), a header
+list of name/value pairs (`[{"name": "Authorization", "value": ...}]`), a URL embedded in prose, and nesting deeper than
+8 levels (shown as `…`). The `terminal` command and the path of `write_file` or `patch` are shown without this masking.
+
+What is shown is display only: it is kept in no database, ledger, passport, dashboard or push message. To flag an action
+after the fact, the slash command remembers the target in the memory of the process that ran it, until Hermes restarts.
+
+**What it cannot see.** If the agent read both A and B and wrote B, nothing local and deterministic can tell whether B was
+the right one, short of a rule you write for your own data. Tenure helps you check, it does not guess intent.
+
 ## Field categories and their limits
 
 An MCP or plugin call is split by the kind of field it touches (see the README, "Field categories"). It is a check on
