@@ -4942,12 +4942,37 @@ _SUMMARY_ARGS = 6        # arguments shown, then "…"
 _SUMMARY_TARGET = 120    # a target is shown whole up to here, then its start (80) and end (39)
 _SUMMARY_OTHER = 40
 _SUMMARY_CAP = 400
+_SUMMARY_SCAN = 200       # keys examined per level
+_SUMMARY_NODES = 120     # items kept of one value: 400 characters cannot show more
 
 
 def _clean(text: str) -> str:
     """Whitespace folded to one space, then any remaining Cf/Cc character shown as U+FFFD."""
     text = " ".join(text.split())
     return "".join("\ufffd" if unicodedata.category(c) in ("Cf", "Cc") else c for c in text)
+
+
+def _trim(value, budget: list | None = None, depth: int = 0):
+    """A copy of a value cut to what a summary can show (at most `_SUMMARY_NODES` items in all), so that masking and
+    serialising a huge batch stay cheap. Strings are kept whole: a target shows its end."""
+    budget = [_SUMMARY_NODES] if budget is None else budget
+    if isinstance(value, dict):
+        out = {}
+        for k, v in value.items():
+            if budget[0] <= 0 or depth > fields.MAX_DEPTH:
+                break
+            budget[0] -= 1
+            out[k] = _trim(v, budget, depth + 1)
+        return out
+    if isinstance(value, (list, tuple)):
+        out = []
+        for v in value:
+            if budget[0] <= 0 or depth > fields.MAX_DEPTH:
+                break
+            budget[0] -= 1
+            out.append(_trim(v, budget, depth + 1))
+        return out
+    return value
 
 
 def _show(value) -> str:
@@ -4969,25 +4994,35 @@ def _summary(tool: str, args: dict, t: str) -> str:
     if tool in ("write_file", "patch") and "path" in args:
         what = _clean(str(args.get("path")))
         return f"{t}: {what[:200]}"
-    masked = fields.mask(args)
+    # choose what to show first, then mask only that (bounded work on a huge batch); secrets are masked before any
+    # value is serialised or truncated
     targets: list[tuple[str, object]] = []
     others: list[tuple[str, object]] = []
-    for k, v in masked.items():
+    for k, v in itertools.islice(args.items(), _SUMMARY_SCAN):
         key = str(k)
-        if fields.is_target(key):
+        if fields.is_secret(key):
+            others.append((key, fields.MASK))
+        elif fields.is_target(key):
             targets.append((key, v))
         elif isinstance(v, dict):
-            nested = [(f"{key}.{sk}", sv) for sk, sv in v.items() if fields.is_target(str(sk))]
-            if nested:                      # `params.contact_id=4821`; `params` itself is not repeated
+            nested = [(f"{key}.{sk}", sv) for sk, sv in itertools.islice(v.items(), _SUMMARY_SCAN)
+                      if fields.is_target(str(sk))]
+            if nested:                      # `params.contact_id=4821`; the siblings stay visible under `params`
                 targets += nested
+                rest = {sk: sv for sk, sv in itertools.islice(v.items(), _SUMMARY_SCAN)
+                        if not fields.is_target(str(sk))}
+                if rest:
+                    others.append((key, rest))
             else:
                 others.append((key, v))
         else:
             others.append((key, v))
+    shown = ([(True, kv) for kv in targets] + [(False, kv) for kv in others])[:_SUMMARY_ARGS + 1]
+    groups = ((True, [kv for t_, kv in shown if t_]), (False, [kv for t_, kv in shown if not t_]))
     parts = []
-    for is_target, group in ((True, targets), (False, others)):
+    for is_target, group in groups:
         for key, v in group:
-            text = _clean(_show(v))
+            text = _clean(_show(fields.mask(_trim(v))))
             if is_target:
                 if len(text) > _SUMMARY_TARGET:
                     text = text[:80] + "\u2026" + text[-39:]
