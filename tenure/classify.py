@@ -4941,6 +4941,7 @@ def sensitive_path(path: str, cwd: str | None = None, home: str | None = None) -
 _SUMMARY_ARGS = 6        # arguments shown, then "…"
 _SUMMARY_TARGET = 120    # a target is shown whole up to here, then its start (80) and end (39)
 _SUMMARY_OTHER = 40
+_SUMMARY_KEY = 40        # characters of one argument name, then "…"
 _SUMMARY_CAP = 400
 _SUMMARY_SCAN = 200       # keys examined per level
 _SUMMARY_NODES = 120     # items kept of one value: 400 characters cannot show more
@@ -4984,8 +4985,15 @@ def _show(value) -> str:
         return str(value)
 
 
-def _summary(tool: str, args: dict, t: str) -> str:
-    """The line an approval prompt shows: the target of the call first and whole, secrets masked (spec 4.1)."""
+def _key_name(key: str) -> str:
+    """An argument name as shown: at most 40 characters, so a huge name cannot push the target out."""
+    key = _clean(key)
+    return key if len(key) <= _SUMMARY_KEY else key[:_SUMMARY_KEY - 1] + "\u2026"
+
+
+def _summary(tool: str, args: dict, t: str, vocabulary: fields.Vocabulary | None = None) -> str:
+    """The line an approval prompt shows: the target of the call first and whole, secrets masked (spec 4.1). The
+    owner's own `secret` entries (``vocabulary``) are masked too."""
     if not isinstance(args, dict):
         args = {}
     if tool == "terminal":
@@ -5000,17 +5008,17 @@ def _summary(tool: str, args: dict, t: str) -> str:
     others: list[tuple[str, object]] = []
     for k, v in itertools.islice(args.items(), _SUMMARY_SCAN):
         key = str(k)
-        if fields.is_secret(key):
+        if fields.is_secret(key, vocabulary):
             others.append((key, fields.MASK))
-        elif fields.is_target(key):
+        elif fields.is_target(key, vocabulary):
             targets.append((key, v))
         elif isinstance(v, dict):
             nested = [(f"{key}.{sk}", sv) for sk, sv in itertools.islice(v.items(), _SUMMARY_SCAN)
-                      if fields.is_target(str(sk))]
+                      if fields.is_target(str(sk), vocabulary)]
             if nested:                      # `params.contact_id=4821`; the siblings stay visible under `params`
                 targets += nested
                 rest = {sk: sv for sk, sv in itertools.islice(v.items(), _SUMMARY_SCAN)
-                        if not fields.is_target(str(sk))}
+                        if not fields.is_target(str(sk), vocabulary)}
                 if rest:
                     others.append((key, rest))
             else:
@@ -5022,13 +5030,13 @@ def _summary(tool: str, args: dict, t: str) -> str:
     parts = []
     for is_target, group in groups:
         for key, v in group:
-            text = _clean(_show(fields.mask(_trim(v))))
+            text = _clean(_show(fields.mask(_trim(v), vocabulary)))
             if is_target:
                 if len(text) > _SUMMARY_TARGET:
                     text = text[:80] + "\u2026" + text[-39:]
             elif len(text) > _SUMMARY_OTHER:
                 text = text[:_SUMMARY_OTHER] + "\u2026"
-            parts.append(f"{_clean(key)}={text}")
+            parts.append(f"{_key_name(key)}={text}")
     if len(parts) > _SUMMARY_ARGS:
         parts = parts[:_SUMMARY_ARGS] + ["\u2026"]
     out = f"{t}: {tool}({', '.join(parts)})"
@@ -5313,4 +5321,4 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
             and ":@" not in tool_name and fields.parent_of(t) is None):      # refuse only a type that already parses as a category type
         t, stakes = _categorized(t, stakes, before, tool_name, args, overrides, vocabulary)
     rev = rev and t in ("file:write", "file:shell")  # only a change inside the project can be undone
-    return Action(type=t, stakes=stakes, reversible=rev, summary=_summary(tool_name, args, t))
+    return Action(type=t, stakes=stakes, reversible=rev, summary=_summary(tool_name, args, t, vocabulary))

@@ -7,6 +7,7 @@ raises. This module must not import ``classify`` at module level (classify impor
 """
 from __future__ import annotations
 
+import functools
 import json
 import re
 import unicodedata
@@ -243,27 +244,51 @@ _TARGET_TOKENS = frozenset(w + s for w in _TARGET_WORDS for s in ("", "s", "es")
 _NOT_TARGET_LAST = frozenset({"body", "content", "text", "message", "description", "note", "notes", "comment",
                               "size", "limit", "count", "offset", "cursor", "token"})
 _SECRET_WORDS = ("secret password passwd pwd passphrase auth authorization bearer cookie credential otp "
-                 "signature session").split()
+                 "signature session privatekey accesskey sessionid").split()
 _SECRET_PAIRS = ("api_key", "private_key", "access_key")
 MASK = "\u2022\u2022\u2022"
 _URLISH = re.compile(r"^([A-Za-z][A-Za-z0-9+.\-]*://)([^/?#]*)([^?#]*)(\?[^#]*)?(#.*)?$", re.S)
 
 
-def is_secret(key: str) -> bool:
-    """Does this argument name carry a secret? Independent of the `fields:` vocabulary (spec 9 C3)."""
+def _shipped_secret() -> frozenset[str]:
+    """The entries of the shipped `secret` category, read once (none when the file is unreadable)."""
+    key = ("secret", str(DATA_PATH))
+    if key not in _cache:
+        try:
+            raw = json.loads(DATA_PATH.read_text(encoding="utf-8"))
+            _cache[key] = frozenset(canonical(str(e)) for e in raw["categories"]["secret"]["entries"]) - {""}
+        except Exception:
+            _cache[key] = frozenset()
+    return _cache[key]
+
+
+def _secret_entries(vocab: Vocabulary | None) -> frozenset[str]:
+    """The built-in words, the shipped `secret` entries, and the owner's own `secret` entries (on or off)."""
+    owner = vocab.entries.get("secret", frozenset()) if vocab is not None else frozenset()
+    return frozenset(_SECRET_WORDS) | frozenset(_SECRET_PAIRS) | _shipped_secret() | owner
+
+
+@functools.lru_cache(maxsize=4096)
+def _secret(key: str, entries: frozenset[str]) -> bool:
     canon = canonical(key)
     if not canon:
         return False
     toks = tokens(canon)
     if _token_counts(toks):
         return True
-    return any(entry_matches(canon, toks, e) for e in (*_SECRET_WORDS, *_SECRET_PAIRS))
+    return any(entry_matches(canon, toks, e) for e in entries if e != "token")   # `token`: minus counters, above
 
 
-def is_target(key: str) -> bool:
+def is_secret(key: str, vocab: Vocabulary | None = None) -> bool:
+    """Does this argument name carry a secret? Built-in words plus every entry of the `secret` category, shipped or
+    added by the owner, whether the category is on or off (spec 9 C3): switching it off never unmasks."""
+    return _secret(key, _secret_entries(vocab))
+
+
+def is_target(key: str, vocab: Vocabulary | None = None) -> bool:
     """Does this argument name the target of a call (spec 4.1, 9 C2)? A secret never is."""
     canon = canonical(key)
-    if not canon or is_secret(key):
+    if not canon or is_secret(key, vocab):
         return False
     toks = tokens(canon)
     if canon in _TARGET_WHOLE or toks[-1] in ("id", "ids"):
@@ -293,16 +318,17 @@ def _mask_url(s: str) -> str:
     return scheme + auth + path + (query or "") + (frag or "")
 
 
-def mask(value: object, _depth: int = 0) -> object:
+def mask(value: object, vocab: Vocabulary | None = None, _depth: int = 0) -> object:
     """Deep copy where every value under a secret key is masked, and URLs lose userinfo and query values.
 
     Known limit: a header list of pairs ``[{"name": "Authorization", "value": ...}]`` is not masked."""
     if _depth > MAX_DEPTH:
         return "\u2026"
     if isinstance(value, dict):
-        return {k: MASK if isinstance(k, str) and is_secret(k) else mask(v, _depth + 1) for k, v in value.items()}
+        return {k: MASK if isinstance(k, str) and is_secret(k, vocab) else mask(v, vocab, _depth + 1)
+                for k, v in value.items()}
     if isinstance(value, (list, tuple)):
-        return [mask(v, _depth + 1) for v in value]
+        return [mask(v, vocab, _depth + 1) for v in value]
     if isinstance(value, str):
         return _mask_url(value)
     return value
