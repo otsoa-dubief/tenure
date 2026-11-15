@@ -780,6 +780,9 @@ def execute(ns) -> tuple[str, int]:
             if re.fullmatch(r"[0-9]+", what):
                 if g("model"):
                     raise CliError(tr("cli.flag.action_model", n=what))     # the number already names the agent
+                if len(what) > 18:      # past any real number; int() of thousands of digits raises ValueError
+                    raise CliError(tr("cli.flag.action_unknown", n=what[:18] + "\u2026",
+                                      hours=store.RECENT_WINDOW // 3600))
                 return flag_action(int(what), note), 0
             return flag(what, note, model=g("model")), 0
         if cmd == "revoke":

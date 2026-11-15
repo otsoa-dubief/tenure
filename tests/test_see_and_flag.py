@@ -541,3 +541,21 @@ def test_flag_a_huge_number_is_unknown_on_slash_and_cli(plugin):
     text, code = run(mod, "flag 99999999999999999999")
     assert "24" in text and code == 1
     assert len(ledger_rows(mod)) == count
+
+
+def test_flag_a_five_thousand_digit_number_is_unknown_not_a_crash(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 1)
+    count = len(ledger_rows(mod))
+    huge = "9" * 5000
+    out = slash(mod, "flag " + huge)
+    assert "24" in out and "Error" not in out and "ValueError" not in out
+    text, code = run(mod, "flag " + huge)
+    assert "24" in text and code == 1
+    assert len(ledger_rows(mod)) == count
+
+
+def test_motdepasse_is_masked_in_a_summary():
+    from tenure import classify as C
+    s = C._summary("mcp__x__login", {"motdepasse": "hunter2", "user_id": "42"}, "mcp:x:login")
+    assert "hunter2" not in s and "\u2022\u2022\u2022" in s

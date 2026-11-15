@@ -244,7 +244,7 @@ _TARGET_TOKENS = frozenset(w + s for w in _TARGET_WORDS for s in ("", "s", "es")
 _NOT_TARGET_LAST = frozenset({"body", "content", "text", "message", "description", "note", "notes", "comment",
                               "size", "limit", "count", "offset", "cursor", "token"})
 _SECRET_WORDS = ("secret password passwd pwd passphrase auth authorization bearer cookie credential otp "
-                 "signature session privatekey accesskey sessionid").split()
+                 "signature session privatekey accesskey sessionid motdepasse").split()
 _SECRET_PAIRS = ("api_key", "private_key", "access_key")
 MASK = "\u2022\u2022\u2022"
 _URLISH = re.compile(r"^([A-Za-z][A-Za-z0-9+.\-]*://)([^/?#]*)([^?#]*)(\?[^#]*)?(#.*)?$", re.S)
