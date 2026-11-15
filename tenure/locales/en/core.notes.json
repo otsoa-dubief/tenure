@@ -23,6 +23,7 @@
   "stakes.medium": "Stakes level as shown in sentences and tables. The config value stays 'medium'.",
   "tier.short.alone": "Tier name in tables and notices. Keep the 'T3' prefix.",
   "tier.short.ask": "Tier name in tables and notices. Keep the 'T1' prefix.",
+  "settle.what": "The files an action changed, in brackets, inserted as {what} (after a leading space) in the settle.acted* and settle.check_failed lines. {files} is a comma-separated list of paths, the first three then +N. Keep the brackets and {files}.",
   "tier.short.notify": "Tier name in tables and notices. Keep the 'T2' prefix.",
   "undo.refused": "{reason} is one of the undo.refused.* phrases (lower case, no final period).",
   "ask.prompt": "Shown in the approval card of every Hermes surface (desktop, Telegram, Discord…). It names no button on purpose: their labels differ between surfaces. Use the plain verbs allow / deny of your language.",

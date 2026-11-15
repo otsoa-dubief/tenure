@@ -617,7 +617,7 @@ def test_notify_success_adds_an_undo_and_posts(plugin):
     assert pre(mod, "write_file", write("n"), "n1") is None
     snap = row(mod, "n1")["snap_id"]
     post(mod, "write_file", write("n"), "n1")
-    uid = int(re.fullmatch(r"tenure: file:write acted, then told you · /tenure undo (\d+)", ctx.posted[-1])[1])
+    uid = int(re.fullmatch(r"tenure: file:write acted, then told you \(src/n\.py\) · /tenure undo (\d+)", ctx.posted[-1])[1])
     assert mod.store_().get_undo(uid) == {"id": uid, "agent": A, "type": "file:write", "snap_id": snap,
                                           "at": mod.store_().get_undo(uid)["at"], "undone": False, "fault": False}
     assert outcomes(mod)[-1]["source"] == "notify" and state(mod, "file:write").successes == 13
@@ -1265,3 +1265,62 @@ def test_secret_masking_survives_fields_disable_secret(plugin):
     assert ctx.prompts, "the call must reach an approval prompt"
     msg = ctx.prompts[-1]["message"]
     assert "contact_id=4821" in msg and "password=•••" in msg and "hunter2" not in msg
+
+
+# ------------------------------------------------------------------------------------------ T2 names the files
+def test_what_shows_relative_home_absolute_and_plus_n(tmp_path):
+    cwd, home = str(tmp_path / "proj"), str(tmp_path / "home")
+    import tenure
+    assert tenure._what([], cwd, home) == ""
+    assert tenure._what([f"{cwd}/src/a.py"], cwd, home) == "src/a.py"
+    assert tenure._what([f"{home}/notes/x.md"], cwd, home) == "~/notes/x.md"
+    assert tenure._what(["/etc/hosts"], cwd, home) == "/etc/hosts"
+    four = [f"{cwd}/{n}.py" for n in "abcd"]
+    assert tenure._what(four, cwd, home) == "a.py, b.py, c.py +1"
+    assert tenure._what(four + [f"{cwd}/e.py"], cwd, home) == "a.py, b.py, c.py +2"
+    assert tenure._what([f"{cwd}/a.py", f"{cwd}/a.py"], cwd, home) == "a.py"
+    dirty = tenure._what([f"{cwd}/a\u202eb\n.py"], cwd, home)
+    assert "\u202e" not in dirty and "\n" not in dirty and dirty.count("\ufffd") == 2
+
+
+def test_t2_message_names_the_file(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    assert pre(mod, "write_file", write("n"), "n1") is None
+    post(mod, "write_file", write("n"), "n1")
+    assert re.fullmatch(r"tenure: file:write acted, then told you \((.*src/n\.py)\) · /tenure undo \d+", ctx.posted[-1])
+
+
+def test_t2_message_names_three_files_then_plus_n(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    patch = "*** Begin Patch\n" + "".join(f"*** Add File: src/p{i}.py\n+x = {i}\n" for i in range(4)) + "*** End Patch"
+    args = {"mode": "patch", "patch": patch}
+    assert pre(mod, "patch", args, "p1") is None
+    post(mod, "patch", args, "p1")
+    text = ctx.posted[-1]
+    assert "src/p0.py, src/p1.py, src/p2.py +1" in text and "p3" not in text
+    assert text.rsplit(" ", 1)[1].isdigit()
+
+
+def test_grouped_message_lists_the_paths_and_the_ledger_has_none(plugin):
+    from test_trust import Handle, TRUST
+    mod, ctx = plugin(TRUST)
+    def posted(text):
+        ctx.posted.append(text)
+        return Handle(ctx.posted, len(ctx.posted) - 1)
+    ctx.post_message = posted
+    for name in ("g0", "g1"):
+        assert ctx.call("write_file", write(name)) == "ran"
+    acted = [p for p in ctx.posted if "acted" in p]
+    assert len(acted) == 1 and "2 times" in acted[0] and "src/g0.py, src/g1.py" in acted[0]
+    assert "/tenure undo 2" in acted[0] and acted[0].index("src/g1.py") < acted[0].index("/tenure undo")
+    assert "src/g0.py" not in json.dumps(ledger(mod))
+
+
+def test_empty_what_keeps_todays_text_without_a_double_space():
+    import tenure
+    from tenure.i18n import tr
+    text = tr("settle.acted", type="file:write", what=tenure._with_what(tenure._what([], "/x", "/y")),
+              command="/tenure undo", id=7)
+    assert text == "tenure: file:write acted, then told you · /tenure undo 7"
