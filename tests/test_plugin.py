@@ -1283,6 +1283,17 @@ def test_what_shows_relative_home_absolute_and_plus_n(tmp_path):
     assert "\u202e" not in dirty and "\n" not in dirty and dirty.count("\ufffd") == 2
 
 
+def test_what_shows_forward_slashes_when_relpath_returns_backslashes(tmp_path, monkeypatch):
+    import ntpath
+    import tenure
+    cwd, home = str(tmp_path / "proj"), str(tmp_path / "home")
+    monkeypatch.setattr(os.path, "relpath", lambda p, s=None: ("src\\a.py" if s == cwd else "notes\\x.md") if p.startswith(s) else "../out")
+    assert tenure._what([f"{cwd}/src/a.py"], cwd, home) == "src/a.py"
+    assert tenure._what([f"{home}/notes/x.md"], cwd, home) == "~/notes/x.md"
+    assert tenure._what(["C:\\Users\\o\\f.py"], "", "") == "C:/Users/o/f.py"
+    assert ntpath.sep == "\\"
+
+
 def test_t2_message_names_the_file(plugin):
     mod, ctx = plugin(FAST)
     climb(ctx, 12)
