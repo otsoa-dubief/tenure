@@ -1,0 +1,23 @@
+name: Bug
+description: Tenure did something it should not, or did not do something it should.
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened
+      description: The action, what Tenure decided (asked, notified, let it pass), and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: The tool call or command if you have it. Remove any secret or personal data.
+  - type: input
+    attributes:
+      label: Versions
+      description: Tenure version, Hermes version, OS.
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: "Found a way for the agent to get around Tenure? Please report it privately instead: see SECURITY.md."

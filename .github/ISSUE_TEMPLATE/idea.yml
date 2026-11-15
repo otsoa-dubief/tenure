@@ -1,0 +1,13 @@
+name: Idea
+description: Something Tenure could do better.
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: The situation
+      description: What you were doing with your agent, and where Tenure got in the way or let something through.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What you would like
