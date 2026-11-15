@@ -292,28 +292,36 @@ The full rules, every protected entry and every known gap: [docs/self-protection
 An approval prompt names the target of the call first and whole: the argument that says which record, file, address or
 account (`contact_id`, `to`, `url`, `repo`, a path...) comes before the others, up to 120 characters (a longer one keeps
 its head and its tail, so two paths that differ at the end stay apart), then at most 6 arguments and 400 characters in
-all. A nested `params` shows its target (`params.contact_id=4821`). When an act-then-notify file action tells you, the
-message names the files it changed (the first three, then `+N`).
+all; an argument name longer than 40 characters is cut. A nested `params` shows its target (`params.contact_id=4821`).
+When an act-then-notify file action tells you, the message names the files it changed (the first three, then `+N`, each
+cut like a target past 120 characters).
 
-Values under a key Tenure recognises as secret (`password`, `token`, `api_key`, `authorization`, `cookie`...) show as
-`•••`, as do the userinfo, the query values and a `#k=v` fragment of a URL. This masks the keys it recognises, and is not
-a guarantee. Known gaps: a `terminal` command (first 200 characters) and the path of `write_file` or `patch` are shown
-as written, not masked, which is the most likely place for a secret; a secret inside the value of a key that is not
-recognised; a header list written as name/value pairs (`[{"name": "Authorization", "value": ...}]`); a URL embedded in
-a sentence; a token in a URL path (webhook URLs); nesting deeper than 8 levels (shown as `…`). What it shows is display
-only: it is kept in no database, ledger or passport.
+Values under a key Tenure recognises as secret (`password`, `token`, `api_key`, `authorization`, `cookie`, every entry
+of the `secret` field category, yours included, even when the category is off...) show as `•••`, as do the userinfo,
+the query values and a `#k=v` fragment of a URL. This masks the keys it recognises, and is not a guarantee. Known gaps:
+a `terminal` command and the path of `write_file` or `patch` are shown as written (first 200 characters), not masked,
+which is the most likely place for a secret; a secret inside the value of a key that is not recognised; a header list
+written as name/value pairs (`[{"name": "Authorization", "value": ...}]`); a URL embedded in a sentence; a token in a URL
+path (webhook URLs); a compound scheme (`jdbc:mysql://user:pass@...`) is not read as a URL; a key written with
+look-alike letters from another script (a Cyrillic `р` in `раssword`) is not recognised; values nested deeper than 8
+levels are cut (shown as `…`, `{}` or `[]`). What it shows is display only: it is kept in no database, ledger or
+passport.
 
 ## Flag one action
 
-Every action that ran gets a number for 24 hours. `/tenure flag` lists the last ones; `/tenure flag 12` reports
+An action that ran under Tenure's watch gets a number for 24 hours: approved, spot-checked, acted then told, run alone,
+run with nobody to answer, failed, launched in the background, or faulted by the automatic check. Free and capped
+actions run without a number. `/tenure flag` lists the last ones; `/tenure flag 12` reports
 number 12 as an error: the fault lands on the agent that acted and on that type, even if you changed model since, and
 it counts once (an undo and a flag of the same action never count twice). `flag TYPE` works as before; `flag N --model` is refused, the number already names the agent.
 
 - **Target mostly in the slash command.** `/tenure flag` lists the current session (other actions of the profile are
   counted, not listed) and shows each target, but only in the process that ran the action and at most until Hermes
-  restarts. `hermes tenure flag` lists the whole profile: number, time, type and agent; for a file action that acted then
+  restarts. For an action that ran alone and was never shown to you, this list is the first place its summary appears
+  in the chat, a `terminal` command included, unmasked, as in a prompt. `hermes tenure flag` lists the whole profile: number, time, type and agent; for a file action that acted then
   told, it also names the file through its undo snapshot.
-- **No number**: actions that run free, capped, refused, timed out, blocked or ambiguous have none.
+- **No number**: actions that run free or capped, refused, timed out, blocked, ambiguous, expired after 24 hours
+  pending, or settled without a call id have none.
 - **What is kept.** A local table `recent` holds the number, session, agent, type and time, no argument, for 24 hours.
   It is added to an existing database without changing the schema version (when a database is locked by another
   process at the upgrade, the first open may wait up to the busy timeout once, then carries on without the table and
