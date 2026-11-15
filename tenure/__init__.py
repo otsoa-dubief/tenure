@@ -1037,7 +1037,7 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     action that ran, even one nobody answered. A background launch (``launched``) is neutral: the command's own
     outcome is not known when the call returns. ``written`` (absolute paths) only names the files in the owner's
     messages: it is stored nowhere. An action that ran gets a number in ``recent`` (a fault is born flagged), handed
-    on as ``p["n"]`` (None without the table) and ``p["n_at"]``. Returns the owner's messages."""
+    on as ``p["n"]`` and ``p["n_at"]``. Returns the owner's messages."""
     home = os.path.expanduser("~")
     shown = [_show(x, cwd, home) for x in written or []]
     what = _with_what(_join_shown(shown))

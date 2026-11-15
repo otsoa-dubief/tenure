@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import sqlite3
 import time
@@ -23,6 +24,8 @@ import urllib.parse
 from contextlib import contextmanager
 
 from .rule import TypeState
+
+log = logging.getLogger("tenure")
 
 GENESIS = "0" * 64
 SCHEMA_VERSION = "3"
@@ -192,13 +195,14 @@ class Store:
         """Add the table ``recent`` to a schema 3 database that lacks it, without touching the version, the ledger
         or any other table. Reads first: a database that has it takes no write lock. When another process holds the
         write lock past the timeout, the store opens without the table (every ``recent`` method is then empty or does
-        nothing) and the next open tries again: an action never fails because of it."""
+        nothing until another process or this store's next write adds it): an action never fails because of it."""
         self.has_recent = self._recent_exists()
         if self.has_recent:
             return
         try:
             self.db.execute("BEGIN IMMEDIATE")
-        except sqlite3.OperationalError:                 # database is locked: try at the next open
+        except sqlite3.OperationalError as e:            # database is locked: the first write adds it instead
+            log.warning("tenure: could not add the table of numbered actions yet (%s); retried at the next write", e)
             return
         try:
             for stmt in RECENT_SCHEMA.split(";"):
@@ -233,6 +237,7 @@ class Store:
             yield self
         except BaseException:
             self.db.execute("ROLLBACK")
+            self.has_recent = self._recent_exists()        # a table added in this transaction is gone again
             raise
         else:
             self.db.execute("COMMIT")
@@ -368,7 +373,21 @@ class Store:
 
     # ------------------------------------------------------------------------------------------------- recent
     # Numbered actions of the last 24 hours: session (anonymised), agent, type, time, already a fault, undo id.
-    # Without the table (see _ensure_recent), reads are empty and writes do nothing.
+    # Opened without the table (see _ensure_recent), a read looks again whether another process added it, else is
+    # empty; a write adds it inside its own transaction (DDL rolls back with it).
+    def _recent_ready(self) -> bool:
+        if not self.has_recent:
+            self.has_recent = self._recent_exists()
+        return self.has_recent
+
+    def _recent_write(self) -> None:
+        self._write()
+        if not self.has_recent:
+            for stmt in RECENT_SCHEMA.split(";"):
+                if stmt.strip():
+                    self.db.execute(stmt)
+            self.has_recent = True
+
     @staticmethod
     def _recent(row) -> dict:
         d = dict(zip(RECENT_COLS, row))
@@ -376,12 +395,10 @@ class Store:
         return d
 
     def add_recent(self, session: str, agent: str, type_key: str, at: float, *, flagged: bool,
-                   undo_id: int | None) -> int | None:
+                   undo_id: int | None) -> int:
         """Number one settled action and purge the rows older than 24 hours, in the same write. Numbers are never
-        reused (AUTOINCREMENT), even after every row is purged. None without the table."""
-        self._write()
-        if not self.has_recent:
-            return None
+        reused (AUTOINCREMENT), even after every row is purged."""
+        self._recent_write()
         self.db.execute("DELETE FROM recent WHERE at < ?", (at - RECENT_WINDOW,))
         cur = self.db.execute("INSERT INTO recent (session, agent, type, at, flagged, undo_id) "
                               "VALUES (?, ?, ?, ?, ?, ?)", (session, agent, type_key, at, int(bool(flagged)), undo_id))
@@ -389,7 +406,7 @@ class Store:
 
     def recent(self, n: int) -> dict | None:
         """Action number ``n``, when it is less than 24 hours old."""
-        if not self.has_recent:
+        if not self._recent_ready():
             return None
         row = self.db.execute("SELECT %s FROM recent WHERE n = ? AND at >= ?" % ", ".join(RECENT_COLS),
                               (n, time.time() - RECENT_WINDOW)).fetchone()
@@ -397,7 +414,7 @@ class Store:
 
     def recent_rows(self, session: str | None, limit: int = 20) -> list[dict]:
         """The newest numbered actions of the last 24 hours, of one session (every session for None)."""
-        if not self.has_recent:
+        if not self._recent_ready():
             return []
         q = "SELECT %s FROM recent WHERE at >= ?" % ", ".join(RECENT_COLS)
         args: list = [time.time() - RECENT_WINDOW]
@@ -409,26 +426,23 @@ class Store:
 
     def count_recent(self, exclude_session: str) -> int:
         """Numbered actions of the last 24 hours outside one session."""
-        if not self.has_recent:
+        if not self._recent_ready():
             return 0
         return self.db.execute("SELECT COUNT(*) FROM recent WHERE at >= ? AND session IS NOT ?",
                                (time.time() - RECENT_WINDOW, exclude_session)).fetchone()[0]
 
     def mark_flagged(self, n: int) -> None:
-        self._write()
-        if self.has_recent:
-            self.db.execute("UPDATE recent SET flagged = 1 WHERE n = ?", (n,))
+        self._recent_write()
+        self.db.execute("UPDATE recent SET flagged = 1 WHERE n = ?", (n,))
 
     def flag_by_undo(self, undo_id: int) -> None:
         """An undone action counts as signalled: it cannot be flagged afterwards."""
-        self._write()
-        if self.has_recent:
-            self.db.execute("UPDATE recent SET flagged = 1 WHERE undo_id = ?", (undo_id,))
+        self._recent_write()
+        self.db.execute("UPDATE recent SET flagged = 1 WHERE undo_id = ?", (undo_id,))
 
     def clear_recent(self) -> None:
-        self._write()
-        if self.has_recent:
-            self.db.execute("DELETE FROM recent")
+        self._recent_write()
+        self.db.execute("DELETE FROM recent")
 
     # --------------------------------------------------------------------------------------------------- stats
     def bump(self, agent: str, field: str, n: int = 1, at: float | None = None) -> None:

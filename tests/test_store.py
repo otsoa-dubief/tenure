@@ -426,31 +426,70 @@ def test_open_current_db_takes_no_write_lock(tmp_path, monkeypatch):
         other.close()
 
 
-def test_a_locked_database_without_recent_still_opens(tmp_path, monkeypatch):
-    """The table cannot be added while another process writes: the store opens without it, every recent method is
-    empty or does nothing, and the next open adds it."""
-    path = str(tmp_path / "tenure.db")
-    _drop_recent(path)
+def _open_locked(path, monkeypatch):
+    """A Store opened while another connection holds the write lock: it cannot add ``recent``."""
     monkeypatch.setattr(store, "BUSY_TIMEOUT", 0.2)
     other = sqlite3.connect(path, isolation_level=None)
     other.execute("BEGIN IMMEDIATE")
     try:
-        s = store.Store(path)
+        return store.Store(path)
     finally:
         other.execute("ROLLBACK")
         other.close()
-    assert "recent" not in _tables(path) and store.verify(s.ledger()) == []
-    with s.transaction():
-        assert s.add_recent("s", A, "file:write", at=time.time(), flagged=False, undo_id=None) is None
-        s.mark_flagged(1)
-        s.flag_by_undo(1)
-        s.clear_recent()
+
+
+def test_a_locked_database_without_recent_still_opens(tmp_path, monkeypatch, caplog):
+    """The table cannot be added while another process writes: the store opens without it (said in the log), reads
+    are empty, and its first write adds it inside that write's transaction."""
+    path = str(tmp_path / "tenure.db")
+    _drop_recent(path)
+    with caplog.at_level("WARNING", logger="tenure"):
+        s = _open_locked(path, monkeypatch)
+    assert "numbered actions" in caplog.text
+    assert "recent" not in _tables(path) and store.verify(s.ledger()) == [] and s.has_recent is False
     assert s.recent(1) is None and s.recent_rows(None) == [] and s.count_recent("s") == 0
-    s.db.close()
-    s = store.Store(path)
-    assert "recent" in _tables(path)
     with s.transaction():
         assert s.add_recent("s", A, "file:write", at=time.time(), flagged=False, undo_id=None) == 1
+    assert "recent" in _tables(path) and s.recent(1)["n"] == 1
+
+
+def test_a_table_added_by_a_rolled_back_write_is_not_believed(tmp_path, monkeypatch):
+    path = str(tmp_path / "tenure.db")
+    _drop_recent(path)
+    s = _open_locked(path, monkeypatch)
+    with pytest.raises(RuntimeError):
+        with s.transaction():
+            s.clear_recent()
+            assert s.has_recent is True
+            raise RuntimeError("boom")
+    assert "recent" not in _tables(path) and s.has_recent is False
+    assert s.recent_rows(None) == [] and s.recent(1) is None
+    with s.transaction():
+        s.mark_flagged(1)                                      # every write adds it
+    assert "recent" in _tables(path)
+
+
+def test_a_store_opened_without_recent_sees_and_flags_another_process_rows(tmp_path, monkeypatch):
+    """Gateway A opened under a lock; CLI B then adds the table and numbers an action linked to undo ``u``. A's undo
+    flags B's row (one action, at most one fault), A lists it, and A numbers its own actions."""
+    path = str(tmp_path / "tenure.db")
+    _drop_recent(path)
+    a = _open_locked(path, monkeypatch)
+    assert a.has_recent is False
+    b = store.Store(path)
+    with b.transaction():
+        u = b.add_undo(A, "file:write", "snap")
+        n = b.add_recent("s", A, "file:write", at=time.time(), flagged=False, undo_id=u)
+    assert [r["n"] for r in a.recent_rows(None)] == [n] and a.count_recent("x") == 1
+    with a.transaction():
+        a.flag_by_undo(u)
+    assert b.recent(n)["flagged"] is True
+    with a.transaction():
+        m = a.add_recent("s", A, "shell:npm", at=time.time(), flagged=False, undo_id=None)
+    assert m == n + 1 and b.recent(m)["type"] == "shell:npm"
+    with a.transaction():
+        a.clear_recent()
+    assert b.recent_rows(None) == []
 
 
 def test_open_readonly_without_recent(tmp_path):
