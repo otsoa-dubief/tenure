@@ -73,6 +73,9 @@
   "cli.col.tier_now": "当前级别",
   "cli.col.type": "类型",
   "cli.col.when": "时间",
+  "cli.col.target": "目标",
+  "cli.col.time": "时刻",
+  "cli.col.undo": "撤销",
   "cli.count.agents": {
     "other": "{n} 个智能体"
   },
@@ -118,6 +121,17 @@
     "other": "证据已写入：{path}（{n} 条）。用它验证护照：{command} {path}"
   },
   "cli.flag.done": "tenure：已为 {agent} 在 {type} 上记录失误；现为 {tier}。",
+  "cli.flag.action_done": "tenure：已标记操作 {n}：已为 {agent} 在 {type} 上记录失误；现为 {tier}。",
+  "cli.flag.action_already": "操作 {n} 已被记为失误（自动检查、撤销或标记）：未记录任何内容。",
+  "cli.flag.action_unknown": "最近 {hours} 小时内没有操作 {n}：未记录任何内容。查看清单：不带编号的 flag。",
+  "cli.flag.action_model": "操作 {n} 已指明执行它的智能体：--model 不能与编号同用。",
+  "cli.flag.title_session": "本次对话最近的编号操作（{hours} 小时），最新的在前：",
+  "cli.flag.title_profile": "本配置文件最近的编号操作（{hours} 小时），最新的在前：",
+  "cli.flag.footer": "将其中一个标记为错误：{command} <编号>",
+  "cli.flag.none": "最近 {hours} 小时内没有编号操作。",
+  "cli.flag.others": {
+    "other": "本配置文件中还有 {n} 个其他操作：hermes tenure flag"
+  },
   "cli.flag.unknown_type": "{agent} 没有 {type} 的记录。类型：{types}。",
   "cli.list.joiner": "；",
   "cli.list.separator": "、",
@@ -220,7 +234,7 @@
   "cli.undo.title": {
     "other": "过去 {n} 小时内自主执行的操作（撤销任一个都记为失误）："
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    undo [ID]                                  恢复一个先执行后告知的操作写入的文件（记为失误）；不带参数时列出清单\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    start trusted|probation                    trusted：某类操作第一次失误前不提问；probation：研究起步\n    strict on|off                              严格模式：新模型从空记录开始\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n    share [--out FILE]                         写出一份签名的计数记录，用于社区基准（自愿参与，不会发送任何内容）\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    undo [ID]                                  恢复一个先执行后告知的操作写入的文件（记为失误）；不带参数时列出清单\n    flag [N]                                   不带参数时列出最近的编号操作；带编号时将该操作报告为错误\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    start trusted|probation                    trusted：某类操作第一次失误前不提问；probation：研究起步\n    strict on|off                              严格模式：新模型从空记录开始\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n    share [--out FILE]                         写出一份签名的计数记录，用于社区基准（自愿参与，不会发送任何内容）\n",
   "cli.verify.after": {
     "other": "注意：此护照之后账本中有 {n} 个事件；级别没有变化。"
   },

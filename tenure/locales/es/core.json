@@ -84,6 +84,9 @@
   "cli.col.tier_now": "nivel actual",
   "cli.col.type": "tipo",
   "cli.col.when": "cuándo",
+  "cli.col.target": "objetivo",
+  "cli.col.time": "hora",
+  "cli.col.undo": "deshacer",
   "cli.count.agents": {
     "one": "{n} agente",
     "other": "{n} agentes"
@@ -137,6 +140,19 @@
     "other": "Evidencia escrita: {path} ({n} entradas). Comprueba un pasaporte con ella: {command} {path}"
   },
   "cli.flag.done": "tenure: fallo registrado en {type} para {agent}; ahora está en {tier}.",
+  "cli.flag.action_done": "tenure: acción {n} señalada: fallo registrado en {type} para {agent}; ahora está en {tier}.",
+  "cli.flag.action_already": "La acción {n} ya contó como fallo (comprobación automática, deshacer o señalamiento): no se registra nada.",
+  "cli.flag.action_unknown": "No hay acción {n} en las últimas {hours} horas: no se registra nada. La lista: flag sin número.",
+  "cli.flag.action_model": "La acción {n} ya designa al agente que actuó: --model no va con un número.",
+  "cli.flag.title_session": "Las últimas acciones numeradas de esta conversación ({hours} h), la más reciente primero:",
+  "cli.flag.title_profile": "Las últimas acciones numeradas de este perfil ({hours} h), la más reciente primero:",
+  "cli.flag.footer": "Señalar una como error: {command} <número>",
+  "cli.flag.none": "Ninguna acción numerada en las últimas {hours} horas.",
+  "cli.flag.others": {
+    "one": "{n} acción más en este perfil: hermes tenure flag",
+    "many": "{n} acciones más en este perfil: hermes tenure flag",
+    "other": "{n} acciones más en este perfil: hermes tenure flag"
+  },
   "cli.flag.unknown_type": "No hay historial de {type} para {agent}. Tipos: {types}.",
   "cli.list.joiner": "; ",
   "cli.list.separator": ", ",
@@ -252,7 +268,7 @@
     "one": "Acciones hechas por su cuenta en la última hora (deshacer una cuenta como fallo):",
     "other": "Acciones hechas por su cuenta en las últimas {n} horas (deshacer una cuenta como fallo):"
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   lo que ha ganado cada agente, por tipo de acción\n    setup [careful|balanced|fast]              las tres recomendaciones; con un nombre, lo aplica\n    explain                                    cómo decide tenure y qué garantizan los números\n    models [--type T]                          el historial verificado de cada modelo en tu propio trabajo\n    undo [ID]                                  restaura los archivos de una acción que actuó y luego avisó (cuenta un fallo); sin ID, la lista\n    flag TYPE [note] [--model M]               informa de un error que el agente cometió por su cuenta: se le revoca la autonomía\n    revoke TYPE|all [--model M | --all]        retira la autonomía ganada sin que haya error\n    passport [--agent A] [--out FILE]          escribe el pasaporte firmado de un agente (--no-redact conserva los nombres de tipo)\n    verify PASSPORT [LEDGER]                   comprueba un pasaporte; con el registro exportado, lo recalcula reproduciéndolo\n    anchor                                     una línea para publicar: el último hash, la fecha y la longitud del registro\n    export [PATH]                              escribe el registro de evidencia (líneas JSON encadenadas por hash)\n    start trusted|probation                    trusted: ninguna pregunta antes del primer error de un tipo; probation: el inicio del estudio\n    strict on|off                              modo estricto: un modelo nuevo empieza con un historial vacío\n    cleanup                                    lista las claves muertas de tenure en la lista de permitidos permanente de Hermes\n    share [--out FILE]                         escribe un registro firmado de recuentos para el benchmark comunitario (opcional, no se envía nada)\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   lo que ha ganado cada agente, por tipo de acción\n    setup [careful|balanced|fast]              las tres recomendaciones; con un nombre, lo aplica\n    explain                                    cómo decide tenure y qué garantizan los números\n    models [--type T]                          el historial verificado de cada modelo en tu propio trabajo\n    undo [ID]                                  restaura los archivos de una acción que actuó y luego avisó (cuenta un fallo); sin ID, la lista\n    flag [N]                                   sin número, las últimas acciones numeradas; con un número, informa de esa acción como un error\n    flag TYPE [note] [--model M]               informa de un error que el agente cometió por su cuenta: se le revoca la autonomía\n    revoke TYPE|all [--model M | --all]        retira la autonomía ganada sin que haya error\n    passport [--agent A] [--out FILE]          escribe el pasaporte firmado de un agente (--no-redact conserva los nombres de tipo)\n    verify PASSPORT [LEDGER]                   comprueba un pasaporte; con el registro exportado, lo recalcula reproduciéndolo\n    anchor                                     una línea para publicar: el último hash, la fecha y la longitud del registro\n    export [PATH]                              escribe el registro de evidencia (líneas JSON encadenadas por hash)\n    start trusted|probation                    trusted: ninguna pregunta antes del primer error de un tipo; probation: el inicio del estudio\n    strict on|off                              modo estricto: un modelo nuevo empieza con un historial vacío\n    cleanup                                    lista las claves muertas de tenure en la lista de permitidos permanente de Hermes\n    share [--out FILE]                         escribe un registro firmado de recuentos para el benchmark comunitario (opcional, no se envía nada)\n",
   "cli.verify.after": {
     "one": "Nota: el registro tiene {n} evento posterior a este pasaporte; los niveles no cambian.",
     "other": "Nota: el registro tiene {n} eventos posteriores a este pasaporte; los niveles no cambian."

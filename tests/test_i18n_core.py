@@ -29,7 +29,7 @@ DYNAMIC = {
     "stakes.": ("low", "medium", "high"),
     "notice.tier.": ("fault", "settings"),
     "cli.col.": ("type", "stakes", "tier_now", "series", "sessions", "record", "guarantee", "model", "provider",
-                 "fault_rate", "note", "number", "restores", "when", "agent"),
+                 "fault_rate", "note", "number", "restores", "when", "agent", "time", "target", "undo"),
 }
 STRICT_SUFFIXED = ("cli.status.header.profile", "cli.status.header.here")
 
