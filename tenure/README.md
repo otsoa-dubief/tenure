@@ -14,7 +14,7 @@ first, and earns its autonomy back on verified evidence, following a rule prereg
   first); approvals earn back T2 (acts, then tells you), verified successes over two sessions T3 (acts on its own,
   one in ten spot-checked).
 - **See what you approve, flag one action**: a prompt shows the target of a call first and whole, secret values as
-  `•••` (the keys it recognises, no guarantee); every action that ran has a number for 24 hours (`/tenure flag`,
+  `•••` (the keys it recognises, no guarantee); an action that ran under Tenure's watch has a number for 24 hours (`/tenure flag`,
   `/tenure flag 12`).
 - **Always asks** what leaves the machine (push, publish, deploy, uploads, payments) and what cannot be undone;
   after the agent reads outside content (web, mail, downloads), commands ask for the rest of the session.

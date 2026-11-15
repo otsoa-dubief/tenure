@@ -304,7 +304,7 @@ which is the most likely place for a secret; a secret inside the value of a key 
 written as name/value pairs (`[{"name": "Authorization", "value": ...}]`); a URL embedded in a sentence; a token in a URL
 path (webhook URLs); a compound scheme (`jdbc:mysql://user:pass@...`) is not read as a URL; a key written with
 look-alike letters from another script (a Cyrillic `р` in `раssword`) is not recognised; values nested deeper than 8
-levels are cut (shown as `…`, `{}` or `[]`). What it shows is display only: it is kept in no database, ledger or
+levels are cut (shown as `…`, `{}` or `[]`); a scheme-less URL (`//user:pass@host`) and a key with an inner space (`"pass word"`) are shown in clear. What it shows is display only: it is kept in no database, ledger or
 passport.
 
 ## Flag one action
@@ -316,7 +316,8 @@ number 12 as an error: the fault lands on the agent that acted and on that type,
 it counts once (an undo and a flag of the same action never count twice). `flag TYPE` works as before; `flag N --model` is refused, the number already names the agent.
 
 - **Target mostly in the slash command.** `/tenure flag` lists the current session (other actions of the profile are
-  counted, not listed) and shows each target, but only in the process that ran the action and at most until Hermes
+  counted, not listed; without a session id, as on a gateway serving several chats, it lists the whole profile, other
+  conversations' remembered summaries included, an unmasked `terminal` command among them) and shows each target, but only in the process that ran the action and at most until Hermes
   restarts. For an action that ran alone and was never shown to you, this list is the first place its summary appears
   in the chat, a `terminal` command included, unmasked, as in a prompt. `hermes tenure flag` lists the whole profile: number, time, type and agent; for a file action that acted then
   told, it also names the file through its undo snapshot.

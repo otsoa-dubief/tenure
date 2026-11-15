@@ -196,11 +196,15 @@ Known gaps:
 - A compound scheme (`jdbc:mysql://user:pass@host/db`): it is not read as a URL, so its userinfo stays visible.
 - A key written with look-alike letters from another script (a Cyrillic `р` in `раssword`) is not recognised as secret.
 - Values nested deeper than 8 levels are cut (shown as `…`, `{}` or `[]`).
+- A scheme-less URL (`//user:pass@host`) is not read as a URL, and a key with an inner space (`"pass word"`) is not
+  recognised: both are shown in clear.
 
 What is shown is display only: it is kept in no database, ledger, passport, dashboard or push message. To flag an action
 after the fact, the slash command remembers the target in the memory of the process that ran it, at most until Hermes restarts (the memory is bounded).
 `/tenure flag` prints that remembered summary into the chat. For an action that ran alone (an earned tier) and was never
 shown in a prompt, it is the first time it appears there, a `terminal` command included, unmasked like in a prompt.
+Without a session id (a gateway serving several chats), `/tenure flag` lists the whole profile: other conversations'
+remembered summaries appear too, an unmasked `terminal` command among them.
 
 **What it cannot see.** If the agent read both A and B and wrote B, nothing local and deterministic can tell whether B was
 the right one, short of a rule you write for your own data. Tenure helps you check, it does not guess intent.

@@ -199,7 +199,7 @@ def test_is_target(key, hit):
     ("auth_token", True), ("session_id", True), ("password", True),
     ("max_tokens", False), ("page_token", False), ("token_count", False), ("contact_id", False),
     ("next_page_token", False), ("author", False), ("token_id", False),
-    ("secretary", True)])   # `secret` is a substring entry in entry_matches: secretary follows it
+    ("secretary", True), ("motdepasse", True)])   # `secret` is a substring entry in entry_matches: secretary follows it
 def test_is_secret(key, hit):
     assert F.is_secret(key) is hit
 
