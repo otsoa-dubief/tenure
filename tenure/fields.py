@@ -334,6 +334,126 @@ def mask(value: object, vocab: Vocabulary | None = None, _depth: int = 0) -> obj
     return value
 
 
+# ------------------------------------------------------------------------------------- secrets in a terminal command
+_CMD_SCAN = 4000                                     # characters of a command looked at (a prompt shows 200)
+_CMD_SEPS = frozenset(" \t\n\r;|&()<>")
+_HEADERISH = re.compile(r"^([A-Za-z0-9_-]+):[ \t]*(\S.*)$", re.S)
+_ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.+)$", re.S)
+_LONGOPT = re.compile(r"^(--?[A-Za-z][A-Za-z0-9_-]*)=(.+)$", re.S)
+_USERINFO = re.compile(r"([A-Za-z][A-Za-z0-9+.\-]*://)([^/?#@\s'\"]+)@")
+_SCHEMES = frozenset({"bearer", "basic", "token", "digest"})
+_USER_OPTS = frozenset({"-u", "--user", "--proxy-user", "-U"})
+
+
+def _words(cmd: str) -> list[tuple[int, int]]:
+    """Spans of the shell words of `cmd`, quotes included; an unterminated quote runs to the end. Operators split."""
+    out, i, n = [], 0, len(cmd)
+    while i < n:
+        if cmd[i] in _CMD_SEPS:
+            i += 1
+            continue
+        start = i
+        while i < n and cmd[i] not in _CMD_SEPS:
+            c = cmd[i]
+            if c == "\\":
+                i += 2
+            elif c in "'\"":
+                j = i + 1
+                while j < n and cmd[j] != c:
+                    j += 2 if c == '"' and cmd[j] == "\\" else 1
+                i = j + 1
+            else:
+                i += 1
+        out.append((start, min(i, n)))
+    return out
+
+
+def _unquote(raw: str) -> tuple[str, str, str]:
+    """(opening quote, inner text, closing quote) of a word quoted as a whole, else ("", raw, "")."""
+    if raw[:1] in ("'", '"'):
+        q = raw[0]
+        end = q if len(raw) > 1 and raw.endswith(q) else ""
+        return q, raw[1:len(raw) - len(end)], end
+    return "", raw, ""
+
+
+def _plain(value: str, quote: str) -> bool:
+    """A literal the shell keeps as written: nothing it would run or expand (single quotes keep everything)."""
+    return bool(value) and (quote == "'" or not any(c in value for c in "$`") and "<(" not in value)
+
+
+def _masked(raw: str) -> str | None:
+    """`raw` (a whole value, maybe quoted) masked, or None when it is not a plain literal."""
+    q, inner, end = _unquote(raw)
+    return q + MASK + end if _plain(inner, q) else None
+
+
+def mask_command(cmd: str, vocab: Vocabulary | None = None) -> str:
+    """A terminal command as an approval prompt shows it, with the recognized spellings of a secret masked (#7):
+    header values under a secret name (`-H "Authorization: Bearer x"`), the word after Bearer/Basic/Token,
+    `--password=x` / `--password x`, `NAME=x` when NAME is a secret name, `-u user:pass`, URL userinfo.
+
+    Display only: classification, written files and proofs keep the raw command. Only plain literals are masked,
+    never a value the shell would run or expand (`$(…)`, backticks, `$VAR`, `<(…)`), so the approver still sees any
+    code; a mis-parse may only under-mask. URL query values stay visible (often the target). Not a guarantee."""
+    head, tail = cmd[:_CMD_SCAN], cmd[_CMD_SCAN:]
+    spans = _words(head)
+    repl: dict[int, tuple[int, str]] = {}             # start -> (end, new text)
+
+    def put(a: int, b: int, text: str | None) -> None:
+        if text is not None and a < b:
+            repl[a] = (b, text)
+
+    words = [head[a:b] for a, b in spans]
+    for i, ((a, b), raw) in enumerate(zip(spans, words)):
+        q, inner, end = _unquote(raw)
+        nxt = spans[i + 1] if i + 1 < len(spans) else None
+        m = _HEADERISH.match(inner)
+        if m and is_secret(m.group(1), vocab) and _plain(m.group(2), q):
+            put(a, b, q + m.group(1) + ": " + MASK + end)
+            continue
+        if q == "" and raw.endswith(":") and is_secret(raw[:-1], vocab) and nxt:      # -H Authorization: Bearer x
+            j = i + 1
+            if words[j].lower() in _SCHEMES and j + 1 < len(spans):
+                j += 1
+            put(*spans[j], _masked(words[j]))
+            continue
+        if inner.lower() in _SCHEMES and nxt:
+            put(*nxt, _masked(words[i + 1]))
+            continue
+        m = _LONGOPT.match(raw)
+        if m and is_secret(m.group(1).lstrip("-"), vocab):
+            put(a + len(m.group(1)) + 1, b, _masked(m.group(2)))
+            continue
+        if q == "" and raw.startswith("--") and len(raw) > 2 and "=" not in raw and is_secret(raw[2:], vocab) \
+                and nxt and not words[i + 1].startswith("-"):
+            put(*nxt, _masked(words[i + 1]))
+            continue
+        if raw in _USER_OPTS and nxt:
+            uq, ui, ue = _unquote(words[i + 1])
+            if ":" in ui and _plain(ui, uq):
+                na, nb = nxt
+                put(na, nb, uq + ui.split(":", 1)[0] + ":" + MASK + ue)
+            continue
+        m = _ASSIGN.match(inner)
+        if m and is_secret(m.group(1), vocab):
+            vq, vi, ve = _unquote(m.group(2))
+            if _plain(vi, vq or q):
+                put(a, b, q + m.group(1) + "=" + vq + MASK + ve + end)
+            continue
+        if "://" in inner and "@" in inner and _plain(inner, q):
+            put(a, b, _USERINFO.sub(lambda u: u.group(1) + MASK + "@", raw))
+
+    out, pos = [], 0
+    for a in sorted(repl):
+        if a < pos:
+            continue
+        b, text = repl[a]
+        out.append(head[pos:a] + text)
+        pos = b
+    return "".join(out) + head[pos:] + tail
+
+
 def _key(k) -> str:
     return k if isinstance(k, str) else str(k)
 

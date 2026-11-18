@@ -242,3 +242,55 @@ def test_mask_url_bare_query_parts():
     v = F.mask("https://h.io/a?abc123")
     assert v == "https://h.io/a?•••" and "%" not in v
     assert F.mask("https://h.io/a?abc123&p=2") == "https://h.io/a?•••&p=•••"
+
+
+# ---------------------------------------------------------------------------------- #7: secrets in terminal commands
+import pytest as _pytest
+from tenure import classify as _C
+
+
+@_pytest.mark.parametrize("cmd,shown,hidden", [
+    ('curl -H "Authorization: Bearer abc123" https://api.x.io/v1', 'Authorization: •••', "abc123"),
+    ("curl -H 'X-Api-Key: k9zz' https://h.io", "X-Api-Key: •••", "k9zz"),
+    ("curl -H Authorization: Bearer zz9 https://h", "Bearer •••", "zz9"),
+    ("mysql --password=hunter2 -u root db", "--password=•••", "hunter2"),
+    ("mysql --password hunter2 db", "--password •••", "hunter2"),
+    ("TOKEN=abc999 ./run.sh", "TOKEN=•••", "abc999"),
+    ('export API_KEY="xyz777" && cmd', 'API_KEY="•••"', "xyz777"),
+    ("docker run -e DB_PASSWORD=pw555 img", "DB_PASSWORD=•••", "pw555"),
+    ("curl -u alice:s3cret https://h", "alice:•••", "s3cret"),
+    ("git clone https://me:tok42@github.com/a/b", "https://•••@github.com/a/b", "tok42"),
+])
+def test_mask_command_hides_typed_secrets(cmd, shown, hidden):
+    out = F.mask_command(cmd)
+    assert shown in out and hidden not in out
+    s = _C._summary("terminal", {"command": cmd}, "shell:x")
+    assert hidden not in s
+
+
+@_pytest.mark.parametrize("cmd", [
+    'curl -H "Authorization: Bearer $TOKEN" https://h',      # an expansion: the approver must see it
+    "TOKEN=$(cat f) cmd",
+    "KEY=`cat f` cmd",
+    'curl "https://h/?q=1&api_key=k"',                       # query values stay (often the target)
+    "git push origin main",
+    "echo password",
+    "ls --sort=size",
+])
+def test_mask_command_keeps_code_and_plain_commands(cmd):
+    assert F.mask_command(cmd) == cmd
+
+
+def test_mask_command_single_quotes_are_literal():
+    assert F.mask_command("curl -H 'Authorization: Bearer $X' h") == "curl -H 'Authorization: •••' h"
+
+
+def test_mask_command_owner_secret_word():
+    vocab = F.Vocabulary(entries={"secret": frozenset({"pin"})}, active=frozenset(), stakes={}, version="t",
+                         unknown=(), broken=False)
+    assert "1234" not in F.mask_command("tool --pin 1234", vocab)
+
+
+def test_classification_keeps_the_raw_command():
+    a = _C.classify("terminal", {"command": "TOKEN=abc999 git push origin main"}, cwd="/tmp")
+    assert a.type == "shell:git:push" and "abc999" not in a.summary

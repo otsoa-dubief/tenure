@@ -299,8 +299,9 @@ cut like a target past 120 characters).
 Values under a key Tenure recognises as secret (`password`, `token`, `api_key`, `authorization`, `cookie`, every entry
 of the `secret` field category, yours included, even when the category is off...) show as `•••`, as do the userinfo,
 the query values and a `#k=v` fragment of a URL. This masks the keys it recognises, and is not a guarantee. Known gaps:
-a `terminal` command and the path of `write_file` or `patch` are shown as written (first 200 characters), not masked,
-which is the most likely place for a secret; a secret inside the value of a key that is not recognised; a header list
+in a `terminal` command (first 200 characters shown), only the recognised spellings are masked (a header value under a
+secret name, the word after `Bearer`, `--password x`, `TOKEN=x`, `-u user:pass`, URL userinfo), never a value the shell
+would run or expand, and URL query values stay visible; the path of `write_file` or `patch` is shown as written; a secret inside the value of a key that is not recognised; a header list
 written as name/value pairs (`[{"name": "Authorization", "value": ...}]`); a URL embedded in a sentence; a token in a URL
 path (webhook URLs); a compound scheme (`jdbc:mysql://user:pass@...`) is not read as a URL; a key written with
 look-alike letters from another script (a Cyrillic `р` in `раssword`) is not recognised; values nested deeper than 8
