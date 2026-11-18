@@ -188,8 +188,11 @@ nested objects and lists by key, and in a value that looks like a URL it hides t
 
 Known gaps:
 
-- A `terminal` command is shown as written, first 200 characters, so a secret typed in it (a header, `--password`,
-  `VAR=value`) is visible in the prompt. The same goes for the path of `write_file` or `patch`, also cut at 200.
+- A `terminal` command (first 200 characters) masks only the recognised spellings of a secret: a header value under a
+  secret name, the word after `Bearer`/`Basic`/`Token`, `--password=x` and `--password x`, `NAME=x` when NAME is a secret
+  name, `-u user:pass`, URL userinfo (#7). A value the shell would run or expand (`$(…)`, backticks, `$VAR`) is never
+  masked, so the approver sees the code; URL query values stay visible; any other spelling shows as written. Display
+  only: classification and proofs keep the raw command. The path of `write_file` or `patch` is shown as written, cut at 200.
 - A secret inside the value of a key that is not recognised (a `notes` field holding a password).
 - A header list of name/value pairs (`[{"name": "Authorization", "value": ...}]`).
 - A URL embedded in prose, and a token in a URL path (webhook URLs).

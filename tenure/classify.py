@@ -4997,7 +4997,7 @@ def _summary(tool: str, args: dict, t: str, vocabulary: fields.Vocabulary | None
     if not isinstance(args, dict):
         args = {}
     if tool == "terminal":
-        what = _clean(str(args.get("command", "")))
+        what = _clean(fields.mask_command(str(args.get("command", "")), vocabulary))
         return f"{t}: {what[:200]}"
     if tool in ("write_file", "patch") and "path" in args:
         what = _clean(str(args.get("path")))
