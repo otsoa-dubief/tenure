@@ -389,5 +389,6 @@
     "one": "{n} act-then-tell action still open: {command} lists it.",
     "other": "{n} act-then-tell actions still open: {command} lists them."
   },
-  "ask.always": "\"Always\" does not carry over: tenure decides the next call itself."
+  "ask.always": "\"Always\" does not carry over: tenure decides the next call itself.",
+  "ask.why.suspended_from": "(Suspended by: {source}.)"
 }

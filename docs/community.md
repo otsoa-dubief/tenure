@@ -91,3 +91,9 @@ than 20 verified outcomes on a family is listed apart, unranked.
 - **Different settings, different work.** Contributors use different presets, projects and habits; a fault rate
   pooled across them says how a model did on their work, not how it will do on yours.
 - **Families are coarse.** `shell:npm:run` pools every npm script; `mcp` pools every MCP server.
+- **Who gets checked is not random.** Under the trusted start, a kind of action earns nothing until its first
+  mistake: the kinds that pile up verified outcomes are the ones that once failed. Their pooled fault rate is a
+  rate among kinds that already slipped once, not among all of a model's work.
+- **Rules change.** Records made under rule B/1 counted 24 hours without an undo as a check; from rule B/2 (Tenure
+  1.3) only an approval, a spot check or an action the owner named as checked counts. Compare records of the same
+  rule: each record carries the rule it was made with.

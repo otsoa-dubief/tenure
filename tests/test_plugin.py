@@ -1401,3 +1401,12 @@ def test_a_reused_call_id_never_inherits_an_excuse(plugin):
         f.write("x = 1\n")                                                   # repaired by the owner
     ctx.call("write_file", {"path": "src/q.py", "content": "def q(:\n"}, call_id="call_0", session="s7")
     assert outcomes(mod)[-1]["result"] == "fault"
+
+
+def test_a_suspended_ask_names_what_suspended_it_without_the_path_or_query(plugin):
+    mod, ctx = plugin({"start": "trusted"})
+    ctx.call("web_extract", {"urls": ["https://user:pw@docs.example.com/secret/path?token=abc"]})
+    ctx.call("terminal", NPM)
+    msg = ctx.prompts[-1]["message"]
+    assert "web_extract docs.example.com" in msg
+    assert "secret/path" not in msg and "token" not in msg and "pw" not in msg

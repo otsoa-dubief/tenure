@@ -346,5 +346,6 @@
   "cli.week.open": {
     "other": "仍有 {n} 个“先执行后告知”操作未结：{command} 可列出。"
   },
-  "ask.always": "“始终”不会延续：下一次调用由 tenure 自行决定。"
+  "ask.always": "“始终”不会延续：下一次调用由 tenure 自行决定。",
+  "ask.why.suspended_from": "（导致暂停的调用：{source}。）"
 }
