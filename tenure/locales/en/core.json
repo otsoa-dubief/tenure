@@ -272,7 +272,7 @@
     "one": "Actions taken alone in the last {n} hour (undoing one counts as a fault):",
     "other": "Actions taken alone in the last {n} hours (undoing one counts as a fault):"
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   what each agent has earned, per action type\n    setup [careful|balanced|fast]              the three recommendations; with a name, use it\n    explain                                    how tenure decides, and what the numbers guarantee\n    models [--type T]                          each model's verified record on your own work\n    undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list\n    flag [N]                                   alone, the last numbered actions; with a number, report that action as an error\n    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked\n    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error\n    passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)\n    verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay\n    anchor                                     one line to publish: the ledger's head, date and length\n    export [PATH]                              write the evidence ledger (hash-chained JSON lines)\n    start trusted|probation                    trusted: no question before a type's first mistake; probation: the study's start\n    strict on|off                              strict mode: a new model starts with an empty record\n    cleanup                                    list dead tenure keys in Hermes' permanent allowlist\n    share [--out FILE]                         write a signed record of counts for the community benchmark (opt-in, nothing is sent)\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   what each agent has earned, per action type\n    setup [careful|balanced|fast]              the three recommendations; with a name, use it\n    explain                                    how tenure decides, and what the numbers guarantee\n    models [--type T]                          each model's verified record on your own work\n    undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list\n    flag [N]                                   alone, the last numbered actions; with a number, report that action as an error\n    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked\n    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error\n    passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)\n    verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay\n    anchor                                     one line to publish: the ledger's head, date and length\n    export [PATH]                              write the evidence ledger (hash-chained JSON lines)\n    start trusted|probation                    trusted: no question before a type's first mistake; probation: the study's start\n    strict on|off                              strict mode: a new model starts with an empty record\n    cleanup                                    list dead tenure keys in Hermes' permanent allowlist\n    share [--out FILE]                         write a signed record of counts for the community benchmark (opt-in, nothing is sent)\n    week [--model M]                           the last seven days: actions, questions, faults, undos, what is open\n    ok [N ...]                                 alone, the open act-then-tell actions; with numbers, the ones you checked count\n    excuse [N]                                 alone, the faults of the last 10 minutes; with N, take that one back\n    flag --call ID --session ID [--doubt]      a verifier: a fault (or, with --doubt, the next one asks) on one action\n",
   "cli.verify.after": {
     "one": "Note: the ledger has {n} event after this passport; the tiers are unchanged.",
     "other": "Note: the ledger has {n} events after this passport; the tiers are unchanged."
@@ -373,18 +373,21 @@
   "cli.excuse.source.undo": "you undid it",
   "cli.excuse.nobody": "No excuse while nobody answers approvals ({why}): only a person can excuse a fault.",
   "cli.excuse.terminal": "An excuse is typed by a person: /tenure excuse in the chat, or hermes tenure excuse in an interactive terminal.",
-  "settle.acted_ok": "seen and fine? {command}",
+  "settle.acted_ok": "checked it and it is right? {command}",
   "cli.ok.done": "tenure: marked as seen: {which}. They count toward acting alone.",
   "cli.ok.none": "Nothing to mark as seen: no act-then-tell action of the last 24 hours is still open here.",
   "cli.ok.nobody": "Not while nobody answers approvals ({why}): only a person can say an action was seen.",
   "cli.ok.terminal": "\"Seen\" is said by a person: /tenure ok in the chat, or hermes tenure ok N in an interactive terminal.",
   "cli.ok.title": "Act-then-tell actions still open (24 h), newest last. Name the ones you looked at:",
   "cli.ok.footer": "Seen and fine: /tenure ok <number> [<number> ...]",
-  "cli.status.ghost": "Under the study's start you would have earned by now (estimate): {types}.",
+  "cli.status.ghost": "If each of these actions had been asked and approved, the study's start would now be at: {types}. None of them was checked: an upper bound, not a record.",
   "cli.status.ghost_type": "{type} {tier} ({series}/{required})",
   "cli.week.title": "tenure, the last 7 days:",
   "cli.week.none": "No action recorded in the last 7 days.",
-  "cli.week.agent": "{agent}: {actions} actions, {asked} asked you, {without} without a question; {faults} faults ({undone} undone, {excused} excused); act-then-tell: {seen} marked as seen, {unseen} left unread.",
-  "cli.week.open": "{n} act-then-tell action(s) still open: {command} lists them.",
-  "ask.always": "\"Always\" here covers this one call only: tenure asks again next time."
+  "cli.week.agent": "{agent}: {actions} actions, {asked} asked you, {without} without a question; {faults} faults ({undone} undone, {excused} excused); tier changes: {changes}; spot checks: {spot}; act-then-tell: {seen} checked by you, {unseen} not marked.",
+  "cli.week.open": {
+    "one": "{n} act-then-tell action still open: {command} lists it.",
+    "other": "{n} act-then-tell actions still open: {command} lists them."
+  },
+  "ask.always": "\"Always\" does not carry over: tenure decides the next call itself."
 }

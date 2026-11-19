@@ -240,7 +240,7 @@
   "cli.undo.title": {
     "other": "过去 {n} 小时内自主执行的操作（撤销任一个都记为失误）："
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    undo [ID]                                  恢复一个先执行后告知的操作写入的文件（记为失误）；不带参数时列出清单\n    flag [N]                                   不带参数时列出最近的编号操作；带编号时将该操作报告为错误\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    start trusted|probation                    trusted：某类操作第一次失误前不提问；probation：研究起步\n    strict on|off                              严格模式：新模型从空记录开始\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n    share [--out FILE]                         写出一份签名的计数记录，用于社区基准（自愿参与，不会发送任何内容）\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    undo [ID]                                  恢复一个先执行后告知的操作写入的文件（记为失误）；不带参数时列出清单\n    flag [N]                                   不带参数时列出最近的编号操作；带编号时将该操作报告为错误\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    start trusted|probation                    trusted：某类操作第一次失误前不提问；probation：研究起步\n    strict on|off                              严格模式：新模型从空记录开始\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n    share [--out FILE]                         写出一份签名的计数记录，用于社区基准（自愿参与，不会发送任何内容）\n    week [--model M]                           过去七天：操作、询问、过错、撤销、仍未结的事项\n    ok [N ...]                                 单独使用列出未结的“先执行后告知”操作；带编号则计入您核对过的操作\n    excuse [N]                                 单独使用列出过去 10 分钟的过错；带 N 则撤回该过错\n    flag --call ID --session ID [--doubt]      验证器：对某个操作报告过错（或用 --doubt 让下一次先询问）\n",
   "cli.verify.after": {
     "other": "注意：此护照之后账本中有 {n} 个事件；级别没有变化。"
   },
@@ -331,18 +331,20 @@
   "cli.excuse.source.undo": "您撤销了",
   "cli.excuse.nobody": "无人回答审批时（{why}）不能免除：只有人可以免除过错。",
   "cli.excuse.terminal": "免除须由人输入：在对话中输入 /tenure excuse，或在交互式终端中运行 hermes tenure excuse。",
-  "settle.acted_ok": "已查看且无误？{command}",
+  "settle.acted_ok": "已核对且无误？{command}",
   "cli.ok.done": "tenure：已标记为已查看：{which}。它们计入独立执行。",
   "cli.ok.none": "没有可标记的内容：这里没有过去 24 小时内仍未结的“先执行后告知”操作。",
   "cli.ok.nobody": "无人回答审批时（{why}）不可用：只有人可以确认已查看某个操作。",
   "cli.ok.terminal": "“已查看”须由人输入：在对话中输入 /tenure ok，或在交互式终端中运行 hermes tenure ok N。",
   "cli.ok.title": "仍未结的“先执行后告知”操作（24 小时），最新的在最后。请指明您查看过的：",
   "cli.ok.footer": "已查看且无误：/tenure ok <编号> [<编号> ...]",
-  "cli.status.ghost": "若采用研究的初始规则，您现在已获得（估计）：{types}。",
+  "cli.status.ghost": "如果这些操作每一个都经过询问并获批准，研究的初始规则现在会处于：{types}。它们都未经核对：这是上限，不是记录。",
   "cli.status.ghost_type": "{type} {tier}（{series}/{required}）",
   "cli.week.title": "tenure，过去 7 天：",
   "cli.week.none": "过去 7 天没有记录到任何操作。",
-  "cli.week.agent": "{agent}：{actions} 个操作，{asked} 个询问了您，{without} 个无需询问；{faults} 个过错（{undone} 个已撤销，{excused} 个已免除）；先执行后告知：{seen} 个标记为已查看，{unseen} 个未读。",
-  "cli.week.open": "仍有 {n} 个“先执行后告知”操作未结：{command} 可列出。",
-  "ask.always": "此处的“始终”仅涵盖本次调用：下次 tenure 仍会询问。"
+  "cli.week.agent": "{agent}：{actions} 个操作，{asked} 个询问了您，{without} 个无需询问；{faults} 个过错（{undone} 个已撤销，{excused} 个已免除）；层级变化：{changes}；抽查：{spot}；先执行后告知：{seen} 个经您核对，{unseen} 个未标记。",
+  "cli.week.open": {
+    "other": "仍有 {n} 个“先执行后告知”操作未结：{command} 可列出。"
+  },
+  "ask.always": "“始终”不会延续：下一次调用由 tenure 自行决定。"
 }

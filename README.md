@@ -30,13 +30,13 @@
 
 ## In one minute
 
-- **Install:** `hermes plugins install tenure`. Nothing to set up: the agent works as with Hermes alone.
+- **Install:** `hermes plugins install tenure`. Nothing to set up: everyday work runs without extra questions.
 - **Day to day:** file changes run with an undo for 24 hours (`/tenure undo N`); pushes, deploys, payments and
   anything that leaves the machine keep asking.
-- **A mistake** (you undo, refuse or flag): only that kind of action goes on probation and asks first. Not the
-  agent's fault? `/tenure excuse N` within 10 minutes.
-- **Earning it back:** approve, or mark act-then-tell actions as seen (`/tenure ok N`); spread over a few
-  conversations, the kind acts alone again, with 1 spot check in 10.
+- **A mistake** (you undo, refuse or flag, or an automatic check fails): only that kind of action asks first
+  again. An undo or a refusal that was not the agent's fault? `/tenure excuse N` within 10 minutes.
+- **Earning it back:** approve when it asks; later it acts and tells you, and you mark what you checked
+  (`/tenure ok N`). Over at least two conversations, the kind acts alone again, with 1 spot check in 10.
 - **Where it stands:** `hermes tenure status`, and `hermes tenure week` for the last seven days.
 
 The rest of this page is the detail: the rule, the study, the guarantee and its limits.
@@ -69,7 +69,7 @@ Tenure keeps Hermes' speed and adds what is missing:
 |---|---|
 | **Trusted** (the start) | For files, memory, subagents and the usual local dev tools (npm, python, pytest, cargo, go, make, git...), the agent works as with Hermes alone: no extra question. Files it changes are saved first and can be undone for 24 hours (`/tenure undo`); anything can be flagged (`/tenure flag`). Trust is given, not earned: it reaches no tier and claims no guarantee. |
 | **T1 · Probation** (asks first) | After its first mistake (an undo, a flag, a failed automatic check, a refusal), that kind of action asks you first. Only that kind. |
-| **T2 · Under review** (acts, then tells you) | Earned back on approvals: the agent acts, then tells you, with an undo. Only for reversible types at low or medium stakes. Each message ends with "seen and fine? /tenure ok N": only the actions you name as seen count toward T3; silence counts for nothing (rule B/2). |
+| **T2 · Under review** (acts, then tells you) | Earned back on approvals: the agent acts, then tells you, with an undo. Only for reversible types at low or medium stakes. Each message ends with "checked it and it is right? /tenure ok N": only the actions you name count toward T3; silence counts for nothing. |
 | **T3 · Tenured** (acts on its own) | Earned on a series of verified successes over at least two conversations (three at medium stakes), none giving more than half of it, under a risk you set. One in ten is still spot-checked. |
 
 What tenure asks that Hermes alone would not:
