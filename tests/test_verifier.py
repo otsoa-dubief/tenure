@@ -172,5 +172,6 @@ def test_a_doubt_is_asked_even_after_allow_for_this_session(plugin):
     assert ctx.call("terminal", py(2)) == "ran"                                  # Hermes' session grant
     mod.cli.report("doubt", n=last(mod)["n"])
     assert ctx.call("terminal", py(3)) == "approved"                             # asked again, despite the grant
+    assert "doubted" in ctx.prompts[-1]["message"] and "for this session" not in ctx.prompts[-1]["message"]
     assert not mod.store_().doubted(A, "shell:python:inline")
     assert ctx.call("terminal", py(4)) == "ran"                                  # the grant holds again

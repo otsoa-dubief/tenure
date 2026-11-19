@@ -10,6 +10,7 @@
   },
   "ask.why.climb": "{type} ({stakes} stakes) asks first after a mistake: {n} more approvals and it acts again, then tells you, with an undo.",
   "ask.why.held": "{type} asks first: {held} has a mistake it has not yet made up for, and until it does, this kind of action waits for you.",
+  "ask.why.doubt": "A check of yours doubted the last action of {type}: this one asks first.",
   "ask.why.other_stakes": "{type} earned its record at {earned} stakes, and this action has {stakes} stakes: it asks.",
   "ask.why.provisional": {
     "one": "{n} of them carried over from the previous agent, provisional.",
