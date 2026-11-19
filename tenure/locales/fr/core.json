@@ -242,6 +242,7 @@
     "one": "essai : encore {n}",
     "other": "essai : encore {n}"
   },
+  "cli.status.note.spot_due": "un contrôle est dû : ses actions attendent que vous y répondiez dans une conversation",
   "cli.status.note.trial_wait": {
     "one": "essai échoué : attendre {n} action",
     "other": "essai échoué : attendre {n} actions"

@@ -28,14 +28,17 @@ starts suspended, and a child agent that read external content suspends its pare
 only from a person. A tool call whose arguments would run either (`hermes tenure ok`, `python -m tenure excuse`,
 `/tenure ok`, or `tenure.seen(...)` in code) is blocked outright, whatever approval or terminal the agent could get;
 and Hermes marks every tool subprocess of a session with `TENURE_AGENT_CHILD` (`register_session_env`), where both
-commands refuse to run. An agent that hides the call from both (code that builds the name at run time, then unsets
-the marker) is the limit; the approval it needs still shows the command.
+commands refuse to run. These are defences in depth, not a wall: code that builds the command at run time
+(`"ok"` assembled from parts), `env -u TENURE_AGENT_CHILD`, and a pseudo-terminal (`script -q /dev/null ...`) get
+past all three; the approval such a call needs still shows a command that names Hermes (capped), and under `--yolo`
+nobody sees it.
 
 **One conversation, one session.** The sessions the rule counts are conversations: a subagent counts as its parent,
-and a conversation Hermes compressed into a new session id (its `parent_session_id` in Hermes' `state.db`) stays the
-same one. **One program, one type**: `python3`, `python3.12` and `py` are `python`, `nodejs` is `node`, `pip3` is
+and a conversation Hermes compressed into a new session id stays the same one (in Hermes' `state.db`, only the edges
+of a compression: a branch, a reset or `/new` is a new conversation, as Hermes itself counts them). **One program, one type**: `python3`, `python3.12` and `py` are `python`, `nodejs` is `node`, `pip3` is
 `pip`, so a fault on one alias puts the others on probation too. Different tools that can do the same job (`make`
-and `npm run`, `echo >` and a file write) remain different types: each earns its own record.
+and `npm run`, `echo >` and a file write, `python -m pip` and `pip`, `bash x.sh` and `sh x.sh`, `uv run python`
+and `python`) remain different types: each earns its own record, and a probation on one does not hold the other.
 
 An agent that can switch off its own supervision is not supervised. Self-protection comes in two tiers, both capped
 at **T1 (asks first)**, and no type override lowers them (`self:*`, `secrets:*`, `file:sensitive`).
