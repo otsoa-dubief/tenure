@@ -513,41 +513,53 @@ _LINEAGE_LOCK = threading.Lock()
 
 
 def _lineage_root(sid: str) -> str:
-    """The root of a session's lineage in Hermes' own ``state.db``: compression can rotate a conversation to a new
-    session id whose ``parent_session_id`` is the previous one (``hermes_state_mutation_compress``), and a delegate
-    subagent points to its parent. One conversation is then one session for the rule (B/2) and for a suspension,
-    whatever Hermes did to its ids. Read-only, bounded, cached once found; the id itself when the state cannot be
-    read or has no row yet (that miss is not cached)."""
+    """The first session of a compressed conversation, from Hermes' own ``state.db``: compression can rotate a
+    conversation to a new session id whose parent ended with ``end_reason = 'compression'``
+    (``hermes_state_mutation_compress``). Only those edges are followed, as Hermes itself does
+    (``_expand_compression_lineage_ids``): a branch, a reset, ``/new``, a delegate or a tool session also carries
+    ``parent_session_id`` but is its own conversation (subagents are joined to their parent by ``subagent_start``).
+    Read-only and bounded. The first answer for an id is kept for the process, a miss included, so one id never
+    changes identity between the two hooks of a call."""
     with _LINEAGE_LOCK:
         if sid in _LINEAGE:
             return _LINEAGE[sid]
+    root = _read_lineage(sid)
+    with _LINEAGE_LOCK:
+        root = _LINEAGE.setdefault(sid, root)
+        while len(_LINEAGE) > 10_000:
+            _LINEAGE.popitem(last=False)
+    return root
+
+
+def _read_lineage(sid: str) -> str:
     path = os.path.join(_hermes_home(), "state.db")
     if not os.path.isfile(path):
         return sid
     import sqlite3
-    chain, current = [], sid
+    current, seen = sid, {sid}
     try:
         conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=0.2)
         try:
-            while current and current not in chain and len(chain) < 100:
-                row = conn.execute("SELECT parent_session_id FROM sessions WHERE id = ?", (current,)).fetchone()
-                if row is None:
+            for _ in range(100):
+                row = conn.execute("SELECT c.parent_session_id, c.model_config, COALESCE(c.source, ''), p.end_reason "
+                                   "FROM sessions c LEFT JOIN sessions p ON p.id = c.parent_session_id "
+                                   "WHERE c.id = ?", (current,)).fetchone()
+                if row is None or not row[0] or row[3] != "compression" or row[2] == "tool" or row[0] in seen:
                     break
-                chain.append(current)
+                try:
+                    marks = json.loads(row[1] or "{}")
+                except ValueError:
+                    marks = {}
+                if isinstance(marks, dict) and any(marks.get(m) == row[0] for m in
+                                                   ("_branched_from", "_delegate_from", "_reset_from")):
+                    break                                   # a fork that inherited nothing but its parent's id
                 current = row[0]
+                seen.add(current)
         finally:
             conn.close()
     except Exception:
         log.debug("tenure: Hermes' session lineage could not be read", exc_info=True)
-        return sid
-    if not chain:
-        return sid
-    root = chain[-1]
-    with _LINEAGE_LOCK:
-        _LINEAGE[sid] = root
-        while len(_LINEAGE) > 10_000:
-            _LINEAGE.popitem(last=False)
-    return root
+    return current
 
 
 def anon(session_id) -> str:
@@ -1504,17 +1516,22 @@ def pre_api_request(model="", provider="", session_id="", **kwargs):
 
 
 _PERSON_ONLY = re.compile(
-    r"(?:\bhermes\b(?:\s+-\S+(?:\s+\S+)?)*\s+tenure|-m\s+tenure(?:\.cli)?|(?:^|\s|['\"])/tenure)\s+(?:ok|excuse)\b"
+    r"(?:\bhermes\b(?:\s+-\S+(?:\s+\S+)?)*\s+['\"]?tenure['\"]?|-m\s+tenure(?:\.cli)?|(?:^|\s|['\"])/tenure)"
+    r"\s+['\"]?(?:ok|excuse)['\"]?(?:\s|$|;|&|\|)"
     r"|\b(?:tenure|core)\.(?:seen|excuse|_see)\s*\(", re.I)
+_RUNS = {"terminal": "command", "execute_code": "code"}     # the arguments that run: never a file's text or a message
 
 
-def _person_only(args: dict) -> bool:
+def _person_only(tool: str, args: dict) -> bool:
     """A tool call that would run ``tenure ok`` or ``tenure excuse`` (or their functions): those are a person's
     word on the agent's work, never the agent's own, whatever terminal or approval it could get. Blocked outright, in
-    every string argument (a command, code, a script's text). Defence in depth: the CLI also refuses them in a child
-    of Hermes' tools (``TENURE_AGENT_CHILD``) and without a terminal."""
+    what a call runs (a terminal command, ``execute_code``'s code), never a file being written or a message: tenure's
+    own source and docs name these commands. Defence in depth, not a wall: the CLI also refuses them in a child of
+    Hermes' tools (``TENURE_AGENT_CHILD``) and without a terminal; an agent that builds the name at run time, unsets
+    the marker and opens a pty still needs an approval of a command that names Hermes (capped)."""
     try:
-        return any(isinstance(v, str) and _PERSON_ONLY.search(v) for v in args.values())
+        text = args.get(_RUNS.get(tool, ""))
+        return isinstance(text, str) and bool(_PERSON_ONLY.search(text))
     except Exception:
         return False
 
@@ -1534,7 +1551,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         if not cfg["enabled"]:
             return None
         tool, args = str(tool_name or ""), (args if isinstance(args, dict) else {})
-        if _person_only(args):                              # the agent marking its own work seen, or excusing it
+        if _person_only(tool, args):                              # the agent marking its own work seen, or excusing it
             return {"action": "block", "message": tr("ask.person_only")}
         cwd = call_cwd(tool, args, session_id, task_id)
         act = classify.classify(tool, args, cwd=cwd, overrides=cfg["overrides"], vocabulary=cfg["vocabulary"])

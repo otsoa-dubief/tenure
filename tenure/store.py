@@ -70,6 +70,16 @@ WRITTEN_WINDOW = 24 * 3600
 DOUBT = "doubt:"           # meta key prefix: a kind whose next action asks first (a verifier's doubt, #6)
 INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke", "copy", "excuse"})
 DISTRUST = "distrust:"     # meta key prefix: a type that lost the trusted start in this profile
+PROGRAM_ALIASES = {"python2": "python", "python3": "python", "py": "python", "nodejs": "node", "pip3": "pip"}
+
+
+def alias_keys(key: str) -> list[str]:
+    """``key`` and the keys an older tenure gave the same program (before one program became one type): a fault
+    recorded under ``shell:python3:x`` still ends the trusted start of ``shell:python:x``."""
+    parts = key.split(":")
+    if len(parts) < 2 or parts[0] != "shell":
+        return [key]
+    return [key] + [":".join([parts[0], a] + parts[2:]) for a, c in PROGRAM_ALIASES.items() if c == parts[1]]
 DERIVED_KINDS = frozenset({"tier", "trial", "confirmed", "revoked", "neutral_expired"})   # display only
 STAT_FIELDS = ("actions", "checked", "alone", "faults")
 PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible", "decision", "phase", "rule_key",
@@ -278,7 +288,7 @@ class Store:
         s = self.recorded(agent, key)
         if s is None:                       # a type faulted under another model of this profile is not trusted
             return TypeState(key=key, stakes=stakes, reversible=bool(reversible),
-                             distrusted=bool(self.get_meta(DISTRUST + key)))
+                             distrusted=any(self.get_meta(DISTRUST + k) for k in alias_keys(key)))
         s.stakes = stakes
         s.reversible = bool(reversible)
         return s

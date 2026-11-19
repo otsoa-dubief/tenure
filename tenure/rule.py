@@ -351,8 +351,8 @@ def on_neutral(s: TypeState, reason: str) -> list[dict]:
         return []
     old = s.tier
     s.series, s.sessions, s.provisional, s.session_runs = 0, [], 0, []
-    if s.tier == T3:
-        s.tier = T2 if _middle(s) else T1
+    if s.tier == T3:                                # T2 only where its score holds, as reevaluate checks
+        s.tier = T2 if _middle(s) and s.wald <= params.wald_steps(s.stakes)[2] + TOL else T1
     return [_move(s, "tier", old, s.tier, "excused")] if s.tier != old else []
 
 

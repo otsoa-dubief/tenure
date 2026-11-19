@@ -240,6 +240,7 @@
     "one": "trial: {n} to go",
     "other": "trial: {n} to go"
   },
+  "cli.status.note.spot_due": "a spot check is due: its actions wait until you answer one in a conversation",
   "cli.status.note.trial_wait": {
     "one": "trial failed: {n} action to wait",
     "other": "trial failed: {n} actions to wait"
