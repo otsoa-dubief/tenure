@@ -408,8 +408,13 @@ def mask_command(cmd: str, vocab: Vocabulary | None = None) -> str:
             repl[a] = (b, text)
 
     words = [head[a:b] for a, b in spans]
+
+    def adjacent(i: int) -> bool:
+        """Word i+1 is the next argument of word i: only blanks between them, no operator (`;`, `|`, `<(`...)."""
+        return i + 1 < len(spans) and head[spans[i][1]:spans[i + 1][0]].strip(" \t") == ""
+
     for i, ((a, b), raw) in enumerate(zip(spans, words)):
-        nxt = spans[i + 1] if i + 1 < len(spans) else None
+        nxt = spans[i + 1] if adjacent(i) else None
         pre = next((p for p in ("--header=", "-H") if raw.startswith(p) and len(raw) > len(p)), "")
         q, inner, end = _unquote(raw[len(pre):])       # `-H"Authorization: …"`, `--header='…'` glued to the option
         m = _HEADERISH.match(inner)
@@ -419,7 +424,9 @@ def mask_command(cmd: str, vocab: Vocabulary | None = None) -> str:
         q, inner, end = _unquote(raw)
         if q == "" and raw.endswith(":") and is_secret(raw[:-1], vocab) and nxt:      # -H Authorization: Bearer x
             j = i + 1
-            if words[j].lower() in _SCHEMES and j + 1 < len(spans):
+            if words[j].lower() in _SCHEMES:
+                if not adjacent(j):
+                    continue
                 j += 1
             put(*spans[j], _masked(words[j]))
             continue
@@ -434,11 +441,12 @@ def mask_command(cmd: str, vocab: Vocabulary | None = None) -> str:
                 and nxt and not words[i + 1].startswith("-"):
             put(*nxt, _masked(words[i + 1]))
             continue
-        if raw in _USER_OPTS and nxt:
-            uq, ui, ue = _unquote(words[i + 1])
+        opt, eq, val = raw.partition("=")
+        if opt in _USER_OPTS and (eq or nxt):            # `-u user:pass`, `--user=user:pass`
+            va, vb, vraw = (a + len(opt) + 1, b, val) if eq else (*nxt, words[i + 1])
+            uq, ui, ue = _unquote(vraw)
             if ":" in ui and _plain(ui, uq):
-                na, nb = nxt
-                put(na, nb, uq + ui.split(":", 1)[0] + ":" + MASK + ue)
+                put(va, vb, uq + ui.split(":", 1)[0] + ":" + MASK + ue)
             continue
         m = _ASSIGN.match(inner)
         if m and is_secret(m.group(1), vocab):
