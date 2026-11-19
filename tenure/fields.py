@@ -372,8 +372,11 @@ def _unquote(raw: str) -> tuple[str, str, str]:
     """(opening quote, inner text, closing quote) of a word quoted as a whole, else ("", raw, "")."""
     if raw[:1] in ("'", '"'):
         q = raw[0]
-        end = q if len(raw) > 1 and raw.endswith(q) else ""
-        return q, raw[1:len(raw) - len(end)], end
+        end = q if len(raw) > 1 and raw.endswith(q) and raw[-2:] != "\\" + q else ""
+        inner = raw[1:len(raw) - len(end)]
+        # one quoted segment only: `'a'$(id)` or `"a"x"b"` is several, read as unquoted (so `$` keeps it visible)
+        if q not in (inner if q == "'" else inner.replace("\\\\", "").replace("\\" + q, "")):
+            return q, inner, end
     return "", raw, ""
 
 
@@ -406,12 +409,14 @@ def mask_command(cmd: str, vocab: Vocabulary | None = None) -> str:
 
     words = [head[a:b] for a, b in spans]
     for i, ((a, b), raw) in enumerate(zip(spans, words)):
-        q, inner, end = _unquote(raw)
         nxt = spans[i + 1] if i + 1 < len(spans) else None
+        pre = next((p for p in ("--header=", "-H") if raw.startswith(p) and len(raw) > len(p)), "")
+        q, inner, end = _unquote(raw[len(pre):])       # `-H"Authorization: …"`, `--header='…'` glued to the option
         m = _HEADERISH.match(inner)
         if m and is_secret(m.group(1), vocab) and _plain(m.group(2), q):
-            put(a, b, q + m.group(1) + ": " + MASK + end)
+            put(a, b, pre + q + m.group(1) + ": " + MASK + end)
             continue
+        q, inner, end = _unquote(raw)
         if q == "" and raw.endswith(":") and is_secret(raw[:-1], vocab) and nxt:      # -H Authorization: Bearer x
             j = i + 1
             if words[j].lower() in _SCHEMES and j + 1 < len(spans):
