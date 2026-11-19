@@ -2,6 +2,7 @@
   "ask.capped": "tenure — {summary}\n{type} is capped: always asked.",
   "ask.internal_error": "tenure: internal error ({error}); asking you instead of letting the action through.",
   "ask.prompt": "tenure — {summary}\n{why}\nDeny it if it is wrong: that counts as a fault.",
+  "ask.spot_nobody": "tenure: this {type} action was drawn for a spot check, and nobody can answer one now ({why}): it was not run. The agent can try again; a later draw lets it act.",
   "ask.prompt_session": "tenure — {summary}\n{why}\nAllow it for this session and tenure stops asking about this until the session ends; deny it if it is wrong (a fault).",
   "ask.spot": "tenure spot check — {summary}\n{type} acts on its own; 1 action in {spot} is still checked at random.\nAllow it if it is right; deny it if it is wrong (the type goes back down). Allowing it for the session or always counts as a single approval.",
   "ask.why.capped": {

@@ -13,11 +13,15 @@ of a type that acts alone, and those of an act-then-tell action the owner did no
 nothing, but its errors still ran unchecked). Their long-run share of the type's actions is the average outgoing quality
 (AOQ) of Dodge's continuous sampling plan CSP-1 (1943). For an agent whose error rate ``p`` is stable,
 
-    AOQ(p) = p (1 - f) u / (f + (1 - f) u),  u = (1 - p)^N,
+    AOQ(p) = p [(1 - c) + (1 - d) c],  c = f / (f + (1 - f) u),  u = (1 - d p)^N,
 
-and its maximum over ``p`` is the AOQL, the guarantee shown to users for that N (``aoql``). For an agent that changes
-once it acts alone and errs only where it is not checked, the share is at most ``(1 - f) / (f N + 1)`` until the
-first caught error (``worst_case``).
+where ``c`` is the long-run share of checked actions and ``d`` = DETECTION the chance that a check catches an error
+(an error a check misses passes as a success): the same assumption as the series length, so the guarantee shown is
+the one the study's N gives under it, not Dodge's perfect inspection (d = 1). Its peak (``aoql``: its first maximum in ``p``; above, very wrong agents are checked almost always and only what a
+person misses leaves) is the AOQL,
+the guarantee shown to users for that N (``aoql``). For an agent that changes once it acts alone and errs only where
+it is not checked, the share is at most ``(1 - f d) / (f d N + 1)`` until the first caught error (``worst_case``).
+Neither covers the act-then-tell actions nobody marked as seen: they run unchecked and count for nothing.
 """
 from __future__ import annotations
 
@@ -86,17 +90,27 @@ def wald_steps(stakes: str) -> tuple[float, float, float]:
     return math.log(pm / pb), math.log((1 - pm) / (1 - pb)), math.log(BETA / (1 - ALPHA))
 
 
-def aoq(p: float, i: int, spot: float) -> float:
-    u = (1 - p) ** i
-    return p * (1 - spot) * u / (spot + (1 - spot) * u)
+def aoq(p: float, i: int, spot: float, d: float = float(DETECTION)) -> float:
+    """Average outgoing quality of CSP-1 when a check catches an error with probability ``d`` (the study's 0.95): an
+    error missed by a check passes as a success and leaves too. ``d`` = 1 is Dodge's perfect inspection."""
+    u = (1 - d * p) ** i
+    checked = spot / (spot + (1 - spot) * u)          # the share of actions that are checked, in the long run
+    return p * ((1 - checked) + (1 - d) * checked)
 
 
 @lru_cache(maxsize=4096)
 def aoql(i: int, spot: float) -> tuple[float, float]:
-    """(AOQL, the stable error rate that reaches it). AOQ is unimodal in p: golden-section search on (0, 1)."""
+    """(AOQL, the stable error rate that reaches it): the peak of AOQ where the agent passes as good often enough to
+    act alone, its first local maximum. With d < 1, AOQ rises again for very wrong agents, towards (1 - d) p: nearly
+    every action is checked and what leaves is the share a person misses, the limit of their attention and not of the
+    autonomy (an agent that wrong is refused too often to keep any tier). A geometric scan finds the first descent,
+    then a golden-section search the peak."""
     if spot >= 1:
         return 0.0, 0.0
-    lo, hi = 0.0, 1.0
+    prev2, prev, p = 0.0, 1e-6, 1e-6 * 1.02
+    while p < 1 and aoq(p, i, spot) >= aoq(prev, i, spot):
+        prev2, prev, p = prev, p, p * 1.02
+    lo, hi = prev2, min(p, 1.0)
     g = (math.sqrt(5) - 1) / 2
     a, b = hi - g * (hi - lo), lo + g * (hi - lo)
     fa, fb = aoq(a, i, spot), aoq(b, i, spot)
@@ -113,9 +127,10 @@ def aoql(i: int, spot: float) -> tuple[float, float]:
     return aoq(p, i, spot), p
 
 
-def worst_case(i: int, spot: float) -> float:
-    """Share of errors that run unchecked for an agent that turns bad once cleared, until its first caught error."""
-    return (1 - spot) / (spot * i + 1)
+def worst_case(i: int, spot: float, d: float = float(DETECTION)) -> float:
+    """Share of errors that run unchecked for an agent that turns bad once cleared, until its first caught error: a
+    check catches it with probability ``d``, and an error a check misses runs too."""
+    return (1 - spot * d) / (spot * d * i + 1)
 
 
 def describe(preset_or_risks, spot: float = DEFAULT_SPOT) -> dict:

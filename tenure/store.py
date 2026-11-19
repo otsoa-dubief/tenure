@@ -33,6 +33,8 @@ BUSY_TIMEOUT = 5.0             # seconds a writer waits for another process's tr
 TABLES = ("types", "pending", "sessions", "undo", "stats", "meta", "ledger", "recent")
 RECENT_WINDOW = 24 * 3600      # seconds a numbered action stays in ``recent``
 EXCUSE_WINDOW = 10 * 60        # seconds the owner has to excuse a fault (protocol 0.2)
+EXCUSE_LIMIT = 3              # excuses per type ...
+EXCUSE_PERIOD = 7 * 86400     # ... over this many seconds: past it, a fault of that type stays a fault
 EXCUSABLE = frozenset({"refusal", "undo"})   # faults a person caused: never a check, a spot check or a flag
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS types (agent TEXT NOT NULL, key TEXT NOT NULL, state TEXT NOT NULL,

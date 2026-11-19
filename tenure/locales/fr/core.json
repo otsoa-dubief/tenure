@@ -2,6 +2,7 @@
   "ask.capped": "tenure — {summary}\n{type} est plafonné : toujours demandé.",
   "ask.internal_error": "tenure : erreur interne ({error}) ; on vous demande plutôt que de laisser passer l'action.",
   "ask.prompt": "tenure — {summary}\n{why}\nRefusez si c'est faux : cela compte comme une faute.",
+  "ask.spot_nobody": "tenure : cette action {type} a été tirée pour un contrôle, et personne ne peut y répondre maintenant ({why}) : elle n'a pas été lancée. L'agent peut réessayer ; un tirage suivant la laissera agir.",
   "ask.prompt_session": "tenure — {summary}\n{why}\nAutorisez pour cette session et tenure ne vous le demande plus jusqu'à la fin de la session ; refusez si c'est faux (une faute).",
   "ask.spot": "tenure, contrôle aléatoire — {summary}\n{type} agit seul ; 1 action sur {spot} reste contrôlée au hasard.\nAutorisez l'action si elle est juste ; refusez-la si elle est fausse (le type redescend). L'autoriser pour la session ou toujours compte comme une seule approbation.",
   "ask.why.capped": {

@@ -99,7 +99,7 @@ def test_passport_types_carry_the_effective_tier(plugin):
     p = make_passport(mod)
     e = {t["type"]: t for t in p["types"]}["file:write"]
     assert e["tier"] == "alone" and e["effective_tier"] == "alone"
-    assert list(e) == list(mod.passport.TYPE_FIELDS_01)          # no excuse yet: a 0.1 passport
+    assert list(e) == list(mod.passport.TYPE_FIELDS)             # 0.2 always (audit of 19/11)
     assert mod.passport.verify(p, mod.store_().ledger()) in ([], ["unsigned"])
 
 

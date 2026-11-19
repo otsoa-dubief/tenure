@@ -945,13 +945,20 @@ def excusable(st: store.Store, now: float | None = None) -> list[dict]:
     now = time.time() if now is None else now
     rows = st.ledger()
     done = {(r["event"] or {}).get("seq") for r in rows if (r["event"] or {}).get("event") == "excuse"}
+    by_seq = {r["seq"]: r for r in rows}
+    recent: dict = {}                                # excuses per type over the last EXCUSE_PERIOD: at most LIMIT
+    for r in rows:
+        e = r["event"] or {}
+        if e.get("event") == "excuse" and now - r["at"] <= store.EXCUSE_PERIOD:
+            k = ((by_seq.get(e.get("seq")) or {}).get("event") or {}).get("type")
+            recent[k] = recent.get(k, 0) + 1
     out = []
     for r in reversed(rows):
         if now - r["at"] > store.EXCUSE_WINDOW:
             break
         e = r["event"] or {}
         if (e.get("event") == "outcome" and e.get("result") == "fault" and e.get("source") in store.EXCUSABLE
-                and r["seq"] not in done):
+                and r["seq"] not in done and recent.get(e.get("type"), 0) < store.EXCUSE_LIMIT):
             out.append({"seq": r["seq"], "at": r["at"], "agent": e["agent"], "type": e["type"],
                         "source": e["source"]})
     return out
@@ -1039,7 +1046,14 @@ def _excuse_hint(st: store.Store, events: list[dict]) -> list[str]:
     take it back if the error was the owner's. Said neutrally, and only then: never an invitation after every no."""
     seq = getattr(st, "last_outcome_seq", None)
     costly = any(ev.get("event") in ("tier", "trial") for ev in events)
-    return [tr("notice.excuse.hint", n=seq, minutes=store.EXCUSE_WINDOW // 60)] if seq and costly else []
+    if not seq or not costly or not any(r["seq"] == seq for r in excusable(st)):
+        return []
+    key = next((ev.get("type") for ev in events if ev.get("type")), "")
+    day = time.strftime("%Y-%m-%d")                 # once a day per type: a reminder, never a reflex after every no
+    if st.get_meta("excuse_hint:" + key) == day:
+        return []
+    st.set_meta("excuse_hint:" + key, day)
+    return [tr("notice.excuse.hint", n=seq, minutes=store.EXCUSE_WINDOW // 60)]
 
 
 class UndoMessage(str):
@@ -1192,8 +1206,8 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
     s = st.get_state(agent, act.type, act.stakes, act.reversible)
     suspended = _suspended(st, session)
     decision = rule.decide(s, n, cfg["spot"], suspended=suspended, rng=rng)
-    if nobody and decision == rule.SPOT:
-        decision = rule.ALLOW                           # nobody can answer a spot check: the earned tier runs
+    # nobody can answer a spot check: the drawn action is blocked (pre_tool_call), never run unchecked: the guarantee
+    # counts one check in ten, cron or not
     if not _earned(recorded, act, s, n, decision) or ST.copy_unchecked:
         decision = rule.ASK                             # copy_unchecked: this record may be a copy, not yet settled
     if (decision == rule.ASK and not ST.copy_unchecked and trusted(cfg, s, n, act.stakes)
@@ -1513,6 +1527,9 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 st.add_pending(uid, phase="alone" if decision == rule.ALLOW else "unwatched" if nobody else "notify",
                                rule_key="",
                                snap_id=snap, **row)
+            elif nobody and decision == rule.SPOT:     # a check nobody can answer: blocked, neutral, never unchecked
+                st.add_pending(uid, phase="nobody", rule_key="", **row)
+                directive = {"action": "block", "message": tr("ask.spot_nobody", type=act.type, why=nobody)}
             else:
                 kind = ("ask" if nobody else "spot" if decision == rule.SPOT else "capped" if n is None
                         else "trial" if s.trial_left or s.trial_wait else "ask")
@@ -1588,9 +1605,12 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
                 if p.get("snap_id"):
                     undo.discard(p["snap_id"], data_dir())
                 posts += _say(sync_settings(st, cfg), cfg["spot"])
+                # A refused action of an earned T3 is what a spot check is: detection, never excusable.
+                checked = p["phase"] == "alone" and p["decision"] == rule.ALLOW
                 evs = record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
-                                     reversible=p["reversible"], result="fault", source="refusal", session=p["session"])
-                posts += _say(evs, cfg["spot"]) + _excuse_hint(st, evs)
+                                     reversible=p["reversible"], result="fault",
+                                     source="spot" if checked else "refusal", session=p["session"])
+                posts += _say(evs, cfg["spot"]) + ([] if checked else _excuse_hint(st, evs))
                 _bump(st, p["agent"], "fault")
                 p = None
             if p is None or p["phase"] != "asked" or (key and p["rule_key"] != key):
