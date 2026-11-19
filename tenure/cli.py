@@ -192,7 +192,8 @@ def _status_agent(st, agent: str, cfg: dict) -> list[str]:
         notes = [tr("cli.status.note.provisional", n=s.provisional)] if s.provisional else []
         notes += [tr("cli.status.note.trial", n=s.trial_left)] if s.trial_left else []
         notes += [tr("cli.status.note.trial_wait", n=s.trial_wait)] if s.trial_wait else []
-        notes += [tr("cli.status.note.spot_due")] if st.get_meta(_core()._due_key(agent, s.key)) else []
+        notes += ([tr("cli.status.note.spot_due")]                        # it only holds an earned T3 back
+                  if s.tier == rule.T3 and st.get_meta(_core()._due_key(agent, s.key)) else [])
         held = _core()._held_by(st, agent, s.key) if eff != rule.T1 else None   # the guard plays only where it acts
         notes += [tr("cli.status.held", held=held)] if held else []
         cells.append([s.key, _stakes(s.stakes), _tier_cell(s, n, cfg), series, sessions, _record(s.faults, s.successes),

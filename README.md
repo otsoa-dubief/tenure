@@ -385,8 +385,8 @@ cost goes with it (the tier drop, the trial, the lost trusted start); the series
 after any detected error, so an excuse given by mistake never carries the agent further. Only a refusal or an undo can be excused, at
 most three per type in seven days; never the automatic check, a spot check, a flag, or a refusal of an action that
 acted alone on an earned T3 (that is what a spot check is). Only by a person: not while nobody answers approvals
-(`--yolo`, cron), not from a script, not directly by the agent: a terminal command or `execute_code` that would
-run `tenure ok` or `tenure excuse` is blocked, and both refuse to run inside the agent's own tool processes. An agent
+(`--yolo`, cron), not from a script, not directly by the agent: a terminal command or `execute_code` that names
+`tenure ok` or `tenure excuse` is blocked (even a `grep` or an `echo` of it: run those yourself), and both refuse to run inside the agent's own tool processes. An agent
 that builds the command at run time, unsets the marker and opens a pseudo-terminal still needs you to approve a
 command that names Hermes; [docs/self-protection.md](docs/self-protection.md) lists these limits. Each passport type counts its excused faults (protocol 0.2), so a reader sees
 how often it happened.

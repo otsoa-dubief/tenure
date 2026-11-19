@@ -172,7 +172,7 @@ def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState
             s = states.get(key)
             if s is None:
                 s = rule.TypeState(key=e["type"], stakes=e["stakes"], reversible=bool(e["reversible"]),
-                                   distrusted=e["type"] in distrust)
+                                   distrusted=any(k in distrust for k in store.alias_keys(e["type"])))
             elif s.stakes != e["stakes"]:
                 rule.rebase(s)                                   # evidence counts only at the stakes it was earned at
             s.stakes, s.reversible = e["stakes"], bool(e["reversible"])
