@@ -89,7 +89,7 @@ PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible"
 #         success: approval (an approved ask ran cleanly), spot (an approved spot check ran cleanly), notify (a T2
 #                  action ran cleanly);
 #         fault:   refusal (an ask refused), spot (a spot check refused, or approved but failing its automatic
-#                  check), check (an action that ran failed its automatic check, whoever let it run: a person, an
+#                  check, or a person's refusal of an action acting alone on an earned T3: not excusable), check (an action that ran failed its automatic check, whoever let it run: a person, an
 #                  earned tier, or nobody), undo, flag (after the fact);
 #         neutral: ambiguous (several live rows of one tool call id and type outside any session: none is
 #                  settled as a success; or a write to a file already broken before the call and still broken), error (an action a person or an earned tier let run, whose tool failed), alone (a T3 action

@@ -74,6 +74,10 @@ class FakeCtx:
         ids = dict(session_id=session, task_id=session, tool_call_id=f"tc-{self.calls}" if call_id is None else call_id)
         directive = self.hooks["pre_tool_call"](tool_name=tool, args=args, **ids)
         verdict = "ran"
+        if isinstance(directive, dict) and directive.get("action") == "block":    # a plugin veto: never runs
+            self.hooks["post_tool_call"](tool_name=tool, args=args, result=json.dumps({"error": "blocked"}),
+                                         status="blocked", error_type="plugin_block", **ids)
+            return "blocked"
         if isinstance(directive, dict) and directive.get("action") == "approve":
             key = directive.get("rule_key") or tool
             if key in self.granted:
@@ -427,9 +431,9 @@ def test_nobody_answers_earned_tiers_run_and_the_rest_falls_to_hermes(plugin):
     d = pre(mod, "memory", {"action": "add", "content": "c"}, "m1")
     assert d["action"] == "block" and "spot check" in d["message"]   # blocked, never run unchecked
     assert row(mod, "m1")["phase"] == "nobody"
-    mod.ST.rng = Picks([0.99])                               # the next draw is no check: the earned tier acts
-    assert pre(mod, "memory", {"action": "add", "content": "c"}, "m2") is None
-    assert row(mod, "m2")["phase"] == "alone"
+    mod.ST.rng = Picks([0.99])                               # the check stays due: retrying never draws past it
+    assert pre(mod, "memory", {"action": "add", "content": "c"}, "m2")["action"] == "block"
+    assert sum("spot check of memory:write" in x for x in ctx.posted) == 1   # the owner is told, once
 
 
 def test_unwatched_t2_actions_never_climb_to_t3(plugin):

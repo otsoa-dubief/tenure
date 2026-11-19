@@ -340,9 +340,20 @@ def on_trusted_success(s: TypeState, *, source: str) -> list[dict]:
 
 
 def on_neutral(s: TypeState, reason: str) -> list[dict]:
-    """A timeout, a cancellation, an answer from no one or an unverifiable result: nothing is learned."""
+    """A timeout, a cancellation, an answer from no one or an unverifiable result: nothing is learned.
+
+    An excused fault (``reason`` "excused", replayed in its place) is neutral for everything it cost (the score, the
+    tier drop, the trial, the lost trusted start), but the series still restarts, as CSP-1 restarts it at every
+    detected defect: an excuse given by mistake never carries a run of successes past a real error. A type at T3 then
+    stands at T2 when it has the middle tier, else T1: an empty series cannot keep acting alone."""
     s.neutrals += 1
-    return []
+    if reason != "excused":
+        return []
+    old = s.tier
+    s.series, s.sessions, s.provisional, s.session_runs = 0, [], 0, []
+    if s.tier == T3:
+        s.tier = T2 if _middle(s) else T1
+    return [_move(s, "tier", old, s.tier, "excused")] if s.tier != old else []
 
 
 def count_action(s: TypeState) -> list[dict]:
@@ -444,4 +455,5 @@ def guarantee(s: TypeState, n: int | None, spot: float) -> dict:
     """The type's guarantee for its series length and the spot-check rate, from ``params`` only."""
     if n is None:
         return {"capped": True}
-    return {"aoql": params.aoql(n, spot)[0], "worst_case": params.worst_case(n, spot), "conditional": s.provisional > 0}
+    return {"aoql": params.aoql(n, spot)[0], "worst_case": params.worst_case(n, spot), "missed": params.missed(),
+            "conditional": s.provisional > 0}

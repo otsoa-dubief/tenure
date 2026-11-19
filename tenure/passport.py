@@ -234,6 +234,11 @@ def ghost(rows: list[dict]) -> dict[tuple[str, str], rule.TypeState]:
         return {}
 
 
+def _rounded(g: dict) -> dict:
+    """The guarantee to 6 decimals: a float search must give the same passport on every platform."""
+    return {k: round(v, 6) if isinstance(v, float) else v for k, v in g.items()}
+
+
 def _excused(rows: list[dict]) -> set:
     """The ledger rows excused by a later ``excuse`` event (protocol 0.2). Raises ValueError when an excuse names a
     row that is not an earlier fault outcome, or names one twice."""
@@ -303,7 +308,7 @@ def _entries(states: dict[str, rule.TypeState], cfg: dict | None, redact: bool,
                      "effective_tier": rule.effective_tier(s, n, s.stakes), "series": s.series,
                      "required": None if n is None else rule.required(s, n), "sessions": len(rule.session_counts(s)),
                      "provisional": s.provisional,
-                     "guarantee": (rule.guarantee(s, n, spot)                 # earned T3 only: else none
+                     "guarantee": (_rounded(rule.guarantee(s, n, spot))       # earned T3 only: else none
                                    if n is None or rule.effective_tier(s, n, s.stakes) == rule.T3 else None),
                      # covered by the trusted start, not earned (an earned T3 is shown as T3)
                      "trusted": (rule.trusted(s, n, (cfg or {}).get("start"))

@@ -325,7 +325,7 @@ def explain_text() -> str:
             lines.append("  " + tr("cli.explain.level_capped", level=_stakes(level)))
             continue
         lines.append("  " + tr("cli.explain.level", level=_stakes(level), n=x["n"], aoql=i18n.pct(x['aoql'], 2),
-                               worst=i18n.pct(x['worst_case'], 1)))
+                               worst=i18n.pct(x['worst_case'], 1), missed=i18n.pct(x['missed'], 0)))
     lines += ["", tr("cli.explain.footer")]
     return "\n".join(lines)
 

@@ -14,11 +14,7 @@ def _aoql_grid(i, spot, step=1e-5, top=None):
     p = step
     while p < 1:                       # the first peak: stop once AOQ has clearly gone down from it
         u = (1 - 0.95 * p) ** i
-        c = spot / (spot + (1 - spot) * u)
-        v = p * ((1 - c) + 0.05 * c)
-        if v < best * 0.9:
-            break
-        best = max(best, v)
+        best = max(best, p * (1 - spot) * u / (spot + (1 - spot) * u))     # unchecked errors: one true maximum
         p += step
     return best
 
@@ -56,17 +52,19 @@ def test_wald_steps_reach_t2_after_12_and_18_successes():
 
 
 def test_worst_case_when_the_agent_changes_after_tenure():
-    """An agent that errs only on unchecked actions once cleared: (1 - f d) / (f d i + 1) of its actions, a check
+    """An agent that errs on every action once cleared: (1 - f) / (f d i + 1) of its actions run unchecked, a check
     catching an error with probability d (0.95); Dodge's (1 - f) / (f i + 1) when every check catches it."""
-    assert params.worst_case(54, 0.1) == pytest.approx(0.905 / 6.13)
+    assert params.worst_case(54, 0.1) == pytest.approx(0.9 / 6.13)
     assert params.worst_case(54, 0.1, d=1.0) == pytest.approx(0.9 / 6.4)
     assert params.worst_case(54, 1.0, d=1.0) == 0.0
 
 
 def test_the_guarantee_assumes_the_studys_detection():
-    """The research of 19/11: 2.29% at N = 52 with d = 0.95, not Dodge's 2.08% with perfect inspection."""
-    assert params.aoql(52, 0.1)[0] == pytest.approx(0.02287, abs=2e-5)
-    assert params.aoq(0.04, 52, 0.1, d=1.0) < params.aoq(0.04, 52, 0.1)
+    """Audits of 19/11: unchecked errors with d = 0.95 (2.18% at N = 52, above Dodge's 2.08% with d = 1), and the
+    errors a check misses apart, 1 - d of those checked."""
+    assert params.aoql(52, 0.1)[0] == pytest.approx(0.021845, abs=2e-6)
+    assert params.aoql(52, 0.1, d=1.0)[0] == pytest.approx(0.020753, abs=2e-6)
+    assert params.missed() == pytest.approx(0.05)
 
 
 def test_presets():
@@ -93,4 +91,4 @@ def test_the_old_tenure_number_is_gone():
 
 def test_describe_has_no_alias_keys():
     for level in params.describe("balanced").values():
-        assert set(level) == {"risk", "capped", "n", "aoql", "worst_case"}
+        assert set(level) == {"risk", "capped", "n", "aoql", "worst_case", "missed"}

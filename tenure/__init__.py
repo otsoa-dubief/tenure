@@ -896,6 +896,8 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
     st.put_state(agent, s)
     if source in ("approval", "refusal"):
         st.clear_doubt(agent, type_key)                 # the owner answered: a verifier's doubt is settled
+    if source == "spot" and st.get_meta(_due_key(agent, type_key)):
+        st.set_meta(_due_key(agent, type_key), "")     # a person answered a check: the due one is done
     if result == "fault":
         st.distrust(type_key)
     session = st.root_of(session)                        # a subagent's outcome counts in its root conversation
@@ -939,7 +941,7 @@ def _credit_due(st: store.Store, cfg: dict, now: float | None = None) -> list[di
     return events
 
 
-def excusable(st: store.Store, now: float | None = None) -> list[dict]:
+def excusable(st: store.Store, now: float | None = None, limit: bool = True) -> list[dict]:
     """The fault outcomes of the last ``store.EXCUSE_WINDOW`` seconds not excused yet, newest first: ``seq``, ``at``,
     ``agent``, ``type``, ``source``."""
     now = time.time() if now is None else now
@@ -958,7 +960,7 @@ def excusable(st: store.Store, now: float | None = None) -> list[dict]:
             break
         e = r["event"] or {}
         if (e.get("event") == "outcome" and e.get("result") == "fault" and e.get("source") in store.EXCUSABLE
-                and r["seq"] not in done and recent.get(e.get("type"), 0) < store.EXCUSE_LIMIT):
+                and r["seq"] not in done and (not limit or recent.get(e.get("type"), 0) < store.EXCUSE_LIMIT)):
             out.append({"seq": r["seq"], "at": r["at"], "agent": e["agent"], "type": e["type"],
                         "source": e["source"]})
     return out
@@ -974,6 +976,9 @@ def excuse(st: store.Store, seq: int) -> str:
         raise ValueError(tr("cli.excuse.nobody", why=why))
     row = next((r for r in excusable(st) if r["seq"] == seq), None)
     if row is None:
+        if seq in {r["seq"] for r in excusable(st, limit=False)}:     # it would be, but for the weekly limit
+            raise ValueError(tr("cli.excuse.limit", n=seq, limit=store.EXCUSE_LIMIT,
+                                days=store.EXCUSE_PERIOD // 86400))
         raise ValueError(tr("cli.excuse.unknown", n=seq, minutes=store.EXCUSE_WINDOW // 60))
     rows = st.ledger()
     head = rows[-1] if rows else {"seq": 0, "at": 0}
@@ -1200,16 +1205,22 @@ def trusted(cfg: dict, s: rule.TypeState, n, stakes: str) -> bool:
     return s.stakes == stakes and rule.trusted(s, n, cfg.get("start"))
 
 
+def _due_key(agent: str, type_key: str) -> str:
+    return f"spot_due:{agent}:{type_key}"
+
+
 def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody, rng):
     """(recorded state, state at today's stakes, decision, suspended) for one call."""
     recorded = st.recorded(agent, act.type)
     s = st.get_state(agent, act.type, act.stakes, act.reversible)
     suspended = _suspended(st, session)
     decision = rule.decide(s, n, cfg["spot"], suspended=suspended, rng=rng)
-    # nobody can answer a spot check: the drawn action is blocked (pre_tool_call), never run unchecked: the guarantee
-    # counts one check in ten, cron or not
     if not _earned(recorded, act, s, n, decision) or ST.copy_unchecked:
         decision = rule.ASK                             # copy_unchecked: this record may be a copy, not yet settled
+    # A check drawn while nobody could answer stays due (sticky): every action of the type is that check until a
+    # person answers one. Under cron or --yolo it is blocked (pre_tool_call); retrying never draws past it.
+    if decision in (rule.ALLOW, rule.SPOT) and st.get_meta(_due_key(agent, act.type)):
+        decision = rule.SPOT
     if (decision == rule.ASK and not ST.copy_unchecked and trusted(cfg, s, n, act.stakes)
             and (not suspended or (act.reversible and act.type.startswith("file:")))):
         # trusted start: run as Hermes would, with an undo if possible; after outside content, undoable file writes only
@@ -1530,6 +1541,9 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             elif nobody and decision == rule.SPOT:     # a check nobody can answer: blocked, neutral, never unchecked
                 st.add_pending(uid, phase="nobody", rule_key="", **row)
                 directive = {"action": "block", "message": tr("ask.spot_nobody", type=act.type, why=nobody)}
+                if not st.get_meta(_due_key(agent, act.type)):
+                    st.set_meta(_due_key(agent, act.type), "1")
+                    posts.append(tr("notice.spot_due", type=act.type, why=nobody))
             else:
                 kind = ("ask" if nobody else "spot" if decision == rule.SPOT else "capped" if n is None
                         else "trial" if s.trial_left or s.trial_wait else "ask")

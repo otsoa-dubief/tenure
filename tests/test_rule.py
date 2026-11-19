@@ -452,7 +452,8 @@ def test_guarantee_conditional_while_provisional():
     old = climbed("low", reversible=True)
     new = rule.carry_over(old, n_new=LOW, veto=False, strict=False)
     assert rule.guarantee(new, LOW, 0.1) == {"aoql": params.aoql(LOW, 0.1)[0],
-                                             "worst_case": params.worst_case(LOW, 0.1), "conditional": True}
+                                             "worst_case": params.worst_case(LOW, 0.1), "missed": params.missed(),
+                                             "conditional": True}
     assert rule.guarantee(old, LOW, 0.1)["conditional"] is False
     succeed(new, 26, LOW)
     assert new.provisional == 0 and rule.guarantee(new, LOW, 0.1)["conditional"] is False
