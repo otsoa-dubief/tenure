@@ -5278,6 +5278,11 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         heredoc = "\n" in command.strip() and stakes != CAP     # its body is data, not the commands _shell read
         if (plain or heredoc) and undoable_shell(command, cwd, home):
             t, stakes, rev = "file:shell", LOW, True    # every file it changes can be saved first: a file change
+        parts = t.split(":")
+        if (parts[0] == "shell" and stakes != CAP and (len(parts) == 2 and parts[1] in DEPENDENCY_PROGRAMS
+                                                       or parts[2:] == ["-m", "pip"])
+                and adds_dependency(command)):
+            t = f"{t}:{NEW_DEPENDENCY}"                 # a package from a registry: its install scripts run now
     elif tool_name == "execute_code":
         t, stakes, rev = _code(str(args.get("code") or ""), cwd, home)
     elif tool_name in TOOLS:
@@ -5322,3 +5327,118 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         t, stakes = _categorized(t, stakes, before, tool_name, args, overrides, vocabulary)
     rev = rev and t in ("file:write", "file:shell")  # only a change inside the project can be undone
     return Action(type=t, stakes=stakes, reversible=rev, summary=_summary(tool_name, args, t, vocabulary))
+
+
+# ------------------------------------------------------------------------------- write then run (audit 19/11, item 3)
+DEPENDENCY_PROGRAMS = {"npm", "pnpm", "yarn", "bun", "pip", "pip3", "uv", "poetry", "cargo", "go", "gem", "composer"}
+NEW_DEPENDENCY = "new-dependency"         # the type segment of a command that adds a package from a registry
+_ADD_VERBS = {"npm": {"install", "i", "add", "isntall", "in", "ins", "inst", "insta", "instal"},
+              "pnpm": {"add", "install", "i"}, "yarn": {"add"}, "bun": {"add", "install", "i"},
+              "pip": {"install"}, "pip3": {"install"}, "uv": {"add"}, "poetry": {"add"}, "cargo": {"add", "install"},
+              "go": {"get", "install"}, "gem": {"install"}, "composer": {"require"}}
+_OPTS_WITH_VALUE = {"-r", "--requirement", "-c", "--constraint", "-e", "--editable", "-t", "--target", "-i",
+                    "--index-url", "--extra-index-url", "-f", "--find-links", "--prefix", "--root", "-w", "--workspace",
+                    "--filter", "--registry", "--cwd", "-C", "--dir", "--python", "-p", "--group", "--path"}
+# Files that run when a tool runs, not only when they are opened: writing one is writing code.
+EXEC_NAMES = {"package.json", "makefile", "gnumakefile", "justfile", "rakefile", "setup.py", "setup.cfg",
+              "pyproject.toml", "conftest.py", "noxfile.py", "tox.ini", ".pre-commit-config.yaml", ".envrc",
+              "dockerfile", "build.gradle", "build.gradle.kts", ".gitlab-ci.yml", ".npmrc", ".yarnrc.yml",
+              "vite.config.js", "vite.config.ts", "webpack.config.js", "jest.config.js", "vitest.config.ts"}
+EXEC_SUFFIXES = (".sh", ".bash", ".zsh", ".mk", ".ps1", ".bat", ".cmd")
+EXEC_DIRS = (".github/workflows/", ".husky/", ".git/hooks/", ".circleci/")
+
+
+def _segments(command: str) -> list[list[str]]:
+    """The simple commands of a command line, as words, with leading VAR=value assignments dropped. [] when it does
+    not parse."""
+    try:
+        lex = shlex.shlex(command, posix=True, punctuation_chars=";&|")
+        lex.whitespace_split = True
+        lex.commenters = ""
+        toks = list(lex)
+    except ValueError:
+        return []
+    out, cur = [], []
+    for t in toks + [";"]:
+        if t and set(t) <= set(";&|\n"):
+            if cur:
+                while cur and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", cur[0]):
+                    cur = cur[1:]
+                if cur:
+                    out.append(cur)
+            cur = []
+        else:
+            cur.append(t)
+    return out
+
+
+def _local_spec(arg: str) -> bool:
+    """A package spec that names a local path, not a registry package."""
+    return arg in (".", "..") or arg.startswith(("./", "../", "/", "~", "file:")) or arg.endswith((".whl", ".tgz"))
+
+
+def adds_dependency(command: str) -> str | None:
+    """The package manager when the command adds a package from a registry (``npm install left-pad``, ``pip install
+    requests``, ``uv add httpx``...), else None. A bare ``npm install`` (the lock file), ``-r requirements.txt`` or a
+    local path is not a new dependency."""
+    for words in _segments(command):
+        prog = os.path.basename(words[0])
+        rest = words[1:]
+        if prog in ("python", "python3") and rest[:2] == ["-m", "pip"]:
+            prog, rest = "pip", rest[2:]
+        if prog == "uv" and rest[:1] == ["pip"]:
+            prog, rest = "pip", rest[1:]
+        if prog not in _ADD_VERBS or not rest or rest[0] not in _ADD_VERBS[prog]:
+            continue
+        args, skip = [], False
+        for a in rest[1:]:
+            if skip:
+                skip = False
+            elif a in _OPTS_WITH_VALUE:
+                skip = True
+            elif not a.startswith("-"):
+                args.append(a)
+        if any(not _local_spec(a) for a in args):
+            return prog
+    return None
+
+
+def scripts_run(command: str, cwd: str | None) -> list[str]:
+    """Absolute paths of the files a command runs as code: the script an interpreter or a shell is given
+    (``python cleanup.py``, ``bash x.sh``), a path run directly (``./run.sh``), and the file a task runner reads
+    (``package.json`` for ``npm test`` or ``npm run``, a ``Makefile`` for ``make``)."""
+    base = cwd or os.getcwd()
+    out = []
+
+    def add(p):
+        out.append(os.path.normpath(os.path.join(base, os.path.expanduser(p))))
+
+    for words in _segments(command):
+        prog = os.path.basename(words[0])
+        rest = words[1:]
+        if "/" in words[0] and prog not in SHELLS and prog not in INTERPRETERS:
+            add(words[0])                                        # ./run.sh, scripts/x.py
+        elif prog in SHELLS or prog in INTERPRETERS or re.fullmatch(r"python\d(\.\d+)?", prog):
+            inline = {"-c"} if prog in SHELLS else INLINE_FLAGS  # `sh -e x.sh`: -e is errexit for a shell
+            for a in rest:
+                if a in inline or a in ("-m", "-"):
+                    break                                        # inline code or a module: no file of the project
+                if not a.startswith("-"):
+                    add(a)
+                    break
+        elif prog in ("npm", "pnpm", "yarn", "bun") and rest[:1] and rest[0] in ("run", "test", "start", "t",
+                                                                                 "run-script", "exec"):
+            add("package.json")
+        elif prog in ("make", "gmake"):
+            add("Makefile")
+        elif prog == "just":
+            add("justfile")
+    return out
+
+
+def runs_on_execution(path: str) -> bool:
+    """A file whose content runs when a tool runs (a script, a build or test config, a CI workflow, a git hook)."""
+    p = path.replace("\\", "/")
+    name = p.rsplit("/", 1)[-1].lower()
+    return (name in EXEC_NAMES or name.endswith(EXEC_SUFFIXES) or any(d in p for d in EXEC_DIRS)
+            or (name.startswith("conftest") and name.endswith(".py")))

@@ -168,8 +168,12 @@ spelling tenure does not know can slip through (see Limits). Every case found so
   s) are `.hermes`.
 - The limit, stated plainly: this is a static reading of each command, made before it runs, not a proof of what it
   will do. What it cannot read with certainty goes up to asking you. But a type that runs code (a script,
-  `npm test`, `make`, an interpreter, `execute_code`) runs whatever that code does once the type is cleared, and an
-  earlier ordinary write can change that code; a link swapped between the check and the run is not seen either.
+  `npm test`, `make`, an interpreter, `execute_code`) runs whatever that code does once the type is cleared. Since
+  the 19/11 audit, a file the agent wrote in the last 24 hours asks once before it runs as a script, or as the
+  `package.json` or `Makefile` of `npm test`, `npm run` or `make`; after outside content, a write to a file that runs
+  when a tool runs (`package.json`, `Makefile`, `conftest.py`, `pyproject.toml`, `*.sh`, CI workflows, git hooks)
+  asks. What it still misses: code that one script imports from another file the agent wrote, a file written by a
+  command it cannot read as a file change, and a link swapped between the check and the run.
   If your agent must never be able to reach Hermes' files, keep code-running types at `cap`
   (`types: {"shell:npm*": cap, "shell:make*": cap, "code:execute": cap}`).
 
