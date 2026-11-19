@@ -2004,7 +2004,7 @@ def _segments(command: str) -> list[list[str]]:
 SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "fish", "ash", "mksh", "csh", "tcsh", "nu", "elvish", "xonsh"}
 INTERPRETERS = {"python", "python2", "python3", "node", "deno", "bun", "perl", "ruby", "php", "osascript", "pwsh",
                 "powershell", "Rscript", "lua", "tclsh", "ipython", "pypy", "pypy3", "irb", "luajit", "julia", "R",
-                "swift", "guile", "racket", "sbcl", "elixir", "erl", "ocaml", "ghci", "groovy", "jshell", "nodejs"}
+                "swift", "guile", "racket", "sbcl", "elixir", "erl", "ocaml", "ghci", "groovy", "jshell", "nodejs", "py"}
 INLINE_FLAGS = {"-c", "-e", "-r", "-Command", "--command", "--eval", "-p", "--print"}
 RUNNERS = {"npm", "pnpm", "yarn", "bun"}
 MAKES = {"make", "gmake", "just", "task"}
@@ -5261,6 +5261,22 @@ def _categorized(t: str, stakes: str, before: str, tool_name: str, args: dict, o
         return t, stakes if RANK[stakes] >= RANK[HIGH] else HIGH
 
 
+PROGRAM_ALIASES = {"python2": "python", "python3": "python", "py": "python", "nodejs": "node", "pip3": "pip"}
+_PYTHON_VERSIONED = re.compile(r"python[23](?:\.\d+)?")
+
+
+def same_program(t: str) -> str:
+    """A ``shell:`` type under the program's one name: ``python3``, ``python3.12`` and ``py`` are ``python``,
+    ``nodejs`` is ``node``, ``pip3`` is ``pip``. The same program never earns or loses trust twice: a fault on
+    ``python3 x.py`` puts ``python x.py`` on probation too, and its successes count for both (audit of 19/11)."""
+    parts = t.split(":")
+    if len(parts) < 2 or parts[0] != "shell":
+        return t
+    prog = parts[1]
+    canon = PROGRAM_ALIASES.get(prog) or ("python" if _PYTHON_VERSIONED.fullmatch(prog) else prog)
+    return t if canon == prog else ":".join([parts[0], canon] + parts[2:])
+
+
 def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overrides: dict | None = None,
              home: str | None = None, vocabulary: fields.Vocabulary | None = None) -> Action:
     args = args if isinstance(args, dict) else {}
@@ -5319,6 +5335,7 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
             stakes = HIGH
         if stakes == FREE and _saves_to_disk(args):
             stakes = MEDIUM                              # a "read" told where to write
+    t = same_program(t)                                  # python3 is python: one record, one probation
     before = stakes                                      # "a read" is judged before the owner's override
     stakes = _override(t, stakes, overrides)
     if (t.startswith(("mcp:", "tool:")) and stakes != CAP and tool_name not in TOOLS

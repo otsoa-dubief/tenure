@@ -1,5 +1,7 @@
 """The audit of the whole 1.3 work (19/11): interactions between the changes merged since 1.2.0."""
 import json
+
+import pytest
 import os
 
 from test_plugin import A, FAST, outcomes, plugin  # noqa: F401
@@ -116,3 +118,47 @@ def test_an_excused_fault_keeps_the_tier_and_the_score_but_restarts_the_series()
     assert t3.tier == rule.T2                                     # an empty series cannot keep acting alone
     rule.on_neutral(t3, "timeout")
     assert t3.tier == rule.T2
+
+
+@pytest.mark.parametrize("cmd,blocked", [
+    ("hermes tenure ok 12 13", True), ("script -q /dev/null hermes tenure excuse 57", True),
+    ("hermes -p work tenure ok 3", True), ("python -m tenure ok 3", True), ("echo x; /tenure excuse 4", True),
+    ("python -c 'import tenure; tenure.seen(s, [1])'", True),
+    ("hermes tenure status", False), ("git commit -m 'tenure: excuse window'", False), ("npm test", False),
+])
+def test_the_agent_never_runs_ok_or_excuse(plugin, cmd, blocked):
+    mod, ctx = plugin(FAST)
+    d = mod.pre_tool_call(tool_name="terminal", args={"command": cmd}, session_id="s1", tool_call_id="c1")
+    assert (isinstance(d, dict) and d.get("action") == "block") is blocked
+
+
+def test_ok_and_excuse_refuse_a_child_of_the_agents_tools(plugin, monkeypatch):
+    mod, ctx = plugin(FAST)
+    monkeypatch.setenv("TENURE_AGENT_CHILD", "1")
+    import sys
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    from test_cli import run_line
+    for line in ("ok 3", "excuse 4"):
+        out, code = run_line(mod, line)
+        assert code != 0 and "only you" in out
+
+
+def test_one_conversation_across_hermes_compression_is_one_session(plugin, tmp_path, monkeypatch):
+    import sqlite3
+    mod, ctx = plugin(FAST)
+    home = tmp_path / "hermes"
+    db = sqlite3.connect(home / "state.db")
+    db.execute("CREATE TABLE sessions (id TEXT PRIMARY KEY, parent_session_id TEXT)")
+    db.executemany("INSERT INTO sessions VALUES (?, ?)", [("root", None), ("seg2", "root"), ("seg3", "seg2")])
+    db.commit()
+    db.close()
+    assert mod.anon("seg3") == mod.anon("seg2") == mod.anon("root") != mod.anon("other")
+
+
+@pytest.mark.parametrize("cmd,key", [
+    ("python3 x.py", "shell:python:x.py"), ("python3.12 x.py", "shell:python:x.py"), ("py x.py", "shell:python:x.py"),
+    ("nodejs a.js", "shell:node:a.js"), ("pip3 install x", "shell:pip:new-dependency"),
+])
+def test_one_program_is_one_type_whatever_its_alias(cmd, key):
+    from tenure import classify as C
+    assert C.classify("terminal", {"command": cmd}, cwd="/tmp/p").type == key

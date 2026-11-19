@@ -2,6 +2,7 @@
   "ask.capped": "tenure — {summary}\n{type} est plafonné : toujours demandé.",
   "ask.internal_error": "tenure : erreur interne ({error}) ; on vous demande plutôt que de laisser passer l'action.",
   "ask.prompt": "tenure — {summary}\n{why}\nRefusez si c'est faux : cela compte comme une faute.",
+  "ask.person_only": "tenure : vous seul pouvez marquer les actions de l'agent comme vues ou excuser ses fautes, depuis votre propre terminal ou avec /tenure. Cet appel n'a pas été lancé.",
   "ask.spot_nobody": "tenure : un contrôle de {type} est dû, et personne ne peut y répondre maintenant ({why}) : cette action n'a pas été lancée, et aucune action {type} ne le sera avant qu'une personne réponde à ce contrôle.",
   "notice.spot_due": "tenure : un contrôle de {type} est tombé alors que personne ne pouvait répondre ({why}). Ses actions attendent votre réponse : la prochaine action {type} dans une conversation avec vous vous la demandera.",
   "ask.prompt_session": "tenure — {summary}\n{why}\nAutorisez pour cette session et tenure ne vous le demande plus jusqu'à la fin de la session ; refusez si c'est faux (une faute).",

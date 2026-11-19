@@ -265,7 +265,7 @@ def test_redacted_types_still_verify(plugin, monkeypatch, tmp_path):
     mod, _ = scripted(plugin, monkeypatch, tmp_path)
     p = make_passport(mod)
     keys = {e["type"] for e in p["types"]}
-    assert "shell:npm:run:" + sha8("build") in keys and "shell:python3:" + sha8("deploy.py") in keys
+    assert "shell:npm:run:" + sha8("build") in keys and "shell:python:" + sha8("deploy.py") in keys
     assert not any("build" in k or "deploy" in k for k in keys) and p["redacted"] is True
     assert mod.passport.verify(p, mod.store_().ledger()) in ([], ["unsigned"])
     clear = make_passport(mod, redact=False)

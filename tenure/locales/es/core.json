@@ -2,6 +2,7 @@
   "ask.capped": "tenure — {summary}\n{type} está limitado: siempre se pregunta.",
   "ask.internal_error": "tenure: error interno ({error}); te pregunto en lugar de dejar pasar la acción.",
   "ask.prompt": "tenure — {summary}\n{why}\nRechaza si es incorrecto: cuenta como un fallo.",
+  "ask.person_only": "tenure: solo usted puede marcar como vistas las acciones del agente o excusar sus faltas, desde su propio terminal o con /tenure. Esta llamada no se ejecutó.",
   "ask.spot_nobody": "tenure: toca un control de {type}, y nadie puede responderlo ahora ({why}): esta acción no se ejecutó, y ninguna acción {type} se ejecutará hasta que una persona responda ese control.",
   "notice.spot_due": "tenure: salió un control de {type} cuando nadie podía responder ({why}). Sus acciones esperan su respuesta: la próxima acción {type} en una conversación con usted se la pedirá.",
   "ask.prompt_session": "tenure — {summary}\n{why}\nPermítelo para esta sesión y tenure deja de preguntar por esto hasta que termine; recházalo si es incorrecto (un fallo).",
