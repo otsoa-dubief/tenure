@@ -1520,10 +1520,11 @@ def pre_api_request(model="", provider="", session_id="", **kwargs):
 
 
 _PERSON_ONLY = re.compile(
-    r"(?:\bhermes\b(?:\s+-\S+(?:\s+\S+)?)*\s+['\"]?tenure['\"]?|-m\s+tenure(?:\.cli)?|(?:^|\s|['\"])/tenure)"
+    r"(?:\bhermes\b(?:[ \t]+-[^\s-]\S{0,40}(?:[ \t]+[^\s-]\S{0,80})?){0,6}[ \t]+['\"]?tenure['\"]?"
+    r"|-m[ \t]+tenure(?:\.cli)?|(?:^|\s|['\"])/tenure)"
     r"\s+['\"]?(?:ok|excuse)['\"]?(?:\s|$|;|&|\|)"
     r"|\b(?:tenure|core)\.(?:seen|excuse|_see)\s*\("
-    r"|\bfrom\s+tenure\b[^\n]*\bimport\b[^\n]*\b(?:seen|excuse|_see)\b", re.I)
+    r"|\bfrom[ \t]+tenure\b[^\n]{0,80}?\bimport\b[^\n]{0,200}?\b(?:seen|excuse|_see)\b", re.I)
 _RUNS = {"terminal": "command", "execute_code": "code"}     # the arguments that run: never a file's text or a message
 
 
