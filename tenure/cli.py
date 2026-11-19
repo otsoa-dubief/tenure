@@ -225,7 +225,10 @@ def status_text(agent: str | None = None, *, profile: str | None = None, model: 
         ghosts = passport.ghost(st.ledger())          # what the study's start would have earned by now (estimate)
         shown = []
         for (a, k), g in sorted(ghosts.items()):
-            if a in agents and g.tier != rule.T1:
+            real = st.recorded(a, k)
+            covered = real is not None and core.trusted(cfg, real, params.required_n(cfg["risks"], real.stakes),
+                                                        real.stakes)
+            if a in agents and g.tier != rule.T1 and covered:   # only what the trusted start covers today
                 n = params.required_n(cfg["risks"], g.stakes)
                 shown.append(tr("cli.status.ghost_type", type=k, tier=tier_name(g.tier), series=g.series,
                                 required=rule.required(g, n) if n else "-"))
@@ -509,7 +512,7 @@ def week_text(agent: str | None = None) -> str:
     st = core.store_()
     since = time.time() - 7 * 86400
     rows = [r for r in st.ledger() if r["at"] >= since and (r["event"] or {}).get("event") == "outcome"]
-    agents = sorted({r["event"]["agent"] for r in rows} | ({agent} if agent else set()))
+    agents = sorted({r["event"]["agent"] for r in rows})
     if agent:
         agents = [a for a in agents if a.startswith(agent)]
     lines = [tr("cli.week.title")]
@@ -519,11 +522,19 @@ def week_text(agent: str | None = None) -> str:
         mine = [r["event"] for r in rows if r["event"]["agent"] == a]
         by = lambda *srcs: sum(1 for e in mine if e["source"] in srcs)            # noqa: E731
         t = st.totals(a, since)
-        lines.append(tr("cli.week.agent", agent=a, actions=t["actions"], asked=t["checked"],
-                        without=max(t["actions"] - t["checked"], 0), faults=t["faults"], undone=by("undo"),
-                        excused=sum(1 for r in st.ledger() if r["at"] >= since and
-                                    (r["event"] or {}).get("event") == "excuse"),
-                        seen=by("seen"), unseen=by("unseen")))
+        mine_seq = {r["seq"] for r in rows if r["event"]["agent"] == a}
+        recent = [r for r in st.ledger() if r["at"] >= since]
+        excused_seq = {r["event"].get("seq") for r in recent if (r["event"] or {}).get("event") == "excuse"}
+        undone = sum(1 for r in rows if r["event"]["agent"] == a and r["event"]["source"] == "undo"
+                     and r["seq"] not in excused_seq)
+        changes = sum(1 for r in recent if (r["event"] or {}).get("event") == "tier" and r["event"].get("agent") == a)
+        spot = f'{by("spot") - sum(1 for e in mine if e["source"] == "spot" and e["result"] == "fault")}/{by("spot")}'
+        asked = by("approval", "refusal", "spot", "timeout")
+        lines.append(tr("cli.week.agent", agent=a, actions=t["actions"], asked=asked,
+                        without=max(t["actions"] - asked, 0), faults=t["faults"], undone=undone,
+                        excused=sum(1 for r in recent if (r["event"] or {}).get("event") == "excuse"
+                                    and r["event"].get("seq") in mine_seq),
+                        changes=changes, spot=spot, seen=by("seen"), unseen=by("unseen")))
     opened = st.open_credits(time.time() - core.UNDO_WINDOW)
     if opened:
         lines.append(tr("cli.week.open", n=len(opened), command="/tenure ok"))

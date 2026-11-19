@@ -522,11 +522,11 @@ def test_status_shows_what_the_study_start_would_have_earned(plugin):
     for i in range(14):                                     # enough for the middle tier's test under the study's start
         ctx.call("write_file", write(f"g{i}"))
     out = mod.cli.status_text()
-    assert "estimate" in out and "file:write" in out
+    assert "upper bound" in out and "file:write" in out
 
 
 def test_an_ask_says_always_covers_one_call(plugin):
     from test_plugin import FAST, write
     mod, ctx = plugin(FAST)
     ctx.call("write_file", write("a"))
-    assert "covers this one call only" in ctx.prompts[-1]["message"]
+    assert "does not carry over" in ctx.prompts[-1]["message"]

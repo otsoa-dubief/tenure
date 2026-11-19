@@ -631,7 +631,7 @@ def test_notify_success_adds_an_undo_and_posts(plugin):
     assert pre(mod, "write_file", write("n"), "n1") is None
     snap = row(mod, "n1")["snap_id"]
     post(mod, "write_file", write("n"), "n1")
-    uid = int(re.fullmatch(r"tenure: file:write acted, then told you \(src/n\.py\) · seen and fine\? /tenure ok \d+ · /tenure undo (\d+)", ctx.posted[-1])[1])
+    uid = int(re.fullmatch(r"tenure: file:write acted, then told you \(src/n\.py\) · checked it and it is right\? /tenure ok \d+ · /tenure undo (\d+)", ctx.posted[-1])[1])
     assert mod.store_().get_undo(uid) == {"id": uid, "agent": A, "type": "file:write", "snap_id": snap,
                                           "at": mod.store_().get_undo(uid)["at"], "undone": False, "fault": False}
     assert outcomes(mod)[-1]["source"] != "notify" and state(mod, "file:write").successes == 12   # not yet
@@ -1316,7 +1316,7 @@ def test_t2_message_names_the_file(plugin):
     climb(ctx, 12)
     assert pre(mod, "write_file", write("n"), "n1") is None
     post(mod, "write_file", write("n"), "n1")
-    assert re.fullmatch(r"tenure: file:write acted, then told you \((.*src/n\.py)\) · seen and fine\? /tenure ok \d+ · /tenure undo \d+", ctx.posted[-1])
+    assert re.fullmatch(r"tenure: file:write acted, then told you \((.*src/n\.py)\) · checked it and it is right\? /tenure ok \d+ · /tenure undo \d+", ctx.posted[-1])
 
 
 def test_t2_message_names_three_files_then_plus_n(plugin):
