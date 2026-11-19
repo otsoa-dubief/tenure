@@ -13,6 +13,7 @@
     flag N --doubt                             a verifier's doubt on numbered action N
     excuse [N]                                 alone, the faults of the last 10 minutes; with N, take that one back
     ok [N ...]                                 alone, the open act-then-tell actions; with numbers, those count as seen
+    week [--model M]                           the last seven days: actions, questions, faults, undos, what is open
     revoke TYPE|all [--model M | --all]        take earned autonomy back without an error
     passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)
     card [--model M] [--no-redact]             the passport as a short text card to paste in a chat or a post
@@ -221,6 +222,15 @@ def status_text(agent: str | None = None, *, profile: str | None = None, model: 
     lines = [tr(header, profile=profile, preset=cfg["preset"], spot=round(1 / cfg["spot"]))]
     if cfg.get("start") == "trusted":
         lines.append(tr("cli.status.trusted_start", command="hermes tenure start probation"))
+        ghosts = passport.ghost(st.ledger())          # what the study's start would have earned by now (estimate)
+        shown = []
+        for (a, k), g in sorted(ghosts.items()):
+            if a in agents and g.tier != rule.T1:
+                n = params.required_n(cfg["risks"], g.stakes)
+                shown.append(tr("cli.status.ghost_type", type=k, tier=tier_name(g.tier), series=g.series,
+                                required=rule.required(g, n) if n else "-"))
+        if shown:
+            lines.append(tr("cli.status.ghost", types=_join(shown[:6])))
     copied = None if profile else st.get_meta(core.COPIED_META)
     if copied:
         lines.append(tr("cli.status.copied", date=time.strftime("%Y-%m-%d", time.localtime(float(copied)))))
@@ -490,6 +500,34 @@ def _ago(seconds: float) -> str:
     s = max(0, int(seconds))
     return (tr("cli.ago.s", n=s) if s < 60 else tr("cli.ago.min", n=s // 60) if s < 3600 else
             tr("cli.ago.h", n=s // 3600))
+
+
+def week_text(agent: str | None = None) -> str:
+    """The last seven days, per agent: actions, questions asked, actions taken without a question, faults, undos and
+    excuses, and what can still be undone or marked as seen. Reads only."""
+    core = _core()
+    st = core.store_()
+    since = time.time() - 7 * 86400
+    rows = [r for r in st.ledger() if r["at"] >= since and (r["event"] or {}).get("event") == "outcome"]
+    agents = sorted({r["event"]["agent"] for r in rows} | ({agent} if agent else set()))
+    if agent:
+        agents = [a for a in agents if a.startswith(agent)]
+    lines = [tr("cli.week.title")]
+    if not agents:
+        return "\n".join(lines + [tr("cli.week.none")])
+    for a in agents:
+        mine = [r["event"] for r in rows if r["event"]["agent"] == a]
+        by = lambda *srcs: sum(1 for e in mine if e["source"] in srcs)            # noqa: E731
+        t = st.totals(a, since)
+        lines.append(tr("cli.week.agent", agent=a, actions=t["actions"], asked=t["checked"],
+                        without=max(t["actions"] - t["checked"], 0), faults=t["faults"], undone=by("undo"),
+                        excused=sum(1 for r in st.ledger() if r["at"] >= since and
+                                    (r["event"] or {}).get("event") == "excuse"),
+                        seen=by("seen"), unseen=by("unseen")))
+    opened = st.open_credits(time.time() - core.UNDO_WINDOW)
+    if opened:
+        lines.append(tr("cli.week.open", n=len(opened), command="/tenure ok"))
+    return "\n".join(lines)
 
 
 def ok_list(session: str | None) -> str:
@@ -807,6 +845,8 @@ def _add_subcommands(subparser) -> None:
     subs.add_parser("explain", help="How tenure decides and what the numbers guarantee")
     p = subs.add_parser("models", help="Each model's verified record on your own work")
     p.add_argument("--type", help="One action type")
+    p = subs.add_parser("week", help="The last seven days: actions, questions, faults, undos, what is still open")
+    p.add_argument("--model", help="Start of an agent string")
     p = subs.add_parser("ok", help="Seen and fine: the act-then-tell actions you name count now; alone, the open ones")
     p.add_argument("ids", type=int, nargs="*", help="the undo numbers of the actions you saw; without them, the list")
     p = subs.add_parser("excuse", help="Take back a fault of the last 10 minutes that was not the agent's mistake")
@@ -867,6 +907,8 @@ def execute(ns) -> tuple[str, int]:
             return explain_text(), 0
         if cmd == "models":
             return models_text(g("type")), 0
+        if cmd == "week":
+            return week_text(g("model")), 0
         if cmd == "ok":
             if not g("tenure_slash") and not sys.stdin.isatty():
                 raise CliError(tr("cli.ok.terminal"))         # a script or the agent's own terminal: never

@@ -379,5 +379,12 @@
   "cli.ok.nobody": "Not while nobody answers approvals ({why}): only a person can say an action was seen.",
   "cli.ok.terminal": "\"Seen\" is said by a person: /tenure ok in the chat, or hermes tenure ok N in an interactive terminal.",
   "cli.ok.title": "Act-then-tell actions still open (24 h), newest last. Name the ones you looked at:",
-  "cli.ok.footer": "Seen and fine: /tenure ok <number> [<number> ...]"
+  "cli.ok.footer": "Seen and fine: /tenure ok <number> [<number> ...]",
+  "cli.status.ghost": "Under the study's start you would have earned by now (estimate): {types}.",
+  "cli.status.ghost_type": "{type} {tier} ({series}/{required})",
+  "cli.week.title": "tenure, the last 7 days:",
+  "cli.week.none": "No action recorded in the last 7 days.",
+  "cli.week.agent": "{agent}: {actions} actions, {asked} asked you, {without} without a question; {faults} faults ({undone} undone, {excused} excused); act-then-tell: {seen} marked as seen, {unseen} left unread.",
+  "cli.week.open": "{n} act-then-tell action(s) still open: {command} lists them.",
+  "ask.always": "\"Always\" here covers this one call only: tenure asks again next time."
 }

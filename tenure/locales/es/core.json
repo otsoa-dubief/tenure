@@ -381,5 +381,12 @@
   "cli.ok.nobody": "No mientras nadie responde a las aprobaciones ({why}): solo una persona puede decir que vio una acción.",
   "cli.ok.terminal": "«Visto» lo dice una persona: /tenure ok en el chat, o hermes tenure ok N en un terminal interactivo.",
   "cli.ok.title": "Acciones «actúa y avisa» aún abiertas (24 h), la más reciente al final. Nombre las que miró:",
-  "cli.ok.footer": "Visto y correcto: /tenure ok <número> [<número> ...]"
+  "cli.ok.footer": "Visto y correcto: /tenure ok <número> [<número> ...]",
+  "cli.status.ghost": "Con el inicio del estudio ya habría ganado (estimación): {types}.",
+  "cli.status.ghost_type": "{type} {tier} ({series}/{required})",
+  "cli.week.title": "tenure, los últimos 7 días:",
+  "cli.week.none": "Ninguna acción registrada en los últimos 7 días.",
+  "cli.week.agent": "{agent}: {actions} acciones, {asked} le preguntaron, {without} sin pregunta; {faults} faltas ({undone} deshechas, {excused} excusadas); actúa y avisa: {seen} marcadas como vistas, {unseen} sin leer.",
+  "cli.week.open": "{n} acción(es) «actúa y avisa» aún abierta(s): {command} las lista.",
+  "ask.always": "«Siempre» aquí solo cubre esta llamada: tenure volverá a preguntar la próxima vez."
 }

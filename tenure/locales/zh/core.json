@@ -337,5 +337,12 @@
   "cli.ok.nobody": "无人回答审批时（{why}）不可用：只有人可以确认已查看某个操作。",
   "cli.ok.terminal": "“已查看”须由人输入：在对话中输入 /tenure ok，或在交互式终端中运行 hermes tenure ok N。",
   "cli.ok.title": "仍未结的“先执行后告知”操作（24 小时），最新的在最后。请指明您查看过的：",
-  "cli.ok.footer": "已查看且无误：/tenure ok <编号> [<编号> ...]"
+  "cli.ok.footer": "已查看且无误：/tenure ok <编号> [<编号> ...]",
+  "cli.status.ghost": "若采用研究的初始规则，您现在已获得（估计）：{types}。",
+  "cli.status.ghost_type": "{type} {tier}（{series}/{required}）",
+  "cli.week.title": "tenure，过去 7 天：",
+  "cli.week.none": "过去 7 天没有记录到任何操作。",
+  "cli.week.agent": "{agent}：{actions} 个操作，{asked} 个询问了您，{without} 个无需询问；{faults} 个过错（{undone} 个已撤销，{excused} 个已免除）；先执行后告知：{seen} 个标记为已查看，{unseen} 个未读。",
+  "cli.week.open": "仍有 {n} 个“先执行后告知”操作未结：{command} 可列出。",
+  "ask.always": "此处的“始终”仅涵盖本次调用：下次 tenure 仍会询问。"
 }

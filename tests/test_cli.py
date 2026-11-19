@@ -506,3 +506,27 @@ def test_card_hides_the_owners_names_by_default(plugin):
     out = mod.cli.slash("card")
     assert "client-secret-build" not in out and "shell:npm:run:" in out
     assert "client-secret-build" in mod.cli.slash("card --no-redact")
+
+
+def test_week_counts_the_last_seven_days(plugin):
+    from test_plugin import FAST, climb
+    mod, ctx = plugin(FAST)
+    climb(ctx, 3)
+    out = mod.cli.week_text()
+    assert "3 actions" in out and "3 asked you" in out
+
+
+def test_status_shows_what_the_study_start_would_have_earned(plugin):
+    from test_plugin import write
+    mod, ctx = plugin({"start": "trusted", "risks": {"low": 0.25}})
+    for i in range(14):                                     # enough for the middle tier's test under the study's start
+        ctx.call("write_file", write(f"g{i}"))
+    out = mod.cli.status_text()
+    assert "estimate" in out and "file:write" in out
+
+
+def test_an_ask_says_always_covers_one_call(plugin):
+    from test_plugin import FAST, write
+    mod, ctx = plugin(FAST)
+    ctx.call("write_file", write("a"))
+    assert "covers this one call only" in ctx.prompts[-1]["message"]

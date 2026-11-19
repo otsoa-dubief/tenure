@@ -1229,7 +1229,7 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
             why += " " + tr("ask.why.provisional", n=s.provisional)
     if per_session:
         return tr("ask.prompt_session", summary=act.summary, why=why)
-    return tr("ask.prompt", summary=act.summary, why=why)
+    return tr("ask.prompt", summary=act.summary, why=why) + "\n" + tr("ask.always")
 
 
 # Seconds: Hermes runs a longer terminal call in the background (its TERMINAL_MAX_FOREGROUND_TIMEOUT default).
