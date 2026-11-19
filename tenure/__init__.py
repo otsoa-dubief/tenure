@@ -1227,6 +1227,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 no_undo = act.reversible and not snap and bool(classify.files_written(tool, args, cwd))
                 per_session = (cfg.get("start") == "trusted" and not nobody and decision == rule.ASK and not no_undo
                                and fields.parent_of(act.type) is None           # never for a category kind
+                               and not st.doubted(agent, act.type)              # a doubt is asked, whatever the grant
                                and (act.type in params.SESSION_TYPES or (suspended and trusted(cfg, s, n, act.stakes))
                                     or _uncovered_local(act, s, n)))
                 # After outside content, one session answer covers every covered type (one key for the session);
