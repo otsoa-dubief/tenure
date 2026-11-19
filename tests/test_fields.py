@@ -301,3 +301,51 @@ def test_mask_command_owner_secret_word():
 def test_classification_keeps_the_raw_command():
     a = _C.classify("terminal", {"command": "TOKEN=abc999 git push origin main"}, cwd="/tmp")
     assert a.type == "shell:git:push" and "abc999" not in a.summary
+
+
+# #7 follow-up, reported by quotum: `--user=user:pass`, and a value behind an operator is never "the next argument"
+@_pytest.mark.parametrize("cmd,want", [
+    ("curl --user=user:SECRET https://h", "curl --user=user:••• https://h"),
+    ('curl --user="user:SECRET" h', 'curl --user="user:•••" h'),
+    ("curl --password <(printf SECRET) h", "curl --password <(printf SECRET) h"),
+    ("x --password;printf S5", "x --password;printf S5"),
+    ("curl -u <(cat f) h", "curl -u <(cat f) h"),
+    ("curl -H Authorization: <(printf S3) h", "curl -H Authorization: <(printf S3) h"),
+    ("curl -H Authorization: Bearer <(printf S6) h", "curl -H Authorization: Bearer <(printf S6) h"),
+    ("x Bearer|printf S4", "x Bearer|printf S4"),
+])
+def test_mask_command_values_behind_an_operator(cmd, want):
+    assert F.mask_command(cmd) == want
+
+
+def test_mask_command_never_hides_code_fuzz():
+    """Whatever the mix, code is still shown: every substitution, and every command word right after an operator."""
+    import random
+    rng = random.Random(7)
+    opts = ["--password", "--token", "-u", "--user", "-H", "Authorization:", "Bearer", "TOKEN=", "--api-key=", "-e"]
+    vals = ["s3cret", "user:pw", "'q x'", '"d y"', "Authorization: Bearer z", "k=v"]
+    subs = ["$(id)", "`id`", "$HOME", "<(cat f)", "$(printf S)"]
+    ops = [" ; ", " | ", " && ", " || ", "\n", " < ", " > ", " "]
+    for _ in range(5000):
+        parts, code, after_op = [], [], True
+        for _ in range(rng.randint(1, 7)):
+            k = rng.random()
+            if k < 0.35:
+                w = rng.choice(opts)
+            elif k < 0.6:
+                w = rng.choice(vals)
+            elif k < 0.8:
+                w = rng.choice(subs)
+                code.append(w)
+            else:
+                w = "printf"
+                if after_op:
+                    code.append(w)
+            parts.append(w)
+            op = rng.choice(ops)
+            parts.append(op)
+            after_op = op != " "
+        cmd = "".join(parts).replace("= ", "=")
+        out = F.mask_command(cmd)
+        for c in set(code):
+            assert out.count(c) >= cmd.count(c) - (cmd.count(c) - sum(1 for x in code if x == c)), (cmd, out, c)

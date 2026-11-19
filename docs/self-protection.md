@@ -190,7 +190,8 @@ Known gaps:
 
 - A `terminal` command (first 200 characters) masks only the recognised spellings of a secret: a header value under a
   secret name, the word after `Bearer`/`Basic`/`Token`, `--password=x` and `--password x`, `NAME=x` when NAME is a secret
-  name, `-u user:pass`, URL userinfo (#7). A value the shell would run or expand (`$(…)`, backticks, `$VAR`) is never
+  name, `-u user:pass` and `--user=user:pass`, URL userinfo (#7). A value is masked only when it follows its option
+  directly, never across an operator (`;`, `|`, `<(…)`): what comes after an operator is code, and stays shown. A value the shell would run or expand (`$(…)`, backticks, `$VAR`) is never
   masked, so the approver sees the code; URL query values stay visible; any other spelling shows as written. Display
   only: classification and proofs keep the raw command. The path of `write_file` or `patch` is shown as written, cut at 200.
 - A secret inside the value of a key that is not recognised (a `notes` field holding a password).
