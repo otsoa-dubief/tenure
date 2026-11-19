@@ -247,10 +247,20 @@ while tier()[0] != "notify" and k < 10:        # the score climbs back over the 
     k += 1
     check(f"after the undo, write {k}: asks", write(f"w{k}", "once"), "approved")
 check("back to T2 after the undo", tier()[0], "notify")
-for _ in range(n):                             # the rest of the series acts then notifies, all in session it-1
-    if tier()[1] >= n:
-        break
-    check(f"T2 write, series {tier()[1] + 1}/{n}: acts", write(f"s{tier()[1]}"), "ran")
+
+
+def credit_all():
+    """Close every undo window now: earned act-then-tell successes are credited only then (audit 19/11)."""
+    with core.txn() as st:
+        st.db.execute("UPDATE undo SET at = at - 86401")
+        return core._credit_due(st, core.settings())
+
+
+start = tier()[1]
+for i in range(n - start):                     # the rest of the series acts then notifies, all in session it-1
+    check(f"T2 write, series {start + i + 1}/{n}: acts", write(f"s{start + i}"), "ran")
+check("T2 successes wait for their undo window", tier()[1], start)
+credit_all()
 check("full series from one session: still T2", tier(), ("notify", n, 1))
 mark = len(posted)
 check("T2 write for the tamper test: acts", write("tamper-me"), "ran")
@@ -273,8 +283,9 @@ check("a tampered undo manifest is refused", (code, "refused" in out), (1, True)
 check("the path it named was never written", open(victim).read(), "keep\n")
 check("the project file stays as the action left it", read(), "tamper-me")
 check("one session only: still notifies", write("one-session"), "ran")
-check("a second session completes the series: T3", (write("second", session="it-2"), tier()),
-      ("ran", ("alone", n, 2)))
+check("a second session acts, then tells", write("second", session="it-2"), "ran")
+credit_all()
+check("a second session completes the series: T3", tier(), ("alone", n, 2))
 mark = len(posted)
 check("T3: acts alone", write("alone", session="it-2"), "ran")
 check("T3: no undo notice (acting alone)", [p for p in since(mark) if "/tenure undo" in p], [])
