@@ -67,11 +67,14 @@ What tenure asks that Hermes alone would not:
   or `cat <<'EOF' > file` on project files, alone or joined by `&&`, is saved first and runs with an undo, like a file
   write; a heredoc whose body names tenure's or Hermes' own files still asks);
 - code the agent just wrote, the first time it runs: a script it wrote in the last 24 hours run by an interpreter or
-  a shell (`python cleanup.py`, `./run.sh`), and `npm test`, `npm run` or `make` after it changed `package.json` or
-  the `Makefile`. Asked once, then trusted again until it rewrites the file;
-- a new dependency from a registry (`npm install left-pad`, `pip install requests`, `uv add httpx`...): its install
-  scripts run now. It is a kind of its own, never covered by the trusted start, and like outside content it suspends
-  the session. A bare `npm install`, `npm ci` or `pip install -r requirements.txt` stays covered;
+  a shell (`python cleanup.py`, `./run.sh`, `source env.sh`), and `npm test`, `npm run`, `npm install`, `npm ci`,
+  `pip install -r`/`-e .` or `make` after it changed `package.json`, the requirements, `setup.py`/`pyproject.toml` or
+  the `Makefile`. Asked once, then trusted again until it rewrites the file; "Allow for this session" covers the
+  scripts of the session, except after outside content. A defence in depth, not a wall: tests that `pytest` or
+  `npm test` collect, and modules a script imports, are not followed;
+- a new dependency from a registry (`npm install left-pad`, `pip install requests`, `uv add httpx`, a URL or a
+  `git+` spec...): its install scripts run now. It is a kind of its own, never covered by the trusted start. A bare
+  `npm install`, `npm ci` or `pip install -r requirements.txt` stays covered (unless the agent changed that file);
 - programs outside the list above (database and unknown CLIs, or a package runner starting one), until they earn it;
 - shell it cannot read safely (`for`, `if`, `python -c`), and the agent's own skills, plugins and secrets;
 - every command, for the rest of a session that just read outside content (web, mail, downloads, `git pull`);
@@ -434,7 +437,7 @@ Community tab shows the board once you save it as `plugin-data/tenure/community-
 
 Stored, in `plugin-data/tenure/tenure.db` of each Hermes profile: action types and stakes, outcomes, tiers,
 the agent string `model@provider`, sessions and, for 24 hours, tool call ids as `sha256(id)[:12]`, for 24 hours the
-files the agent wrote as `sha256(real path)` (to ask before it runs one), timestamps, and a hash chain over all of
+files the agent wrote as an HMAC of their real path with a random key of the database (to ask before it runs one), timestamps, and a hash chain over all of
 it. 
 Never in the database or the ledger: a whole command, a path, file content, a message, or a secret. Type names can
 include a script, target or alias name taken from the command (`shell:npm:run:build`, `shell:make:deploy`,

@@ -513,9 +513,17 @@ class Store:
 
     # --------------------------------------------------------------------------------------------------- meta
     # ------------------------------------------------------------------------------- written then run (audit 19/11)
-    @staticmethod
-    def _path_hash(path: str) -> str:
-        return hashlib.sha256(os.path.realpath(path).encode("utf-8", "surrogatepass")).hexdigest()
+    def _path_hash(self, path: str) -> str:
+        """HMAC-SHA256 of the real path with a random key of this database: a path cannot be guessed back from it."""
+        import hmac
+        import secrets
+        key = self.get_meta("written_key")
+        if key is None:
+            key = secrets.token_hex(32)
+            if self.db.in_transaction:
+                self.set_meta("written_key", key)
+        return hmac.new(bytes.fromhex(key), os.path.realpath(path).encode("utf-8", "surrogatepass"),
+                        hashlib.sha256).hexdigest()
 
     def add_written(self, paths, at: float | None = None) -> None:
         """Remember that the agent wrote these files (hashed), and forget the ones older than 24 hours."""
@@ -530,8 +538,8 @@ class Store:
 
     def written_recently(self, paths) -> list[str]:
         """The paths among these that the agent wrote in the last 24 hours."""
-        if not paths or self.db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'written'"
-                                        ).fetchone() is None:
+        if not paths or self.get_meta("written_key") is None or self.db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'written'").fetchone() is None:
             return []
         since = time.time() - WRITTEN_WINDOW
         return [p for p in paths if self.db.execute("SELECT 1 FROM written WHERE h = ? AND at >= ?",

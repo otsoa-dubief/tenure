@@ -172,8 +172,13 @@ spelling tenure does not know can slip through (see Limits). Every case found so
   the 19/11 audit, a file the agent wrote in the last 24 hours asks once before it runs as a script, or as the
   `package.json` or `Makefile` of `npm test`, `npm run` or `make`; after outside content, a write to a file that runs
   when a tool runs (`package.json`, `Makefile`, `conftest.py`, `pyproject.toml`, `*.sh`, CI workflows, git hooks)
-  asks. What it still misses: code that one script imports from another file the agent wrote, a file written by a
-  command it cannot read as a file change, and a link swapped between the check and the run.
+  asks (as do test files, `__init__.py`, `.pth`, `node_modules/`, `Cargo.toml`, `build.rs`, Dockerfiles and tool
+  configs). Commands are read line by line, through `env`, `time`, `xargs`, `timeout`, `nohup`, `bash -c "..."`,
+  parentheses and a `cd` in the same command. This is a defence in depth, not a wall. What it still misses: tests
+  that `pytest` or `npm test` collect and modules a script imports (only the file named on the command line, or the
+  manifest of the task runner, is followed), a file written by a command it cannot read as a file change (`cp`,
+  `tee`, `curl -o`, a script that writes another), a `cd` made in an earlier call, and a link swapped between the
+  check and the run. In a cron job, a fresh script follows Hermes' `cron_mode` (deny by default).
   If your agent must never be able to reach Hermes' files, keep code-running types at `cap`
   (`types: {"shell:npm*": cap, "shell:make*": cap, "code:execute": cap}`).
 

@@ -1305,11 +1305,12 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             posts += _say(sync_settings(st, cfg), cfg["spot"])
             posts += _say(_expire(st, cfg), cfg["spot"])
             recorded, s, decision, suspended = _decide(st, agent, act, n, cfg, session, nobody, ST.rng)
-            fresh, exec_files = [], []
-            if decision != rule.ASK and tool == "terminal":    # a script the agent wrote, run now: asked once
+            fresh, exec_files = [], []                      # computed even when it asks anyway: never a session key
+            if tool == "terminal":                              # a script the agent wrote, run now: asked once
                 fresh = st.written_recently(classify.scripts_run(str(args.get("command", "")), cwd))
-            if decision != rule.ASK and suspended:              # after outside content, writing code is code
+            if suspended:                                       # after outside content, writing code is code
                 exec_files = [x for x in classify.files_written(tool, args, cwd) if classify.runs_on_execution(x)]
+            only_fresh = bool(fresh) and not exec_files and decision != rule.ASK   # it would not have asked otherwise
             if fresh or exec_files:
                 decision = rule.ASK
                 if fresh:
@@ -1343,12 +1344,14 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 per_session = (cfg.get("start") == "trusted" and not nobody and decision == rule.ASK and not no_undo
                                and fields.parent_of(act.type) is None           # never for a category kind
                                and not st.doubted(agent, act.type)              # a doubt is asked, whatever the grant
-                               and not fresh and not exec_files                 # nor code the agent just wrote
+                               and not exec_files and not (fresh and suspended)  # code written after outside content
                                and (act.type in params.SESSION_TYPES or (suspended and trusted(cfg, s, n, act.stakes))
-                                    or _uncovered_local(act, s, n)))
+                                    or _uncovered_local(act, s, n) or only_fresh)
+                               and (only_fresh or not fresh))                   # another reason asks each time
                 # After outside content, one session answer covers every covered type (one key for the session);
                 # inline code and uncovered local commands are allowed one type at a time.
-                scope = ("suspended" if suspended and trusted(cfg, s, n, act.stakes) and act.type not in params.SESSION_TYPES
+                scope = ("fresh" if only_fresh else
+                         "suspended" if suspended and trusted(cfg, s, n, act.stakes) and act.type not in params.SESSION_TYPES
                          else act.type)
                 key = f"{PREFIX}:session:{scope}:{session}" if per_session else f"{PREFIX}:{kind}:{act.type}:{uid}"
                 st.add_pending(uid, phase="nobody" if nobody else "asked", rule_key=key, **row)
@@ -1456,8 +1459,7 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
                     wst.add_written(wrote)
             except LockTimeout:
                 log.warning("tenure: the files this call wrote could not be recorded: the store stayed busy")
-        if (tool == "execute_code" or classify.reads_external(tool, args, cwd)
-                or (tool == "terminal" and classify.adds_dependency(str(args.get("command", ""))))):
+        if tool == "execute_code" or classify.reads_external(tool, args, cwd):
             with ST.mem:
                 first = session not in ST.tainted
             _taint(session)
