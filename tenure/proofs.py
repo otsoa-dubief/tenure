@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import stat
 import tomllib
 
@@ -57,40 +58,36 @@ def _read_regular(path: str):
     return None if len(raw) > _MAX_BYTES else raw
 
 
-# JSON files that tools read as JSON with comments (JSONC): tsconfig, jsconfig, VS Code and dev container settings.
-_JSONC_NAMES = ("tsconfig", "jsconfig", "devcontainer", ".devcontainer", "settings", "launch", "tasks",
-                "extensions", "keybindings", "deno", "biome", ".eslintrc", ".babelrc", "turbo", "nx", "project")
+# JSON files that tools read as JSON with comments (JSONC). Anywhere: these names. In `.vscode/` and `.devcontainer/`:
+# every JSON file. Never a generic name (`settings.json`, `tasks.json`) elsewhere: data files read by json.load.
+_JSONC_ANYWHERE = ("tsconfig", "jsconfig", "devcontainer", ".devcontainer", "deno", "biome", ".eslintrc", ".babelrc",
+                   "turbo")
+_JSONC_DIRS = (".vscode", ".devcontainer")
+_JSONC_TOKENS = re.compile(r'"(?:[^"\\]|\\.)*"|//[^\n]*|/\*.*?\*/|,(?=\s*[}\]])|[^"/,]+|[/,]', re.S)
 
 
 def _jsonc(path: str) -> bool:
     parts = os.path.normpath(path).replace("\\", "/").split("/")
     name = parts[-1].lower()
-    return (name.endswith(".jsonc") or any(name == n + ".json" or name.startswith(n + ".") for n in _JSONC_NAMES)
-            or ".vscode" in parts or ".devcontainer" in parts)
+    if name.endswith(".jsonc") or any(d in parts[:-1] for d in _JSONC_DIRS):
+        return True
+    stem = name[:-5] if name.endswith(".json") else name
+    return any(stem == n or stem.startswith(n + ".") for n in _JSONC_ANYWHERE)
 
 
 def _strip_jsonc(text: str) -> str:
-    """JSON with ``//`` and ``/* */`` comments and trailing commas, as plain JSON (strings are kept as they are)."""
-    out, i, n = [], 0, len(text)
-    while i < n:
-        c = text[i]
-        if c == '"':
-            j = i + 1
-            while j < n and text[j] != '"':
-                j += 2 if text[j] == "\\" else 1
-            out.append(text[i:j + 1])
-            i = j + 1
-        elif text.startswith("//", i):
-            j = text.find("\n", i)
-            i = n if j < 0 else j
-        elif text.startswith("/*", i):
-            j = text.find("*/", i + 2)
-            i = n if j < 0 else j + 2
+    """JSON with ``//`` and ``/* */`` comments and trailing commas, as plain JSON: strings are kept as they are, a
+    comment becomes a blank (``1/**/2`` stays two tokens), a comma before ``}`` or ``]`` outside a string goes."""
+    out = []
+    for m in _JSONC_TOKENS.finditer(text):
+        t = m.group(0)
+        if t.startswith("//") or t.startswith("/*"):
+            out.append(" ")
+        elif t == "," and text[m.end():].lstrip()[:1] in ("}", "]") and "".join(out).rstrip()[-1:] not in ("", "[", "{", ","):
+            continue                                        # a trailing comma after a value; `[,]` stays an error
         else:
-            out.append(c)
-            i += 1
-    import re
-    return re.sub(r",(\s*[}\]])", r"\1", "".join(out))
+            out.append(t)
+    return "".join(out)
 
 
 def _check_one(path: str):
@@ -108,7 +105,12 @@ def _check_one(path: str):
             compile(raw, "<written>", "exec", dont_inherit=True)
         elif ext == ".json":
             text = raw.decode("utf-8-sig")                  # a byte order mark is valid UTF-8 JSON on disk
-            json.loads(_strip_jsonc(text) if _jsonc(path) else text)
+            try:
+                json.loads(text)
+            except ValueError:
+                if not _jsonc(path):
+                    raise
+                json.loads(_strip_jsonc(text))              # only when plain JSON fails: cheap in the usual case
         else:
             tomllib.loads(raw.decode("utf-8-sig"))
     except (SyntaxError, ValueError, MemoryError, RecursionError):
@@ -118,18 +120,34 @@ def _check_one(path: str):
     return None
 
 
+def _real(path: str) -> str:
+    try:
+        return os.path.realpath(path)
+    except (OSError, ValueError):
+        return path
+
+
 def broken(paths) -> frozenset:
-    """The files among ``paths`` that already fail the check (before a call writes them): a file the agent did not
-    break is never its fault."""
-    return frozenset(p for p in paths or [] if _check_one(p))
+    """The files among ``paths`` that already fail the check before a call writes them (real paths): a file the agent
+    did not break is never its fault."""
+    return frozenset(_real(p) for p in paths or [] if _check_one(p))
 
 
 def check_files(paths, broken_before=frozenset()):
     """The first reason a written file no longer parses, skipping the files that did not parse before the call."""
+    return judge_files(paths, broken_before)[0]
+
+
+def judge_files(paths, broken_before=frozenset()) -> tuple[str | None, bool]:
+    """(reason, unjudged): the first reason a file the call broke no longer parses; else ``unjudged`` is True when a
+    file that was broken before is still broken: the call proved nothing, it is neither a fault nor a success."""
+    unjudged = False
     for p in paths or []:
-        if p in broken_before:
-            continue
         reason = _check_one(p)
-        if reason:
-            return reason
-    return None
+        if not reason:
+            continue
+        if _real(p) in broken_before:
+            unjudged = True
+            continue
+        return reason, False
+    return None, unjudged

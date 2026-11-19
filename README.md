@@ -256,7 +256,7 @@ table is generated from the same code that decides (`params.describe`), and a te
 
 Cell: verified successes in a row (the first ones approved by you, the rest acted on at T2 while you could undo
 them), guarantee (errors that run unapproved, as a share of all actions of the type, for a
-stable agent), worst case (for an agent that turns bad after tenure, until a caught error revokes it).
+stable agent, counting the errors that get caught: a refusal, an undo, a flag, a verifier or the parse check), worst case (for an agent that turns bad after tenure, until a caught error revokes it).
 
 | Preset | Low stakes (files in the project, memory) | Medium (commands, code, files elsewhere) | High (leaves the machine, money) |
 |---|---|---|---|

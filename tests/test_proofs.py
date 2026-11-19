@@ -117,3 +117,18 @@ def test_a_file_broken_before_is_not_a_fault(tmp_path):
     q.write_text("def y(:\n")
     assert _P.check_files([str(p)], before) is None
     assert _P.check_files([str(p), str(q)], before) == "python syntax error"
+
+
+@_pytest.mark.parametrize("name", ["settings.json", "tasks.json", "project.json", "settings.local.json", "launch.json"])
+def test_generic_names_outside_editor_folders_stay_strict(tmp_path, name):
+    p = tmp_path / name
+    p.write_text('{"a": 1, // c\n}', encoding="utf-8")
+    assert _P.check_files([str(p)]) == "json syntax error"
+
+
+def test_jsonc_edge_cases(tmp_path):
+    p = tmp_path / "tsconfig.json"
+    for text, ok in [('{"a": "x\\"//y", "b": "/* no */"}', True), ('{"a": 1} /* open', False), ('{"a": 1/**/2}', False),
+                     ('{"a": [,]}', False), ('{"a": ",}"}', True)]:
+        p.write_text(text, encoding="utf-8")
+        assert (_P.check_files([str(p)]) is None) is ok, text

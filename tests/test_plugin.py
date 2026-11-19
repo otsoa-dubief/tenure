@@ -1036,10 +1036,10 @@ def test_files_are_saved_and_checked_outside_the_write_transaction(plugin, monke
     mod, ctx = plugin(FAST)
     climb(ctx, 12)                                                       # file:write at T2
     st, seen = mod.store_(), []
-    snapshot, check = mod.undo.snapshot, mod.proofs.check_files
+    snapshot, check = mod.undo.snapshot, mod.proofs.judge_files
     monkeypatch.setattr(mod.undo, "snapshot",
                         lambda *a, **k: seen.append(("snapshot", st.db.in_transaction)) or snapshot(*a, **k))
-    monkeypatch.setattr(mod.proofs, "check_files",
+    monkeypatch.setattr(mod.proofs, "judge_files",
                         lambda *a, **k: seen.append(("check", st.db.in_transaction)) or check(*a, **k))
     assert ctx.call("write_file", write("io")) == "ran"
     assert seen == [("snapshot", False), ("check", False)]
@@ -1346,7 +1346,7 @@ def test_a_write_to_a_file_already_broken_is_not_a_fault(plugin):
     with open(path, "w") as f:
         f.write("def x(:\n")
     assert ctx.call("write_file", {"path": "src/old.py", "content": "def x(:\n  pass\n"}) == "approved"
-    assert outcomes(mod)[-1]["result"] == "success"
+    assert (outcomes(mod)[-1]["result"], outcomes(mod)[-1]["source"]) == ("neutral", "ambiguous")   # proves nothing
     assert ctx.call("write_file", {"path": "src/new.py", "content": "def y(:\n"}) == "approved"
     assert outcomes(mod)[-1]["result"] == "fault"                                # a file it broke still counts
 
@@ -1356,3 +1356,31 @@ def test_a_tsconfig_with_comments_is_not_a_fault(plugin):
     assert ctx.call("write_file", {"path": "tsconfig.json", "content": '{\n  // strict\n  "strict": true,\n}\n'}) \
         == "approved"
     assert outcomes(mod)[-1]["result"] == "success"
+
+
+def test_a_file_the_session_broke_is_never_excused(plugin):
+    """Audit 19/11: a call that fails (never checked) breaks a file; a later write leaving it broken is a fault."""
+    import os
+    mod, ctx = plugin(FAST)
+    path = os.path.join(ctx.cwd, "src", "x.py")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write("x = 1\n")
+    ctx.call("write_file", {"path": "src/x.py", "content": "def x(:\n"}, status="error")   # failed: neutral
+    assert outcomes(mod)[-1]["result"] == "neutral"
+    assert ctx.call("write_file", {"path": "src/x.py", "content": "def x(:\n  y\n"}) == "approved"
+    assert outcomes(mod)[-1]["result"] == "fault"
+
+
+def test_a_reused_call_id_never_inherits_an_excuse(plugin):
+    import os
+    mod, ctx = plugin(FAST)
+    path = os.path.join(ctx.cwd, "src", "r.py")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write("def x(:\n")
+    ctx.call("write_file", {"path": "src/r.py", "content": "x = 1\n"}, answer="deny", call_id="call_0")   # refused
+    with open(path, "w") as f:
+        f.write("x = 1\n")                                                   # repaired by the owner
+    ctx.call("write_file", {"path": "src/q.py", "content": "def q(:\n"}, call_id="call_0", session="s7")
+    assert outcomes(mod)[-1]["result"] == "fault"
