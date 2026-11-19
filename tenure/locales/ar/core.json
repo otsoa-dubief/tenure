@@ -526,5 +526,18 @@
   "undo.refused.no_mac": "اللقطة بلا MAC",
   "undo.refused.not_absolute": "مسار مسجّل ليس مطلقًا",
   "undo.refused.protected": "أحد الأهداف ملف محمي",
-  "undo.refused.symlink": "أحد الأهداف أصبح رابطًا رمزيًا"
+  "undo.refused.symlink": "أحد الأهداف أصبح رابطًا رمزيًا",
+  "cli.col.cause": "السبب",
+  "cli.excuse.unknown": "لا توجد مخالفة {n} يمكن إعفاؤها خلال آخر {minutes} دقائق (أُعفيت مسبقًا، أو قديمة جدًا، أو ليست مخالفة): لم يتغير شيء.",
+  "cli.excuse.done": "tenure: أُعفيت المخالفة {n} ({type}، {agent}): تُحتسب محايدة؛ {type} الآن في {tier}.",
+  "notice.excuse.hint": "ليس خطأ الوكيل (رفضت لسبب آخر، أو تراجعت عن تغيير صحيح)؟ /tenure excuse {n} خلال {minutes} دقائق.",
+  "cli.excuse.trusted": "الثقة الأولية",
+  "cli.excuse.title": "مخالفات آخر {minutes} دقائق التي يمكن إعفاؤها، الأحدث أولًا:",
+  "cli.excuse.none": "لا توجد مخالفة يمكن إعفاؤها خلال آخر {minutes} دقائق.",
+  "cli.excuse.footer": "أعفِ المخالفة التي لم تكن خطأ الوكيل: /tenure excuse <الرقم>",
+  "cli.excuse.source.refusal": "رفضتَ",
+  "cli.excuse.source.spot": "فحص عشوائي",
+  "cli.excuse.source.check": "فحص تلقائي",
+  "cli.excuse.source.undo": "تراجعتَ",
+  "cli.excuse.source.flag": "أبلغتَ عنها"
 }

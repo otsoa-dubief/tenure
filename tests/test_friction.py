@@ -39,3 +39,12 @@ def test_a_web_page_early_costs_one_session_answer_not_every_command():
     assert len([a for a in once if a not in ("python -c 'import sys; print(sys.version)'", "rm -rf build")]) == 11
     assert [a for a in session if a not in ("python -c 'import sys; print(sys.version)'", "rm -rf build")] == [
         "npm install", "rm *.log", "git push origin main"]
+
+
+def test_one_fault_costs_every_file_write_until_it_is_excused():
+    """Audit 19/11: after one undone write, each file write of the session asks (9 instead of 3); excused, 3 again."""
+    hermes = ("python -c 'import sys; print(sys.version)'", "rm -rf build")
+    undone = [a for a in (r["what"] for r in replay("trusted", after_fault="undone") if r["tenure"]) if a not in hermes]
+    excused = [a for a in (r["what"] for r in replay("trusted", after_fault="excused") if r["tenure"]) if a not in hermes]
+    assert len(undone) == 9 and "src/app.py" in undone
+    assert excused == ["rm *.log", "git push origin main", "npm test"]

@@ -144,7 +144,7 @@ def test_rule_fingerprint_is_stable_and_follows_the_parameters(plugin, monkeypat
 def test_build_and_verify_ok(plugin, monkeypatch, tmp_path):
     mod, _ = scripted(plugin, monkeypatch, tmp_path)
     p = make_passport(mod)
-    assert p["protocol"] == "earned-autonomy/0.1"
+    assert p["protocol"] == "earned-autonomy/0.2"
     assert p["agent"] == {"model": "model-a", "provider": "nous", "profile": p["agent"]["profile"]}
     assert re.fullmatch(r"[0-9a-f]{12}", p["agent"]["profile"])
     assert p["rule"] == {"name": "study-rule-B", "fingerprint": mod.passport.rule_fingerprint()}

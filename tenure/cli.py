@@ -11,6 +11,7 @@
     flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked
     flag --call ID --session ID [--doubt]      a verifier: a fault (or, with --doubt, the next one asks) on one action
     flag N --doubt                             a verifier's doubt on numbered action N
+    excuse [N]                                 alone, the faults of the last 10 minutes; with N, take that one back
     revoke TYPE|all [--model M | --all]        take earned autonomy back without an error
     passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)
     card [--model M] [--no-redact]             the passport as a short text card to paste in a chat or a post
@@ -490,6 +491,30 @@ def _ago(seconds: float) -> str:
             tr("cli.ago.h", n=s // 3600))
 
 
+def excuse_cmd(seq: int | None) -> tuple[str, int]:
+    """``excuse`` alone: the faults of the last minutes that can still be excused; with a number, excuse that one."""
+    core = _core()
+    minutes = store.EXCUSE_WINDOW // 60
+    if seq is None:
+        rows = core.excusable(core.store_())
+        if not rows:
+            return tr("cli.excuse.none", minutes=minutes), 0
+        cause = {"refusal": tr("cli.excuse.source.refusal"), "spot": tr("cli.excuse.source.spot"),
+                 "check": tr("cli.excuse.source.check"), "undo": tr("cli.excuse.source.undo"),
+                 "flag": tr("cli.excuse.source.flag")}
+        cells = [[str(r["seq"]), time.strftime("%H:%M", time.localtime(r["at"])), r["type"], r["agent"],
+                  cause.get(r["source"], r["source"])] for r in rows]
+        lines = [tr("cli.excuse.title", minutes=minutes)]
+        head = [tr("cli.col.number"), tr("cli.col.time"), tr("cli.col.type"), tr("cli.col.agent"), tr("cli.col.cause")]
+        lines += ["  " + ln for ln in _table(head, cells)]
+        return "\n".join(lines + ["", tr("cli.excuse.footer")]), 0
+    with core.txn() as st:
+        try:
+            return core.excuse(st, seq), 0
+        except ValueError as e:
+            return str(e), 1
+
+
 def undo_list() -> str:
     """The actions taken alone that can still be undone, newest first, with the file each would restore."""
     core = _core()
@@ -763,6 +788,8 @@ def _add_subcommands(subparser) -> None:
     subs.add_parser("explain", help="How tenure decides and what the numbers guarantee")
     p = subs.add_parser("models", help="Each model's verified record on your own work")
     p.add_argument("--type", help="One action type")
+    p = subs.add_parser("excuse", help="Take back a fault of the last 10 minutes that was not the agent's mistake")
+    p.add_argument("id", type=int, nargs="?", help="the number from the notice; without it, the list")
     p = subs.add_parser("undo", help="Restore the files of an action that acted, then told you")
     p.add_argument("id", type=int, nargs="?", help="the number from the notice; without it, the list")
     p = subs.add_parser("flag", help="Report an error the agent made on its own: counts as a fault, the type drops at "
@@ -819,6 +846,8 @@ def execute(ns) -> tuple[str, int]:
             return explain_text(), 0
         if cmd == "models":
             return models_text(g("type")), 0
+        if cmd == "excuse":
+            return excuse_cmd(g("id"))
         if cmd == "undo":
             if g("id") is None:
                 return undo_list(), 0

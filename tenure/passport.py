@@ -30,7 +30,8 @@ from fractions import Fraction
 
 from . import benchmarks, classify, params, personal, rule, store
 
-PROTOCOL = "earned-autonomy/0.1"
+PROTOCOL = "earned-autonomy/0.2"
+PROTOCOLS = ("earned-autonomy/0.1", PROTOCOL)   # 0.1 ledgers have no excuse event: they replay the same
 RULE_NAME = "study-rule-B"
 KEY_FILE = "passport-ed25519.pem"
 TYPE_FIELDS = ("type", "stakes", "tier", "effective_tier", "series", "required", "sessions", "provisional",
@@ -140,6 +141,7 @@ def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState
     Derived events are skipped. Raises ValueError on an unknown event, an outcome before any settings, or settings
     of another rule."""
     cfg, states, distrust = None, {}, set()
+    excused = _excused(rows)
 
     def lose_trust(key):                                         # a fault or revoke: every model of the profile
         distrust.add(key)
@@ -176,6 +178,8 @@ def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState
             result, source = e["result"], e["source"]
             if source not in store.OUTCOME_SOURCES.get(result, ()):
                 raise ValueError(f"row {i}: unknown outcome {result!r} from {source!r}")
+            if r.get("seq") in excused:                         # protocol 0.2: excused afterwards by the owner
+                result, source = "neutral", "excused"
             if result == "success" and rule.trusted(s, n, cfg.get("start")):
                 events = rule.on_trusted_success(s, source=source)
             elif result == "success":
@@ -205,6 +209,8 @@ def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState
             for k, s in sorted(states.items()):
                 states[k] = rule.carry_over(s, n_new=params.required_n(cfg["risks"], s.stakes), veto=False,
                                             strict=e["mode"] == "strict")
+        elif kind == "excuse":
+            continue                                             # read ahead by _excused
         elif kind == "revoke":
             s = states.get((e["agent"], e["type"]))
             if s is None:
@@ -212,6 +218,26 @@ def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState
             rule.revoke(s)
             lose_trust(e["type"])
     return states, cfg
+
+
+def _excused(rows: list[dict]) -> set:
+    """The ledger rows excused by a later ``excuse`` event (protocol 0.2). Raises ValueError when an excuse names a
+    row that is not an earlier fault outcome, or names one twice."""
+    by_seq = {r.get("seq"): r for r in rows}
+    out = set()
+    for i, r in enumerate(rows, 1):
+        e = r.get("event") or {}
+        if e.get("event") != "excuse":
+            continue
+        seq = e.get("seq")
+        target = by_seq.get(seq) if isinstance(seq, int) and not isinstance(seq, bool) else None
+        te = (target or {}).get("event") or {}
+        if target is None or seq >= r.get("seq", 0) or te.get("event") != "outcome" or te.get("result") != "fault":
+            raise ValueError(f"row {i}: excuse of row {seq!r}, which is not an earlier fault")
+        if seq in out:
+            raise ValueError(f"row {i}: row {seq} excused twice")
+        out.add(seq)
+    return out
 
 
 def replay(rows: list[dict]) -> dict[str, dict[str, rule.TypeState]]:
@@ -455,7 +481,7 @@ def verify(passport: dict, rows: list[dict] | None = None, chain_ok: bool = Fals
     if not isinstance(passport, dict):
         return shape
     problems = ([] if ok.get("signature_shape_bad") else _check_signature(passport)) + shape
-    if passport.get("protocol") != PROTOCOL:
+    if passport.get("protocol") not in PROTOCOLS:
         problems.append(f"protocol {passport.get('protocol')!r}, expected {PROTOCOL!r}")
     if not ok.get("rule") or passport["rule"].get("fingerprint") != rule_fingerprint():
         problems.append("rule fingerprint differs from this plugin's rule: the replay below may not apply")

@@ -79,7 +79,8 @@ What tenure asks that Hermes alone would not:
 `echo >>`, a web page, a push), the trusted start asks 3 questions Hermes would not: `rm *.log`, `git push`, and a
 command right after the web page. Hermes asks 2 more by itself; the study start asks 23. Put the web page fourth
 instead and every later command asks until `/new` (file changes keep going with their undo): 11 questions if you
-allow each once, 3 if you pick "Allow for this session" the first time. Replay it: `HERMES_AGENT_DIR=<Hermes source> python scripts/friction.py` (the session is in
+allow each once, 3 if you pick "Allow for this session" the first time. After one undone file write, every file
+write of that session asks: 9 questions instead of 3; excused (`/tenure excuse`), 3 again. Replay it: `HERMES_AGENT_DIR=<Hermes source> python scripts/friction.py` (the session is in
 `tests/friction.py`; without Hermes' source, Hermes' own questions count as tenure's). The undo covers text files up
 to 5 MB per action: a binary or larger file asks.
 
@@ -335,6 +336,12 @@ it counts once (an undo and a flag of the same action never count twice). `flag 
 **What it cannot see.** Tenure shows you the target; it does not judge it. If the agent read both A and B and wrote B,
 nothing local and deterministic can tell whether B was the right one, short of a rule you write for your own data.
 
+**Excuse a fault.** A refusal or an undo counts as a fault, even when the agent was right (you said no for another
+reason, or undid a correct change to try something else). The message that follows says how to take it back:
+`/tenure excuse N` within 10 minutes. The fault then counts as neutral, and what it cost goes with it (the tier drop,
+the trial, the lost trusted start). It stays in the ledger, with the excuse after it, so a passport shows both
+(protocol 0.2).
+
 **A verifier.** That rule can report to Tenure itself: a deterministic check of yours (a test, a business rule, a
 nightly reconciliation) names an action by Hermes' session and tool call id, or by its number, and reports `fault`
 (the same fault as a flag, once) or `doubt` (the next action of that kind asks first), never a success:
@@ -352,6 +359,7 @@ nightly reconciliation) names an action by Hermes' session and tool call id, or 
 | `hermes tenure undo [ID]` | Restore the files of an act-then-notify action; without an ID, list what can still be undone |
 | `hermes tenure flag` · `hermes tenure flag N` | List the last numbered actions (24 hours); report action N as an error: the fault lands on the agent that acted, once |
 | `hermes tenure flag TYPE [note]` | Report an error the agent made on its own: revokes that type |
+| `hermes tenure excuse` · `hermes tenure excuse N` | List the faults of the last 10 minutes; take back fault N when it was not the agent's mistake (you refused for another reason, or undid a correct change): it counts as neutral |
 | `hermes tenure flag --call ID --session ID [--doubt]` · `hermes tenure flag N --doubt` | A verifier: a fault on one action named by its call, or a doubt (its next action of that kind asks first) |
 | `hermes tenure revoke TYPE\|all [--model M\|--all]` | Take earned autonomy back: one type or every type, for the last active agent, one model, or every agent |
 | `hermes tenure passport [--agent A] [--out FILE] [--no-redact]` | Write the signed passport of an agent |

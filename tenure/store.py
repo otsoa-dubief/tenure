@@ -32,6 +32,7 @@ SCHEMA_VERSION = "3"
 BUSY_TIMEOUT = 5.0             # seconds a writer waits for another process's transaction, well under a hook's limit
 TABLES = ("types", "pending", "sessions", "undo", "stats", "meta", "ledger", "recent")
 RECENT_WINDOW = 24 * 3600      # seconds a numbered action stays in ``recent``
+EXCUSE_WINDOW = 10 * 60        # seconds the owner has to excuse a fault (protocol 0.2)
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS types (agent TEXT NOT NULL, key TEXT NOT NULL, state TEXT NOT NULL,
                                   PRIMARY KEY (agent, key));
@@ -61,7 +62,7 @@ CREATE INDEX IF NOT EXISTS recent_at ON recent (at);
 """
 RECENT_COLS = ("n", "session", "agent", "type", "at", "flagged", "undo_id", "call")
 DOUBT = "doubt:"           # meta key prefix: a kind whose next action asks first (a verifier's doubt, #6)
-INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke", "copy"})
+INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke", "copy", "excuse"})
 DISTRUST = "distrust:"     # meta key prefix: a type that lost the trusted start in this profile
 DERIVED_KINDS = frozenset({"tier", "trial", "confirmed", "revoked", "neutral_expired"})   # display only
 STAT_FIELDS = ("actions", "checked", "alone", "faults")
@@ -96,10 +97,15 @@ PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible"
 #       n_new=params.required_n(risks, stakes), veto=type in vetoed, strict=mode == "strict").
 #   {"event": "revoke", "agent", "type"}
 #       Replay: rule.revoke on that type.
+#   {"event": "excuse", "seq": int}  (protocol 0.2)
+#       The owner says the fault outcome at ledger row `seq` was not the agent's mistake (a refusal for another
+#       reason, an undo of a correct change...), within EXCUSE_WINDOW of it. Replay: that earlier outcome is replayed
+#       as ("neutral", "excused"), as if it had been neutral from the start; the excuse row itself changes nothing.
 OUTCOME_SOURCES = {
     "success": frozenset({"approval", "spot", "notify"}),
     "fault": frozenset({"refusal", "spot", "check", "undo", "flag"}),
-    "neutral": frozenset({"error", "alone", "blocked", "timeout", "nobody", "expired", "ambiguous", "background"}),
+    "neutral": frozenset({"error", "alone", "blocked", "timeout", "nobody", "expired", "ambiguous", "background",
+                          "excused"}),
 }
 # Outcomes of an action that ran: the wait after a failed trial counts them (rule.count_action). A failed automatic
 # check counts even when nobody answered: the action ran and the check judged it. A refused spot check never ran; an
@@ -268,6 +274,12 @@ class Store:
         s.stakes = stakes
         s.reversible = bool(reversible)
         return s
+
+    def trust_again(self, key: str) -> None:
+        """An excuse took back the only fault or revoke of a type: it is under the trusted start again."""
+        if self.get_meta(DISTRUST + key):
+            self._write()
+            self.db.execute("DELETE FROM meta WHERE key = ?", (DISTRUST + key,))
 
     def distrust(self, key: str) -> None:
         """A fault or a revoke on a type ends the trusted start for that type in this profile, for every model: the
@@ -522,7 +534,7 @@ class Store:
         self.db.execute("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", (key, value))
 
     # ------------------------------------------------------------------------------------------------- ledger
-    def log(self, event: dict) -> None:
+    def log(self, event: dict) -> int:
         self._write()
         kind = event.get("event")
         if kind not in INPUT_KINDS and kind not in DERIVED_KINDS:
@@ -532,6 +544,7 @@ class Store:
         at = float(event.get("at") or time.time())
         self.db.execute("INSERT INTO ledger (seq, at, event, prev, hash) VALUES (?, ?, ?, ?, ?)",
                         (seq, at, _canon(event), prev, chain_hash(prev, seq, at, event)))
+        return seq
 
     def ledger(self) -> list[dict]:
         rows = self.db.execute("SELECT seq, at, event, prev, hash FROM ledger ORDER BY seq").fetchall()

@@ -1,6 +1,7 @@
-# Earned Autonomy Protocol v0.1
+# Earned Autonomy Protocol v0.2
 
-Protocol identifier: `earned-autonomy/0.1`. Reference implementation: `tenure/passport.py` (replay, passport,
+Protocol identifier: `earned-autonomy/0.2` (0.2 adds the `excuse` input event; a 0.1 ledger has none and replays
+the same, and a verifier accepts 0.1 passports). Reference implementation: `tenure/passport.py` (replay, passport,
 verification) and `tenure/store.py` (ledger).
 
 An agent earns autonomy per action type from verified outcomes. Everything it earned is derived from a hash-chained
@@ -28,8 +29,9 @@ An agent is `"<model>@<provider>"` (provider `unknown` when empty).
 
 ### 1.1 Input events
 
-Only these five kinds are read by a replay. They are applied in ledger order. (`copy` was added on 2026-11-10: a
-verifier from before that date rejects a ledger that contains one, with an unknown-event error.)
+Only these six kinds are read by a replay. They are applied in ledger order, except that an `excuse` is read ahead.
+(`copy` was added on 2026-11-10 and `excuse` in 0.2: an older verifier rejects a ledger that contains one, with an
+unknown-event error.)
 
 | Event | Fields | Replay |
 |---|---|---|
@@ -37,6 +39,7 @@ verifier from before that date rejects a ledger that contains one, with an unkno
 | `outcome` | `agent`, `type`, `stakes` (`low`, `medium`, `high`), `reversible` (bool), `result` (`success`, `fault`, `neutral`), `source`, `session` | The agent's type (new: tier T1, empty record). If its stakes differ from the event's, its evidence is re-based first (series, sessions and carried part restart; the Wald score keeps a fault's penalty; tier T1). It takes the event's stakes and reversibility, then the success, fault or neutral update of the rule. Then, if `(result, source)` is an executed action (below), the wait after a failed trial counts it, unless that fault is the one that failed the trial. |
 | `agent` | `old`, `new`, `mode` (`carry` or `strict`), `vetoed` (list of types) | Every type of `old` that `new` has no record for gets the carried-over state: half of the series, provisional, with half of a negative score; a fresh start at high stakes, for a capped level, for a vetoed type or in strict mode. A medium or high fault in `old`'s memory becomes a trial for `new` in every mode. |
 | `revoke` | `agent`, `type` | The owner takes the type back: T1, no series, no score credit, no carried part. Not a fault. |
+| `excuse` | `seq` (the ledger row of an earlier `fault` outcome) | The owner says that fault was not the agent's mistake (a refusal for another reason, an undo of a correct change). The excused outcome is replayed as `neutral` with source `excused`, in its own place, as if it had always been neutral: its tier drop, trial and lost trusted start go too (unless another fault or a revoke keeps it lost). The `excuse` row itself changes nothing. A replay refuses an excuse of a row that is not an earlier fault, and a row excused twice. The reference implementation only logs one within 10 minutes of the fault. |
 | `copy` | `mode` (`carry` or `strict`) | The record was copied into another profile (a clone, a duplicated Bot). Every type of every agent gets the carried-over state of an `agent` event, with no veto: half of the series, provisional, with half of a negative score; a fresh start at high stakes, for a capped level or in strict mode. A medium or high fault in memory becomes a trial. |
 
 Sources per result:
@@ -44,7 +47,8 @@ Sources per result:
 - success: `approval`, `spot`, `notify`;
 - fault: `refusal`, `spot`, `check`, `undo`, `flag`;
 - neutral: `error`, `alone`, `blocked`, `timeout`, `nobody`, `expired`, `ambiguous`, `background` (a terminal call
-  Hermes ran in the background: the result is the launch, not the command's outcome).
+  Hermes ran in the background: the result is the launch, not the command's outcome), `excused` (only in a replay:
+  a fault outcome named by a later `excuse` event).
 
 Executed actions, counted by the wait after a failed trial: `success/approval`, `success/spot`, `success/notify`,
 `fault/check`, `neutral/error`, `neutral/alone`.
@@ -86,7 +90,7 @@ different fingerprint means the replay of this implementation may not apply to t
 
 ```json
 {
-  "protocol": "earned-autonomy/0.1",
+  "protocol": "earned-autonomy/0.2",
   "generated_at": "2026-11-08T12:00:00Z",
   "agent": {"model": "...", "provider": "...", "profile": "<sha256(profile name)[:12]>"},
   "rule": {"name": "study-rule-B", "fingerprint": "<64 hex>"},

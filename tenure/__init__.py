@@ -805,8 +805,9 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
         st.clear_doubt(agent, type_key)                 # the owner answered: a verifier's doubt is settled
     if result == "fault":
         st.distrust(type_key)
-    st.log({"event": "outcome", "agent": agent, "type": type_key, "stakes": stakes, "reversible": bool(reversible),
-            "result": result, "source": source, "session": session})
+    st.last_outcome_seq = st.log({"event": "outcome", "agent": agent, "type": type_key, "stakes": stakes,
+                                  "reversible": bool(reversible), "result": result, "source": source,
+                                  "session": session})
     for ev in events:
         st.log({**ev, "agent": agent})
     _push("changed", {"agent": agent, "type": type_key})      # sent when the transaction commits
@@ -814,6 +815,58 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
 
 
 UNDO_WINDOW = 24 * 3600          # seconds an act-then-notify action can be undone
+
+
+def excusable(st: store.Store, now: float | None = None) -> list[dict]:
+    """The fault outcomes of the last ``store.EXCUSE_WINDOW`` seconds not excused yet, newest first: ``seq``, ``at``,
+    ``agent``, ``type``, ``source``."""
+    now = time.time() if now is None else now
+    rows = st.ledger()
+    done = {(r["event"] or {}).get("seq") for r in rows if (r["event"] or {}).get("event") == "excuse"}
+    out = []
+    for r in reversed(rows):
+        if now - r["at"] > store.EXCUSE_WINDOW:
+            break
+        e = r["event"] or {}
+        if e.get("event") == "outcome" and e.get("result") == "fault" and r["seq"] not in done:
+            out.append({"seq": r["seq"], "at": r["at"], "agent": e["agent"], "type": e["type"],
+                        "source": e["source"]})
+    return out
+
+
+def excuse(st: store.Store, seq: int) -> str:
+    """The owner takes back one fault of the last ``store.EXCUSE_WINDOW`` seconds (protocol 0.2): an ``excuse`` event
+    names its ledger row, and every state is replayed from the ledger, where that fault now counts as neutral. Its
+    effects go with it: the tier drop, the trial, the lost trusted start (unless another fault or a revoke keeps it
+    lost). Call it inside ``txn()``. Raises ValueError with the owner's message when it is not excusable."""
+    row = next((r for r in excusable(st) if r["seq"] == seq), None)
+    if row is None:
+        raise ValueError(tr("cli.excuse.unknown", n=seq, minutes=store.EXCUSE_WINDOW // 60))
+    st.log({"event": "excuse", "seq": seq})
+    replayed, _ = passport._replay(st.ledger())
+    now = time.time()
+    keys = set()
+    for (agent, key), s in replayed.items():
+        keys.add(key)
+        live = st.recorded(agent, key)
+        if live is None or {**live.to_dict(), "changed_at": 0} != {**s.to_dict(), "changed_at": 0}:
+            s.changed_at = now
+            st.put_state(agent, s)
+    for key in keys:
+        if not any(s.distrusted for (a, k), s in replayed.items() if k == key):
+            st.trust_again(key)
+    st.bump(row["agent"], "faults", -1, at=row["at"])
+    s = replayed.get((row["agent"], row["type"]))
+    _push("changed", {"agent": row["agent"], "type": row["type"]})
+    tier = (tr("cli.excuse.trusted") if s is not None and trusted(settings(), s, params.required_n(
+        settings()["risks"], s.stakes), s.stakes) else tier_name(s.tier) if s is not None else "")
+    return tr("cli.excuse.done", n=seq, type=row["type"], agent=row["agent"], tier=tier)
+
+
+def _excuse_hint(st: store.Store) -> list[str]:
+    """After a fault the owner caused (a refusal, an undo): how to take it back if it was not the agent's mistake."""
+    seq = getattr(st, "last_outcome_seq", None)
+    return [tr("notice.excuse.hint", n=seq, minutes=store.EXCUSE_WINDOW // 60)] if seq else []
 
 
 class UndoMessage(str):
@@ -872,7 +925,8 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
     st.bump(agent, "faults")
     s = st.get_state(agent, key, stakes, reversible)
     text = "\n\n".join([tr("undo.done", id=id, type=key, agent=agent, tier=tier_name(s.tier))]
-                       + _say(events, cfg["spot"]))       # e.g. "On probation" when it ends the trusted start
+                       + _say(events, cfg["spot"])        # e.g. "On probation" when it ends the trusted start
+                       + _excuse_hint(st))
     return UndoMessage(text, True, entry["snap_id"])
 
 
@@ -1324,6 +1378,7 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
                 posts += _say(record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
                                              reversible=p["reversible"], result="fault", source="refusal",
                                              session=p["session"]), cfg["spot"])
+                posts += _excuse_hint(st)
                 _bump(st, p["agent"], "fault")
                 p = None
             if p is None or p["phase"] != "asked" or (key and p["rule_key"] != key):
@@ -1340,6 +1395,8 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
                 posts += _say(record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
                                              reversible=p["reversible"], result=result, source=source,
                                              session=p["session"]), cfg["spot"])
+                if result == "fault":
+                    posts += _excuse_hint(st)
                 _bump(st, p["agent"], result)
         for text in posts:
             _announce(text)
