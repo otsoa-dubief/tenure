@@ -104,6 +104,7 @@ class _State:
         self.summaries: OrderedDict[tuple[str, int], tuple[float, str]] = OrderedDict()
         # (session, call id) -> files that already failed the automatic check before the call: never its fault
         self.broken: OrderedDict[tuple[str, str], frozenset] = OrderedDict()
+        self.touched: OrderedDict[str, set] = OrderedDict()    # session -> files its calls wrote (real paths)
         self.last_agent = ""
         self.rng = random.SystemRandom()
         self.purged_at = 0.0
@@ -498,6 +499,24 @@ def _remember(cache: OrderedDict, key: str, value) -> None:
     cache.move_to_end(key)
     while len(cache) > MAX_SESSIONS:
         cache.popitem(last=False)
+
+
+def _touch(session: str, paths) -> None:
+    """The files a call of this session wrote, ran or failed (real paths): a file broken by the session itself is
+    never excused later as broken before (audit 19/11)."""
+    real = {proofs._real(p) for p in paths or []}
+    if not real:
+        return
+    with ST.mem:
+        seen = ST.touched.get(session) or set()
+        if len(seen) < 10_000:
+            seen |= real
+        _remember(ST.touched, session, seen)
+
+
+def _touched(session: str) -> frozenset:
+    with ST.mem:
+        return frozenset(ST.touched.get(session) or ())
 
 
 def _remember_summary(path: str, n: int, at: float, summary: str) -> None:
@@ -1067,7 +1086,7 @@ def _background(tool: str, args: dict, result=None) -> bool:
 
 
 def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool, reason: str | None,
-            launched: bool = False, written: list[str] | None = None, cwd: str = "") -> list[str]:
+            launched: bool = False, written: list[str] | None = None, cwd: str = "", unjudged: bool = False) -> list[str]:
     """The verified outcome of one pending decision, from facts gathered before the transaction: was the call stopped
     (``blocked``), did the tool fail, what did the automatic check of the written files say. The check judges every
     action that ran, even one nobody answered. A background launch (``launched``) is neutral: the command's own
@@ -1093,6 +1112,8 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         result_source = ("neutral", "background")
     elif reason:
         result_source = ("fault", "spot" if spot else "check")
+    elif unjudged:                                          # a file broken before is still broken: proves nothing
+        result_source = ("neutral", "ambiguous")
     elif phase == "approved":
         result_source = ("success", "spot" if spot else "approval")
     elif phase == "notify":
@@ -1194,13 +1215,15 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         n = params.required_n(cfg["risks"], act.stakes)
         if call:                                            # files that do not parse yet: the check skips them after
             written = classify.files_written(tool, args, cwd)
-            bad = proofs.broken(written) if written else frozenset()
-            if bad:
-                with ST.mem:
+            bad = (proofs.broken(written) - _touched(session)) if written else frozenset()
+            with ST.mem:                                    # set or cleared: a reused call id never inherits it
+                if bad:
                     ST.broken[(session, call)] = bad
                     ST.broken.move_to_end((session, call))
                     while len(ST.broken) > MAX_SUMMARIES:
                         ST.broken.popitem(last=False)
+                else:
+                    ST.broken.pop((session, call), None)
         if call:                                            # an undo is only wired through a call id
             with _locked(deadline):
                 preview = _decide(store_(), agent, act, n, cfg, session, nobody, _NoSpot)[2]
@@ -1337,6 +1360,8 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         cwd = call_cwd(tool, args, session_id, task_id)
         _follow_cwd(tool, args, result, session_id, task_id)
         session = anon(session_id or task_id)
+        if str(status or "").strip().lower() != "blocked":  # every call that ran, failed or not, with or without a
+            _touch(session, classify.files_written(tool, args, cwd))     # call id: its files are its own from now on
         if tool == "execute_code" or classify.reads_external(tool, args, cwd):
             with ST.mem:
                 first = session not in ST.tainted
@@ -1346,6 +1371,8 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         call = str(tool_call_id or "")
         if not call:
             return None
+        with ST.mem:                                        # taken once, whatever happens to this call next
+            before = ST.broken.pop((session, call), frozenset())
         with _locked():
             rows = store_().pending_rows(session, call)
         if not session and rows:            # outside any session, call ids recur: the type must match too
@@ -1362,12 +1389,10 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         blocked = str(status or "").strip().lower() == "blocked"
         failed = not blocked and proofs.execution(tool, status, error_type, result) == "failed"
         launched = not blocked and not failed and _background(tool, args, result)
-        reason, paths = None, []
+        reason, paths, unjudged = None, [], False
         if not blocked and not failed and not launched:
             paths = classify.files_written(tool, args, cwd)
-            with ST.mem:
-                before = ST.broken.pop((session, call), frozenset())
-            reason = proofs.check_files(paths, before) if paths else None
+            reason, unjudged = proofs.judge_files(paths, before) if paths else (None, False)
         cfg = settings()
         posts = []
         with txn() as st:
@@ -1376,7 +1401,7 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
             if p is not None:
                 posts += _say(sync_settings(st, cfg), cfg["spot"])
                 posts += _settle(st, cfg, p, blocked=blocked, failed=failed, reason=reason, launched=launched,
-                                written=paths, cwd=cwd)
+                                written=paths, cwd=cwd, unjudged=unjudged)
         for text in posts:
             _announce(text)
         if p is not None and p.get("n") is not None:            # committed: remember what it did, in memory only

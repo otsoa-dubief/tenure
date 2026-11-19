@@ -22,6 +22,10 @@ Adaptations:
 - one trial covers the faults that happen during the wait and the inherited faults;
 - evidence is re-based when the stakes of a type change;
 - a trial is the next 3 real actions, asked; the study replays 3 hidden variants of the faulty case.
+- detection is not perfect: an error counts only when it is caught (your refusal, an undo, a flag, a verifier, or
+  the automatic parse check). The parse check tolerates what tools accept (JSON with comments in editor and build
+  configs, a byte order mark) and never charges the agent for a file that was broken before its call and that no
+  call of the session wrote; such a call is neutral (`ambiguous`), so the ledger shows how often it happens.
 
 Field categories are a classification precision: an MCP call is split by the kind of field it touches (`secret`,
 `finance`, `unclassified` by default), so a fault on a bank field no longer lands on the tool's plain calls. The
