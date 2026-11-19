@@ -28,6 +28,19 @@
 
 <p align="center"><img alt="Tenure: revocable trust for your agent. The dithered emblem fills as autonomy is earned and crumbles on a mistake." src="docs/images/hero.gif" width="820"></p>
 
+## In one minute
+
+- **Install:** `hermes plugins install tenure`. Nothing to set up: the agent works as with Hermes alone.
+- **Day to day:** file changes run with an undo for 24 hours (`/tenure undo N`); pushes, deploys, payments and
+  anything that leaves the machine keep asking.
+- **A mistake** (you undo, refuse or flag): only that kind of action goes on probation and asks first. Not the
+  agent's fault? `/tenure excuse N` within 10 minutes.
+- **Earning it back:** approve, or mark act-then-tell actions as seen (`/tenure ok N`); spread over a few
+  conversations, the kind acts alone again, with 1 spot check in 10.
+- **Where it stands:** `hermes tenure status`, and `hermes tenure week` for the last seven days.
+
+The rest of this page is the detail: the rule, the study, the guarantee and its limits.
+
 <p align="center"><img alt="Illustration of the earned tiers after a first mistake: T1 asks first, T2 acts then tells you, T3 acts on its own; one fault and the type drops back" src="docs/images/tiers.svg" width="820"><br><sub>Illustration of the rule, not a screenshot.</sub></p>
 
 ## A real session, in Hermes Desktop
@@ -376,6 +389,7 @@ nightly reconciliation) names an action by Hermes' session and tool call id, or 
 | `hermes tenure undo [ID]` | Restore the files of an act-then-notify action; without an ID, list what can still be undone |
 | `hermes tenure flag` · `hermes tenure flag N` | List the last numbered actions (24 hours); report action N as an error: the fault lands on the agent that acted, once |
 | `hermes tenure flag TYPE [note]` | Report an error the agent made on its own: revokes that type |
+| `hermes tenure week` | The last seven days: actions, questions, faults, undos, excuses, what is still open |
 | `/tenure ok` · `/tenure ok N [N ...]` · `hermes tenure ok N` | Alone, the act-then-tell actions still open; with numbers, the ones you looked at count toward T3 (left unread, they count for nothing) |
 | `hermes tenure excuse` · `hermes tenure excuse N` | List the faults of the last 10 minutes; take back fault N when it was not the agent's mistake (you refused for another reason, or undid a correct change): it counts as neutral |
 | `hermes tenure flag --call ID --session ID [--doubt]` · `hermes tenure flag N --doubt` | A verifier: a fault on one action named by its call, or a doubt (its next action of that kind asks first) |

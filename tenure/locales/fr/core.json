@@ -381,5 +381,12 @@
   "cli.ok.nobody": "Pas tant que personne ne répond aux approbations ({why}) : seule une personne peut dire qu'une action a été vue.",
   "cli.ok.terminal": "« Vu » se dit à la main : /tenure ok dans la conversation, ou hermes tenure ok N dans un terminal interactif.",
   "cli.ok.title": "Actions « agit puis prévient » encore ouvertes (24 h), la plus récente en dernier. Nommez celles que vous avez regardées :",
-  "cli.ok.footer": "Vu, c'est bon : /tenure ok <numéro> [<numéro> ...]"
+  "cli.ok.footer": "Vu, c'est bon : /tenure ok <numéro> [<numéro> ...]",
+  "cli.status.ghost": "Avec le départ de l'étude, vous auriez déjà gagné (estimation) : {types}.",
+  "cli.status.ghost_type": "{type} {tier} ({series}/{required})",
+  "cli.week.title": "tenure, les 7 derniers jours :",
+  "cli.week.none": "Aucune action enregistrée ces 7 derniers jours.",
+  "cli.week.agent": "{agent} : {actions} actions, {asked} vous ont demandé, {without} sans question ; {faults} fautes ({undone} annulées, {excused} excusées) ; agit puis prévient : {seen} marquées vues, {unseen} non lues.",
+  "cli.week.open": "{n} action(s) « agit puis prévient » encore ouverte(s) : {command} les liste.",
+  "ask.always": "« Toujours » ne couvre ici que cet appel : tenure redemandera la prochaine fois."
 }

@@ -223,6 +223,17 @@ def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState
     return states, cfg
 
 
+def ghost(rows: list[dict]) -> dict[tuple[str, str], rule.TypeState]:
+    """The states the same ledger would give under the study's start (``probation``): what the trusted start's types
+    would have earned by now. An estimate for the owner's first days, never a claim: not in any passport."""
+    copy = [{**r, "event": {**r["event"], "start": "probation"}} if (r.get("event") or {}).get("event") == "settings"
+            else r for r in rows]
+    try:
+        return _replay_rows(copy)[0]
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return {}
+
+
 def _excused(rows: list[dict]) -> set:
     """The ledger rows excused by a later ``excuse`` event (protocol 0.2). Raises ValueError when an excuse names a
     row that is not an earlier fault outcome, or names one twice."""
