@@ -105,6 +105,8 @@ class _State:
         # (session, call id) -> files that already failed the automatic check before the call: never its fault
         self.broken: OrderedDict[tuple[str, str], frozenset] = OrderedDict()
         self.touched: OrderedDict[str, set] = OrderedDict()    # session -> files its calls wrote (real paths)
+        # (session, call id) -> scripts the agent wrote that this asked call runs: forgotten once approved
+        self.fresh: OrderedDict[tuple[str, str], list] = OrderedDict()
         self.last_agent = ""
         self.rng = random.SystemRandom()
         self.purged_at = 0.0
@@ -1083,12 +1085,17 @@ def _to_t2(s: rule.TypeState) -> int:
 
 def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool,
                  earned_at: str | None, per_session: bool = False, trusted_start: bool = False,
-                 held: str | None = None, doubted: bool = False) -> str:
+                 held: str | None = None, doubted: bool = False, fresh: list | None = None,
+                 exec_files: list | None = None) -> str:
     stakes = stakes_name(act.stakes)
     if decision == rule.SPOT:
         return tr("ask.spot", summary=act.summary, type=act.type, spot=round(1 / spot))
     if doubted:                                         # a verifier's doubt (#6): the reason for this question
         why = tr("ask.why.doubt", type=act.type)
+    elif fresh:                                         # write then run (audit 19/11)
+        why = tr("ask.why.fresh_script", files=", ".join(fresh[:3]))
+    elif exec_files:
+        why = tr("ask.why.exec_file", files=", ".join(exec_files[:3]))
     elif n is None:
         why = tr("ask.why.capped", type=act.type, stakes=stakes, n=s.successes)
     elif suspended:
@@ -1298,6 +1305,16 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             posts += _say(sync_settings(st, cfg), cfg["spot"])
             posts += _say(_expire(st, cfg), cfg["spot"])
             recorded, s, decision, suspended = _decide(st, agent, act, n, cfg, session, nobody, ST.rng)
+            fresh, exec_files = [], []
+            if decision != rule.ASK and tool == "terminal":    # a script the agent wrote, run now: asked once
+                fresh = st.written_recently(classify.scripts_run(str(args.get("command", "")), cwd))
+            if decision != rule.ASK and suspended:              # after outside content, writing code is code
+                exec_files = [x for x in classify.files_written(tool, args, cwd) if classify.runs_on_execution(x)]
+            if fresh or exec_files:
+                decision = rule.ASK
+                if fresh:
+                    with ST.mem:
+                        _remember(ST.fresh, (session, call), fresh)
             watched = decision == rule.WATCH
             if watched:                                     # files saved: act then tell, with an undo; else run alone
                 files = bool(snap) or bool(classify.files_written(tool, args, cwd))
@@ -1326,6 +1343,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 per_session = (cfg.get("start") == "trusted" and not nobody and decision == rule.ASK and not no_undo
                                and fields.parent_of(act.type) is None           # never for a category kind
                                and not st.doubted(agent, act.type)              # a doubt is asked, whatever the grant
+                               and not fresh and not exec_files                 # nor code the agent just wrote
                                and (act.type in params.SESSION_TYPES or (suspended and trusted(cfg, s, n, act.stakes))
                                     or _uncovered_local(act, s, n)))
                 # After outside content, one session answer covers every covered type (one key for the session);
@@ -1338,6 +1356,9 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                              "message": _ask_message(act, s, n, cfg["spot"], decision=decision, suspended=suspended,
                                                      unsaved=unsaved, per_session=per_session, trusted_start=cfg.get("start") == "trusted",
                                                      doubted=st.doubted(agent, act.type),
+                                                     fresh=[_show(x, cwd, os.path.expanduser("~")) for x in fresh],
+                                                     exec_files=[_show(x, cwd, os.path.expanduser("~"))
+                                                                 for x in exec_files],
                                                      earned_at=recorded.stakes if recorded else None,
                                                      held=_held_by(st, agent, act.type))}
         if taken and taken != snap:
@@ -1392,6 +1413,9 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
                 pass                                        # not one of our open asks
             elif verdict == "approved":
                 st.set_phase(p["id"], "approved")
+                with ST.mem:
+                    ran = ST.fresh.pop((p["session"], p["call"]), None)
+                st.forget_written(ran)                      # approved once: it runs without asking until rewritten
             else:
                 st.pop_pending(p["id"])
                 posts += _say(sync_settings(st, cfg), cfg["spot"])
@@ -1424,9 +1448,16 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         cwd = call_cwd(tool, args, session_id, task_id)
         _follow_cwd(tool, args, result, session_id, task_id)
         session = anon(session_id or task_id)
-        if str(status or "").strip().lower() != "blocked":  # every call that ran, failed or not, with or without a
-            _touch(session, classify.files_written(tool, args, cwd))     # call id: its files are its own from now on
-        if tool == "execute_code" or classify.reads_external(tool, args, cwd):
+        wrote = [] if str(status or "").strip().lower() == "blocked" else classify.files_written(tool, args, cwd)
+        _touch(session, wrote)                              # every call that ran, failed or not: its files are its own
+        if wrote:                                           # running one of them later asks once (24 hours)
+            try:
+                with txn() as wst:
+                    wst.add_written(wrote)
+            except LockTimeout:
+                log.warning("tenure: the files this call wrote could not be recorded: the store stayed busy")
+        if (tool == "execute_code" or classify.reads_external(tool, args, cwd)
+                or (tool == "terminal" and classify.adds_dependency(str(args.get("command", ""))))):
             with ST.mem:
                 first = session not in ST.tainted
             _taint(session)

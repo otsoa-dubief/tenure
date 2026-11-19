@@ -261,8 +261,9 @@ def test_after_a_fault_the_ask_names_the_next_step(plugin):
 
 def test_pip_is_covered_like_npm(plugin):
     mod, ctx = plugin(TRUST)
-    assert ctx.call("terminal", {"command": "pip install requests"}) == "ran"
+    assert ctx.call("terminal", {"command": "pip install -r requirements.txt"}) == "ran"
     assert ctx.call("terminal", {"command": "pip3 install -e ."}) == "ran"
+    assert ctx.call("terminal", {"command": "pip install requests"}) == "approved"     # a new dependency asks
 
 
 def test_inline_code_asks_once_per_session_when_allowed_for_the_session(plugin):

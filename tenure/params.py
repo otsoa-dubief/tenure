@@ -44,7 +44,8 @@ TRUSTED_TYPES = ("file:write", "file:write-outside", "file:shell", "memory:write
 # Subcommands that leave the machine are never covered, whatever classify made of them (e.g. `bun publish`).
 UNTRUSTED_VERBS = frozenset({"publish", "deploy", "unpublish", "yank", "login", "logout", "adduser", "token", "owner",
                              "dist-tag", "deprecate", "send-email", "upload", "release", "push", "discard",
-                             "remote", "dcommit", "imap-send", "uploadarchives", "perform", "x", "dlx"})
+                             "remote", "dcommit", "imap-send", "uploadarchives", "perform", "x", "dlx",
+                             "new-dependency"})
 TRUSTED_PROGRAMS = frozenset({
     "npm", "pnpm", "yarn", "bun", "node", "deno", "tsc", "eslint", "prettier", "jest", "vitest",
     "python", "python3", "pytest", "uv", "poetry", "pip", "pip3", "ruff", "black", "mypy", "isort",

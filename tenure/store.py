@@ -62,6 +62,9 @@ CREATE INDEX IF NOT EXISTS recent_session ON recent (session);
 CREATE INDEX IF NOT EXISTS recent_at ON recent (at);
 """
 RECENT_COLS = ("n", "session", "agent", "type", "at", "flagged", "undo_id", "call")
+# Files the agent wrote in the last 24 hours, as sha256 of their real path (no path is stored): running one asks once.
+WRITTEN_SCHEMA = "CREATE TABLE IF NOT EXISTS written (h TEXT PRIMARY KEY, at REAL)"
+WRITTEN_WINDOW = 24 * 3600
 DOUBT = "doubt:"           # meta key prefix: a kind whose next action asks first (a verifier's doubt, #6)
 INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke", "copy", "excuse"})
 DISTRUST = "distrust:"     # meta key prefix: a type that lost the trusted start in this profile
@@ -509,6 +512,39 @@ class Store:
         return dict(zip(STAT_FIELDS, row))
 
     # --------------------------------------------------------------------------------------------------- meta
+    # ------------------------------------------------------------------------------- written then run (audit 19/11)
+    @staticmethod
+    def _path_hash(path: str) -> str:
+        return hashlib.sha256(os.path.realpath(path).encode("utf-8", "surrogatepass")).hexdigest()
+
+    def add_written(self, paths, at: float | None = None) -> None:
+        """Remember that the agent wrote these files (hashed), and forget the ones older than 24 hours."""
+        if not paths:
+            return
+        self._write()
+        self.db.execute(WRITTEN_SCHEMA)
+        now = time.time() if at is None else at
+        self.db.execute("DELETE FROM written WHERE at < ?", (now - WRITTEN_WINDOW,))
+        self.db.executemany("INSERT OR REPLACE INTO written (h, at) VALUES (?, ?)",
+                            [(self._path_hash(p), now) for p in paths])
+
+    def written_recently(self, paths) -> list[str]:
+        """The paths among these that the agent wrote in the last 24 hours."""
+        if not paths or self.db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'written'"
+                                        ).fetchone() is None:
+            return []
+        since = time.time() - WRITTEN_WINDOW
+        return [p for p in paths if self.db.execute("SELECT 1 FROM written WHERE h = ? AND at >= ?",
+                                                    (self._path_hash(p), since)).fetchone()]
+
+    def forget_written(self, paths) -> None:
+        """The owner approved running them: they do not ask again until the agent writes them again."""
+        if not paths:
+            return
+        self._write()
+        self.db.execute(WRITTEN_SCHEMA)
+        self.db.executemany("DELETE FROM written WHERE h = ?", [(self._path_hash(p),) for p in paths])
+
     # -------------------------------------------------------------------------------------------- doubts (#6)
     @staticmethod
     def _doubt_key(agent: str, type_key: str) -> str:
