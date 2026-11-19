@@ -508,10 +508,53 @@ def _follow_cwd(tool: str, args: dict, result, session_id="", task_id="") -> Non
             _remember(ST.cwds, str(session_id or task_id or ""), cwd.strip())
 
 
+_LINEAGE: "OrderedDict[str, str]" = OrderedDict()     # session id -> its conversation's root, found in Hermes' state
+_LINEAGE_LOCK = threading.Lock()
+
+
+def _lineage_root(sid: str) -> str:
+    """The root of a session's lineage in Hermes' own ``state.db``: compression can rotate a conversation to a new
+    session id whose ``parent_session_id`` is the previous one (``hermes_state_mutation_compress``), and a delegate
+    subagent points to its parent. One conversation is then one session for the rule (B/2) and for a suspension,
+    whatever Hermes did to its ids. Read-only, bounded, cached once found; the id itself when the state cannot be
+    read or has no row yet (that miss is not cached)."""
+    with _LINEAGE_LOCK:
+        if sid in _LINEAGE:
+            return _LINEAGE[sid]
+    path = os.path.join(_hermes_home(), "state.db")
+    if not os.path.isfile(path):
+        return sid
+    import sqlite3
+    chain, current = [], sid
+    try:
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=0.2)
+        try:
+            while current and current not in chain and len(chain) < 100:
+                row = conn.execute("SELECT parent_session_id FROM sessions WHERE id = ?", (current,)).fetchone()
+                if row is None:
+                    break
+                chain.append(current)
+                current = row[0]
+        finally:
+            conn.close()
+    except Exception:
+        log.debug("tenure: Hermes' session lineage could not be read", exc_info=True)
+        return sid
+    if not chain:
+        return sid
+    root = chain[-1]
+    with _LINEAGE_LOCK:
+        _LINEAGE[sid] = root
+        while len(_LINEAGE) > 10_000:
+            _LINEAGE.popitem(last=False)
+    return root
+
+
 def anon(session_id) -> str:
-    """A session as stored: sha256(session id)[:12]; "" without a session id, which counts as no session."""
+    """A session as stored: sha256(the root of its conversation)[:12]; "" without a session id, which counts as no
+    session."""
     sid = str(session_id or "")
-    return hashlib.sha256(sid.encode("utf-8")).hexdigest()[:12] if sid else ""
+    return hashlib.sha256(_lineage_root(sid).encode("utf-8")).hexdigest()[:12] if sid else ""
 
 
 def agent_name(model, provider) -> str:
