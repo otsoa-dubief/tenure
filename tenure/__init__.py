@@ -108,7 +108,7 @@ class _State:
         self.touched: OrderedDict[str, set] = OrderedDict()    # session -> files its calls wrote (real paths)
         # (session, call id) -> scripts the agent wrote that this asked call runs: forgotten once approved
         self.fresh: OrderedDict[tuple[str, str], list] = OrderedDict()
-        self.taint_from: OrderedDict[str, str] = OrderedDict()   # session -> the call that suspended it (memory only)
+        self.taint_from: OrderedDict[str, list] = OrderedDict()  # session -> the calls that brought outside content in
         self.last_agent = ""
         self.rng = random.SystemRandom()
         self.purged_at = 0.0
@@ -581,19 +581,55 @@ def _suspended(st: store.Store, session: str) -> bool:
     return since is not None or st.is_tainted(session)
 
 
-_HOST = re.compile(r"[a-z][a-z0-9+.-]*://(?:[^/@\s]*@)?([^/:?#\s'\"]+)", re.I)
+_SAFE = re.compile(r"[a-z0-9.-]{1,63}")
+_URL_KEYS = ("url", "urls", "href", "link", "links", "uri")
+
+
+def _host_of(url: str) -> str | None:
+    """The host of one URL, if it is plain and unambiguous: never one with a backslash or an @ left in its authority
+    (``evil.com\\@docs.example.com`` is not shown as docs.example.com), never a non-ASCII or odd name; a private or
+    loopback address reads "local network"."""
+    import ipaddress
+    import urllib.parse
+    try:
+        parts = urllib.parse.urlsplit(str(url).strip())
+        authority = parts.netloc.rsplit("@", 1)[-1]
+        host = (parts.hostname or "").lower()
+    except ValueError:
+        return None
+    if not host or "\\" in parts.netloc or "@" in authority or not _SAFE.fullmatch(host):
+        return None
+    try:
+        ip = ipaddress.ip_address(host)
+        if ip.is_private or ip.is_loopback or ip.is_link_local:
+            return "local network"
+    except ValueError:
+        if host == "localhost" or host.endswith((".local", ".internal", ".lan", ".localhost")):
+            return "local network"
+    return host
 
 
 def _source_label(tool: str, args: dict) -> str:
-    """What suspended a session, as the owner reads it: the tool, and the host of the first URL in its arguments
-    (never a path, a query or credentials)."""
-    m = _HOST.search(json.dumps(args, ensure_ascii=False)[:4000]) if isinstance(args, dict) else None
-    return f"{tool} {m.group(1)[:80]}" if m else tool
+    """What suspended a session, as the owner reads it: the tool (bounded, plain characters) and the host of the URL
+    it was given under a URL argument, never a path, a query, credentials or a URL found elsewhere in the arguments."""
+    name = re.sub(r"[^A-Za-z0-9_.:-]", "", str(tool))[:40] or "tool"
+    for key in _URL_KEYS:
+        value = args.get(key) if isinstance(args, dict) else None
+        url = value[0] if isinstance(value, list) and value else value
+        if isinstance(url, str):
+            host = _host_of(url)
+            return f"{name} {host}" if host else name
+    return name
 
 
 def _taint_label(session: str) -> str:
+    """The last call that brought outside content into the session, and how many before it: the latest source is
+    the one the owner must weigh, never only the first, which may be a harmless page."""
     with ST.mem:
-        return ST.taint_from.get(session, "")
+        seen = ST.taint_from.get(session) or []
+    if not seen:
+        return ""
+    return seen[-1] if len(seen) == 1 else tr("ask.why.suspended_more", source=seen[-1], n=len(seen) - 1)
 
 
 def _taint(session: str) -> None:
@@ -1602,9 +1638,19 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         if tool == "execute_code" or classify.reads_external(tool, args, cwd):
             with ST.mem:
                 first = session not in ST.tainted
-                if first:
-                    _remember(ST.taint_from, session, _source_label(tool, args))
-            _taint(session)
+            _taint(session)                                 # first: a label that fails never undoes a suspension
+            try:
+                label = _source_label(tool, args)
+                with ST.mem:
+                    seen = ST.taint_from.get(session)
+                if seen is None:                            # suspended earlier (another process, before a restart):
+                    with _locked():                         # that first call is unknown here, but it counts
+                        earlier = not first or store_().is_tainted(session)
+                    seen = ["?"] if earlier and not first else []
+                with ST.mem:
+                    _remember(ST.taint_from, session, (seen + [label])[-20:])
+            except Exception:
+                log.debug("tenure: the source of a suspension could not be named", exc_info=True)
             if first and settings().get("start") == "trusted":
                 _announce(tr("notice.suspended"))           # said once: the asks that follow stay short
         call = str(tool_call_id or "")

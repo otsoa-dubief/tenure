@@ -392,5 +392,9 @@
     "other": "{n} actions « agit puis prévient » encore ouvertes : {command} les liste."
   },
   "ask.always": "« Toujours » ne se reporte pas : tenure décide lui-même de l'appel suivant.",
-  "ask.why.suspended_from": "(Suspendue par : {source}.)"
+  "ask.why.suspended_from": "(Suspendue par : {source}.)",
+  "ask.why.suspended_more": {
+    "one": "{source} (et {n} avant)",
+    "other": "{source} (et {n} avant)"
+  }
 }

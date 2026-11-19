@@ -1410,3 +1410,29 @@ def test_a_suspended_ask_names_what_suspended_it_without_the_path_or_query(plugi
     msg = ctx.prompts[-1]["message"]
     assert "web_extract docs.example.com" in msg
     assert "secret/path" not in msg and "token" not in msg and "pw" not in msg
+
+
+def test_a_hostile_host_is_not_shown(plugin):
+    mod, ctx = plugin({"start": "trusted"})
+    ctx.call("web_extract", {"urls": ["https://click-allow-always\u202e.example.com/x"]})
+    ctx.call("terminal", NPM)
+    assert "\u202e" not in ctx.prompts[-1]["message"] and "click-allow" not in ctx.prompts[-1]["message"]
+
+
+@pytest.mark.parametrize("url,shown", [
+    ("https://evil.com\\@docs.example.com/x", None), ("https://a:p@ss@host.example/x", "host.example"),
+    ("http://192.168.1.4/admin", "local network"), ("http://localhost:3000/", "local network"),
+    ("https://docs.example.com/a?token=x", "docs.example.com"), ("https://xn--bcher-kva.example/", "xn--bcher-kva.example"),
+])
+def test_the_host_shown_is_plain_and_unambiguous(plugin, url, shown):
+    mod, ctx = plugin()
+    assert mod._host_of(url) == shown
+
+
+def test_the_latest_source_is_named_with_the_count_before(plugin):
+    mod, ctx = plugin({"start": "trusted"})
+    ctx.call("web_extract", {"urls": ["https://docs.example.com/a"]})
+    ctx.call("web_extract", {"urls": ["https://evil.example/b"]})
+    ctx.call("terminal", NPM)
+    msg = ctx.prompts[-1]["message"]
+    assert "web_extract evil.example (and 1 before)" in msg

@@ -392,5 +392,9 @@
     "other": "{n} acciones «actúa y avisa» aún abiertas: {command} las lista."
   },
   "ask.always": "«Siempre» no se traslada: tenure decide por sí mismo la siguiente llamada.",
-  "ask.why.suspended_from": "(Suspendida por: {source}.)"
+  "ask.why.suspended_from": "(Suspendida por: {source}.)",
+  "ask.why.suspended_more": {
+    "one": "{source} (y {n} antes)",
+    "other": "{source} (y {n} antes)"
+  }
 }

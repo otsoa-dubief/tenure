@@ -23,7 +23,7 @@ record later: only your latest one counts.
   "format": "tenure-community/1",
   "date": "2026-11-11",
   "tenure": "1.0.0",
-  "rule": "study-rule-B/1",
+  "rule": "study-rule-B/2",
   "preset": "balanced",
   "risks": {"low": 0.02, "medium": 0.01, "high": null},
   "rows": [
@@ -91,9 +91,9 @@ than 20 verified outcomes on a family is listed apart, unranked.
 - **Different settings, different work.** Contributors use different presets, projects and habits; a fault rate
   pooled across them says how a model did on their work, not how it will do on yours.
 - **Families are coarse.** `shell:npm:run` pools every npm script; `mcp` pools every MCP server.
-- **Who gets checked is not random.** Under the trusted start, a kind of action earns nothing until its first
-  mistake: the kinds that pile up verified outcomes are the ones that once failed. Their pooled fault rate is a
-  rate among kinds that already slipped once, not among all of a model's work.
-- **Rules change.** Records made under rule B/1 counted 24 hours without an undo as a check; from rule B/2 (Tenure
-  1.3) only an approval, a spot check or an action the owner named as checked counts. Compare records of the same
-  rule: each record carries the rule it was made with.
+- **Unchecked successes are counted.** Under the trusted start, a kind of action counts each clean action as a
+  success though no one looked at it (it earns no tier, but the count is published). Those successes pull a pooled
+  fault rate down, and a record does not say which start it was made with. Read low rates with that in mind.
+- **Rules change.** From rule B/2 (Tenure 1.3), an act-then-tell success earned on probation counts only when the
+  owner names it as checked; under B/1 it counted after 24 hours without an undo. Each record carries the rule it
+  was made with, but the board pools them: compare records of the same rule.
