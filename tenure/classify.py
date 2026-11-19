@@ -5336,7 +5336,7 @@ _ADD_VERBS = {"npm": {"install", "i", "add", "isntall", "in", "ins", "inst", "in
               "pnpm": {"add", "install", "i"}, "yarn": {"add"}, "bun": {"add", "install", "i"},
               "pip": {"install"}, "pip3": {"install"}, "uv": {"add"}, "poetry": {"add"}, "cargo": {"add", "install"},
               "go": {"get", "install"}, "gem": {"install"}, "composer": {"require"}}
-_OPTS_WITH_VALUE = {"-r", "--requirement", "-c", "--constraint", "-e", "--editable", "-t", "--target", "-i",
+_OPTS_WITH_VALUE = {"-r", "--requirement", "-c", "--constraint", "-t", "--target", "-i",
                     "--index-url", "--extra-index-url", "-f", "--find-links", "--prefix", "--root", "-w", "--workspace",
                     "--filter", "--registry", "--cwd", "-C", "--dir", "--python", "-p", "--group", "--path"}
 # Files that run when a tool runs, not only when they are opened: writing one is writing code.
@@ -5348,11 +5348,16 @@ EXEC_SUFFIXES = (".sh", ".bash", ".zsh", ".mk", ".ps1", ".bat", ".cmd")
 EXEC_DIRS = (".github/workflows/", ".husky/", ".git/hooks/", ".circleci/")
 
 
-def _segments(command: str) -> list[list[str]]:
-    """The simple commands of a command line, as words, with leading VAR=value assignments dropped. [] when it does
-    not parse."""
+_PREFIXES = {"env", "command", "builtin", "time", "nohup", "exec", "nice", "ionice", "stdbuf", "xargs", "timeout",
+             "caffeinate", "chronic", "unbuffer"}
+
+
+def _segments(command: str, depth: int = 0) -> list[list[str]]:
+    """The simple commands of a command line, as words: one per line and per `;`, `&&`, `||`, `|`, `&`; grouping
+    parentheses and braces taken off; leading VAR=value assignments and wrappers (`env`, `time`, `xargs`, `nohup`...)
+    dropped; the code of `sh -c "..."` read as commands too. [] when it does not parse."""
     try:
-        lex = shlex.shlex(command, posix=True, punctuation_chars=";&|")
+        lex = shlex.shlex(command.replace("\r", "\n").replace("\n", " ; "), posix=True, punctuation_chars=";&|()")
         lex.whitespace_split = True
         lex.commenters = ""
         toks = list(lex)
@@ -5360,12 +5365,22 @@ def _segments(command: str) -> list[list[str]]:
         return []
     out, cur = [], []
     for t in toks + [";"]:
-        if t and set(t) <= set(";&|\n"):
+        if t and set(t) <= set(";&|()"):
+            wrapped = False
+            while cur and (re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", cur[0]) or cur[0] in ("{", "}", "!")
+                           or os.path.basename(cur[0]) in _PREFIXES
+                           or wrapped and (cur[0].startswith("-") or re.fullmatch(r"\d+(\.\d+)?[smhd]?", cur[0]))):
+                wrapped = wrapped or os.path.basename(cur[0]) in _PREFIXES   # its options and duration go too
+                cur = cur[1:]
+            while cur and cur[-1] == "}":
+                cur = cur[:-1]
             if cur:
-                while cur and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", cur[0]):
-                    cur = cur[1:]
-                if cur:
-                    out.append(cur)
+                prog = os.path.basename(cur[0])
+                if prog in SHELLS and "-c" in cur[1:] and depth < 3:
+                    i = cur.index("-c", 1)
+                    if i + 1 < len(cur):
+                        out.extend(_segments(cur[i + 1], depth + 1))
+                out.append(cur)
             cur = []
         else:
             cur.append(t)
@@ -5373,8 +5388,11 @@ def _segments(command: str) -> list[list[str]]:
 
 
 def _local_spec(arg: str) -> bool:
-    """A package spec that names a local path, not a registry package."""
-    return arg in (".", "..") or arg.startswith(("./", "../", "/", "~", "file:")) or arg.endswith((".whl", ".tgz"))
+    """A package spec that names a local path, not a registry package: never a URL or a VCS spec (`git+https://`,
+    `github:user/repo`, `https://.../x.tgz`)."""
+    if "://" in arg or arg.startswith(("git+", "github:", "gitlab:", "bitbucket:", "git@")) or "@http" in arg:
+        return False
+    return arg in (".", "..") or arg.startswith(("./", "../", "/", "~", "file:"))
 
 
 def adds_dependency(command: str) -> str | None:
@@ -5388,14 +5406,28 @@ def adds_dependency(command: str) -> str | None:
             prog, rest = "pip", rest[2:]
         if prog == "uv" and rest[:1] == ["pip"]:
             prog, rest = "pip", rest[1:]
-        if prog not in _ADD_VERBS or not rest or rest[0] not in _ADD_VERBS[prog]:
+        if prog not in _ADD_VERBS:
             continue
+        i = 0                                                    # options before the verb: npm -g install x
+        while i < len(rest) and (rest[i].startswith("-") or rest[i] == "global"):
+            i += 2 if rest[i] in _OPTS_WITH_VALUE or rest[i] in ("--prefix", "-C", "--cwd") else 1
+        if i >= len(rest) or rest[i] not in _ADD_VERBS[prog]:
+            continue
+        rest = rest[i:]
+        if any(a.startswith(("-r", "--requirement")) and "://" in a for a in rest) or any(
+                rest[j] in ("-r", "--requirement", "-c", "--constraint") and j + 1 < len(rest) and "://" in rest[j + 1]
+                for j in range(len(rest))):
+            return prog                                          # requirements fetched from a URL
         args, skip = [], False
         for a in rest[1:]:
             if skip:
                 skip = False
             elif a in _OPTS_WITH_VALUE:
                 skip = True
+            elif a.startswith(("--editable=", "-e")) and len(a) > 2 and a not in ("-e",):
+                args.append(a.split("=", 1)[1] if "=" in a else a[2:])     # -e<spec>, --editable=<spec>
+            elif a in ("-e", "--editable"):
+                continue                                         # its spec is the next word, read as a package
             elif not a.startswith("-"):
                 args.append(a)
         if any(not _local_spec(a) for a in args):
@@ -5411,26 +5443,58 @@ def scripts_run(command: str, cwd: str | None) -> list[str]:
     out = []
 
     def add(p):
-        out.append(os.path.normpath(os.path.join(base, os.path.expanduser(p))))
+        if p:
+            out.append(os.path.normpath(os.path.join(base, os.path.expanduser(p))))
 
     for words in _segments(command):
         prog = os.path.basename(words[0])
         rest = words[1:]
-        if "/" in words[0] and prog not in SHELLS and prog not in INTERPRETERS:
+        if prog == "cd":                                         # `cd sub && python x.py`: x.py is in sub
+            base = os.path.normpath(os.path.join(base, os.path.expanduser(rest[0]))) if rest else base
+        elif prog in ("source", "."):
+            add(rest[0] if rest else "")
+        elif "/" in words[0] and prog not in SHELLS and prog not in INTERPRETERS:
             add(words[0])                                        # ./run.sh, scripts/x.py
         elif prog in SHELLS or prog in INTERPRETERS or re.fullmatch(r"python\d(\.\d+)?", prog):
             inline = {"-c"} if prog in SHELLS else INLINE_FLAGS  # `sh -e x.sh`: -e is errexit for a shell
-            for a in rest:
+            it = iter(rest)
+            for a in it:
+                if prog in ("node", "nodejs", "bun") and a in ("-r", "--require", "--import", "--loader",
+                                                               "--experimental-loader"):
+                    add(next(it, ""))                            # node -r ./hook.js preloads a file of the project
+                    continue
                 if a in inline or a in ("-m", "-"):
                     break                                        # inline code or a module: no file of the project
-                if not a.startswith("-"):
+                if a in ("-W", "-X", "--check-hash-based-pycs", "-I"):
+                    next(it, None) if a != "-I" else None        # python -W ignore x.py: the value is not the script
+                elif not a.startswith("-"):
                     add(a)
                     break
         elif prog in ("npm", "pnpm", "yarn", "bun") and rest[:1] and rest[0] in ("run", "test", "start", "t",
                                                                                  "run-script", "exec"):
             add("package.json")
+        elif prog in ("npm", "pnpm", "yarn", "bun") and (not rest or rest[0] in ("install", "i", "ci", "add")) \
+                and not adds_dependency(" ".join(shlex.quote(w) for w in words)):
+            add("package.json")                                  # installs what the manifest names: its scripts run
+        elif prog in ("pip", "pip3", "uv") and "install" in rest[:2] or prog in ("uv", "poetry") and rest[:1] in (
+                ["sync"], ["install"]):
+            it = iter(rest)
+            for a in it:
+                if a in ("-r", "--requirement"):
+                    add(next(it, ""))
+                elif a.startswith("--requirement="):
+                    add(a.split("=", 1)[1])
+                elif a in (".", "./") or a in ("-e", "--editable") or prog == "poetry" or rest[:1] == ["sync"]:
+                    for f in ("setup.py", "pyproject.toml", "setup.cfg"):
+                        add(f)
+                    break
         elif prog in ("make", "gmake"):
-            add("Makefile")
+            if "-f" in rest and rest.index("-f") + 1 < len(rest):
+                add(rest[rest.index("-f") + 1])
+            elif "-C" in rest and rest.index("-C") + 1 < len(rest):
+                add(os.path.join(rest[rest.index("-C") + 1], "Makefile"))
+            else:
+                add("Makefile")
         elif prog == "just":
             add("justfile")
     return out
@@ -5441,4 +5505,8 @@ def runs_on_execution(path: str) -> bool:
     p = path.replace("\\", "/")
     name = p.rsplit("/", 1)[-1].lower()
     return (name in EXEC_NAMES or name.endswith(EXEC_SUFFIXES) or any(d in p for d in EXEC_DIRS)
-            or (name.startswith("conftest") and name.endswith(".py")))
+            or (name.startswith("conftest") and name.endswith(".py")) or name in ("requirements.txt",
+                                                                                 "sitecustomize.py", "usercustomize.py")
+            or name.endswith(".pth") or name in ("cargo.toml", "build.rs", "docker-compose.yml", "docker-compose.yaml")
+            or name.startswith("dockerfile") or re.search(r"\.config\.[cm]?[jt]s$", name) is not None
+            or any(d in p for d in ("node_modules/", ".venv/", "venv/")))
