@@ -161,3 +161,16 @@ def test_a_reader_opened_before_the_column_sees_it_later(tmp_path):
     with writer.transaction():
         writer.add_recent("s", "a", "t", at=time.time(), flagged=False, undo_id=None, call="c")
     assert [r["call"] for r in reader.recent_by_call("s", "c")] == ["c"]
+
+
+def test_a_doubt_is_asked_even_after_allow_for_this_session(plugin):
+    """A session-wide grant must not swallow the question a doubt asks for: the doubted ask has its own key."""
+    from test_trust import TRUST
+    mod, ctx = plugin(TRUST)
+    py = lambda i: {"command": f"python -c 'print({i})'"}                      # noqa: E731
+    assert ctx.call("terminal", py(1), answer="session") == "approved"
+    assert ctx.call("terminal", py(2)) == "ran"                                  # Hermes' session grant
+    mod.cli.report("doubt", n=last(mod)["n"])
+    assert ctx.call("terminal", py(3)) == "approved"                             # asked again, despite the grant
+    assert not mod.store_().doubted(A, "shell:python:inline")
+    assert ctx.call("terminal", py(4)) == "ran"                                  # the grant holds again
