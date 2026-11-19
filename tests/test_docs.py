@@ -55,7 +55,7 @@ def test_readme_references_real_files_and_commands():
 
 
 def test_manifest():
-    assert "\nversion: 1.1.1\n" in MANIFEST
+    assert "\nversion: 1.1.2\n" in MANIFEST
     assert '\nrequires_hermes: ">=0.23.0"\n' in MANIFEST
     assert "tamper-proof" not in MANIFEST.lower()
     assert (ROOT / "tenure" / "dashboard" / "manifest.json").exists()      # the dashboard is declared there
