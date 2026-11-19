@@ -301,7 +301,7 @@ def _entries(states: dict[str, rule.TypeState], cfg: dict | None, redact: bool,
             raise ValueError(f"two types redact to {name}")
         out[name] = {"type": name, "stakes": s.stakes, "tier": s.tier,
                      "effective_tier": rule.effective_tier(s, n, s.stakes), "series": s.series,
-                     "required": None if n is None else rule.required(s, n), "sessions": len(s.sessions),
+                     "required": None if n is None else rule.required(s, n), "sessions": len(rule.session_counts(s)),
                      "provisional": s.provisional, "guarantee": rule.guarantee(s, n, spot),
                      # covered by the trusted start, not earned (an earned T3 is shown as T3)
                      "trusted": (rule.trusted(s, n, (cfg or {}).get("start"))

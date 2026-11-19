@@ -432,8 +432,8 @@ def _migrate_b2(st: store.Store) -> None:
         return
     try:
         replayed, _ = passport._replay(st.ledger())
-    except Exception:                                   # a ledger that does not replay: states stay, runs empty,
-        log.warning("tenure: records kept as they are for rule B/2 (the ledger does not replay)")   # so T3 asks
+    except Exception:                                   # a ledger that does not replay: states stay as they are,
+        log.warning("tenure: records kept as they are for rule B/2 (the ledger does not replay)")   # T3 included
         st.set_meta("rule:b2", "1")
         return
     for (agent, key), s in replayed.items():
@@ -532,6 +532,7 @@ def _touch(session: str, paths) -> None:
     real = {proofs._real(p) for p in paths or []}
     if not real:
         return
+    session = store.Store.roots.get(session) or session     # a subagent's files are its root conversation's
     with ST.mem:
         seen = ST.touched.get(session) or set()
         if len(seen) < 10_000:
@@ -540,6 +541,7 @@ def _touch(session: str, paths) -> None:
 
 
 def _touched(session: str) -> frozenset:
+    session = store.Store.roots.get(session) or session
     with ST.mem:
         return frozenset(ST.touched.get(session) or ())
 
@@ -753,7 +755,8 @@ def _ids(ids: list[int]) -> str:
 def _with_ok(text: str, ids: list[int]) -> str:
     """The "seen and fine?" hint, naming the actions' numbers, before the undo command, which stays last."""
     i = text.rfind(" · ")
-    hint = tr("settle.acted_ok", command="/tenure ok " + " ".join(map(str, ids)))
+    hint = (tr("settle.acted_ok", command=f"/tenure ok {ids[0]}") if len(ids) == 1   # one gesture per action:
+            else tr("settle.acted_ok_each", command="/tenure ok"))              # never a ready-made list to paste
     return text + " · " + hint if i < 0 else text[:i] + " · " + hint + text[i:]
 
 
@@ -1003,8 +1006,8 @@ def seen(st: store.Store, undo_ids: list[int]) -> str:
     cfg = settings()
     done: list[dict] = []
     events = _see(st, cfg, rows, done)
-    if not done:
-        raise ValueError(tr("cli.ok.none"))
+    if not done:                                    # they expired now (a later fault...): say so, it is recorded
+        return tr("cli.ok.expired", which=", ".join(str(r["undo_id"]) for r in rows))
     marked = ", ".join(f"{r['undo_id']} ({r['type']})" for r in done)
     return "\n\n".join([tr("cli.ok.done", n=len(done), which=marked)] + _say(events, cfg["spot"]))
 
@@ -1280,7 +1283,7 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
         why = tr("ask.why.climb", type=act.type, stakes=stakes, n=_to_t2(s))   # the next step, not the far one
     else:
         why = tr("ask.why.series", type=act.type, stakes=stakes, series=s.series, required=rule.required(s, n),
-                 sessions=len(s.sessions), needed=rule.sessions_needed(s.stakes))
+                 sessions=len(rule.session_counts(s)), needed=rule.sessions_needed(s.stakes))
         if s.provisional:
             why += " " + tr("ask.why.provisional", n=s.provisional)
     if per_session:
@@ -1339,12 +1342,12 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     spot = phase == "approved" and p["decision"] == rule.SPOT
     if blocked:                                             # never ran
         result_source = ("neutral", "blocked" if decided else "nobody")
+    elif reason:                                            # a file it broke, even if the call then failed
+        result_source = ("fault", "spot" if spot else "check")
     elif failed:
         result_source = ("neutral", "error" if decided else "nobody")
     elif launched:
         result_source = ("neutral", "background")
-    elif reason:
-        result_source = ("fault", "spot" if spot else "check")
     elif unjudged:                                          # a file broken before is still broken: proves nothing
         result_source = ("neutral", "ambiguous")
     elif phase == "approved":
@@ -1488,9 +1491,11 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             only_fresh = bool(fresh) and not exec_files and decision != rule.ASK   # it would not have asked otherwise
             if fresh or exec_files:
                 decision = rule.ASK
+            with ST.mem:                                    # a reused call id never carries an older script
                 if fresh:
-                    with ST.mem:
-                        _remember(ST.fresh, (session, call), fresh)
+                    _remember(ST.fresh, (session, call), fresh)
+                else:
+                    ST.fresh.pop((session, call), None)
             watched = decision == rule.WATCH
             if watched:                                     # files saved: act then tell, with an undo; else run alone
                 files = bool(snap) or bool(classify.files_written(tool, args, cwd))
@@ -1597,6 +1602,8 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
                 st.forget_written(ran)                      # approved once: it runs without asking until rewritten
             else:
                 st.pop_pending(p["id"])
+                with ST.mem:                                # refused or unanswered: its fresh scripts stay fresh
+                    ST.fresh.pop((p["session"], p["call"]), None)
                 posts += _say(sync_settings(st, cfg), cfg["spot"])
                 if verdict == "refused":
                     result, source = "fault", ("spot" if p["decision"] == rule.SPOT else "refusal")
@@ -1675,7 +1682,7 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         failed = not blocked and proofs.execution(tool, status, error_type, result) == "failed"
         launched = not blocked and not failed and _background(tool, args, result)
         reason, paths, unjudged = None, [], False
-        if not blocked and not failed and not launched:
+        if not blocked and not launched:    # a failed call is judged too: "...; false" never hides a broken file
             paths = classify.files_written(tool, args, cwd)
             reason, unjudged = proofs.judge_files(paths, before) if paths else (None, False)
         cfg = settings()
