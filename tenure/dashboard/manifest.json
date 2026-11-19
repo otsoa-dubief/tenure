@@ -3,7 +3,7 @@
   "label": "Tenure",
   "description": "What each agent has earned, per action type: tiers, personal benchmark per model, model-switch preview, passport",
   "icon": "Shield",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "tab": {
     "path": "/tenure",
     "position": "after:skills"
