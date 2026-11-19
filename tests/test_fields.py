@@ -260,6 +260,9 @@ from tenure import classify as _C
     ("docker run -e DB_PASSWORD=pw555 img", "DB_PASSWORD=•••", "pw555"),
     ("curl -u alice:s3cret https://h", "alice:•••", "s3cret"),
     ("git clone https://me:tok42@github.com/a/b", "https://•••@github.com/a/b", "tok42"),
+    ('curl -H"Authorization: Bearer gl1" h', '-H"Authorization: •••"', "gl1"),
+    ("curl --header='Cookie: sid=gl2' h", "--header='Cookie: •••'", "gl2"),
+    ('curl -H "Authorization: Bearer q1\\"; x" h', '"Authorization: •••"', "q1"),
 ])
 def test_mask_command_hides_typed_secrets(cmd, shown, hidden):
     out = F.mask_command(cmd)
@@ -272,6 +275,10 @@ def test_mask_command_hides_typed_secrets(cmd, shown, hidden):
     'curl -H "Authorization: Bearer $TOKEN" https://h',      # an expansion: the approver must see it
     "TOKEN=$(cat f) cmd",
     "KEY=`cat f` cmd",
+    "TOKEN='a'$(id) cmd",                                    # several quoted segments: the code stays visible
+    "curl -H 'Authorization: x'$(id)'y' h",
+    "TOKEN='a'\"$(id)\" cmd",
+    'curl -H "Authorization: x"$(id)"y" h',
     'curl "https://h/?q=1&api_key=k"',                       # query values stay (often the target)
     "git push origin main",
     "echo password",
