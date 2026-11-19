@@ -405,7 +405,7 @@ def test_recent_added_without_touching_ledger(tmp_path):
     assert store.verify(after) == [] and [r["hash"] for r in after] == [r["hash"] for r in before]
     assert not [f for f in os.listdir(tmp_path) if ".bak-" in f]                 # nothing dropped, nothing copied
     cols = [r[1] for r in s.db.execute("PRAGMA table_info(recent)")]
-    assert cols == ["n", "session", "agent", "type", "at", "flagged", "undo_id"]
+    assert cols == ["n", "session", "agent", "type", "at", "flagged", "undo_id", "call"]
     indexed = {r[0] for r in s.db.execute("SELECT sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'recent'")}
     assert any("(session)" in q for q in indexed) and any("(at)" in q for q in indexed)
 
@@ -515,7 +515,7 @@ def test_open_readonly_reads_recent(tmp_path):
         n = w.add_recent("s", A, "file:write", at=time.time(), flagged=True, undo_id=4)
     r = store.Store.open_readonly(path)
     assert r.recent(n) == {"n": n, "session": "s", "agent": A, "type": "file:write", "at": r.recent(n)["at"],
-                           "flagged": True, "undo_id": 4}
+                           "flagged": True, "undo_id": 4, "call": None}
 
 
 def test_a_recreated_old_schema_has_recent(tmp_path):

@@ -153,6 +153,9 @@
     "other": "{n} other actions in this profile: hermes tenure flag"
   },
   "cli.flag.unknown_type": "No record of {type} for {agent}. Types: {types}.",
+  "cli.report.call_unknown": "No action with call id {call} in this session in the last {hours} hours: nothing recorded.",
+  "cli.report.call_ambiguous": "Call id {call} names several actions of this session ({numbers}): nothing recorded. Use the number instead.",
+  "cli.report.doubt_done": "tenure: doubt on action {n} ({type}, {agent}): the next action of this kind asks first.",
   "cli.list.joiner": "; ",
   "cli.list.separator": ", ",
   "cli.models.few": {

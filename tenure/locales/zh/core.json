@@ -133,6 +133,9 @@
     "other": "本配置文件中还有 {n} 个其他操作：hermes tenure flag"
   },
   "cli.flag.unknown_type": "{agent} 没有 {type} 的记录。类型：{types}。",
+  "cli.report.call_unknown": "过去 {hours} 小时内，本会话中没有调用 ID 为 {call} 的操作：未记录任何内容。",
+  "cli.report.call_ambiguous": "调用 ID {call} 对应本会话中的多个操作（{numbers}）：未记录任何内容。请改用编号。",
+  "cli.report.doubt_done": "tenure：对操作 {n}（{type}，{agent}）存疑：此类操作的下一次将先询问。",
   "cli.list.joiner": "；",
   "cli.list.separator": "、",
   "cli.models.few": {

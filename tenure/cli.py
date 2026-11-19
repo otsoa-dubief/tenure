@@ -9,6 +9,8 @@
     undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list
     flag [N]                                   alone, the last numbered actions; with a number, report that action as an error
     flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked
+    flag --call ID --session ID [--doubt]      a verifier: a fault (or, with --doubt, the next one asks) on one action
+    flag N --doubt                             a verifier's doubt on numbered action N
     revoke TYPE|all [--model M | --all]        take earned autonomy back without an error
     passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)
     card [--model M] [--no-redact]             the passport as a short text card to paste in a chat or a post
@@ -359,20 +361,67 @@ def flag_action(n: int, note: str = "") -> str:
         r = st.recent(n)
         if r is None:
             raise CliError(tr("cli.flag.action_unknown", n=n, hours=store.RECENT_WINDOW // 3600))
-        if r["flagged"]:
-            raise CliError(tr("cli.flag.action_already", n=n))
-        agent, type_key = r["agent"], r["type"]
-        recorded = st.recorded(agent, type_key)
-        stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
-        core.sync_settings(st, cfg)
-        core.record_outcome(st, cfg, agent=agent, type_key=type_key, stakes=stakes, reversible=reversible,
-                            result="fault", source="flag")
-        st.bump(agent, "faults")
-        st.mark_flagged(n)
-        if r["undo_id"] is not None:
-            st.mark_undo_fault(r["undo_id"])                # the undo that may follow counts no second fault
-        s = st.get_state(agent, type_key, stakes, reversible)
-    return tr("cli.flag.action_done", n=n, type=type_key, agent=agent, tier=tier_name(s.tier))
+        s = _fault_on(core, st, cfg, r)
+    return tr("cli.flag.action_done", n=n, type=r["type"], agent=r["agent"], tier=tier_name(s.tier))
+
+
+def _fault_on(core, st, cfg, r: dict):
+    """A fault on one numbered action, by the path of ``flag``: the source ``flag`` is not in ``store.COUNTED``, so
+    the wait after a failed trial does not count the action a second time. Refused when it already counted as a fault."""
+    if r["flagged"]:
+        raise CliError(tr("cli.flag.action_already", n=r["n"]))
+    agent, type_key = r["agent"], r["type"]
+    recorded = st.recorded(agent, type_key)
+    stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
+    core.sync_settings(st, cfg)
+    core.record_outcome(st, cfg, agent=agent, type_key=type_key, stakes=stakes, reversible=reversible,
+                        result="fault", source="flag")
+    st.bump(agent, "faults")
+    st.mark_flagged(r["n"])
+    if r["undo_id"] is not None:
+        st.mark_undo_fault(r["undo_id"])                    # the undo that may follow counts no second fault
+    return st.get_state(agent, type_key, stakes, reversible)
+
+
+VERDICTS = ("fault", "doubt")
+
+
+def report(verdict: str, *, n: int | None = None, session: str | None = None, call: str | None = None) -> str:
+    """A verifier's verdict on one action that already ran (#6): a deterministic check of the owner's (a test, a
+    business rule, a nightly reconciliation) reports ``fault`` or ``doubt``, never a success.
+
+    - ``fault`` counts as a fault on the action's kind and model, exactly like ``/tenure flag <number>``: once per
+      action, never twice in the wait after a failed trial, no new ledger event.
+    - ``doubt`` records nothing in the ledger: the next action of that kind, for that model, asks first.
+
+    Name the action by its number (``n``, from ``/tenure flag``) or by Hermes' ``session`` id and tool ``call`` id
+    (both raw, as Hermes hands them to hooks). Actions are kept 24 hours. Returns the message for the owner; raises
+    ``CliError`` (nothing written) when the action is unknown, ambiguous or already counted as a fault."""
+    if verdict not in VERDICTS:
+        raise ValueError(f"tenure: a verifier reports fault or doubt, not {verdict!r}")
+    if (n is None) == (session is None and call is None) or (n is None and not (session and call)):
+        raise ValueError("tenure: name the action by n, or by session and call together")
+    core = _core()
+    cfg = core.settings()
+    hours = store.RECENT_WINDOW // 3600
+    with core.txn() as st:
+        if n is not None:
+            r = st.recent(int(n))
+            if r is None:
+                raise CliError(tr("cli.flag.action_unknown", n=n, hours=hours))
+        else:
+            rows = st.recent_by_call(core.anon(session), core.anon(call))
+            if not rows:
+                raise CliError(tr("cli.report.call_unknown", call=str(call)[:40], hours=hours))
+            if len(rows) > 1:
+                raise CliError(tr("cli.report.call_ambiguous", call=str(call)[:40],
+                                  numbers=_join([str(x["n"]) for x in rows])))
+            r = rows[0]
+        if verdict == "fault":
+            s = _fault_on(core, st, cfg, r)
+            return tr("cli.flag.action_done", n=r["n"], type=r["type"], agent=r["agent"], tier=tier_name(s.tier))
+        st.add_doubt(r["agent"], r["type"])
+    return tr("cli.report.doubt_done", n=r["n"], type=r["type"], agent=r["agent"])
 
 
 def flag_list(session: str | None, command: str = "hermes tenure flag") -> str:
@@ -721,6 +770,10 @@ def _add_subcommands(subparser) -> None:
     p.add_argument("type", nargs="?", help="an action type, or an action's number; without it, the last actions")
     p.add_argument("note", nargs="*")
     p.add_argument("--model", help="Start of an agent string (default: the last active agent); not with a number")
+    p.add_argument("--call", help="A verifier: the tool call id of the action (with --session)")
+    p.add_argument("--session", help="A verifier: the Hermes session id of the action (with --call)")
+    p.add_argument("--doubt", action="store_true",
+                   help="A verifier's doubt instead of a fault: the next action of that kind asks first")
     p = subs.add_parser("revoke", help="Take earned autonomy back (a type, or all)")
     p.add_argument("type")
     g = p.add_mutually_exclusive_group()
@@ -773,6 +826,17 @@ def execute(ns) -> tuple[str, int]:
             return text, 0 if text.ok else 1
         if cmd == "flag":
             what, note = g("type"), " ".join(g("note") or [])
+            if g("call") or g("session") or g("doubt"):          # a verifier (#6): by call id, or a doubt
+                if g("model") or note:
+                    return _usage(), 1
+                verdict = "doubt" if g("doubt") else "fault"
+                if g("call") or g("session"):
+                    if what is not None or not (g("call") and g("session")):
+                        return _usage(), 1
+                    return report(verdict, session=g("session"), call=g("call")), 0
+                if what is None or not re.fullmatch(r"[0-9]{1,18}", what):
+                    return _usage(), 1
+                return report(verdict, n=int(what)), 0
             if what is None:
                 if g("model"):
                     return _usage(), 1

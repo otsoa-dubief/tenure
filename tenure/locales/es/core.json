@@ -154,6 +154,9 @@
     "other": "{n} acciones más en este perfil: hermes tenure flag"
   },
   "cli.flag.unknown_type": "No hay historial de {type} para {agent}. Tipos: {types}.",
+  "cli.report.call_unknown": "Ninguna acción con el identificador de llamada {call} en esta sesión en las últimas {hours} horas: no se registra nada.",
+  "cli.report.call_ambiguous": "El identificador de llamada {call} designa varias acciones de esta sesión ({numbers}): no se registra nada. Use el número.",
+  "cli.report.doubt_done": "tenure: duda sobre la acción {n} ({type}, {agent}): la próxima acción de este tipo preguntará primero.",
   "cli.list.joiner": "; ",
   "cli.list.separator": ", ",
   "cli.models.few": {

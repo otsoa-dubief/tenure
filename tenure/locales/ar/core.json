@@ -233,6 +233,9 @@
     "other": "{n} إجراء آخر في هذا الملف الشخصي: hermes tenure flag"
   },
   "cli.flag.unknown_type": "لا سجل لـ {type} لدى {agent}. الأنواع: {types}.",
+  "cli.report.call_unknown": "لا يوجد إجراء بمعرّف الاستدعاء {call} في هذه الجلسة خلال آخر {hours} ساعة: لم يُسجَّل شيء.",
+  "cli.report.call_ambiguous": "معرّف الاستدعاء {call} يشير إلى عدة إجراءات في هذه الجلسة ({numbers}): لم يُسجَّل شيء. استخدم الرقم بدلًا منه.",
+  "cli.report.doubt_done": "tenure: شك في الإجراء {n} ({type}، {agent}): الإجراء التالي من هذا النوع سيسأل أولًا.",
   "cli.list.joiner": "؛ ",
   "cli.list.separator": "، ",
   "cli.models.few": {
