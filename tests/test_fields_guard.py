@@ -16,7 +16,7 @@ def seed(mod, key, stakes="medium", **kw):
 
 
 P, F_ = "mcp:crm:update_contact", "mcp:crm:update_contact:@finance"
-T3 = dict(tier=rule.T3, series=300, sessions=["a", "b"])
+T3 = dict(tier=rule.T3, series=300, sessions=["a", "b", "c"])          # rule B/2: 3 sessions at medium stakes
 CAREFUL = {"preset": "careful", "fields": {"stakes": {"finance": "medium"}}}
 FAST5 = {"risks": {"medium": 0.2}, "fields": {"stakes": {"finance": "medium"}}}
 
@@ -88,8 +88,8 @@ def test_no_session_answer_for_a_category(plugin):
 
 def test_earned_notes_never_open_finance(plugin):
     mod, ctx = plugin(FAST5)
-    for s in ("s1", "s2"):
-        for _ in range(4):
+    for _ in range(4):                                              # rule B/2: 3 sessions at medium stakes,
+        for s in ("s1", "s2", "s3"):                                # none over half of the series
             ctx.call("mcp__crm__update_contact", {"notes": "x"}, session=s)
     assert ctx.call("mcp__crm__update_contact", {"notes": "x"}, session="s2") == "ran"     # the tool has earned
     assert ctx.call("mcp__crm__update_contact", {"iban": "x"}, session="s2") == "approved"

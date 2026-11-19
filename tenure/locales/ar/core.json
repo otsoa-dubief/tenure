@@ -540,5 +540,11 @@
   "cli.excuse.source.refusal": "رفضتَ",
   "cli.excuse.source.undo": "تراجعتَ",
   "cli.excuse.nobody": "لا إعفاء ما دام لا أحد يجيب على الموافقات ({why}): وحده الإنسان يمكنه إعفاء مخالفة.",
-  "cli.excuse.terminal": "الإعفاء يكتبه إنسان: /tenure excuse في المحادثة، أو hermes tenure excuse في طرفية تفاعلية."
+  "cli.excuse.terminal": "الإعفاء يكتبه إنسان: /tenure excuse في المحادثة، أو hermes tenure excuse في طرفية تفاعلية.",
+  "settle.acted_ok": "اطّلعت وكل شيء سليم؟ {command}",
+  "cli.ok.done": "tenure: عُلِّمت {n} من إجراءات «ينفّذ ثم يُخبر» كمُطَّلَع عليها: تُحتسب للعمل باستقلال.",
+  "cli.ok.none": "لا شيء لتعليمه: لا يوجد إجراء «ينفّذ ثم يُخبر» من آخر 24 ساعة ما زال مفتوحًا هنا.",
+  "cli.ok.nobody": "ليس ما دام لا أحد يجيب على الموافقات ({why}): وحده الإنسان يمكنه قول إنه اطّلع على إجراء.",
+  "cli.ok.terminal": "«اطّلعت» يكتبها إنسان: /tenure ok في المحادثة، أو hermes tenure ok N في طرفية تفاعلية.",
+  "cli.ok.number": "في الطرفية، سمِّ الإجراء: hermes tenure ok N (N رقم التراجع في إشعاره)."
 }

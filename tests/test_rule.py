@@ -16,7 +16,7 @@ def state(stakes="low", reversible=False, key=None):
     return rule.TypeState(key=key, stakes=stakes, reversible=reversible)
 
 
-def succeed(s, k, n, sessions=("a", "b"), source="approval"):
+def succeed(s, k, n, sessions=("a", "b", "c"), source="approval"):
     """k verified successes, cycling through the given sessions; returns the events."""
     events = []
     for j in range(k):
@@ -59,19 +59,39 @@ class Rng:
 # --------------------------------------------------------------------------------------------------------------------
 def test_t3_after_n_successes_from_two_sessions():
     s = state("low")
-    for _ in range(52):
-        rule.on_success(s, 52, session="a", source="approval")
-    assert s.tier == rule.T1 and s.series == 52 and s.sessions == ["a"]
+    for j in range(51):
+        rule.on_success(s, 52, session="ab"[j % 2], source="approval")
+    assert s.tier == rule.T1 and s.series == 51
     events = rule.on_success(s, 52, session="b", source="approval")
     assert s.tier == rule.T3 and sorted(s.sessions) == ["a", "b"]
     assert moves(events) == [("tier", rule.T1, rule.T3, "series")]
     assert events[0]["required"] == 52 and events[0]["sessions"] == 2
 
 
+def test_rule_b2_one_session_never_gives_more_than_half():
+    s = state("low")
+    for _ in range(52):
+        rule.on_success(s, 52, session="a", source="approval")
+    rule.on_success(s, 52, session="b", source="approval")      # 51 + 1: one context, not two
+    assert s.tier == rule.T1 and not rule.sessions_met(s)
+    for _ in range(26):
+        rule.on_success(s, 52, session="b", source="approval")
+    assert s.tier == rule.T3                                    # the series is capped at 52: b now gives half
+
+
+def test_rule_b2_medium_stakes_need_three_sessions():
+    s = state("medium")
+    for j in range(MEDIUM):
+        rule.on_success(s, MEDIUM, session="ab"[j % 2], source="approval")
+    assert s.tier == rule.T1 and rule.sessions_needed("medium") == 3
+    succeed(s, 40, MEDIUM, sessions=("c",))
+    assert s.tier == rule.T3
+
+
 def test_series_capped_at_required():
     s = state("medium")
     for j in range(300):
-        rule.on_success(s, MEDIUM, session="ab"[j % 2], source="approval")
+        rule.on_success(s, MEDIUM, session="abc"[j % 3], source="approval")
         assert s.series <= rule.required(s, MEDIUM)
     assert s.series == MEDIUM and s.tier == rule.T3
     # The climb after a medium fault is capped at ceil(1.25 N), and the series goes back under N at T3.
@@ -80,8 +100,8 @@ def test_series_capped_at_required():
     for _ in range(200):
         rule.on_success(s, MEDIUM, session="a", source="approval")
         assert s.series <= rule.required(s, MEDIUM)
-    assert s.series == 132 and s.tier == rule.T1 and s.lengthened
-    rule.on_success(s, MEDIUM, session="b", source="approval")
+    assert s.series == 132 and s.tier == rule.T1 and s.lengthened         # one session: never T3 (rule B/2)
+    succeed(s, 132, MEDIUM, sessions=("b", "c"))
     assert s.tier == rule.T3 and s.series == MEDIUM == rule.required(s, MEDIUM) and not s.lengthened
     succeed(s, 50, MEDIUM)
     assert s.series == MEDIUM
@@ -219,7 +239,7 @@ def test_wait_counts_50_executed_actions_after_the_failed_one():
 def test_any_fault_resets_series_and_sessions(stakes, reversible, n):
     s = state(stakes, reversible)
     succeed(s, 30, n)
-    assert s.series == 30 and sorted(s.sessions) == ["a", "b"]
+    assert s.series == 30 and sorted(s.sessions) == ["a", "b", "c"]
     fault(s, n)
     assert s.series == 0 and s.sessions == []
 
@@ -509,8 +529,8 @@ def test_capped_sessions_never_count_toward_t3():
     succeed(s, 2, None)                                         # sessions "a" and "b", while capped
     succeed(s, HIGH, HIGH, sessions=("c",))                     # then careful preset: 1052, all from session "c"
     assert (s.tier, s.series, s.sessions) == (rule.T1, HIGH, ["c"])
-    succeed(s, 1, HIGH, sessions=("d",))
-    assert s.tier == rule.T3
+    succeed(s, HIGH, HIGH, sessions=("d", "e"))                 # rule B/2: three sessions, none over half
+    assert s.tier == rule.T3 and "a" not in s.sessions and "b" not in s.sessions
     r = state("low", reversible=True)
     succeed(r, 2, None)
     events = succeed(r, LOW, LOW, sessions=("c",))
@@ -617,7 +637,7 @@ def test_effective_tier_is_the_tier_decide_would_act_on():
     for _ in range(40):
         for stakes in ("low", "medium"):
             u = state(stakes, reversible=True)
-            u.tier, u.series, u.sessions = rule.T3, 99, ["a", "b"]
+            u.tier, u.series, u.sessions = rule.T3, 99, ["a", "b", "c"]
             n = random.choice([None, 10, 50, 99])
             decision = rule.decide(u, n, 0.1, suspended=False, rng=random.Random(1))
             eff = rule.effective_tier(u, n, stakes)

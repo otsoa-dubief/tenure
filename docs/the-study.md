@@ -22,9 +22,12 @@ Adaptations:
 - one trial covers the faults that happen during the wait and the inherited faults;
 - evidence is re-based when the stakes of a type change;
 - a trial is the next 3 real actions, asked; the study replays 3 hidden variants of the faulty case.
-- an act-then-tell success (T2) is credited only once its 24-hour undo window closed without an undo, a flag or a
-  later fault on the type: the owner had the whole window to see it. The two sessions are conversations: a
-  subagent's session counts as its parent's;
+- rule B/2 (Tenure 1.3), stricter than the study: an act-then-tell success (T2) counts only when the owner marks it
+  as seen (`/tenure ok`) within its 24-hour undo window; left unread, it is neutral (`unseen`), because silence is
+  not a check (research report "Garantie Tenure et détection humaine", 19/11/2026: with silence counted, about 80 %
+  of the series could be unread and the real AOQ about twice the displayed one). The sessions are conversations (a
+  subagent's counts as its parent's), at least 2 at low stakes and 3 at medium, and none gives more than half of
+  the series: a 51 + 1 split is one context, not two;
 - detection is not perfect: an error counts only when it is caught (your refusal, an undo, a flag, a verifier, or
   the automatic parse check). The parse check tolerates what tools accept (JSON with comments in editor and build
   configs, a byte order mark) and never charges the agent for a file that was broken before its call and that no

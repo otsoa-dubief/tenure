@@ -173,7 +173,13 @@ def post(mod, tool, args, call, status="ok", result='{"success": true}', session
 
 
 def credit_now(mod):
-    """Close every undo window now (audit 19/11, item 4): earned act-then-tell successes are credited only then."""
+    """The owner says "seen, fine" for every open act-then-tell action (rule B/2): only that credits them."""
+    with mod.txn() as st:
+        return mod._see(st, mod.settings(), st.open_credits(0))
+
+
+def silence(mod):
+    """Every undo window closes with nobody saying anything: neutral (rule B/2)."""
     with mod.txn() as st:
         st.db.execute("UPDATE undo SET at = at - 86401")
         return mod._credit_due(st, mod.settings())
@@ -625,12 +631,12 @@ def test_notify_success_adds_an_undo_and_posts(plugin):
     assert pre(mod, "write_file", write("n"), "n1") is None
     snap = row(mod, "n1")["snap_id"]
     post(mod, "write_file", write("n"), "n1")
-    uid = int(re.fullmatch(r"tenure: file:write acted, then told you \(src/n\.py\) · /tenure undo (\d+)", ctx.posted[-1])[1])
+    uid = int(re.fullmatch(r"tenure: file:write acted, then told you \(src/n\.py\) · seen and fine\? /tenure ok · /tenure undo (\d+)", ctx.posted[-1])[1])
     assert mod.store_().get_undo(uid) == {"id": uid, "agent": A, "type": "file:write", "snap_id": snap,
                                           "at": mod.store_().get_undo(uid)["at"], "undone": False, "fault": False}
     assert outcomes(mod)[-1]["source"] != "notify" and state(mod, "file:write").successes == 12   # not yet
     credit_now(mod)
-    assert outcomes(mod)[-1]["source"] == "notify" and state(mod, "file:write").successes == 13
+    assert outcomes(mod)[-1]["source"] == "seen" and state(mod, "file:write").successes == 13
 
 
 def test_alone_is_neutral_and_counted_in_stats(plugin):
@@ -670,17 +676,17 @@ def test_first_settings_are_logged_before_any_outcome(plugin):
     ctx.call("write_file", write("b"))
     rows = ledger(mod)
     assert rows[0] == {"event": "settings", "risks": {"low": 0.25, "medium": 0.2, "high": None}, "spot": 0.1,
-                       "strict": False, "start": "probation", "rule": "study-rule-B/1"}
+                       "strict": False, "start": "probation", "rule": "study-rule-B/2"}
     assert len(ledger(mod, "settings")) == 1
 
 
 def test_settings_change_is_logged_and_reevaluates_every_agent(plugin):
     mod, ctx = plugin(FAST)
-    for s in ("s1", "s1", "s1", "s2", "s2"):
+    for s in ("s1", "s2", "s3", "s1", "s2"):                             # rule B/2: 3 sessions at medium stakes
         ctx.call("terminal", NPM, session=s)
     assert state(mod, "shell:npm").tier == mod.rule.T3
     mod.pre_api_request(model="model-b", provider="nous", session_id="s1")
-    for s in ("s1", "s1", "s2"):
+    for s in ("s1", "s2", "s3"):
         ctx.call("terminal", NPM, session=s)
     assert state(mod, "shell:npm", B).tier == mod.rule.T3
     mod.pre_api_request(model="model-a", provider="nous", session_id="s1")
@@ -761,9 +767,9 @@ def test_full_climb_low_reversible_type(plugin):
     assert state(mod, "file:write").tier == mod.rule.T1
     assert ctx.call("write_file", write("a11")) == "approved"
     assert state(mod, "file:write").tier == mod.rule.T2
-    for i in range(20):
+    for i in range(14):                                                       # rule B/2: no session over half
         assert ctx.call("write_file", write(f"b{i}"), session="s1") == "ran"
-    for i in range(20):
+    for i in range(26):
         assert ctx.call("write_file", write(f"c{i}"), session="s2") == "ran"
     assert (state(mod, "file:write").tier, state(mod, "file:write").series) == (mod.rule.T2, 12)   # none seen yet
     events = credit_now(mod)                                                 # 24 hours later, none undone
@@ -958,7 +964,7 @@ def test_a_tier_earned_at_lower_stakes_asks_at_higher_stakes(plugin):
     mod, ctx = plugin({"risks": {"low": 0.25, "medium": 0.25, "high": 0.1}})   # series length: medium 4, high 10
     local, remote = {"command": "rsync -a src/ backup/"}, {"command": "rsync -a src/ prod-host:/srv/app/"}
     ok = '{"exit_code": 0}'
-    for session in ("s1", "s1", "s2", "s2"):
+    for session in ("s1", "s2", "s3", "s1"):                                  # rule B/2: 3 sessions at medium
         assert ctx.call("terminal", local, session=session, result=ok) == "approved"
     assert state(mod, "shell:rsync").tier == mod.rule.T3
     assert ctx.call("terminal", local, session="s2", result=ok) == "ran"
@@ -1310,7 +1316,7 @@ def test_t2_message_names_the_file(plugin):
     climb(ctx, 12)
     assert pre(mod, "write_file", write("n"), "n1") is None
     post(mod, "write_file", write("n"), "n1")
-    assert re.fullmatch(r"tenure: file:write acted, then told you \((.*src/n\.py)\) · /tenure undo \d+", ctx.posted[-1])
+    assert re.fullmatch(r"tenure: file:write acted, then told you \((.*src/n\.py)\) · seen and fine\? /tenure ok · /tenure undo \d+", ctx.posted[-1])
 
 
 def test_t2_message_names_three_files_then_plus_n(plugin):

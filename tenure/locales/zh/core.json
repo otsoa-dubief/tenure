@@ -330,5 +330,11 @@
   "cli.excuse.source.refusal": "您拒绝了",
   "cli.excuse.source.undo": "您撤销了",
   "cli.excuse.nobody": "无人回答审批时（{why}）不能免除：只有人可以免除过错。",
-  "cli.excuse.terminal": "免除须由人输入：在对话中输入 /tenure excuse，或在交互式终端中运行 hermes tenure excuse。"
+  "cli.excuse.terminal": "免除须由人输入：在对话中输入 /tenure excuse，或在交互式终端中运行 hermes tenure excuse。",
+  "settle.acted_ok": "已查看且无误？{command}",
+  "cli.ok.done": "tenure：{n} 个“先执行后告知”操作已标记为已查看：它们计入独立执行。",
+  "cli.ok.none": "没有可标记的内容：这里没有过去 24 小时内仍未结的“先执行后告知”操作。",
+  "cli.ok.nobody": "无人回答审批时（{why}）不可用：只有人可以确认已查看某个操作。",
+  "cli.ok.terminal": "“已查看”须由人输入：在对话中输入 /tenure ok，或在交互式终端中运行 hermes tenure ok N。",
+  "cli.ok.number": "在终端中请指明操作：hermes tenure ok N（N 为其通知中的撤销编号）。"
 }
