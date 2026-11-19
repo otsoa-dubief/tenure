@@ -12,8 +12,8 @@ verdict on one action that already ran.
 | `fault` | Counts as a fault on that action's kind and on the model that acted, exactly like `/tenure flag <number>`: the kind drops at least one tier, once per action. |
 | `doubt` | Nothing is recorded against the agent: the **next** action of that kind, for that model, asks you first, even if you allowed it for the session, and the question says a check of yours doubted it. Your answer settles the doubt (approved: a success as usual; refused: a fault). |
 
-There is no `ok`. A verifier can take autonomy away or make Tenure ask; it can never grant a success. Successes still
-come only from you (an approval) or from a spot check.
+There is no `ok`. A verifier can take autonomy away or make Tenure ask; it can never grant a success. Successes come
+from Tenure's own record: your approvals, spot checks, and actions that acted then told you without being undone.
 
 A verifier's fault adds no new ledger event and no new source: it is the same `fault` / `flag` outcome as a flag by
 hand, so passports and `hermes tenure verify` are unchanged. It is not counted in the wait after a failed trial (the

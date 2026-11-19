@@ -73,3 +73,47 @@ def test_a_fifo_is_never_opened(tmp_path):
             pass
         worker.join(5)
     assert not hung and got == [None]
+
+
+# ------------------------------------------------------------------ false faults (audit 19/11): JSONC, BOM, broken before
+import pytest as _pytest
+from tenure import proofs as _P
+
+
+@_pytest.mark.parametrize("name", ["tsconfig.json", "tsconfig.build.json", "jsconfig.json", ".vscode/settings.json",
+                                   ".devcontainer/devcontainer.json", "devcontainer.json", ".eslintrc.json"])
+def test_jsonc_files_with_comments_pass(tmp_path, name):
+    p = tmp_path / name
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text('{\n  // a comment\n  "a": "http://x//y", /* block */\n  "b": [1, 2,],\n}\n', encoding="utf-8")
+    assert _P.check_files([str(p)]) is None
+
+
+def test_plain_json_with_comments_still_fails(tmp_path):
+    p = tmp_path / "data.json"
+    p.write_text('{"a": 1, // no\n}', encoding="utf-8")
+    assert _P.check_files([str(p)]) == "json syntax error"
+
+
+def test_jsonc_still_catches_a_real_error(tmp_path):
+    p = tmp_path / "tsconfig.json"
+    p.write_text('{\n  // ok\n  "a": \n}', encoding="utf-8")
+    assert _P.check_files([str(p)]) == "json syntax error"
+
+
+def test_bom_json_and_toml_pass(tmp_path):
+    j, t = tmp_path / "a.json", tmp_path / "a.toml"
+    j.write_bytes(b"\xef\xbb\xbf" + b'{"a": 1}')
+    t.write_bytes(b"\xef\xbb\xbf" + b'a = 1\n')
+    assert _P.check_files([str(j), str(t)]) is None
+
+
+def test_a_file_broken_before_is_not_a_fault(tmp_path):
+    p, q = tmp_path / "a.py", tmp_path / "b.py"
+    p.write_text("def x(:\n")
+    q.write_text("x = 1\n")
+    before = _P.broken([str(p), str(q)])
+    assert before == frozenset({str(p)})
+    q.write_text("def y(:\n")
+    assert _P.check_files([str(p)], before) is None
+    assert _P.check_files([str(p), str(q)], before) == "python syntax error"

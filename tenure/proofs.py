@@ -57,6 +57,42 @@ def _read_regular(path: str):
     return None if len(raw) > _MAX_BYTES else raw
 
 
+# JSON files that tools read as JSON with comments (JSONC): tsconfig, jsconfig, VS Code and dev container settings.
+_JSONC_NAMES = ("tsconfig", "jsconfig", "devcontainer", ".devcontainer", "settings", "launch", "tasks",
+                "extensions", "keybindings", "deno", "biome", ".eslintrc", ".babelrc", "turbo", "nx", "project")
+
+
+def _jsonc(path: str) -> bool:
+    parts = os.path.normpath(path).replace("\\", "/").split("/")
+    name = parts[-1].lower()
+    return (name.endswith(".jsonc") or any(name == n + ".json" or name.startswith(n + ".") for n in _JSONC_NAMES)
+            or ".vscode" in parts or ".devcontainer" in parts)
+
+
+def _strip_jsonc(text: str) -> str:
+    """JSON with ``//`` and ``/* */`` comments and trailing commas, as plain JSON (strings are kept as they are)."""
+    out, i, n = [], 0, len(text)
+    while i < n:
+        c = text[i]
+        if c == '"':
+            j = i + 1
+            while j < n and text[j] != '"':
+                j += 2 if text[j] == "\\" else 1
+            out.append(text[i:j + 1])
+            i = j + 1
+        elif text.startswith("//", i):
+            j = text.find("\n", i)
+            i = n if j < 0 else j
+        elif text.startswith("/*", i):
+            j = text.find("*/", i + 2)
+            i = n if j < 0 else j + 2
+        else:
+            out.append(c)
+            i += 1
+    import re
+    return re.sub(r",(\s*[}\]])", r"\1", "".join(out))
+
+
 def _check_one(path: str):
     ext = os.path.splitext(path)[1].lower()
     if ext not in (".py", ".json", ".toml"):
@@ -71,9 +107,10 @@ def _check_one(path: str):
         if ext == ".py":
             compile(raw, "<written>", "exec", dont_inherit=True)
         elif ext == ".json":
-            json.loads(raw.decode("utf-8"))
+            text = raw.decode("utf-8-sig")                  # a byte order mark is valid UTF-8 JSON on disk
+            json.loads(_strip_jsonc(text) if _jsonc(path) else text)
         else:
-            tomllib.loads(raw.decode("utf-8"))
+            tomllib.loads(raw.decode("utf-8-sig"))
     except (SyntaxError, ValueError, MemoryError, RecursionError):
         # UnicodeDecodeError and JSON/TOML decode errors are ValueErrors
         return {".py": "python syntax error", ".json": "json syntax error",
@@ -81,8 +118,17 @@ def _check_one(path: str):
     return None
 
 
-def check_files(paths):
+def broken(paths) -> frozenset:
+    """The files among ``paths`` that already fail the check (before a call writes them): a file the agent did not
+    break is never its fault."""
+    return frozenset(p for p in paths or [] if _check_one(p))
+
+
+def check_files(paths, broken_before=frozenset()):
+    """The first reason a written file no longer parses, skipping the files that did not parse before the call."""
     for p in paths or []:
+        if p in broken_before:
+            continue
         reason = _check_one(p)
         if reason:
             return reason

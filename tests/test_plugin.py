@@ -1335,3 +1335,24 @@ def test_empty_what_keeps_todays_text_without_a_double_space():
     text = tr("settle.acted", type="file:write", what=tenure._with_what(tenure._what([], "/x", "/y")),
               command="/tenure undo", id=7)
     assert text == "tenure: file:write acted, then told you · /tenure undo 7"
+
+
+def test_a_write_to_a_file_already_broken_is_not_a_fault(plugin):
+    """Audit 19/11: the agent did not break a file that failed the check before its call."""
+    import os
+    mod, ctx = plugin(FAST)
+    path = os.path.join(ctx.cwd, "src", "old.py")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write("def x(:\n")
+    assert ctx.call("write_file", {"path": "src/old.py", "content": "def x(:\n  pass\n"}) == "approved"
+    assert outcomes(mod)[-1]["result"] == "success"
+    assert ctx.call("write_file", {"path": "src/new.py", "content": "def y(:\n"}) == "approved"
+    assert outcomes(mod)[-1]["result"] == "fault"                                # a file it broke still counts
+
+
+def test_a_tsconfig_with_comments_is_not_a_fault(plugin):
+    mod, ctx = plugin(FAST)
+    assert ctx.call("write_file", {"path": "tsconfig.json", "content": '{\n  // strict\n  "strict": true,\n}\n'}) \
+        == "approved"
+    assert outcomes(mod)[-1]["result"] == "success"
