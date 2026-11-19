@@ -382,7 +382,8 @@ cost goes with it (the tier drop, the trial, the lost trusted start); the series
 after any detected error, so an excuse given by mistake never carries the agent further. Only a refusal or an undo can be excused, at
 most three per type in seven days; never the automatic check, a spot check, a flag, or a refusal of an action that
 acted alone on an earned T3 (that is what a spot check is). Only by a person: not while nobody answers approvals
-(`--yolo`, cron), not from a script. Each passport type counts its excused faults (protocol 0.2), so a reader sees
+(`--yolo`, cron), not from a script, never by the agent: a tool call that would run `tenure ok` or `tenure excuse`
+is blocked, and the commands refuse to run inside the agent's own tool processes. Each passport type counts its excused faults (protocol 0.2), so a reader sees
 how often it happened.
 
 **A verifier.** That rule can report to Tenure itself: a deterministic check of yours (a test, a business rule, a

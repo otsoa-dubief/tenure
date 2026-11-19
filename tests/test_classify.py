@@ -122,10 +122,10 @@ def test_summary_for_the_approval_prompt():
     ("eval \"$CMD\"", "shell:complex", C.HIGH),
     ("$GIT push", "shell:dynamic", C.HIGH),
     ("echo $(cat ~/.ssh/id_rsa)", "shell:echo", C.HIGH),
-    ("python3 -c 'import os; os.system(\"git push\")'", "shell:python3:inline", C.HIGH),
+    ("python3 -c 'import os; os.system(\"git push\")'", "shell:python:inline", C.HIGH),
     ("node -e 'require(\"child_process\")'", "shell:node:inline", C.HIGH),
-    ("python3 scripts/deploy.py", "shell:python3:deploy.py", C.HIGH),   # a deploy or release script leaves the machine
-    ("python3 -m http.server", "shell:python3:-m:http.server", C.MEDIUM),
+    ("python3 scripts/deploy.py", "shell:python:deploy.py", C.HIGH),   # a deploy or release script leaves the machine
+    ("python3 -m http.server", "shell:python:-m:http.server", C.MEDIUM),
     ("npm run build", "shell:npm:run:build", C.MEDIUM),
     ("npm run deploy", "shell:npm:run:deploy", C.HIGH),
     ("make release", "shell:make:release", C.HIGH),
