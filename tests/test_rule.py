@@ -642,3 +642,10 @@ def test_effective_tier_is_the_tier_decide_would_act_on():
             decision = rule.decide(u, n, 0.1, suspended=False, rng=random.Random(1))
             eff = rule.effective_tier(u, n, stakes)
             assert (decision == rule.ASK) == (eff == rule.T1)      # series 99 meets every requirement above
+
+
+def test_rule_b2_half_is_rounded_up_for_an_odd_series():
+    s = state("low")
+    for j in range(21):
+        rule.on_success(s, 21, session="ab"[j % 2], source="approval")    # 11 + 10: two sessions, half each
+    assert s.tier == rule.T3 and rule.sessions_met(s)
