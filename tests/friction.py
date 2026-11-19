@@ -67,9 +67,10 @@ def session(early_web: bool = False) -> list:
     return rest[:3] + web + rest[3:]
 
 
-def replay(start: str, early_web: bool = False, answer: str = "once") -> list[dict]:
+def replay(start: str, early_web: bool = False, answer: str = "once", after_fault: str = "") -> list[dict]:
     """One row per call: the call, whether tenure asked, whether Hermes alone would ask (None: unknown). answer: what
-    the owner picks when tenure asks ("once", or "session" for "Allow for this session")."""
+    the owner picks when tenure asks ("once", or "session" for "Allow for this session"). after_fault: before the
+    session, one file write is undone ("undone": a fault on file:write), then excused ("excused")."""
     detect = _hermes_detect()
     old = os.environ.get("HERMES_HOME")
     with tempfile.TemporaryDirectory() as tmp:
@@ -83,6 +84,12 @@ def replay(start: str, early_web: bool = False, answer: str = "once") -> list[di
             mod.register(ctx)
             mod.ST.rng = Picks()
             mod.pre_api_request(model="model-a", provider="nous", session_id="s1")
+            if after_fault:
+                ctx.call("write_file", {"path": "src/draft.py", "content": "x = 0\n"}, session="s0")
+                out = mod.cli.slash("undo " + ctx.posted[-1].rsplit(" ", 1)[1])
+                if after_fault == "excused":
+                    import re
+                    mod.cli.slash("excuse " + re.search(r"excuse (\d+)", out).group(1))
             rows = []
             for tool, args in session(early_web):
                 before = len(ctx.prompts)

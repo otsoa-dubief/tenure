@@ -360,5 +360,18 @@
   "undo.refused.no_mac": "l'instantané n'a pas de MAC",
   "undo.refused.not_absolute": "un chemin enregistré n'est pas absolu",
   "undo.refused.protected": "une cible est un fichier protégé",
-  "undo.refused.symlink": "une cible est désormais un lien symbolique"
+  "undo.refused.symlink": "une cible est désormais un lien symbolique",
+  "cli.col.cause": "cause",
+  "cli.excuse.unknown": "Aucune faute {n} à excuser ces {minutes} dernières minutes (déjà excusée, trop ancienne, ou pas une faute) : rien n'a changé.",
+  "cli.excuse.done": "tenure : faute {n} excusée ({type}, {agent}) : elle compte comme neutre ; {type} est à {tier}.",
+  "notice.excuse.hint": "Ce n'était pas une erreur de l'agent (refus pour une autre raison, annulation d'un changement correct) ? /tenure excuse {n} dans les {minutes} minutes.",
+  "cli.excuse.trusted": "la confiance de départ",
+  "cli.excuse.title": "Fautes des {minutes} dernières minutes qui peuvent être excusées, la plus récente d'abord :",
+  "cli.excuse.none": "Aucune faute à excuser ces {minutes} dernières minutes.",
+  "cli.excuse.footer": "Excusez celle qui n'était pas une erreur de l'agent : /tenure excuse <numéro>",
+  "cli.excuse.source.refusal": "vous avez refusé",
+  "cli.excuse.source.spot": "contrôle aléatoire",
+  "cli.excuse.source.check": "contrôle automatique",
+  "cli.excuse.source.undo": "vous avez annulé",
+  "cli.excuse.source.flag": "vous l'avez signalée"
 }

@@ -360,5 +360,18 @@
   "undo.refused.no_mac": "la instantánea no tiene MAC",
   "undo.refused.not_absolute": "una ruta registrada no es absoluta",
   "undo.refused.protected": "un destino es un archivo protegido",
-  "undo.refused.symlink": "un destino es ahora un enlace simbólico"
+  "undo.refused.symlink": "un destino es ahora un enlace simbólico",
+  "cli.col.cause": "causa",
+  "cli.excuse.unknown": "Ninguna falta {n} que excusar en los últimos {minutes} minutos (ya excusada, demasiado antigua o no es una falta): nada cambió.",
+  "cli.excuse.done": "tenure: falta {n} excusada ({type}, {agent}): cuenta como neutra; {type} está en {tier}.",
+  "notice.excuse.hint": "¿No fue un error del agente (rechazó por otro motivo o deshizo un cambio correcto)? /tenure excuse {n} en los próximos {minutes} minutos.",
+  "cli.excuse.trusted": "la confianza inicial",
+  "cli.excuse.title": "Faltas de los últimos {minutes} minutos que se pueden excusar, la más reciente primero:",
+  "cli.excuse.none": "Ninguna falta que excusar en los últimos {minutes} minutos.",
+  "cli.excuse.footer": "Excuse la que no fue un error del agente: /tenure excuse <número>",
+  "cli.excuse.source.refusal": "usted rechazó",
+  "cli.excuse.source.spot": "control aleatorio",
+  "cli.excuse.source.check": "control automático",
+  "cli.excuse.source.undo": "usted deshizo",
+  "cli.excuse.source.flag": "usted la señaló"
 }

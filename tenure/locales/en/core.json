@@ -358,5 +358,18 @@
   "undo.refused.no_mac": "the snapshot has no MAC",
   "undo.refused.not_absolute": "a recorded path is not absolute",
   "undo.refused.protected": "a target is a protected file",
-  "undo.refused.symlink": "a target is now a symlink"
+  "undo.refused.symlink": "a target is now a symlink",
+  "cli.col.cause": "cause",
+  "cli.excuse.unknown": "No fault {n} to excuse in the last {minutes} minutes (already excused, too old, or not a fault): nothing changed.",
+  "cli.excuse.done": "tenure: fault {n} excused ({type}, {agent}): it counts as neutral; {type} is at {tier}.",
+  "notice.excuse.hint": "Not the agent's mistake (you refused for another reason, or undid a correct change)? /tenure excuse {n} within {minutes} minutes.",
+  "cli.excuse.trusted": "the trusted start",
+  "cli.excuse.title": "Faults of the last {minutes} minutes that can be excused, newest first:",
+  "cli.excuse.none": "No fault to excuse in the last {minutes} minutes.",
+  "cli.excuse.footer": "Excuse one that was not the agent's mistake: /tenure excuse <number>",
+  "cli.excuse.source.refusal": "you refused",
+  "cli.excuse.source.spot": "spot check",
+  "cli.excuse.source.check": "automatic check",
+  "cli.excuse.source.undo": "you undid it",
+  "cli.excuse.source.flag": "you flagged it"
 }

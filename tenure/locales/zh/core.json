@@ -316,5 +316,18 @@
   "undo.refused.no_mac": "快照没有 MAC",
   "undo.refused.not_absolute": "某个记录的路径不是绝对路径",
   "undo.refused.protected": "某个目标是受保护的文件",
-  "undo.refused.symlink": "某个目标现在是符号链接"
+  "undo.refused.symlink": "某个目标现在是符号链接",
+  "cli.col.cause": "原因",
+  "cli.excuse.unknown": "过去 {minutes} 分钟内没有可免除的过错 {n}（已免除、太久或不是过错）：未做任何更改。",
+  "cli.excuse.done": "tenure：过错 {n} 已免除（{type}，{agent}）：计为中性；{type} 现处于 {tier}。",
+  "notice.excuse.hint": "这不是代理的错误（您因其他原因拒绝，或撤销了正确的更改）？请在 {minutes} 分钟内运行 /tenure excuse {n}。",
+  "cli.excuse.trusted": "初始信任",
+  "cli.excuse.title": "过去 {minutes} 分钟内可免除的过错，最新的在前：",
+  "cli.excuse.none": "过去 {minutes} 分钟内没有可免除的过错。",
+  "cli.excuse.footer": "免除不是代理错误的那一项：/tenure excuse <编号>",
+  "cli.excuse.source.refusal": "您拒绝了",
+  "cli.excuse.source.spot": "抽查",
+  "cli.excuse.source.check": "自动检查",
+  "cli.excuse.source.undo": "您撤销了",
+  "cli.excuse.source.flag": "您标记了"
 }
