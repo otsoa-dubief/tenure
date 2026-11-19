@@ -22,6 +22,9 @@ Adaptations:
 - one trial covers the faults that happen during the wait and the inherited faults;
 - evidence is re-based when the stakes of a type change;
 - a trial is the next 3 real actions, asked; the study replays 3 hidden variants of the faulty case.
+- an act-then-tell success (T2) is credited only once its 24-hour undo window closed without an undo, a flag or a
+  later fault on the type: the owner had the whole window to see it. The two sessions are conversations: a
+  subagent's session counts as its parent's;
 - detection is not perfect: an error counts only when it is caught (your refusal, an undo, a flag, a verifier, or
   the automatic parse check). The parse check tolerates what tools accept (JSON with comments in editor and build
   configs, a byte order mark) and never charges the agent for a file that was broken before its call and that no

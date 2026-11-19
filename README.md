@@ -56,7 +56,7 @@ Tenure keeps Hermes' speed and adds what is missing:
 |---|---|
 | **Trusted** (the start) | For files, memory, subagents and the usual local dev tools (npm, python, pytest, cargo, go, make, git...), the agent works as with Hermes alone: no extra question. Files it changes are saved first and can be undone for 24 hours (`/tenure undo`); anything can be flagged (`/tenure flag`). Trust is given, not earned: it reaches no tier and claims no guarantee. |
 | **T1 · Probation** (asks first) | After its first mistake (an undo, a flag, a failed automatic check, a refusal), that kind of action asks you first. Only that kind. |
-| **T2 · Under review** (acts, then tells you) | Earned back on approvals: the agent acts, then tells you, with an undo. Only for reversible types at low or medium stakes. |
+| **T2 · Under review** (acts, then tells you) | Earned back on approvals: the agent acts, then tells you, with an undo. Only for reversible types at low or medium stakes. Each of these actions counts as a success only once its 24-hour undo window has closed unused, so T3 comes at the earliest a day after T2. |
 | **T3 · Tenured** (acts on its own) | Earned on a series of verified successes over two sessions, under a risk you set. One in ten is still spot-checked. |
 
 What tenure asks that Hermes alone would not:
@@ -264,8 +264,9 @@ the study's formula (Dodge's continuous sampling plan CSP-1, with one spot check
 number gives is in the table, and can sit slightly above the risk you picked (2.1% for a 1-in-50 risk). The
 table is generated from the same code that decides (`params.describe`), and a test checks it.
 
-Cell: verified successes in a row (the first ones approved by you, the rest acted on at T2 while you could undo
-them), guarantee (errors that run unapproved, as a share of all actions of the type, for a
+Cell: verified successes in a row (the first ones approved by you, the rest acted on at T2 and credited once their
+24-hour undo window closed without an undo, a flag or a later fault; in at least two conversations, a subagent's
+counting as its parent's), guarantee (errors that run unapproved, as a share of all actions of the type, for a
 stable agent, counting the errors that get caught: a refusal, an undo, a flag, a verifier or the parse check), worst case (for an agent that turns bad after tenure, until a caught error revokes it).
 
 | Preset | Low stakes (files in the project, memory) | Medium (commands, code, files elsewhere) | High (leaves the machine, money) |
