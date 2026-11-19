@@ -279,8 +279,11 @@ Limits are in [docs/self-protection.md](docs/self-protection.md#field-categories
 
 You pick the risk you accept per stakes level. tenure turns it into a number of verified successes in a row with
 the study's formula (Dodge's continuous sampling plan CSP-1, with one spot check in ten); the exact guarantee that
-number gives is in the table, and can sit slightly above the risk you picked (2.1% for a 1-in-50 risk). The
-table is generated from the same code that decides (`params.describe`), and a test checks it.
+number gives is in the table, and can sit slightly above the risk you picked (2.3% for a 1-in-50 risk). The
+numbers assume what the series length assumes: a check (your answer, a spot check, a "seen") catches 95% of the
+errors, and the errors a check misses are counted as leaving too. They cover the tier an agent earned on evidence:
+an act-then-tell action nobody marked as seen ran unchecked, counts for nothing, and is not inside them. The table
+is generated from the same code that decides (`params.describe`), and a test checks it.
 
 Cell: verified successes in a row (approved by you, spot-checked, or acted on at T2 and marked as seen with
 `/tenure ok`; over at least two conversations, three at medium stakes, none giving more than half of the series, a
@@ -290,9 +293,9 @@ it assumes a person really looks at what they approve or mark as seen), worst ca
 
 | Preset | Low stakes (files in the project, memory) | Medium (commands, code, files elsewhere) | High (leaves the machine, money) |
 |---|---|---|---|
-| careful | 105 in a row · 1.0% · worst 7.8% | 210 in a row · 0.5% · worst 4.1% | 1052 in a row · 0.1% · worst 0.8% |
-| **balanced** (default) | 52 in a row · 2.1% · worst 14.5% | 105 in a row · 1.0% · worst 7.8% | always asks |
-| fast | 21 in a row · 5.0% · worst 29.0% | 52 in a row · 2.1% · worst 14.5% | always asks |
+| careful | 105 in a row · 1.1% · worst 8.2% | 210 in a row · 0.6% · worst 4.3% | 1052 in a row · 0.1% · worst 0.9% |
+| **balanced** (default) | 52 in a row · 2.3% · worst 15.2% | 105 in a row · 1.1% · worst 8.2% | always asks |
+| fast | 21 in a row · 5.5% · worst 30.2% | 52 in a row · 2.3% · worst 15.2% | always asks |
 
 Errors you catch never run: a refused action is blocked. `hermes tenure explain` prints the numbers for your own
 settings.
@@ -366,11 +369,13 @@ it counts once (an undo and a flag of the same action never count twice). `flag 
 nothing local and deterministic can tell whether B was the right one, short of a rule you write for your own data.
 
 **Excuse a fault.** A refusal or an undo counts as a fault, even when the agent was right (you said no for another
-reason, or undid a correct change to try something else). The message that follows says how to take it back:
-`/tenure excuse N` within 10 minutes. The fault then counts as neutral, and what it cost goes with it (the tier drop,
-the trial, the lost trusted start). Only a refusal or an undo can be excused, never the automatic check, a spot check
-or a flag, and only by a person: not while nobody answers approvals (`--yolo`, cron), not from a script. Each
-passport type counts its excused faults (protocol 0.2), so a reader sees how often it happened.
+reason, or undid a correct change to try something else). `/tenure excuse N` within 10 minutes takes it back (the
+first costly fault of the day on a type says how, later ones do not). The fault then counts as neutral, and what it
+cost goes with it (the tier drop, the trial, the lost trusted start). Only a refusal or an undo can be excused, at
+most three per type in seven days; never the automatic check, a spot check, a flag, or a refusal of an action that
+acted alone on an earned T3 (that is what a spot check is). Only by a person: not while nobody answers approvals
+(`--yolo`, cron), not from a script. Each passport type counts its excused faults (protocol 0.2), so a reader sees
+how often it happened.
 
 **A verifier.** That rule can report to Tenure itself: a deterministic check of yours (a test, a business rule, a
 nightly reconciliation) names an action by Hermes' session and tool call id, or by its number, and reports `fault`
@@ -440,8 +445,10 @@ Community tab shows the board once you save it as `plugin-data/tenure/community-
   memory tool counts as low stakes: reclassify a broad type as `cap` if that matters to you. A profile copied
   outside its install (another `HERMES_HOME`, another machine) keeps the original's record.
 - **Only a person teaches.** Approvals count when someone answers; under `--yolo`, `off` or cron, Hermes settles
-  the ask and nothing is learned. The guarantee covers errors you would refuse if asked: an error nobody notices
-  cannot be counted.
+  the ask and nothing is learned. Under `--yolo` or cron, an action that acts alone and is drawn for a spot check
+  is blocked rather than run unchecked, so the one-in-ten checks the guarantee counts on never silently vanish; tenure
+  cannot see `approvals.mode: off` or a single-query run, where Hermes settles such a check itself. The guarantee
+  covers errors you would refuse if asked: an error nobody notices cannot be counted.
 - **The passport proves consistency, not authorship.** It is signed with your own key, so a rewritten history
   could be re-signed: anchor its head publicly (`hermes tenure anchor`) and pin the key with `verify --key`. The
   database and its hash chain are not secret either; writing them by any command tenure reads is capped.

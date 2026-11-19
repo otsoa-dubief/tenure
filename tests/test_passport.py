@@ -144,7 +144,7 @@ def test_rule_fingerprint_is_stable_and_follows_the_parameters(plugin, monkeypat
 def test_build_and_verify_ok(plugin, monkeypatch, tmp_path):
     mod, _ = scripted(plugin, monkeypatch, tmp_path)
     p = make_passport(mod)
-    assert p["protocol"] == "earned-autonomy/0.1"
+    assert p["protocol"] == "earned-autonomy/0.2"
     assert p["agent"] == {"model": "model-a", "provider": "nous", "profile": p["agent"]["profile"]}
     assert re.fullmatch(r"[0-9a-f]{12}", p["agent"]["profile"])
     assert p["rule"] == {"name": "study-rule-B", "fingerprint": mod.passport.rule_fingerprint()}
@@ -152,7 +152,7 @@ def test_build_and_verify_ok(plugin, monkeypatch, tmp_path):
     assert p["ledger"] == {"count": len(rows), "head": rows[-1]["hash"]}
     t = {e["type"]: e for e in p["types"]}
     assert set(t["file:write"]) == {"type", "stakes", "tier", "effective_tier", "series", "required", "sessions",
-                                    "provisional", "guarantee", "trusted"}
+                                    "provisional", "guarantee", "trusted", "excused"}
     assert t["memory:write"]["required"] == 4 and t["file:write-outside"]["stakes"] == "medium"
     assert re.fullmatch(r"[0-9a-f]{128}", p["signature"]) and re.fullmatch(r"[0-9a-f]{64}", p["public_key"])
     assert mod.passport.verify(p) == [NO_LEDGER]

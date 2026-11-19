@@ -423,9 +423,13 @@ def test_nobody_answers_earned_tiers_run_and_the_rest_falls_to_hermes(plugin):
     assert "/tenure undo" in ctx.posted[-1]
     last = outcomes(mod)[-1]                                 # but nobody watched it: it teaches nothing
     assert (last["result"], last["source"]) == ("neutral", "nobody")
-    mod.ST.rng = Picks([0.0])                                # a spot check would have been drawn: nobody answers
-    assert pre(mod, "memory", {"action": "add", "content": "c"}, "m1") is None
-    assert row(mod, "m1")["phase"] == "alone"
+    mod.ST.rng = Picks([0.0])                                # a spot check is drawn: nobody can answer it
+    d = pre(mod, "memory", {"action": "add", "content": "c"}, "m1")
+    assert d["action"] == "block" and "spot check" in d["message"]   # blocked, never run unchecked
+    assert row(mod, "m1")["phase"] == "nobody"
+    mod.ST.rng = Picks([0.99])                               # the next draw is no check: the earned tier acts
+    assert pre(mod, "memory", {"action": "add", "content": "c"}, "m2") is None
+    assert row(mod, "m2")["phase"] == "alone"
 
 
 def test_unwatched_t2_actions_never_climb_to_t3(plugin):

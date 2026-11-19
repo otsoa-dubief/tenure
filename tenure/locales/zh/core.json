@@ -2,6 +2,7 @@
   "ask.capped": "tenure — {summary}\n{type} 受限：始终询问。",
   "ask.internal_error": "tenure：内部错误（{error}）；改为询问你，而不是直接放行该操作。",
   "ask.prompt": "tenure — {summary}\n{why}\n如果有误就拒绝：这会计为一次失误。",
+  "ask.spot_nobody": "tenure：此 {type} 操作被抽中抽查，而现在无人能回应（{why}）：它未被执行。智能体可以重试；之后的抽签会让它执行。",
   "ask.prompt_session": "tenure — {summary}\n{why}\n选择“本会话允许”后，本会话结束前 tenure 不再就此询问；如果有误就拒绝（计为一次失误）。",
   "ask.spot": "tenure 抽查 — {summary}\n{type} 已可自主执行；每 {spot} 个操作仍会随机抽查 1 个。\n没问题就允许，有错就拒绝（该类型会降级）。允许本会话或始终允许，都只算一次批准。",
   "ask.why.capped": {

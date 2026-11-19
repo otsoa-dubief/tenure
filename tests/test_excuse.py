@@ -179,11 +179,13 @@ def test_the_agent_cannot_type_the_excuse_itself():
         assert classify.classify("terminal", {"command": cmd}, cwd="/tmp").stakes == classify.CAP, cmd
 
 
-def test_a_passport_stays_01_until_an_excuse(plugin):
+def test_a_passport_is_02_from_the_start(plugin):
+    """A rule B/2 ledger is not what a 0.1 verifier replays: 0.2 always, so an old verifier refuses it clearly."""
     mod, ctx = plugin(TRUST)
     ctx.call("write_file", write("a"))
     p = mod.passport.build(mod.store_(), A, mod.settings(), mod.data_dir())
-    assert p["protocol"] == "earned-autonomy/0.1" and all("excused" not in e for e in p["types"])
+    assert p["protocol"] == "earned-autonomy/0.2" and all("excused" in e for e in p["types"])
+    assert mod.passport.verify(p, mod.store_().ledger()) == []
     mod.cli.slash(f"excuse {_seq(mod.cli.slash(f'undo {int(ctx.posted[-1].rsplit(chr(32), 1)[1])}'))}")
     p = mod.passport.build(mod.store_(), A, mod.settings(), mod.data_dir())
     assert p["protocol"] == "earned-autonomy/0.2"

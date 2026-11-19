@@ -302,7 +302,9 @@ def _entries(states: dict[str, rule.TypeState], cfg: dict | None, redact: bool,
         out[name] = {"type": name, "stakes": s.stakes, "tier": s.tier,
                      "effective_tier": rule.effective_tier(s, n, s.stakes), "series": s.series,
                      "required": None if n is None else rule.required(s, n), "sessions": len(rule.session_counts(s)),
-                     "provisional": s.provisional, "guarantee": rule.guarantee(s, n, spot),
+                     "provisional": s.provisional,
+                     "guarantee": (rule.guarantee(s, n, spot)                 # earned T3 only: else none
+                                   if n is None or rule.effective_tier(s, n, s.stakes) == rule.T3 else None),
                      # covered by the trusted start, not earned (an earned T3 is shown as T3)
                      "trusted": (rule.trusted(s, n, (cfg or {}).get("start"))
                                  and rule.effective_tier(s, n, s.stakes) != rule.T3),
@@ -399,8 +401,9 @@ def build(st, agent: str, settings: dict, data_dir: str, redact: bool = True, cr
     model, provider = personal.split_agent(agent)
     profile = str((settings or {}).get("profile")
                   or os.path.basename(os.path.dirname(os.path.dirname(os.path.abspath(data_dir)))) or "default")
-    excuses = any((r.get("event") or {}).get("event") == "excuse" for r in rows)
-    p = {"protocol": PROTOCOL if excuses else PROTOCOLS[0],    # 0.1 until an excuse: older verifiers still read it
+    # Always 0.2: a rule B/2 ledger (seen and unseen outcomes, sessions per stakes) is not what a 0.1 verifier
+    # replays, so it must refuse it clearly rather than read it wrong. Verifiers still read 0.1 passports.
+    p = {"protocol": PROTOCOL,
          "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
          "agent": {"model": model, "provider": provider, "profile": _sha(profile)[:12]},
          "rule": {"name": RULE_NAME, "fingerprint": rule_fingerprint()},
@@ -408,7 +411,7 @@ def build(st, agent: str, settings: dict, data_dir: str, redact: bool = True, cr
          "redacted": bool(redact),
          # What the ledger proves, by replay: the very states a verifier recomputes (a record kept by an older
          # version may differ in a field the replay now derives, such as the trusted start).
-         "types": _entries(_states_for(rows, agent, st), cfg, redact, excused_field=excuses),
+         "types": _entries(_states_for(rows, agent, st), cfg, redact),
          "ledger": {"count": len(rows), "head": _head(rows)}}
     if create_key or os.path.exists(os.path.join(data_dir, KEY_FILE)):
         key, public = keypair(data_dir)

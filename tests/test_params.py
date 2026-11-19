@@ -8,13 +8,17 @@ from tenure import params
 from tenure.params import ALPHA, BETA, PRESETS, required_n, study_n, wald_steps
 
 
-def _aoql_grid(i, spot, step=1e-5, top=0.5):
+def _aoql_grid(i, spot, step=1e-5, top=None):
     """Average outgoing quality limit by brute force: the worst stationary error rate p over a dense grid."""
     best = 0.0
     p = step
-    while p < top:
-        u = (1 - p) ** i
-        best = max(best, p * (1 - spot) * u / (spot + (1 - spot) * u))
+    while p < 1:                       # the first peak: stop once AOQ has clearly gone down from it
+        u = (1 - 0.95 * p) ** i
+        c = spot / (spot + (1 - spot) * u)
+        v = p * ((1 - c) + 0.05 * c)
+        if v < best * 0.9:
+            break
+        best = max(best, v)
         p += step
     return best
 
@@ -52,9 +56,17 @@ def test_wald_steps_reach_t2_after_12_and_18_successes():
 
 
 def test_worst_case_when_the_agent_changes_after_tenure():
-    """An agent that errs only on unchecked actions once cleared: (1 - f) / (f i + 1) of its actions."""
-    assert params.worst_case(54, 0.1) == pytest.approx(0.9 / 6.4)
-    assert params.worst_case(54, 1.0) == 0.0
+    """An agent that errs only on unchecked actions once cleared: (1 - f d) / (f d i + 1) of its actions, a check
+    catching an error with probability d (0.95); Dodge's (1 - f) / (f i + 1) when every check catches it."""
+    assert params.worst_case(54, 0.1) == pytest.approx(0.905 / 6.13)
+    assert params.worst_case(54, 0.1, d=1.0) == pytest.approx(0.9 / 6.4)
+    assert params.worst_case(54, 1.0, d=1.0) == 0.0
+
+
+def test_the_guarantee_assumes_the_studys_detection():
+    """The research of 19/11: 2.29% at N = 52 with d = 0.95, not Dodge's 2.08% with perfect inspection."""
+    assert params.aoql(52, 0.1)[0] == pytest.approx(0.02287, abs=2e-5)
+    assert params.aoq(0.04, 52, 0.1, d=1.0) < params.aoq(0.04, 52, 0.1)
 
 
 def test_presets():

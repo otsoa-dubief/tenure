@@ -1,7 +1,8 @@
 # Earned Autonomy Protocol v0.2
 
 Protocol identifier: `earned-autonomy/0.2` (0.2 adds the `excuse` input event; a 0.1 ledger has none and replays
-the same, and a verifier accepts 0.1 passports). Reference implementation: `tenure/passport.py` (replay, passport,
+the same, and a verifier accepts 0.1 passports; the reference implementation emits 0.2 only, since its rule B/2
+ledgers hold outcomes a 0.1 verifier does not know). Reference implementation: `tenure/passport.py` (replay, passport,
 verification) and `tenure/store.py` (ledger).
 
 An agent earns autonomy per action type from verified outcomes. Everything it earned is derived from a hash-chained
@@ -39,7 +40,7 @@ unknown-event error.)
 | `outcome` | `agent`, `type`, `stakes` (`low`, `medium`, `high`), `reversible` (bool), `result` (`success`, `fault`, `neutral`), `source`, `session` | The agent's type (new: tier T1, empty record). If its stakes differ from the event's, its evidence is re-based first (series, sessions and carried part restart; the Wald score keeps a fault's penalty; tier T1). It takes the event's stakes and reversibility, then the success, fault or neutral update of the rule. Then, if `(result, source)` is an executed action (below), the wait after a failed trial counts it, unless that fault is the one that failed the trial. |
 | `agent` | `old`, `new`, `mode` (`carry` or `strict`), `vetoed` (list of types) | Every type of `old` that `new` has no record for gets the carried-over state: half of the series, provisional, with half of a negative score; a fresh start at high stakes, for a capped level, for a vetoed type or in strict mode. A medium or high fault in `old`'s memory becomes a trial for `new` in every mode. |
 | `revoke` | `agent`, `type` | The owner takes the type back: T1, no series, no score credit, no carried part. Not a fault. |
-| `excuse` | `seq` (the ledger row of an earlier `fault` outcome with source `refusal` or `undo`) | The owner says that fault was not the agent's mistake (a refusal for another reason, an undo of a correct change). Never a `check`, `spot` or `flag` fault: those are the detection the guarantee rests on. The excused outcome is replayed as `neutral` with source `excused`, in its own place, as if it had always been neutral: its tier drop, trial and lost trusted start go too (unless another fault or a revoke keeps it lost). The `excuse` row itself changes nothing. A replay refuses an excuse of a row that is not an earlier refusal or undo fault, and a row excused twice. Each type in a 0.2 passport carries `excused`, the number of its faults excused. The reference implementation only logs one within 10 minutes of the fault. |
+| `excuse` | `seq` (the ledger row of an earlier `fault` outcome with source `refusal` or `undo`) | The owner says that fault was not the agent's mistake (a refusal for another reason, an undo of a correct change). Never a `check`, `spot` or `flag` fault: those are the detection the guarantee rests on. The excused outcome is replayed as `neutral` with source `excused`, in its own place, as if it had always been neutral: its tier drop, trial and lost trusted start go too (unless another fault or a revoke keeps it lost). The `excuse` row itself changes nothing. A replay refuses an excuse of a row that is not an earlier refusal or undo fault, and a row excused twice. Each type in a 0.2 passport carries `excused`, the number of its faults excused. The reference implementation only logs one within 10 minutes of the fault, at most three per type in seven days, and records a person's refusal of an action that acted alone on an earned T3 as a `spot` fault. |
 | `copy` | `mode` (`carry` or `strict`) | The record was copied into another profile (a clone, a duplicated Bot). Every type of every agent gets the carried-over state of an `agent` event, with no veto: half of the series, provisional, with half of a negative score; a fresh start at high stakes, for a capped level or in strict mode. A medium or high fault in memory becomes a trial. |
 
 Sources per result:
@@ -122,7 +123,9 @@ different fingerprint means the replay of this implementation may not apply to t
     holds (`rule.effective_tier`). A spot check or a suspension can still make an action ask;
   - `series`: verified successes in a row; `required`: the series length for T3 (`null` when the level is capped);
   - `sessions`: distinct sessions among the series' own successes (the ones the sessions rule counts); `provisional`: carried-over successes not yet confirmed;
-  - `guarantee`: computed from the series length and the spot-check rate by `params`, or `{"capped": true}`. The
+  - `guarantee`: computed from the series length and the spot-check rate by `params` (a check catching an error
+    with probability `DETECTION`, its misses leaving too), only for a type at an effective `alone`; `{"capped": true}`
+    for a capped level, `null` otherwise. The
     example's numbers are placeholders.
   - `trusted`: `true` when the type is covered by the trusted start (see above) and not at an effective T3: it acts
     without having earned anything, and its `guarantee` does not apply.

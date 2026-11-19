@@ -2,6 +2,7 @@
   "ask.capped": "tenure — {summary}\n{type} está limitado: siempre se pregunta.",
   "ask.internal_error": "tenure: error interno ({error}); te pregunto en lugar de dejar pasar la acción.",
   "ask.prompt": "tenure — {summary}\n{why}\nRechaza si es incorrecto: cuenta como un fallo.",
+  "ask.spot_nobody": "tenure: esta acción {type} salió sorteada para un control, y nadie puede responderlo ahora ({why}): no se ejecutó. El agente puede volver a intentarlo; un sorteo posterior le dejará actuar.",
   "ask.prompt_session": "tenure — {summary}\n{why}\nPermítelo para esta sesión y tenure deja de preguntar por esto hasta que termine; recházalo si es incorrecto (un fallo).",
   "ask.spot": "control aleatorio de tenure — {summary}\n{type} actúa por su cuenta; 1 acción de cada {spot} se sigue comprobando al azar.\nPermítelo si es correcto; recházalo si es incorrecto (el tipo vuelve a bajar). Permitirlo para la sesión o siempre cuenta como una sola aprobación.",
   "ask.why.capped": {
