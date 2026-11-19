@@ -515,15 +515,17 @@ _LINEAGE_LOCK = threading.Lock()
 def _lineage_root(sid: str) -> str:
     """The first session of a compressed conversation, from Hermes' own ``state.db``: compression can rotate a
     conversation to a new session id whose parent ended with ``end_reason = 'compression'``
-    (``hermes_state_mutation_compress``). Only those edges are followed, as Hermes itself does
-    (``_expand_compression_lineage_ids``): a branch, a reset, ``/new``, a delegate or a tool session also carries
+    (``hermes_state_mutation_compress``). Only those edges are followed, with the test Hermes uses for a
+    continuation (``_non_continuation_child_sql``: a fork marker naming the parent, or a tool session, is not one): a branch, a reset, ``/new``, a delegate or a tool session also carries
     ``parent_session_id`` but is its own conversation (subagents are joined to their parent by ``subagent_start``).
-    Read-only and bounded. The first answer for an id is kept for the process, a miss included, so one id never
-    changes identity between the two hooks of a call."""
+    Read-only and bounded. A full read is kept for the process, a missing row included, so one id never changes
+    identity between the two hooks of a call; a read that failed (a lock) is not kept, and tried again."""
     with _LINEAGE_LOCK:
         if sid in _LINEAGE:
             return _LINEAGE[sid]
-    root = _read_lineage(sid)
+    root, sure = _read_lineage(sid)
+    if not sure:
+        return root                                 # a read that failed is tried again next time, never kept
     with _LINEAGE_LOCK:
         root = _LINEAGE.setdefault(sid, root)
         while len(_LINEAGE) > 10_000:
@@ -531,10 +533,11 @@ def _lineage_root(sid: str) -> str:
     return root
 
 
-def _read_lineage(sid: str) -> str:
+def _read_lineage(sid: str) -> tuple[str, bool]:
+    """(root, read in full): False when the state could not be read, so the answer is not kept."""
     path = os.path.join(_hermes_home(), "state.db")
     if not os.path.isfile(path):
-        return sid
+        return sid, True
     import sqlite3
     current, seen = sid, {sid}
     try:
@@ -559,7 +562,8 @@ def _read_lineage(sid: str) -> str:
             conn.close()
     except Exception:
         log.debug("tenure: Hermes' session lineage could not be read", exc_info=True)
-    return current
+        return current, False
+    return current, True
 
 
 def anon(session_id) -> str:
@@ -1518,7 +1522,8 @@ def pre_api_request(model="", provider="", session_id="", **kwargs):
 _PERSON_ONLY = re.compile(
     r"(?:\bhermes\b(?:\s+-\S+(?:\s+\S+)?)*\s+['\"]?tenure['\"]?|-m\s+tenure(?:\.cli)?|(?:^|\s|['\"])/tenure)"
     r"\s+['\"]?(?:ok|excuse)['\"]?(?:\s|$|;|&|\|)"
-    r"|\b(?:tenure|core)\.(?:seen|excuse|_see)\s*\(", re.I)
+    r"|\b(?:tenure|core)\.(?:seen|excuse|_see)\s*\("
+    r"|\bfrom\s+tenure\b[^\n]*\bimport\b[^\n]*\b(?:seen|excuse|_see)\b", re.I)
 _RUNS = {"terminal": "command", "execute_code": "code"}     # the arguments that run: never a file's text or a message
 
 
