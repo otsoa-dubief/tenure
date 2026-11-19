@@ -514,47 +514,61 @@ class Store:
     # --------------------------------------------------------------------------------------------------- meta
     # ---------------------------------------------------------------------- deferred credit of T2 (audit 19/11)
     _CREDITS = ("CREATE TABLE IF NOT EXISTS credits (undo_id INTEGER PRIMARY KEY, session TEXT, stakes TEXT, "
-                "reversible INTEGER)")
+                "reversible INTEGER, seq INTEGER)")
 
     def add_credit(self, undo_id: int, session: str, stakes: str, reversible: bool) -> None:
-        """An earned act-then-tell action whose success is credited only once its undo window closed unused."""
+        """An earned act-then-tell action whose success is credited only once its undo window closed unused. ``seq``:
+        the ledger's last row when it ran, so what came after it is read by primary key."""
         self._write()
         self.db.execute(self._CREDITS)
-        self.db.execute("INSERT OR REPLACE INTO credits (undo_id, session, stakes, reversible) VALUES (?, ?, ?, ?)",
-                        (undo_id, session, stakes, int(bool(reversible))))
+        last = self.db.execute("SELECT MAX(seq) FROM ledger").fetchone()[0] or 0
+        self.db.execute("INSERT OR REPLACE INTO credits (undo_id, session, stakes, reversible, seq) "
+                        "VALUES (?, ?, ?, ?, ?)", (undo_id, session, stakes, int(bool(reversible)), last))
 
-    def due_credits(self, before: float) -> list[dict]:
+    def due_credits(self, before: float, limit: int = 50) -> list[dict]:
         """The deferred credits whose action is older than ``before``, oldest first, with their undo row."""
         if self.db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'credits'").fetchone() is None:
             return []
         rows = self.db.execute("SELECT c.undo_id, c.session, c.stakes, c.reversible, u.agent, u.type, u.at, u.undone, "
-                               "u.fault FROM credits c LEFT JOIN undo u ON u.id = c.undo_id "
-                               "WHERE u.at IS NULL OR u.at < ? ORDER BY c.undo_id", (before,)).fetchall()
-        keys = ("undo_id", "session", "stakes", "reversible", "agent", "type", "at", "undone", "fault")
+                               "u.fault, c.seq FROM credits c LEFT JOIN undo u ON u.id = c.undo_id "
+                               "WHERE u.at IS NULL OR u.at < ? ORDER BY c.undo_id LIMIT ?", (before, limit)).fetchall()
+        keys = ("undo_id", "session", "stakes", "reversible", "agent", "type", "at", "undone", "fault", "seq")
         return [dict(zip(keys, r)) for r in rows]
 
     def drop_credit(self, undo_id: int) -> None:
         self._write()
+        self.db.execute(self._CREDITS)
         self.db.execute("DELETE FROM credits WHERE undo_id = ?", (undo_id,))
 
-    def fault_since(self, agent: str, type_key: str, at: float) -> bool:
-        """A fault outcome on this agent's type logged after ``at``."""
-        for (event,) in self.db.execute("SELECT event FROM ledger WHERE at > ? AND event LIKE '%\"fault\"%'", (at,)):
+    def fault_since(self, agent: str, type_key: str, seq: int) -> bool:
+        """A fault outcome (not excused since) or a revoke on this agent's type, after ledger row ``seq``."""
+        faults, excused = set(), set()
+        for s, event in self.db.execute("SELECT seq, event FROM ledger WHERE seq > ?", (seq or 0,)):
             e = json.loads(event)
-            if e.get("event") == "outcome" and e.get("result") == "fault" and (e.get("agent"), e.get("type")) == (
-                    agent, type_key):
-                return True
-        return False
+            kind = e.get("event")
+            if kind == "excuse":
+                excused.add(e.get("seq"))
+            elif (e.get("agent"), e.get("type")) == (agent, type_key) and (
+                    kind == "revoke" or kind == "outcome" and e.get("result") == "fault"):
+                faults.add(s)
+        return bool(faults - excused)
 
     # ----------------------------------------------------------------------- root sessions (audit 19/11)
     def set_root(self, child: str, parent: str) -> None:
         """A subagent's session counts as its root session for the two-sessions condition."""
         root = self.root_of(parent)
         if root and root != child:
+            Store.roots[child] = root
+            if len(Store.roots) > 10_000:
+                Store.roots.pop(next(iter(Store.roots)))
             self.set_meta("root:" + child, root)
 
+    roots: dict = {}                     # child -> root, in memory too: a busy database never splits a conversation
+
     def root_of(self, session: str) -> str:
-        return (self.get_meta("root:" + session) if session else None) or session
+        if not session:
+            return session
+        return Store.roots.get(session) or self.get_meta("root:" + session) or session
 
     # ------------------------------------------------------------------------------- written then run (audit 19/11)
     def _path_hash(self, path: str) -> str:
