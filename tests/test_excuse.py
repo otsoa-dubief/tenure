@@ -38,7 +38,7 @@ def test_a_refusal_then_excuse_restores_the_record(plugin):
     seq = mod.excusable(mod.store_())[0]["seq"]
     mod.cli.slash(f"excuse {seq}")
     s = state(mod, "file:write")
-    assert (s.tier, s.faults, s.series, s.wald) == (before.tier, 0, before.series, before.wald)
+    assert (s.tier, s.faults, s.series, s.wald) == (before.tier, 0, 0, before.wald)   # the series restarts (CSP-1)
     assert (s.neutrals, s.excused) == (before.neutrals + 1, 1)
     assert replay_matches(mod)
 

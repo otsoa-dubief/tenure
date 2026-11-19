@@ -74,6 +74,7 @@ def test_at_most_three_excuses_per_type_a_week_and_one_hint_a_day(plugin):
             mod.cli.slash(f"excuse {open_[0]['seq']}")
         else:
             assert open_ == []                                    # the fourth fault of the week stays a fault
+            assert "3 excuses" in mod.cli.slash(f"excuse {mod.excusable(mod.store_(), limit=False)[0]['seq']}")
     assert hints == 1
 
 
@@ -85,3 +86,33 @@ def test_a_passport_shows_a_guarantee_only_for_an_earned_t3(plugin):
     p = mod.passport.build(mod.store_(), A, mod.settings(), mod.data_dir())
     g = {e["type"]: e["guarantee"] for e in p["types"]}
     assert g["file:write"]["aoql"] > 0 and any(v is None for k, v in g.items() if k != "file:write")
+
+
+def test_a_due_check_waits_for_a_person_then_the_earned_tier_acts(plugin):
+    from test_plugin import Picks, to_t3, write
+    mod, ctx = plugin(FAST)
+    to_t3(ctx)
+    ctx.cron = True
+    mod.ST.rng = Picks([0.0])
+    assert ctx.call("write_file", write("c1")) == "blocked"
+    mod.ST.rng = Picks([0.99, 0.99])
+    assert ctx.call("write_file", write("c2")) == "blocked"                # still due
+    ctx.cron = False
+    assert ctx.call("write_file", write("p1")) == "approved"               # a person answers the due check
+    assert outcomes(mod)[-1]["source"] == "spot"
+    assert ctx.call("write_file", write("p2")) == "ran"                    # done: the earned tier acts again
+
+
+def test_an_excused_fault_keeps_the_tier_and_the_score_but_restarts_the_series():
+    s = state("low")
+    s.reversible = True
+    s.tier, s.series, s.session_runs, s.sessions = rule.T2, 30, [["a", 15], ["b", 15]], ["a", "b"]
+    wald = s.wald
+    rule.on_neutral(s, "excused")
+    assert (s.tier, s.series, s.session_runs, s.wald) == (rule.T2, 0, [], wald)
+    t3 = state("low")
+    t3.reversible, t3.tier, t3.series = True, rule.T3, 52
+    rule.on_neutral(t3, "excused")
+    assert t3.tier == rule.T2                                     # an empty series cannot keep acting alone
+    rule.on_neutral(t3, "timeout")
+    assert t3.tier == rule.T2
