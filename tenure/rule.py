@@ -287,9 +287,9 @@ def on_success(s: TypeState, n: int | None, *, session: str, source: str) -> lis
         if _middle(s):
             a, step, ln_b = params.wald_steps(s.stakes)
             s.wald = max(s.wald + step, ln_b - a)
-        events += _climb(s, n)
         events += _confirm(s)
-        _trim_runs(s)
+        _trim_runs(s)                      # the series' own runs first: the climb checks the sessions on them (B/2)
+        events += _climb(s, n)
     return events
 
 

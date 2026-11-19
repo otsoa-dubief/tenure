@@ -9,7 +9,8 @@ asks (spot checks); one caught error takes the autonomy back.
 
 Errors the owner catches never run: an asked action that is refused is blocked. Errors that run unchecked are those
 of a type that acts alone, and those of an act-then-tell action the owner did not read before its undo window closed
-(the series counts those as checked: the guarantee assumes the owner reads the act-then-tell messages). Their long-run share of the type's actions is the average outgoing quality
+(rule B/2: the series only counts an act-then-tell action the owner marked as seen; one left unread counts for
+nothing, but its errors still ran unchecked). Their long-run share of the type's actions is the average outgoing quality
 (AOQ) of Dodge's continuous sampling plan CSP-1 (1943). For an agent whose error rate ``p`` is stable,
 
     AOQ(p) = p (1 - f) u / (f + (1 - f) u),  u = (1 - p)^N,

@@ -183,7 +183,7 @@ def _status_agent(st, agent: str, cfg: dict) -> list[str]:
             series, sessions, guar = "-", "-", tr("cli.status.capped")
         else:
             series = f"{s.series}/{rule.required(s, n)}"
-            sessions = f"{len(s.sessions)}/{rule.sessions_needed(s.stakes)}"
+            sessions = f"{len(rule.session_counts(s))}/{rule.sessions_needed(s.stakes)}"
             g = rule.guarantee(s, n, cfg["spot"])
             guar = "-"
             if eff == rule.T3:

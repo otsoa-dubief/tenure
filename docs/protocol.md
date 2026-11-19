@@ -35,7 +35,7 @@ unknown-event error.)
 
 | Event | Fields | Replay |
 |---|---|---|
-| `settings` | `risks` (`{low, medium, high}`: an accepted risk, or `null` for a capped level), `spot` (spot-check rate), `strict` (bool), `start` (`"trusted"` or `"probation"`; absent in older ledgers = probation), `rule` (`"study-rule-B/1"`) | Every type of every agent known so far is re-evaluated: its series is capped at the new length and a T3 type that no longer meets it drops. Looser settings never promote a type by themselves. Logged before the first outcome, then on every change. |
+| `settings` | `risks` (`{low, medium, high}`: an accepted risk, or `null` for a capped level), `spot` (spot-check rate), `strict` (bool), `start` (`"trusted"` or `"probation"`; absent in older ledgers = probation), `rule` (`"study-rule-B/1"` or `"study-rule-B/2"`) | Every type of every agent known so far is re-evaluated: its series is capped at the new length and a T3 type that no longer meets it drops. Looser settings never promote a type by themselves. Logged before the first outcome, then on every change. |
 | `outcome` | `agent`, `type`, `stakes` (`low`, `medium`, `high`), `reversible` (bool), `result` (`success`, `fault`, `neutral`), `source`, `session` | The agent's type (new: tier T1, empty record). If its stakes differ from the event's, its evidence is re-based first (series, sessions and carried part restart; the Wald score keeps a fault's penalty; tier T1). It takes the event's stakes and reversibility, then the success, fault or neutral update of the rule. Then, if `(result, source)` is an executed action (below), the wait after a failed trial counts it, unless that fault is the one that failed the trial. |
 | `agent` | `old`, `new`, `mode` (`carry` or `strict`), `vetoed` (list of types) | Every type of `old` that `new` has no record for gets the carried-over state: half of the series, provisional, with half of a negative score; a fresh start at high stakes, for a capped level, for a vetoed type or in strict mode. A medium or high fault in `old`'s memory becomes a trial for `new` in every mode. |
 | `revoke` | `agent`, `type` | The owner takes the type back: T1, no series, no score credit, no carried part. Not a fault. |
@@ -44,16 +44,17 @@ unknown-event error.)
 
 Sources per result:
 
-- success: `approval`, `spot`, `notify` (rule B/1 ledgers: an act-then-tell action credited when its undo window
-  closed unused), `seen` (rule B/2: the owner marked an act-then-tell action as seen); the `session` of an outcome
+- success: `approval`, `spot`, `notify` (rule B/1 ledgers, and under rule B/2 an action the trusted start ran as
+  act-then-tell: credited when its undo window closed unused), `seen` (rule B/2: the owner marked an act-then-tell action as seen); the `session` of an outcome
   is the root conversation, a subagent's counting as its parent's;
 - fault: `refusal`, `spot`, `check`, `undo`, `flag`;
-- neutral: `error`, `alone`, `blocked`, `timeout`, `nobody`, `expired`, `ambiguous`, `background` (a terminal call
+- neutral: `error`, `alone`, `blocked`, `timeout`, `nobody`, `expired`, `ambiguous` (several live rows of one tool call id outside any session, or a write to a file that
+  already failed the automatic check before the call and still does: it proves nothing), `background` (a terminal call
   Hermes ran in the background: the result is the launch, not the command's outcome), `unseen` (rule B/2: an act-then-tell action left unread through its undo window), `excused` (only in a replay:
   a fault outcome named by a later `excuse` event).
 
 Executed actions, counted by the wait after a failed trial: `success/approval`, `success/spot`, `success/notify`,
-`fault/check`, `neutral/error`, `neutral/alone`.
+`success/seen`, `neutral/unseen`, `fault/check`, `neutral/error`, `neutral/alone`.
 
 **Trusted start.** Every type state carries `distrusted`. A replay sets it on every state of a type, for every agent,
 at that type's first `fault` outcome or `revoke` event, and a state created afterwards for that type starts with it
@@ -80,8 +81,9 @@ A replay ignores them: the input events alone determine the states.
 `rule.fingerprint` is the sha256 of the canonical JSON of:
 
 ```json
-{"version": "study-rule-B/1", "DETECTION": "19/20", "WALD": {"low": [pb, pm], "medium": [pb, pm]},
- "ALPHA": a, "BETA": b, "lengthen": l, "trial": t, "wait": w, "sessions": s, "carry": c, "veto": v}
+{"version": "study-rule-B/2", "DETECTION": "19/20", "WALD": {"low": [pb, pm], "medium": [pb, pm]},
+ "ALPHA": a, "BETA": b, "lengthen": l, "trial": t, "wait": w, "sessions": {"low": 2, "medium": 3, "high": 3},
+ "max_share": 0.5, "carry": c, "veto": v}
 ```
 
 with the values of `tenure/params.py`, `tenure/rule.py` and `tenure/benchmarks.py`
@@ -100,7 +102,7 @@ different fingerprint means the replay of this implementation may not apply to t
   "redacted": true,
   "types": [
     {"type": "file:write", "stakes": "low", "tier": "alone", "effective_tier": "alone", "series": 52,
-     "required": 52, "sessions": 3, "provisional": 0, "guarantee": {"aoql": 0.0, "worst_case": 0.0,
+     "required": 52, "sessions": 3, "provisional": 0, "excused": 0, "guarantee": {"aoql": 0.0, "worst_case": 0.0,
      "conditional": false}, "trusted": false}
   ],
   "ledger": {"count": 1234, "head": "<64 hex>"},
@@ -114,12 +116,12 @@ different fingerprint means the replay of this implementation may not apply to t
 - `types`, sorted by `type`, one entry per type the agent has a record for:
   - `tier`: `ask` (T1), `notify` (T2), `alone` (T3), as stored;
   - `effective_tier`: the tier that would run an action of this type at its stakes under the passport's settings:
-    `ask` when the level is capped or a trial or its wait is open; `alone` only when `tier` is `alone`, the series
-    reaches `required` and its sessions meet the rule (B/1: two; B/2: two at low stakes and three at medium, none
-    giving more than half of the series); `notify` only when `tier` is `notify` and the middle tier's score
+    `ask` when the level is capped or a trial or its wait is open; `alone` only when `tier` is `alone` and the series
+    reaches `required` (the sessions rule, B/1: two; B/2: two at low stakes and three at medium, none giving more
+    than half of the series, gates the climb to T3, not keeping it); `notify` only when `tier` is `notify` and the middle tier's score
     holds (`rule.effective_tier`). A spot check or a suspension can still make an action ask;
   - `series`: verified successes in a row; `required`: the series length for T3 (`null` when the level is capped);
-  - `sessions`: distinct sessions in the series; `provisional`: carried-over successes not yet confirmed;
+  - `sessions`: distinct sessions among the series' own successes (the ones the sessions rule counts); `provisional`: carried-over successes not yet confirmed;
   - `guarantee`: computed from the series length and the spot-check rate by `params`, or `{"capped": true}`. The
     example's numbers are placeholders.
   - `trusted`: `true` when the type is covered by the trusted start (see above) and not at an effective T3: it acts

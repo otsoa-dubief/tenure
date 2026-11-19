@@ -90,7 +90,7 @@ PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible"
 #                  check), check (an action that ran failed its automatic check, whoever let it run: a person, an
 #                  earned tier, or nobody), undo, flag (after the fact);
 #         neutral: ambiguous (several live rows of one tool call id and type outside any session: none is
-#                  settled as a success), error (an action a person or an earned tier let run, whose tool failed), alone (a T3 action
+#                  settled as a success; or a write to a file already broken before the call and still broken), error (an action a person or an earned tier let run, whose tool failed), alone (a T3 action
 #                  ran, unverified), blocked (stopped by another guard after our decision, never ran), timeout (no
 #                  answer from a person: timeout, cancellation, smart approval), nobody (nobody answered: cron,
 #                  yolo, approvals off, another plugin's approval; the action did not fail its automatic check, or
