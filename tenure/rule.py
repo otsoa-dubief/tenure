@@ -156,7 +156,7 @@ def sessions_met(s: TypeState) -> bool:
     if len(s.sessions) < sessions_needed(s.stakes):
         return False
     counts = session_counts(s)
-    return not counts or max(counts.values()) <= MAX_SHARE * max(s.series, 1)
+    return not counts or max(counts.values()) <= math.ceil(MAX_SHARE * max(s.series, 1))   # 11 of 21 is half
 
 
 def required(s: TypeState, n: int) -> int:
