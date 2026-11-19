@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import logging
 import os
 import random
@@ -107,6 +108,7 @@ class _State:
         self.touched: OrderedDict[str, set] = OrderedDict()    # session -> files its calls wrote (real paths)
         # (session, call id) -> scripts the agent wrote that this asked call runs: forgotten once approved
         self.fresh: OrderedDict[tuple[str, str], list] = OrderedDict()
+        self.taint_from: OrderedDict[str, str] = OrderedDict()   # session -> the call that suspended it (memory only)
         self.last_agent = ""
         self.rng = random.SystemRandom()
         self.purged_at = 0.0
@@ -577,6 +579,21 @@ def _suspended(st: store.Store, session: str) -> bool:
     if not session:                         # outside any session: this process only, for SESSIONLESS_TAINT
         return since is not None and time.time() - since < SESSIONLESS_TAINT
     return since is not None or st.is_tainted(session)
+
+
+_HOST = re.compile(r"[a-z][a-z0-9+.-]*://(?:[^/@\s]*@)?([^/:?#\s'\"]+)", re.I)
+
+
+def _source_label(tool: str, args: dict) -> str:
+    """What suspended a session, as the owner reads it: the tool, and the host of the first URL in its arguments
+    (never a path, a query or credentials)."""
+    m = _HOST.search(json.dumps(args, ensure_ascii=False)[:4000]) if isinstance(args, dict) else None
+    return f"{tool} {m.group(1)[:80]}" if m else tool
+
+
+def _taint_label(session: str) -> str:
+    with ST.mem:
+        return ST.taint_from.get(session, "")
 
 
 def _taint(session: str) -> None:
@@ -1142,7 +1159,8 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
         decision = rule.ASK                             # copy_unchecked: this record may be a copy, not yet settled
     if (decision == rule.ASK and not ST.copy_unchecked and trusted(cfg, s, n, act.stakes)
             and (not suspended or (act.reversible and act.type.startswith("file:")))):
-        decision = rule.WATCH                           # after outside content: undoable file writes only                           # trusted start: run as Hermes would, with an undo if possible
+        # trusted start: run as Hermes would, with an undo if possible; after outside content, undoable file writes only
+        decision = rule.WATCH
     if decision != rule.ASK and _held_by(st, agent, act.type):
         decision = rule.ASK                             # a sensitive kind waits while its tool's fault is unredeemed
     if decision != rule.ASK and st.doubted(agent, act.type):
@@ -1194,7 +1212,7 @@ def _to_t2(s: rule.TypeState) -> int:
 def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool,
                  earned_at: str | None, per_session: bool = False, trusted_start: bool = False,
                  held: str | None = None, doubted: bool = False, fresh: list | None = None,
-                 exec_files: list | None = None) -> str:
+                 exec_files: list | None = None, taint_from: str = "") -> str:
     stakes = stakes_name(act.stakes)
     if decision == rule.SPOT:
         return tr("ask.spot", summary=act.summary, type=act.type, spot=round(1 / spot))
@@ -1208,6 +1226,8 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
         why = tr("ask.why.capped", type=act.type, stakes=stakes, n=s.successes)
     elif suspended:
         why = tr("ask.why.suspended_trusted" if trusted_start else "ask.why.suspended")
+        if taint_from:                                  # which call suspended it: a tool, and a host if any
+            why += " " + tr("ask.why.suspended_from", source=taint_from)
     elif s.trial_left:
         why = tr("ask.why.trial", type=act.type, n=s.trial_left)
     elif s.trial_wait:
@@ -1476,6 +1496,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 st.add_pending(uid, phase="nobody" if nobody else "asked", rule_key=key, **row)
                 directive = {"action": "approve", "rule_key": key,
                              "message": _ask_message(act, s, n, cfg["spot"], decision=decision, suspended=suspended,
+                                                     taint_from=_taint_label(session),
                                                      unsaved=unsaved, per_session=per_session, trusted_start=cfg.get("start") == "trusted",
                                                      doubted=st.doubted(agent, act.type),
                                                      fresh=[_show(x, cwd, os.path.expanduser("~")) for x in fresh],
@@ -1581,6 +1602,8 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         if tool == "execute_code" or classify.reads_external(tool, args, cwd):
             with ST.mem:
                 first = session not in ST.tainted
+                if first:
+                    _remember(ST.taint_from, session, _source_label(tool, args))
             _taint(session)
             if first and settings().get("start") == "trusted":
                 _announce(tr("notice.suspended"))           # said once: the asks that follow stay short
