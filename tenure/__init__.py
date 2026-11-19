@@ -1000,11 +1000,13 @@ def _to_t2(s: rule.TypeState) -> int:
 
 def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool,
                  earned_at: str | None, per_session: bool = False, trusted_start: bool = False,
-                 held: str | None = None) -> str:
+                 held: str | None = None, doubted: bool = False) -> str:
     stakes = stakes_name(act.stakes)
     if decision == rule.SPOT:
         return tr("ask.spot", summary=act.summary, type=act.type, spot=round(1 / spot))
-    if n is None:
+    if doubted:                                         # a verifier's doubt (#6): the reason for this question
+        why = tr("ask.why.doubt", type=act.type)
+    elif n is None:
         why = tr("ask.why.capped", type=act.type, stakes=stakes, n=s.successes)
     elif suspended:
         why = tr("ask.why.suspended_trusted" if trusted_start else "ask.why.suspended")
@@ -1239,6 +1241,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 directive = {"action": "approve", "rule_key": key,
                              "message": _ask_message(act, s, n, cfg["spot"], decision=decision, suspended=suspended,
                                                      unsaved=unsaved, per_session=per_session, trusted_start=cfg.get("start") == "trusted",
+                                                     doubted=st.doubted(agent, act.type),
                                                      earned_at=recorded.stakes if recorded else None,
                                                      held=_held_by(st, agent, act.type))}
         if taken and taken != snap:
