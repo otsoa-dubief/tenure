@@ -556,6 +556,7 @@ def passport_cmd(agent: str | None = None, out: str = "", redact: bool = True) -
         if not st.states(name):
             return tr("cli.passport.none", agent=name)
         core.sync_settings(st, cfg)                    # the ledger holds the settings the states were computed with
+        core._credit_due(st, cfg)                      # credits whose undo window closed, before the record is read
         p = passport.build(st, name, cfg, core.data_dir(), redact=redact)
     if not out:
         stem = re.sub(r"[^A-Za-z0-9._-]+", "-", name).strip("-")

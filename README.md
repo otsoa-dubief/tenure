@@ -176,7 +176,8 @@ trusted gets its spot checks like any other.
 
 **Proofs.** A type climbs on verified outcomes, judged after the tool has run: an approved action that ran
 cleanly and whose automatic check passed (the written file still parses, the exit code is zero) is a success, and
-so is an act-then-notify action whose check passed (you can still undo it: an undo is a fault). A refusal, an
+so is an act-then-notify action whose check passed, once its 24-hour undo window has closed without an undo, a flag,
+a revoke or a later fault (until then it counts for nothing; an undo is a fault). A refusal, an
 undo or an error you flag is a fault, and a failed check is a fault at any tier. What nobody verified (timeout,
 failed tool, no one answering, a clean action taken alone) counts for nothing. A fault resets the series. A
 low-stakes fault at act-alone drops one tier (to act-then-notify if the type is reversible). A medium or high
@@ -267,7 +268,9 @@ table is generated from the same code that decides (`params.describe`), and a te
 Cell: verified successes in a row (the first ones approved by you, the rest acted on at T2 and credited once their
 24-hour undo window closed without an undo, a flag or a later fault; in at least two conversations, a subagent's
 counting as its parent's), guarantee (errors that run unapproved, as a share of all actions of the type, for a
-stable agent, counting the errors that get caught: a refusal, an undo, a flag, a verifier or the parse check), worst case (for an agent that turns bad after tenure, until a caught error revokes it).
+stable agent, counting the errors that get caught: a refusal, an undo, a flag, a verifier or the parse check; the act-then-tell
+successes of the series count as checked because you could undo them for a day, so the guarantee assumes you read
+the "acted, then told you" messages; if you do not, it is optimistic), worst case (for an agent that turns bad after tenure, until a caught error revokes it).
 
 | Preset | Low stakes (files in the project, memory) | Medium (commands, code, files elsewhere) | High (leaves the machine, money) |
 |---|---|---|---|

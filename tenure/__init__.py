@@ -807,6 +807,7 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
         st.clear_doubt(agent, type_key)                 # the owner answered: a verifier's doubt is settled
     if result == "fault":
         st.distrust(type_key)
+    session = st.root_of(session)                        # a subagent's outcome counts in its root conversation
     st.last_outcome_seq = st.log({"event": "outcome", "agent": agent, "type": type_key, "stakes": stakes,
                                   "reversible": bool(reversible), "result": result, "source": source,
                                   "session": session})
@@ -829,14 +830,21 @@ def _credit_due(st: store.Store, cfg: dict, now: float | None = None) -> list[di
         st.drop_credit(c["undo_id"])
         if c["agent"] is None or c["undone"] or c["fault"]:
             continue
-        if st.fault_since(c["agent"], c["type"], c["at"]):
-            result, source = "neutral", "expired"
-        else:
-            result, source = "success", "notify"
-        sync_settings(st, cfg)
-        events += record_outcome(st, cfg, agent=c["agent"], type_key=c["type"], stakes=c["stakes"],
-                                 reversible=bool(c["reversible"]), result=result, source=source,
-                                 session=c["session"] or "")
+        try:
+            recorded = st.recorded(c["agent"], c["type"])
+            if (st.fault_since(c["agent"], c["type"], c["seq"]) or st.doubted(c["agent"], c["type"])
+                    or recorded is None or recorded.stakes != c["stakes"]):
+                result, source = "neutral", "expired"    # a later fault, revoke, doubt or other stakes: no credit
+            else:
+                result, source = "success", "notify"
+            stakes, reversible = ((recorded.stakes, recorded.reversible) if recorded is not None and result == "neutral"
+                                  else (c["stakes"], bool(c["reversible"])))   # a neutral never rebases the record
+            sync_settings(st, cfg)
+            events += record_outcome(st, cfg, agent=c["agent"], type_key=c["type"], stakes=stakes,
+                                     reversible=reversible, result=result, source=source,
+                                     session=c["session"] or "")
+        except Exception:                               # one bad credit never blocks the others, nor the decision
+            log.exception("tenure: a deferred credit could not be recorded; dropped")
     return events
 
 
@@ -928,6 +936,7 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
     entry = st.get_undo(id)
     if entry is None:
         return UndoMessage(tr("undo.missing", id=id), False)
+    st.drop_credit(id)                                    # the owner tried to undo it: never a success, even if it fails
     if entry["undone"]:
         return UndoMessage(tr("undo.already", id=id), False)
     if time.time() - entry["at"] > UNDO_WINDOW:
@@ -1568,8 +1577,9 @@ def subagent_start(parent_session_id="", child_session_id="", **kwargs):
         try:
             with txn() as st:                               # its successes count in the root session (audit 19/11)
                 st.set_root(child, parent)
-        except LockTimeout:
-            log.warning("tenure: the subagent's root session could not be recorded: the store stayed busy")
+        except LockTimeout:                             # kept in memory: the child never counts as a session of its own
+            store.Store.roots[child] = store.Store.roots.get(parent, parent)
+            log.warning("tenure: the subagent's root session is kept in memory only: the store stayed busy")
         with ST.mem:
             tainted = parent in ST.tainted
         if not tainted:
