@@ -380,9 +380,19 @@ def _unquote(raw: str) -> tuple[str, str, str]:
     return "", raw, ""
 
 
+_BRACES = re.compile(r"\{[^{}]*(,|\.\.)[^{}]*\}")
+
+
 def _plain(value: str, quote: str) -> bool:
-    """A literal the shell keeps as written: nothing it would run or expand (single quotes keep everything)."""
-    return bool(value) and (quote == "'" or not any(c in value for c in "$`") and "<(" not in value)
+    """A literal the shell keeps as written: nothing it would run or expand (single quotes keep everything). Unquoted,
+    also never a comment (`#…`), a group brace (`{`, `}`) or a brace expansion (`{a,b}`): shown, they mean syntax."""
+    if not value:
+        return False
+    if quote == "'":
+        return True
+    if any(c in value for c in "$`") or "<(" in value or ">(" in value:
+        return False
+    return quote == '"' or not (value[0] == "#" or value in ("{", "}") or _BRACES.search(value))
 
 
 def _masked(raw: str) -> str | None:
