@@ -376,9 +376,10 @@
   "cli.excuse.nobody": "No hay excusa mientras nadie responde a las aprobaciones ({why}): solo una persona puede excusar una falta.",
   "cli.excuse.terminal": "Una excusa la escribe una persona: /tenure excuse en el chat, o hermes tenure excuse en un terminal interactivo.",
   "settle.acted_ok": "¿visto y correcto? {command}",
-  "cli.ok.done": "tenure: {n} acción(es) «actúa y avisa» marcada(s) como vista(s): cuentan para actuar sola.",
+  "cli.ok.done": "tenure: marcadas como vistas: {which}. Cuentan para actuar sola.",
   "cli.ok.none": "Nada que marcar como visto: ninguna acción «actúa y avisa» de las últimas 24 horas sigue abierta aquí.",
   "cli.ok.nobody": "No mientras nadie responde a las aprobaciones ({why}): solo una persona puede decir que vio una acción.",
   "cli.ok.terminal": "«Visto» lo dice una persona: /tenure ok en el chat, o hermes tenure ok N en un terminal interactivo.",
-  "cli.ok.number": "En un terminal, nombre la acción: hermes tenure ok N (N es el número de deshacer de su aviso)."
+  "cli.ok.title": "Acciones «actúa y avisa» aún abiertas (24 h), la más reciente al final. Nombre las que miró:",
+  "cli.ok.footer": "Visto y correcto: /tenure ok <número> [<número> ...]"
 }

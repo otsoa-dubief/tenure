@@ -56,7 +56,7 @@ Tenure keeps Hermes' speed and adds what is missing:
 |---|---|
 | **Trusted** (the start) | For files, memory, subagents and the usual local dev tools (npm, python, pytest, cargo, go, make, git...), the agent works as with Hermes alone: no extra question. Files it changes are saved first and can be undone for 24 hours (`/tenure undo`); anything can be flagged (`/tenure flag`). Trust is given, not earned: it reaches no tier and claims no guarantee. |
 | **T1 · Probation** (asks first) | After its first mistake (an undo, a flag, a failed automatic check, a refusal), that kind of action asks you first. Only that kind. |
-| **T2 · Under review** (acts, then tells you) | Earned back on approvals: the agent acts, then tells you, with an undo. Only for reversible types at low or medium stakes. Each message ends with "seen and fine? /tenure ok": only the actions you mark as seen count toward T3; silence counts for nothing (rule B/2). |
+| **T2 · Under review** (acts, then tells you) | Earned back on approvals: the agent acts, then tells you, with an undo. Only for reversible types at low or medium stakes. Each message ends with "seen and fine? /tenure ok N": only the actions you name as seen count toward T3; silence counts for nothing (rule B/2). |
 | **T3 · Tenured** (acts on its own) | Earned on a series of verified successes over at least two conversations (three at medium stakes), none giving more than half of it, under a risk you set. One in ten is still spot-checked. |
 
 What tenure asks that Hermes alone would not:
@@ -155,7 +155,7 @@ Catalogs and glossaries live in [`tenure/locales/`](tenure/locales).
 After a type's first mistake (or from the start with `start: probation`), tenure applies
 the same rule as a preregistered study, replayed on 6,000+ simulated agents (results pending; see [docs/the-study.md](docs/the-study.md)).
 It does not claim the study has confirmed the rule: the results are pending. On top of the study's rule, tenure adds
-spot checks, two distinct sessions in the series that reaches T3, and suspension after external content; it adapts
+spot checks, two distinct sessions in the series that reaches T3 (rule B/2: three at medium stakes, none over half), and suspension after external content; it adapts
 the proof (a person's approval plus a clean run). Carry-over is our addition; strict mode is the study. The trusted
 start is not the study either: trusted actions earn nothing and carry no guarantee. Details, the preregistration
 (OSF) and every difference: [docs/the-study.md](docs/the-study.md).
@@ -176,8 +176,8 @@ trusted gets its spot checks like any other.
 
 **Proofs.** A type climbs on verified outcomes, judged after the tool has run: an approved action that ran
 cleanly and whose automatic check passed (the written file still parses, the exit code is zero) is a success, and
-so is an act-then-notify action whose check passed once you mark it as seen (`/tenure ok`, one gesture for the
-conversation, within its 24-hour undo window). Left unread, it counts for nothing: not undone is not checked (an
+so is an act-then-notify action whose check passed once you name it as seen (`/tenure ok N`, one number or
+several, within its 24-hour undo window; `/tenure ok` alone lists the open ones, never "all of them"). Left unread, it counts for nothing: not undone is not checked (an
 undo is a fault). A refusal, an
 undo or an error you flag is a fault, and a failed check is a fault at any tier. What nobody verified (timeout,
 failed tool, no one answering, a clean action taken alone) counts for nothing. A fault resets the series. A
@@ -185,7 +185,10 @@ low-stakes fault at act-alone drops one tier (to act-then-notify if the type is 
 fault sends the type back to asking, lengthens the next climb, and opens a trial of 3 verified successes.
 Asked-but-never-run actions are never counted as successes.
 
-**Two sessions.** The series that reaches "act alone" must hold successes from at least two distinct sessions.
+**Several conversations.** The series that reaches "act alone" must hold successes from at least two distinct
+conversations (three at medium stakes), none giving more than half of the agent's own successes in it (rule B/2;
+a subagent counts as its parent's conversation). They gate the climb: once earned, T3 is not lost when old
+conversations leave the series.
 
 **Suspension after external content.** A session asks for everything until it ends (under the trusted start: everything but file writes, which keep
 their undo; `/new` starts a fresh session), after using one of these
@@ -373,7 +376,7 @@ nightly reconciliation) names an action by Hermes' session and tool call id, or 
 | `hermes tenure undo [ID]` | Restore the files of an act-then-notify action; without an ID, list what can still be undone |
 | `hermes tenure flag` · `hermes tenure flag N` | List the last numbered actions (24 hours); report action N as an error: the fault lands on the agent that acted, once |
 | `hermes tenure flag TYPE [note]` | Report an error the agent made on its own: revokes that type |
-| `/tenure ok` · `hermes tenure ok N` | Seen and fine: the act-then-tell actions of this conversation (or action N) count toward T3; left unread, they count for nothing |
+| `/tenure ok` · `/tenure ok N [N ...]` · `hermes tenure ok N` | Alone, the act-then-tell actions still open; with numbers, the ones you looked at count toward T3 (left unread, they count for nothing) |
 | `hermes tenure excuse` · `hermes tenure excuse N` | List the faults of the last 10 minutes; take back fault N when it was not the agent's mistake (you refused for another reason, or undid a correct change): it counts as neutral |
 | `hermes tenure flag --call ID --session ID [--doubt]` · `hermes tenure flag N --doubt` | A verifier: a fault on one action named by its call, or a doubt (its next action of that kind asks first) |
 | `hermes tenure revoke TYPE\|all [--model M\|--all]` | Take earned autonomy back: one type or every type, for the last active agent, one model, or every agent |

@@ -9,7 +9,8 @@ The middle tier (act, then notify) is part of the study.
 Added layers:
 
 - spot checks on a cleared type (one in ten by default);
-- the requirement of two distinct sessions;
+- the requirement of distinct sessions (rule B/2: two conversations, three at medium stakes, none giving more than
+  half of the series; a subagent counts as its parent's);
 - suspension after external content.
 
 Trusted start (tenure's default, not the study): a type of the covered kinds (files, memory, subagents, known local
@@ -23,7 +24,7 @@ Adaptations:
 - evidence is re-based when the stakes of a type change;
 - a trial is the next 3 real actions, asked; the study replays 3 hidden variants of the faulty case.
 - rule B/2 (Tenure 1.3), stricter than the study: an act-then-tell success (T2) counts only when the owner marks it
-  as seen (`/tenure ok`) within its 24-hour undo window; left unread, it is neutral (`unseen`), because silence is
+  as seen (`/tenure ok N`, named one by one) within its 24-hour undo window; left unread, it is neutral (`unseen`), because silence is
   not a check (research report "Garantie Tenure et détection humaine", 19/11/2026: with silence counted, about 80 %
   of the series could be unread and the real AOQ about twice the displayed one). The sessions are conversations (a
   subagent's counts as its parent's), at least 2 at low stakes and 3 at medium, and none gives more than half of

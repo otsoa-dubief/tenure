@@ -74,9 +74,9 @@ def test_rule_b2_one_session_never_gives_more_than_half():
         rule.on_success(s, 52, session="a", source="approval")
     rule.on_success(s, 52, session="b", source="approval")      # 51 + 1: one context, not two
     assert s.tier == rule.T1 and not rule.sessions_met(s)
-    for _ in range(26):
+    for _ in range(25):
         rule.on_success(s, 52, session="b", source="approval")
-    assert s.tier == rule.T3                                    # the series is capped at 52: b now gives half
+    assert s.tier == rule.T3                                    # the series is capped at 52: 26 + 26
 
 
 def test_rule_b2_medium_stakes_need_three_sessions():
@@ -627,8 +627,8 @@ def test_effective_tier_is_the_tier_decide_would_act_on():
     assert rule.effective_tier(s, LOW, "medium") == rule.T1             # earned at other stakes
     s.trial_left = 3
     assert rule.effective_tier(s, LOW, "low") == rule.T1                # an open trial asks
-    s.trial_left, s.sessions = 0, ["a"]
-    assert rule.effective_tier(s, LOW, "low") == rule.T1                # two sessions needed for T3
+    s.trial_left, s.session_runs = 0, [["a", s.series]]
+    assert rule.effective_tier(s, LOW, "low") == rule.T3                # sessions gate the climb, not keeping T3
     t2 = state("low", reversible=True)
     t2.tier, t2.wald = rule.T2, params.wald_steps("low")[2]
     assert rule.effective_tier(t2, LOW, "low") == rule.T2
@@ -638,6 +638,7 @@ def test_effective_tier_is_the_tier_decide_would_act_on():
         for stakes in ("low", "medium"):
             u = state(stakes, reversible=True)
             u.tier, u.series, u.sessions = rule.T3, 99, ["a", "b", "c"]
+            u.session_runs = [["a", 33], ["b", 33], ["c", 33]]
             n = random.choice([None, 10, 50, 99])
             decision = rule.decide(u, n, 0.1, suspended=False, rng=random.Random(1))
             eff = rule.effective_tier(u, n, stakes)
@@ -649,3 +650,28 @@ def test_rule_b2_half_is_rounded_up_for_an_odd_series():
     for j in range(21):
         rule.on_success(s, 21, session="ab"[j % 2], source="approval")    # 11 + 10: two sessions, half each
     assert s.tier == rule.T3 and rule.sessions_met(s)
+
+
+def test_rule_b2_t3_is_kept_when_old_sessions_leave_the_window():
+    s = state("medium")
+    succeed(s, MEDIUM, MEDIUM)                                            # a, b, c: T3
+    assert s.tier == rule.T3
+    succeed(s, 2 * MEDIUM, MEDIUM, sessions=("a",))                       # one long conversation afterwards
+    assert s.tier == rule.T3 and rule.effective_tier(s, MEDIUM, "medium") == rule.T3
+
+
+def test_rule_b2_successes_without_a_session_are_one_block():
+    s = state("low")
+    succeed(s, 2, LOW, sessions=("a", "b"))
+    succeed(s, 50, LOW, sessions=("",))
+    assert not rule.sessions_met(s) and s.tier != rule.T3
+
+
+def test_rule_b2_the_lengthened_climb_still_checks_sessions_after_the_cut():
+    s = state("medium")
+    succeed(s, MEDIUM, MEDIUM)
+    fault(s, MEDIUM)
+    succeed(s, 3, MEDIUM)                                                   # the trial
+    succeed(s, 66, MEDIUM, sessions=("a",))
+    succeed(s, 66, MEDIUM, sessions=("b", "c"))
+    assert rule.effective_tier(s, MEDIUM, "medium") == s.tier            # never a T3 on record that asks

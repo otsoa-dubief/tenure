@@ -54,15 +54,18 @@ def test_silence_is_neutral_and_settled_on_the_next_call(plugin):
     assert replay_matches(mod)
 
 
-def test_seen_credits_now_and_tells_how(plugin):
+def test_seen_credits_only_the_actions_named(plugin):
     mod, ctx = plugin(FAST)
     climb(ctx, 12)
     ctx.call("write_file", write("n"))
-    assert "/tenure ok" in ctx.posted[-1]
-    out = mod.cli.slash("ok")
-    assert "1 act-then-tell" in out and state(mod, "file:write").successes == 13
+    uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    assert f"/tenure ok {uid}" in ctx.posted[-1]
+    listing = mod.cli.slash("ok")                                    # never a blanket "all": the list
+    assert str(uid) in listing and state(mod, "file:write").successes == 12
+    out = mod.cli.slash(f"ok {uid}")
+    assert f"{uid} (file:write)" in out and state(mod, "file:write").successes == 13
     assert outcomes(mod)[-1]["source"] == "seen"
-    assert "Nothing to mark" in mod.cli.slash("ok")
+    assert "Nothing to mark" in mod.cli.slash(f"ok {uid}")
     assert replay_matches(mod)
 
 
@@ -76,7 +79,7 @@ def test_seen_is_said_by_a_person_only(plugin, monkeypatch):
     monkeypatch.setattr("sys.stdin", io.StringIO(""))
     assert run(mod, f"ok {uid}")[1] == 1                             # the agent's own terminal: never
     monkeypatch.setenv("HERMES_YOLO_MODE", "1")
-    assert "nobody answers" in mod.cli.slash("ok")
+    assert "nobody answers" in mod.cli.slash(f"ok {uid}")
     assert state(mod, "file:write").successes == 12
 
 
