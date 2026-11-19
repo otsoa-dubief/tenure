@@ -313,6 +313,12 @@ def test_classification_keeps_the_raw_command():
     ("curl -H Authorization: <(printf S3) h", "curl -H Authorization: <(printf S3) h"),
     ("curl -H Authorization: Bearer <(printf S6) h", "curl -H Authorization: Bearer <(printf S6) h"),
     ("x Bearer|printf S4", "x Bearer|printf S4"),
+    ("x --password # comment", "x --password # comment"),
+    ("x --password { printf S; }", "x --password { printf S; }"),
+    ("x --password {printf,S} h", "x --password {printf,S} h"),
+    ("x --password {1..3} h", "x --password {1..3} h"),
+    ("x --password pa#ss!{x} h", "x --password ••• h"),          # a # inside a word is a plain character
+    ('x --password "{a,b}" h', 'x --password "•••" h'),          # quoted: a literal
 ])
 def test_mask_command_values_behind_an_operator(cmd, want):
     assert F.mask_command(cmd) == want
