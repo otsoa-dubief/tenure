@@ -512,6 +512,50 @@ class Store:
         return dict(zip(STAT_FIELDS, row))
 
     # --------------------------------------------------------------------------------------------------- meta
+    # ---------------------------------------------------------------------- deferred credit of T2 (audit 19/11)
+    _CREDITS = ("CREATE TABLE IF NOT EXISTS credits (undo_id INTEGER PRIMARY KEY, session TEXT, stakes TEXT, "
+                "reversible INTEGER)")
+
+    def add_credit(self, undo_id: int, session: str, stakes: str, reversible: bool) -> None:
+        """An earned act-then-tell action whose success is credited only once its undo window closed unused."""
+        self._write()
+        self.db.execute(self._CREDITS)
+        self.db.execute("INSERT OR REPLACE INTO credits (undo_id, session, stakes, reversible) VALUES (?, ?, ?, ?)",
+                        (undo_id, session, stakes, int(bool(reversible))))
+
+    def due_credits(self, before: float) -> list[dict]:
+        """The deferred credits whose action is older than ``before``, oldest first, with their undo row."""
+        if self.db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'credits'").fetchone() is None:
+            return []
+        rows = self.db.execute("SELECT c.undo_id, c.session, c.stakes, c.reversible, u.agent, u.type, u.at, u.undone, "
+                               "u.fault FROM credits c LEFT JOIN undo u ON u.id = c.undo_id "
+                               "WHERE u.at IS NULL OR u.at < ? ORDER BY c.undo_id", (before,)).fetchall()
+        keys = ("undo_id", "session", "stakes", "reversible", "agent", "type", "at", "undone", "fault")
+        return [dict(zip(keys, r)) for r in rows]
+
+    def drop_credit(self, undo_id: int) -> None:
+        self._write()
+        self.db.execute("DELETE FROM credits WHERE undo_id = ?", (undo_id,))
+
+    def fault_since(self, agent: str, type_key: str, at: float) -> bool:
+        """A fault outcome on this agent's type logged after ``at``."""
+        for (event,) in self.db.execute("SELECT event FROM ledger WHERE at > ? AND event LIKE '%\"fault\"%'", (at,)):
+            e = json.loads(event)
+            if e.get("event") == "outcome" and e.get("result") == "fault" and (e.get("agent"), e.get("type")) == (
+                    agent, type_key):
+                return True
+        return False
+
+    # ----------------------------------------------------------------------- root sessions (audit 19/11)
+    def set_root(self, child: str, parent: str) -> None:
+        """A subagent's session counts as its root session for the two-sessions condition."""
+        root = self.root_of(parent)
+        if root and root != child:
+            self.set_meta("root:" + child, root)
+
+    def root_of(self, session: str) -> str:
+        return (self.get_meta("root:" + session) if session else None) or session
+
     # ------------------------------------------------------------------------------- written then run (audit 19/11)
     def _path_hash(self, path: str) -> str:
         """HMAC-SHA256 of the real path with a random key of this database: a path cannot be guessed back from it."""

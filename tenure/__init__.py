@@ -819,6 +819,27 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
 UNDO_WINDOW = 24 * 3600          # seconds an act-then-notify action can be undone
 
 
+def _credit_due(st: store.Store, cfg: dict, now: float | None = None) -> list[dict]:
+    """Credit the earned act-then-tell actions whose undo window closed (audit 19/11): a success nobody saw counts
+    only once it could no longer be undone. Undone, flagged or followed by a fault on its type: no credit (a later
+    fault restarted the series, and an action from before it must not join the new one). Returns the derived events."""
+    now = time.time() if now is None else now
+    events = []
+    for c in st.due_credits(now - UNDO_WINDOW):
+        st.drop_credit(c["undo_id"])
+        if c["agent"] is None or c["undone"] or c["fault"]:
+            continue
+        if st.fault_since(c["agent"], c["type"], c["at"]):
+            result, source = "neutral", "expired"
+        else:
+            result, source = "success", "notify"
+        sync_settings(st, cfg)
+        events += record_outcome(st, cfg, agent=c["agent"], type_key=c["type"], stakes=c["stakes"],
+                                 reversible=bool(c["reversible"]), result=result, source=source,
+                                 session=c["session"] or "")
+    return events
+
+
 def excusable(st: store.Store, now: float | None = None) -> list[dict]:
     """The fault outcomes of the last ``store.EXCUSE_WINDOW`` seconds not excused yet, newest first: ``seq``, ``at``,
     ``agent``, ``type``, ``source``."""
@@ -1193,18 +1214,25 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         result_source = ("neutral", "alone")
     else:                                                   # nobody answered (cron, yolo, approvals off), or no hook
         result_source = ("neutral", "nobody")
+    deferred = phase == "notify" and p["decision"] == rule.NOTIFY and result_source == ("success", "notify")
     if p["decision"] == rule.WATCH and result_source[0] == "success":
         now = st.get_state(agent, key, p["stakes"], p["reversible"])
         if not trusted(cfg, now, params.required_n(cfg["risks"], p["stakes"]), p["stakes"]):
             result_source = ("neutral", "alone")            # trusted when it ran, not now (start changed): no credit
-    events = record_outcome(st, cfg, agent=agent, type_key=key, stakes=p["stakes"], reversible=p["reversible"],
-                            result=result_source[0], source=result_source[1], session=p["session"])
-    _bump(st, agent, result_source[0], checked=phase == "approved",
-          alone=not blocked and (acted or phase == "alone"))
+    if deferred:                                            # earned T2: credited when its undo window closes unused
+        events = []
+        _bump(st, agent, "neutral", alone=True)
+    else:
+        events = record_outcome(st, cfg, agent=agent, type_key=key, stakes=p["stakes"], reversible=p["reversible"],
+                                result=result_source[0], source=result_source[1], session=st.root_of(p["session"]))
+        _bump(st, agent, result_source[0], checked=phase == "approved",
+              alone=not blocked and (acted or phase == "alone"))
     posts = []
     undo_id = None
     if acted and not blocked and not failed:    # the files were written: the owner can revert them
         undo_id = st.add_undo(agent, key, p["snap_id"], fault=bool(reason))
+        if deferred:
+            st.add_credit(undo_id, st.root_of(p["session"]), p["stakes"], p["reversible"])
         _push("acted", {"agent": agent, "type": key, "undo_id": undo_id, "fault": bool(reason),
                         "profile": _profile_name()})
         if reason:
@@ -1304,6 +1332,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         with txn(deadline) as st:
             posts += _say(sync_settings(st, cfg), cfg["spot"])
             posts += _say(_expire(st, cfg), cfg["spot"])
+            posts += _say(_credit_due(st, cfg), cfg["spot"])
             recorded, s, decision, suspended = _decide(st, agent, act, n, cfg, session, nobody, ST.rng)
             fresh, exec_files = [], []                      # computed even when it asks anyway: never a session key
             if tool == "terminal":                              # a script the agent wrote, run now: asked once
@@ -1536,6 +1565,11 @@ def subagent_start(parent_session_id="", child_session_id="", **kwargs):
         parent, child = anon(parent_session_id), anon(child_session_id)
         if not parent or not child or parent == child:
             return None
+        try:
+            with txn() as st:                               # its successes count in the root session (audit 19/11)
+                st.set_root(child, parent)
+        except LockTimeout:
+            log.warning("tenure: the subagent's root session could not be recorded: the store stayed busy")
         with ST.mem:
             tainted = parent in ST.tainted
         if not tainted:

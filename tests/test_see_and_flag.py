@@ -7,7 +7,7 @@ import os
 import sqlite3
 import time
 
-from test_plugin import A, FAST, NPM, Picks, anon, climb, outcomes, plugin, post, pre, row, state, to_t3, write  # noqa: F401
+from test_plugin import A, FAST, NPM, Picks, anon, climb, credit_now, outcomes, plugin, post, pre, row, state, to_t3, write  # noqa: F401
 from test_copied_profile import clone, reopen
 
 
@@ -51,7 +51,7 @@ def test_notify_is_numbered_with_its_undo(plugin):
     climb(ctx, 12)                                                              # T2: acts, then notifies
     assert ctx.call("write_file", write("n")) == "ran"
     uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
-    assert outcomes(mod)[-1]["source"] == "notify"
+    assert credit_now(mod) is not None and outcomes(mod)[-1]["source"] == "notify"
     assert (last(mod)["n"], last(mod)["undo_id"], last(mod)["flagged"]) == (13, uid, False)
 
 
@@ -466,6 +466,7 @@ def test_a_cross_drive_path_does_not_abort_the_settlement(plugin, monkeypatch):
     monkeypatch.setattr(os.path, "relpath", cross_drive)
     before = len(outcomes(mod))
     assert ctx.call("write_file", write("w")) == "ran"
+    credit_now(mod)
     assert len(outcomes(mod)) == before + 1 and outcomes(mod)[-1]["source"] == "notify"
     assert last(mod)["n"] == 13 and mod.store_().pending_rows(anon("s1"), "tc-13") == []
     text = [p for p in ctx.posted if "/tenure undo" in p][-1]
@@ -481,7 +482,7 @@ def test_any_display_error_leaves_the_settlement_whole(plugin, monkeypatch):
         raise RuntimeError("display")
     monkeypatch.setattr(mod, "_show", broken)
     assert ctx.call("write_file", write("w")) == "ran"
-    assert outcomes(mod)[-1]["source"] == "notify" and last(mod)["n"] == 13
+    assert credit_now(mod) is not None and outcomes(mod)[-1]["source"] == "notify" and last(mod)["n"] == 13
     assert re.fullmatch(r"tenure: file:write acted, then told you · /tenure undo \d+", ctx.posted[-1])
 
 
@@ -498,7 +499,7 @@ def test_a_summary_error_does_not_drop_the_t2_notice(plugin, monkeypatch):
         f.write("x = 1\n")
     monkeypatch.setattr(mod.classify, "_summary", broken)                      # fails at settlement only
     post(mod, "write_file", write("w"), "w1")
-    assert outcomes(mod)[-1]["source"] == "notify"
+    assert credit_now(mod) is not None and outcomes(mod)[-1]["source"] == "notify"
     assert len(ctx.posted) > count and "/tenure undo" in ctx.posted[-1]
 
 

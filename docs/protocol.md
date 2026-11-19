@@ -44,7 +44,9 @@ unknown-event error.)
 
 Sources per result:
 
-- success: `approval`, `spot`, `notify`;
+- success: `approval`, `spot`, `notify` (logged when the action's 24-hour undo window closes unused, not when it
+  runs: the reference implementation credits it then, and logs `neutral` / `expired` instead when a fault on the
+  type came in between; the `session` of an outcome is the root conversation, a subagent's counting as its parent's);
 - fault: `refusal`, `spot`, `check`, `undo`, `flag`;
 - neutral: `error`, `alone`, `blocked`, `timeout`, `nobody`, `expired`, `ambiguous`, `background` (a terminal call
   Hermes ran in the background: the result is the launch, not the command's outcome), `excused` (only in a replay:

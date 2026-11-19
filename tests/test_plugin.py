@@ -172,6 +172,13 @@ def post(mod, tool, args, call, status="ok", result='{"success": true}', session
                               tool_call_id=call, status=status, error_type=None if status == "ok" else "tool_error")
 
 
+def credit_now(mod):
+    """Close every undo window now (audit 19/11, item 4): earned act-then-tell successes are credited only then."""
+    with mod.txn() as st:
+        st.db.execute("UPDATE undo SET at = at - 86401")
+        return mod._credit_due(st, mod.settings())
+
+
 def climb(ctx, n, session="s1", name="a", tool="write_file"):
     for i in range(n):
         args = write(f"{name}{session}{i}") if tool == "write_file" else {"action": "add", "content": f"{name}{i}"}
@@ -238,6 +245,7 @@ def test_pre_api_request_sets_agent_last(plugin):
 def test_model_switch_carries_half_on_trial(plugin):
     mod, ctx = plugin()                                       # balanced: 52 in a row at low stakes
     climb(ctx, 20)                                            # 12 asks to T2, then 8 acts-then-notifies
+    credit_now(mod)                                           # credited once their undo window closed
     a = state(mod, "file:write")
     assert (a.series, a.tier) == (20, mod.rule.T2)
     mod.pre_api_request(model="model-b", provider="nous", session_id="s1")
@@ -620,6 +628,8 @@ def test_notify_success_adds_an_undo_and_posts(plugin):
     uid = int(re.fullmatch(r"tenure: file:write acted, then told you \(src/n\.py\) · /tenure undo (\d+)", ctx.posted[-1])[1])
     assert mod.store_().get_undo(uid) == {"id": uid, "agent": A, "type": "file:write", "snap_id": snap,
                                           "at": mod.store_().get_undo(uid)["at"], "undone": False, "fault": False}
+    assert outcomes(mod)[-1]["source"] != "notify" and state(mod, "file:write").successes == 12   # not yet
+    credit_now(mod)
     assert outcomes(mod)[-1]["source"] == "notify" and state(mod, "file:write").successes == 13
 
 
@@ -753,15 +763,16 @@ def test_full_climb_low_reversible_type(plugin):
     assert state(mod, "file:write").tier == mod.rule.T2
     for i in range(20):
         assert ctx.call("write_file", write(f"b{i}"), session="s1") == "ran"
-    for i in range(19):
+    for i in range(20):
         assert ctx.call("write_file", write(f"c{i}"), session="s2") == "ran"
-    assert (state(mod, "file:write").tier, state(mod, "file:write").series) == (mod.rule.T2, 51)
-    assert ctx.call("write_file", write("c19"), session="s2") == "ran"
+    assert (state(mod, "file:write").tier, state(mod, "file:write").series) == (mod.rule.T2, 12)   # none seen yet
+    events = credit_now(mod)                                                 # 24 hours later, none undone
     s = state(mod, "file:write")
     assert (s.tier, s.series, len(s.sessions)) == (mod.rule.T3, 52, 2)
     assert len(os.listdir(os.path.join(mod.data_dir(), "undo"))) == 40       # one snapshot per act-then-notify
     assert sum("/tenure undo" in p for p in ctx.posted) == 40
-    assert any("now acts on its own" in p.lower() for p in ctx.posted)
+    assert any(e["event"] == "tier" and e.get("to") == mod.rule.T3 for e in events)
+    assert any("now acts on its own" in t.lower() for t in mod._say(events, 0.1))
     assert pre(mod, "write_file", write("next"), "next") is None
     assert row(mod, "next")["decision"] in (mod.rule.ALLOW, mod.rule.SPOT)
 
