@@ -213,6 +213,7 @@
   "cli.status.note.trial": {
     "other": "考察期：还差 {n} 次"
   },
+  "cli.status.note.spot_due": "有一次抽查待处理：其操作将等待你在对话中回应",
   "cli.status.note.trial_wait": {
     "other": "考察未通过：需等待 {n} 个操作"
   },

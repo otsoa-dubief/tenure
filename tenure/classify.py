@@ -4775,15 +4775,19 @@ def _external_server(server: str) -> bool:
 FLOORS = {"file:unknown", "shell:complex", "file:unreadable", "shell:nested"}   # fail-safe: an override only raises
 
 
-def _override(t: str, stakes: str, overrides: dict | None) -> str:
+def _override(t: str, stakes: str, overrides: dict | None, raw: str | None = None) -> str:
+    """The owner's level for type ``t``: an exact key first, then the first matching pattern. ``raw`` is the type
+    as the program was named (``shell:python3:x`` for ``shell:python:x``): an override written for it still holds."""
     if not overrides or (stakes == CAP and t.startswith(PROTECTED)):
         return stakes
     new = stakes
-    if t in overrides:
-        new = _valid(overrides[t], stakes)
+    names = [x for x in (raw, t) if x] if raw and raw != t else [t]
+    exact = next((x for x in names if x in overrides), None)
+    if exact is not None:
+        new = _valid(overrides[exact], stakes)
     else:
         for pat, val in overrides.items():
-            if fnmatch.fnmatchcase(t, pat):
+            if any(fnmatch.fnmatchcase(x, pat) for x in names):
                 new = _valid(val, stakes)
                 break
     return stakes if t in FLOORS and RANK[new] < RANK[stakes] else new   # a floor can be raised, never lowered
@@ -5261,7 +5265,7 @@ def _categorized(t: str, stakes: str, before: str, tool_name: str, args: dict, o
         return t, stakes if RANK[stakes] >= RANK[HIGH] else HIGH
 
 
-PROGRAM_ALIASES = {"python2": "python", "python3": "python", "py": "python", "nodejs": "node", "pip3": "pip"}
+from .store import PROGRAM_ALIASES  # noqa: E402  (one list for the type and the trust lookup)
 _PYTHON_VERSIONED = re.compile(r"python[23](?:\.\d+)?")
 
 
@@ -5335,9 +5339,9 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
             stakes = HIGH
         if stakes == FREE and _saves_to_disk(args):
             stakes = MEDIUM                              # a "read" told where to write
-    t = same_program(t)                                  # python3 is python: one record, one probation
+    raw, t = t, same_program(t)                          # python3 is python: one record, one probation
     before = stakes                                      # "a read" is judged before the owner's override
-    stakes = _override(t, stakes, overrides)
+    stakes = _override(t, stakes, overrides, raw=raw)
     if (t.startswith(("mcp:", "tool:")) and stakes != CAP and tool_name not in TOOLS
             and not tool_name.startswith("kanban_") and not _clamped(tool_name)
             and ":@" not in tool_name and fields.parent_of(t) is None):      # refuse only a type that already parses as a category type

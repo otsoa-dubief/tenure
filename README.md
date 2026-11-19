@@ -285,8 +285,9 @@ numbers, never folded into one:
 - **errors no check saw** (the table): their long-run share of the type's actions, assuming what the series length
   assumes, that a check (your answer, a spot check, a "seen") catches 95% of the errors;
 - **errors you let through when checking**: assumed to be 5% of the errors you check. This is the study's hypothesis,
-  not a measure of your attention, and it grows with how wrong the agent is, since a wrong agent is checked almost
-  always. tenure cannot measure it for you.
+  not a measure of your attention. Counted per action, it grows with how wrong the agent is (a wrong agent is checked
+  almost always) and can reach 5% of the actions: the literature's AOQL with inspection errors counts both kinds
+  together, and its maximum is that 5%. tenure cannot measure it for you.
 
 They cover the tier an agent earned on evidence: an act-then-tell action nobody marked as seen ran unchecked,
 counts for nothing, and is not inside them; at low stakes a fault at T3 falls back to T2, where unseen actions
@@ -296,7 +297,9 @@ Cell: verified successes in a row (approved by you, spot-checked, or acted on at
 `/tenure ok`; over at least two conversations, three at medium stakes, none giving more than half of the series, a
 subagent's counting as its parent's), guarantee (errors no check saw, as a long-run share of all actions of the type, for a stable
 agent, counting the errors that get caught: a refusal, an undo, a flag, a verifier or the parse check;
-it assumes a person really looks at what they approve or mark as seen), worst case (for an agent that turns bad after tenure, until a caught error revokes it).
+it assumes a person really looks at what they approve or mark as seen), worst case (for an agent that turns bad after tenure, until a caught error revokes it: a ratio of averages,
+higher for a new model that inherited half a series, about 26% instead of 15.2% at 52 in a row, and not counting
+what runs at T2 after a low-stakes fault or unattended).
 
 | Preset | Low stakes (files in the project, memory) | Medium (commands, code, files elsewhere) | High (leaves the machine, money) |
 |---|---|---|---|
@@ -382,8 +385,10 @@ cost goes with it (the tier drop, the trial, the lost trusted start); the series
 after any detected error, so an excuse given by mistake never carries the agent further. Only a refusal or an undo can be excused, at
 most three per type in seven days; never the automatic check, a spot check, a flag, or a refusal of an action that
 acted alone on an earned T3 (that is what a spot check is). Only by a person: not while nobody answers approvals
-(`--yolo`, cron), not from a script, never by the agent: a tool call that would run `tenure ok` or `tenure excuse`
-is blocked, and the commands refuse to run inside the agent's own tool processes. Each passport type counts its excused faults (protocol 0.2), so a reader sees
+(`--yolo`, cron), not from a script, not directly by the agent: a terminal command or `execute_code` that would
+run `tenure ok` or `tenure excuse` is blocked, and both refuse to run inside the agent's own tool processes. An agent
+that builds the command at run time, unsets the marker and opens a pseudo-terminal still needs you to approve a
+command that names Hermes; [docs/self-protection.md](docs/self-protection.md) lists these limits. Each passport type counts its excused faults (protocol 0.2), so a reader sees
 how often it happened.
 
 **A verifier.** That rule can report to Tenure itself: a deterministic check of yours (a test, a business rule, a
@@ -454,10 +459,12 @@ Community tab shows the board once you save it as `plugin-data/tenure/community-
   memory tool counts as low stakes: reclassify a broad type as `cap` if that matters to you. A profile copied
   outside its install (another `HERMES_HOME`, another machine) keeps the original's record.
 - **Only a person teaches.** Approvals count when someone answers; under `--yolo`, `off` or cron, Hermes settles
-  the ask and nothing is learned. Under `--yolo` or cron, a spot check drawn for a type that acts alone stays due:
-  every action of that type is blocked, and you are told, until you answer that check in a conversation; retrying
-  never draws past it. tenure cannot see `approvals.mode: off` or a single-query run, where Hermes settles such a
-  check itself: there, checks do not happen and the guarantee does not hold. The guarantee
+  the ask and nothing is learned. **Unattended work is outside the guarantee.** Under cron or `--yolo`, a spot check
+  drawn for a type that acts alone stays due: that type's actions are blocked, and `status` shows it, until you
+  answer a check in a conversation; retrying never draws past it. That check sees the agent's work with you, not its
+  unattended work, and under `--yolo` an action tenure asks about (a type still at T1, a suspended session, a script
+  it just wrote) is settled by Hermes and runs. tenure cannot see `approvals.mode: off` or a single-query run at all.
+  The guarantee
   covers errors you would refuse if asked: an error nobody notices cannot be counted.
 - **The passport proves consistency, not authorship.** It is signed with your own key, so a rewritten history
   could be re-signed: anchor its head publicly (`hermes tenure anchor`) and pin the key with `verify --key`. The

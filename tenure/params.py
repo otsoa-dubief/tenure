@@ -19,7 +19,9 @@ nothing, but its errors still ran unchecked). Their long-run share of the type's
 
   where ``c`` is the long-run share of checked actions and ``d`` = DETECTION the chance that a check catches an
   error (an error a check misses passes as a success, so the series is longer to clear). U rises then falls to 0:
-  its maximum over ``p`` is a true AOQL (``aoql``), the guarantee shown for that N; with d = 1 it is Dodge's;
+  its maximum over ``p`` (``aoql``) is the guarantee shown for that N: the most errors no check saw, not the
+  literature's AOQL with inspection errors, which counts the missed ones too and tends to 1 - d; with d = 1 it is
+  Dodge's AOQL;
 - missed errors, those a check saw and a person let through: at most ``1 - d`` of the errors checked (``missed``),
   the study's assumption, not a measure. It grows with ``p`` (a very wrong agent is checked almost always), so it is
   shown apart, as the limit of the owner's attention, never folded into one number.
@@ -46,7 +48,7 @@ STARTS = ("trusted", "probation")   # trusted: no ask before a type's first faul
 DEFAULT_START = "trusted"
 # Asks that the owner may silence for the rest of a session ("Allow for this session") under the trusted start: code
 # run inline and shell constructs read as complex. Each answer is the owner's, never evidence; a new session asks again.
-SESSION_TYPES = frozenset({"shell:python:inline", "shell:python3:inline", "shell:node:inline", "shell:stdin-code",
+SESSION_TYPES = frozenset({"shell:python:inline", "shell:node:inline", "shell:stdin-code",
                            "shell:complex"})
 # What the trusted start covers: files and memory (with an undo where files are written), handing work to a subagent,
 # and the usual local development tools. Any other program (a deploy, payment or database CLI, an unknown tool,

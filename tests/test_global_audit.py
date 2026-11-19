@@ -113,9 +113,14 @@ def test_an_excused_fault_keeps_the_tier_and_the_score_but_restarts_the_series()
     rule.on_neutral(s, "excused")
     assert (s.tier, s.series, s.session_runs, s.wald) == (rule.T2, 0, [], wald)
     t3 = state("low")
-    t3.reversible, t3.tier, t3.series = True, rule.T3, 52
+    from tenure import params
+    t3.reversible, t3.tier, t3.series, t3.wald = True, rule.T3, 52, params.wald_steps("low")[2]
     rule.on_neutral(t3, "excused")
     assert t3.tier == rule.T2                                     # an empty series cannot keep acting alone
+    t3b = state("low")
+    t3b.reversible, t3b.tier, t3b.series, t3b.wald = True, rule.T3, 52, 0.0
+    rule.on_neutral(t3b, "excused")
+    assert t3b.tier == rule.T1                                    # its score does not hold the middle tier
     rule.on_neutral(t3, "timeout")
     assert t3.tier == rule.T2
 
@@ -124,12 +129,21 @@ def test_an_excused_fault_keeps_the_tier_and_the_score_but_restarts_the_series()
     ("hermes tenure ok 12 13", True), ("script -q /dev/null hermes tenure excuse 57", True),
     ("hermes -p work tenure ok 3", True), ("python -m tenure ok 3", True), ("echo x; /tenure excuse 4", True),
     ("python -c 'import tenure; tenure.seen(s, [1])'", True),
+    ("hermes tenure 'ok' 12", True),
     ("hermes tenure status", False), ("git commit -m 'tenure: excuse window'", False), ("npm test", False),
 ])
 def test_the_agent_never_runs_ok_or_excuse(plugin, cmd, blocked):
     mod, ctx = plugin(FAST)
     d = mod.pre_tool_call(tool_name="terminal", args={"command": cmd}, session_id="s1", tool_call_id="c1")
     assert (isinstance(d, dict) and d.get("action") == "block") is blocked
+
+
+def test_writing_tenures_own_code_or_docs_is_not_blocked(plugin):
+    mod, ctx = plugin(FAST)
+    for tool, args in (("write_file", {"path": "README.md", "content": "Run /tenure ok 3, or core.seen(st, ids)"}),
+                       ("send_message", {"text": "type /tenure ok 3"})):
+        d = mod.pre_tool_call(tool_name=tool, args=args, session_id="s1", tool_call_id="w1")
+        assert not (isinstance(d, dict) and d.get("action") == "block")
 
 
 def test_ok_and_excuse_refuse_a_child_of_the_agents_tools(plugin, monkeypatch):
@@ -148,11 +162,19 @@ def test_one_conversation_across_hermes_compression_is_one_session(plugin, tmp_p
     mod, ctx = plugin(FAST)
     home = tmp_path / "hermes"
     db = sqlite3.connect(home / "state.db")
-    db.execute("CREATE TABLE sessions (id TEXT PRIMARY KEY, parent_session_id TEXT)")
-    db.executemany("INSERT INTO sessions VALUES (?, ?)", [("root", None), ("seg2", "root"), ("seg3", "seg2")])
+    db.execute("CREATE TABLE sessions (id TEXT PRIMARY KEY, parent_session_id TEXT, model_config TEXT, source TEXT,"
+               " end_reason TEXT)")
+    db.executemany("INSERT INTO sessions VALUES (?, ?, ?, ?, ?)", [
+        ("root", None, "{}", "cli", "compression"), ("seg2", "root", "{}", "cli", "compression"),
+        ("seg3", "seg2", "{}", "cli", None),
+        ("old", None, "{}", "cli", "new_session"), ("new", "old", "{}", "cli", None),            # /new
+        ("c0", None, "{}", "cli", "compression"), ("br", "c0", '{"_branched_from": "c0"}', "cli", None),
+        ("rs", "c0", '{"_reset_from": "c0"}', "cli", None), ("tl", "c0", "{}", "tool", None)])
     db.commit()
     db.close()
     assert mod.anon("seg3") == mod.anon("seg2") == mod.anon("root") != mod.anon("other")
+    assert mod.anon("new") != mod.anon("old")                     # a new conversation stays its own session
+    assert len({mod.anon(x) for x in ("c0", "br", "rs", "tl")}) == 4
 
 
 @pytest.mark.parametrize("cmd,key", [
@@ -162,3 +184,13 @@ def test_one_conversation_across_hermes_compression_is_one_session(plugin, tmp_p
 def test_one_program_is_one_type_whatever_its_alias(cmd, key):
     from tenure import classify as C
     assert C.classify("terminal", {"command": cmd}, cwd="/tmp/p").type == key
+
+
+def test_an_override_or_a_fault_on_an_alias_still_holds(plugin):
+    from tenure import classify as C
+    a = C.classify("terminal", {"command": "python3 x.py"}, cwd="/tmp/p", overrides={"shell:python3:*": "cap"})
+    assert a.type == "shell:python:x.py" and a.stakes == C.CAP
+    mod, ctx = plugin(FAST)
+    with mod.txn() as st:
+        st.distrust("shell:python3:x.py")                       # a fault recorded by an older tenure
+        assert st.get_state("m@p", "shell:python:x.py", "medium").distrusted

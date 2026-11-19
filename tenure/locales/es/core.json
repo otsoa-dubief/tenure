@@ -242,6 +242,7 @@
     "one": "a prueba: falta {n}",
     "other": "a prueba: faltan {n}"
   },
+  "cli.status.note.spot_due": "toca un control: sus acciones esperan a que responda uno en una conversación",
   "cli.status.note.trial_wait": {
     "one": "prueba no superada: esperar {n} acción",
     "other": "prueba no superada: esperar {n} acciones"
