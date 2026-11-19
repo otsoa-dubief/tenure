@@ -102,6 +102,8 @@ class _State:
         # (store path, action number) -> (its time, the call's summary): `flag` shows the target of an action this
         # process ran; never stored anywhere
         self.summaries: OrderedDict[tuple[str, int], tuple[float, str]] = OrderedDict()
+        # (session, call id) -> files that already failed the automatic check before the call: never its fault
+        self.broken: OrderedDict[tuple[str, str], frozenset] = OrderedDict()
         self.last_agent = ""
         self.rng = random.SystemRandom()
         self.purged_at = 0.0
@@ -1190,6 +1192,15 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         call, sid = str(tool_call_id or ""), str(session_id or task_id or "")
         session, agent, nobody = anon(sid), agent_of(sid, deadline), nobody_answers()
         n = params.required_n(cfg["risks"], act.stakes)
+        if call:                                            # files that do not parse yet: the check skips them after
+            written = classify.files_written(tool, args, cwd)
+            bad = proofs.broken(written) if written else frozenset()
+            if bad:
+                with ST.mem:
+                    ST.broken[(session, call)] = bad
+                    ST.broken.move_to_end((session, call))
+                    while len(ST.broken) > MAX_SUMMARIES:
+                        ST.broken.popitem(last=False)
         if call:                                            # an undo is only wired through a call id
             with _locked(deadline):
                 preview = _decide(store_(), agent, act, n, cfg, session, nobody, _NoSpot)[2]
@@ -1354,7 +1365,9 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         reason, paths = None, []
         if not blocked and not failed and not launched:
             paths = classify.files_written(tool, args, cwd)
-            reason = proofs.check_files(paths) if paths else None
+            with ST.mem:
+                before = ST.broken.pop((session, call), frozenset())
+            reason = proofs.check_files(paths, before) if paths else None
         cfg = settings()
         posts = []
         with txn() as st:

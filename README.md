@@ -96,7 +96,7 @@ Prefer the preregistered study's start, where every type begins on probation? `h
 ## Install in 60 seconds
 
 ```bash
-hermes plugins install otsoa-dubief/tenure/tenure   # once listed in the catalog: hermes plugins install tenure
+hermes plugins install tenure                        # from the official catalog (or: otsoa-dubief/tenure/tenure)
 hermes gateway restart          # if a gateway is running
 hermes tenure setup          # the three presets side by side
 ```
@@ -156,7 +156,8 @@ start is not the study either: trusted actions earn nothing and carry no guarant
 
 **Trusted start.** A type nobody has caught in a mistake runs as with Hermes alone. Reversible actions (files in the
 project, including a plain `rm`, `mv`, `cp`, `sed -i` or `> file` on them) act, then tell you, with an undo; the others just run. What ends the trust: an undo, a flag
-(`/tenure flag TYPE`), a file it wrote that no longer parses (Python, JSON, TOML), or your refusal when Hermes itself
+(`/tenure flag TYPE`), a file it wrote that no longer parses (Python, JSON, TOML; JSON with comments where tools allow them, such as
+`tsconfig.json` or `.vscode/`; a file that did not parse before the call is never held against it), or your refusal when Hermes itself
 asks about the call (a risky-looking command). A command that merely fails is not held against it: a failing test is
 often the point. The first fault ends the trust for that type for good, in this profile, for every model, present
 or future: from then on the study rule below applies, starting from T1. Trusted actions carry no guarantee: the
@@ -387,6 +388,9 @@ Community tab shows the board once you save it as `plugin-data/tenure/community-
 
 <details><summary>Known limits, stated plainly (click to open)</summary>
 
+- **The automatic check parses with Hermes' own Python.** A Python file using syntax newer than the Python Hermes
+  runs on (a `type` statement on Python 3.11, for example) fails the check and counts as a fault. Undo or flag
+  handle the rest; a file that did not parse before the call is never counted.
 - **Static reading, not a sandbox.** tenure reads a command's text before it runs. It over-asks on purpose (shell
   it cannot parse, targets it cannot resolve and sensitive-looking names ask), but a spelling it does not
   recognise can still slip through: a tool setting it does not watch (`GH_PAGER`, `KUBECONFIG`...), an alias or a
