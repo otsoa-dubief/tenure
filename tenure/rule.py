@@ -14,7 +14,7 @@ Two measures per type, both updated by every verified outcome:
 
 - The series counts verified successes in a row, at any tier, capped at the required length: ``n`` from
   ``params.required_n``, or ceil(1.25 n) for the climb that follows a medium or high fault. A full series that
-  holds successes from at least two distinct sessions gives T3.
+  holds successes from enough distinct sessions gives T3 (rule B/2: two, three at medium stakes, none over half).
 - The Wald score of amendment A1 leads a reversible type to T2. A success adds ``s`` (negative), down to the floor
   ln B - a; a low-stakes fault adds ``a``; a medium or high fault sets it to max(score, 0) + a. The type climbs to
   T2 once the score is at most ln B: 12 successes from scratch at low stakes, 18 at medium stakes. The score is
@@ -58,7 +58,7 @@ from dataclasses import asdict, dataclass, field
 from . import params
 
 VERSION = "study-rule-B/2"    # B/2 (1.3): sessions per stakes, no session over half the series, seen T2 successes
-VERSIONS = ("study-rule-B/1", VERSION)   # a B/1 ledger replays under B/2: its settings are read the same way    # the rule named in settings events and in the passport's rule fingerprint
+VERSIONS = ("study-rule-B/1", VERSION)   # a B/1 ledger replays under B/2: its settings are read the same way
 T1, T2, T3 = "ask", "notify", "alone"                            # tiers
 ASK, NOTIFY, ALLOW, SPOT = "ask", "notify", "allow", "spot"      # decisions
 WATCH = "watch"        # trusted start: act like Hermes alone, with an undo when the files can be saved
@@ -134,6 +134,12 @@ def _add_run(s: TypeState, session: str) -> None:
         runs[-1][1] += 1
     else:
         runs.append([session, 1])
+
+
+def _trim_runs(s: TypeState) -> None:
+    """Keep the runs to the series' own successes (its length less the carried part): the oldest leave first. Called
+    after every change of the series' length (a capped series, a carried success confirmed, stricter settings)."""
+    runs = s.session_runs
     own = sum(r[1] for r in runs)
     while runs and own > max(s.series - s.provisional, 0):
         runs[0][1] -= 1
@@ -151,12 +157,16 @@ def session_counts(s: TypeState) -> dict:
 
 
 def sessions_met(s: TypeState) -> bool:
-    """The series spans enough conversations (rule B/2): at least ``sessions_needed(stakes)`` of them, and none gives
-    more than ``MAX_SHARE`` of the series."""
-    if len(s.sessions) < sessions_needed(s.stakes):
-        return False
+    """The series spans enough conversations (rule B/2): at least ``sessions_needed(stakes)`` distinct ones among the
+    agent's own successes still in the series, and none gives more than half of them (rounded up: 11 of 21); the
+    successes without a session count as one more block. The part carried from another model is the study's own
+    carry-over, confirmed by these new sessions: it is not a session."""
     counts = session_counts(s)
-    return not counts or max(counts.values()) <= math.ceil(MAX_SHARE * max(s.series, 1))   # 11 of 21 is half
+    if len(counts) < sessions_needed(s.stakes):
+        return False
+    own = sum(v for _, v in s.session_runs)
+    blocks = list(counts.values()) + [sum(v for k, v in s.session_runs if not k)]
+    return max(blocks) <= math.ceil(MAX_SHARE * max(own, 1))
 
 
 def required(s: TypeState, n: int) -> int:
@@ -203,10 +213,14 @@ def _climb(s: TypeState, n: int | None) -> list[dict]:
         return []
     old, counts = s.tier, {}
     if target == T3:
-        counts = {"required": required(s, n), "sessions": len(s.sessions)}
+        counts = {"required": required(s, n), "sessions": len(session_counts(s))}
         if s.lengthened:                   # the lengthened climb is done: the next ones need n again
             s.lengthened = False
             s.series = min(s.series, n)
+            _trim_runs(s)
+            target = _target(s, n)         # the shorter series must still meet the sessions rule (B/2)
+            if _RANK[target] <= _RANK[s.tier]:
+                return []
     s.tier = target
     return [_move(s, "tier", old, target, "series" if target == T3 else "wald", **counts)]
 
@@ -233,11 +247,11 @@ def decide(s: TypeState, n: int | None, spot: float, *, suspended: bool, rng: ra
 def effective_tier(s: TypeState, n: int | None, stakes: str) -> str:
     """The tier that would actually run an action of this type at ``stakes`` today: the stored tier, held to the same
     guards as ``decide`` plus the decision-time check (``_earned``): a capped type, evidence earned at other stakes,
-    an open trial or wait, a series shorter than today's requirement, fewer than two sessions, or a Wald score above
+    an open trial or wait, a series shorter than today's requirement, or a Wald score above
     the middle tier's bar all ask (T1). Reads only; it changes nothing."""
     if n is None or s.stakes != stakes or s.trial_left > 0 or s.trial_wait > 0:
         return T1
-    if s.tier == T3 and s.series >= required(s, n) and sessions_met(s):
+    if s.tier == T3 and s.series >= required(s, n):     # the sessions gate the climb, not keeping T3
         return T3
     if s.tier == T2 and _middle(s) and s.wald <= params.wald_steps(s.stakes)[2] + TOL:
         return T2
@@ -275,6 +289,7 @@ def on_success(s: TypeState, n: int | None, *, session: str, source: str) -> lis
             s.wald = max(s.wald + step, ln_b - a)
         events += _climb(s, n)
         events += _confirm(s)
+        _trim_runs(s)
     return events
 
 
@@ -379,6 +394,7 @@ def reevaluate(s: TypeState, n: int | None) -> list[dict]:
     """
     if n is not None:
         s.series = min(s.series, required(s, n))
+        _trim_runs(s)
         s.provisional = min(s.provisional, s.series)
     if s.tier != T3 or (n is not None and s.series >= required(s, n)):
         return []

@@ -376,9 +376,10 @@
   "cli.excuse.nobody": "Pas d'excuse tant que personne ne répond aux approbations ({why}) : seule une personne peut excuser une faute.",
   "cli.excuse.terminal": "Une excuse se tape à la main : /tenure excuse dans la conversation, ou hermes tenure excuse dans un terminal interactif.",
   "settle.acted_ok": "vu, c'est bon ? {command}",
-  "cli.ok.done": "tenure : {n} action(s) « agit puis prévient » marquée(s) comme vue(s) : elles comptent pour agir seul.",
+  "cli.ok.done": "tenure : marquées comme vues : {which}. Elles comptent pour agir seul.",
   "cli.ok.none": "Rien à marquer comme vu : aucune action « agit puis prévient » des dernières 24 heures n'est encore ouverte ici.",
   "cli.ok.nobody": "Pas tant que personne ne répond aux approbations ({why}) : seule une personne peut dire qu'une action a été vue.",
   "cli.ok.terminal": "« Vu » se dit à la main : /tenure ok dans la conversation, ou hermes tenure ok N dans un terminal interactif.",
-  "cli.ok.number": "Dans un terminal, nommez l'action : hermes tenure ok N (N est le numéro d'annulation de son message)."
+  "cli.ok.title": "Actions « agit puis prévient » encore ouvertes (24 h), la plus récente en dernier. Nommez celles que vous avez regardées :",
+  "cli.ok.footer": "Vu, c'est bon : /tenure ok <numéro> [<numéro> ...]"
 }

@@ -16,7 +16,7 @@ def seed(mod, key, stakes="medium", **kw):
 
 
 P, F_ = "mcp:crm:update_contact", "mcp:crm:update_contact:@finance"
-T3 = dict(tier=rule.T3, series=300, sessions=["a", "b", "c"])          # rule B/2: 3 sessions at medium stakes
+T3 = dict(tier=rule.T3, series=300, sessions=["a", "b", "c"], session_runs=[["a", 100], ["b", 100], ["c", 100]])          # rule B/2: 3 sessions at medium stakes
 CAREFUL = {"preset": "careful", "fields": {"stakes": {"finance": "medium"}}}
 FAST5 = {"risks": {"medium": 0.2}, "fields": {"stakes": {"finance": "medium"}}}
 

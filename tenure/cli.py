@@ -12,7 +12,7 @@
     flag --call ID --session ID [--doubt]      a verifier: a fault (or, with --doubt, the next one asks) on one action
     flag N --doubt                             a verifier's doubt on numbered action N
     excuse [N]                                 alone, the faults of the last 10 minutes; with N, take that one back
-    ok [N]                                     seen and fine: this conversation's act-then-tell actions (or N) count
+    ok [N ...]                                 alone, the open act-then-tell actions; with numbers, those count as seen
     revoke TYPE|all [--model M | --all]        take earned autonomy back without an error
     passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)
     card [--model M] [--no-redact]             the passport as a short text card to paste in a chat or a post
@@ -111,13 +111,13 @@ def _targets(core, st, *, agent: str | None = None, model: str | None = None, ev
 
 def effective_tier(s: rule.TypeState, n: int | None) -> str:
     """The tier ``rule.decide`` would allow now at the type's stakes, ignoring randomness (no spot check, no
-    suspension): capped, a trial or its wait means ask; T3 needs the full series and two sessions, else it falls
+    suspension): capped, a trial or its wait means ask; T3 needs the full series, else it falls
     back to T2 (reversible, middle-tier score earned), else ask."""
     if n is None or s.trial_left > 0 or s.trial_wait > 0:
         return rule.T1
     middle = (s.reversible and s.stakes in params.WALD
               and s.wald <= params.wald_steps(s.stakes)[2] + rule.TOL)
-    if s.tier == rule.T3 and s.series >= rule.required(s, n) and rule.sessions_met(s):
+    if s.tier == rule.T3 and s.series >= rule.required(s, n):
         return rule.T3
     if s.tier in (rule.T2, rule.T3) and middle:
         return rule.T2
@@ -492,6 +492,25 @@ def _ago(seconds: float) -> str:
             tr("cli.ago.h", n=s // 3600))
 
 
+def ok_list(session: str | None) -> str:
+    """The act-then-tell actions still open (24 hours), of this conversation when known, with what each changed."""
+    core = _core()
+    st = core.store_()
+    root = st.root_of(session) if session else None
+    rows = st.open_credits(time.time() - core.UNDO_WINDOW, root)
+    if not rows:
+        return tr("cli.ok.none")
+    cells = []
+    for r in rows:
+        entry = st.get_undo(r["undo_id"])
+        d = undo.describe(entry["snap_id"], core.data_dir()) if entry and entry["snap_id"] else None
+        what = (tr("cli.undo.more_files", file=d["file"], n=d["files"] - 1) if d and d["files"] > 1
+                else d["file"] if d else "")
+        cells.append([str(r["undo_id"]), time.strftime("%H:%M", time.localtime(r["at"])), r["type"], what])
+    head = [tr("cli.col.number"), tr("cli.col.time"), tr("cli.col.type"), tr("cli.col.target")]
+    return "\n".join([tr("cli.ok.title")] + ["  " + ln for ln in _table(head, cells)] + ["", tr("cli.ok.footer")])
+
+
 def excuse_cmd(seq: int | None) -> tuple[str, int]:
     """``excuse`` alone: the faults of the last minutes that can still be excused; with a number, excuse that one."""
     core = _core()
@@ -788,8 +807,8 @@ def _add_subcommands(subparser) -> None:
     subs.add_parser("explain", help="How tenure decides and what the numbers guarantee")
     p = subs.add_parser("models", help="Each model's verified record on your own work")
     p.add_argument("--type", help="One action type")
-    p = subs.add_parser("ok", help="Seen and fine: the act-then-tell actions of this conversation (or one) count now")
-    p.add_argument("id", type=int, nargs="?", help="the undo number of one action; without it, this conversation's")
+    p = subs.add_parser("ok", help="Seen and fine: the act-then-tell actions you name count now; alone, the open ones")
+    p.add_argument("ids", type=int, nargs="*", help="the undo numbers of the actions you saw; without them, the list")
     p = subs.add_parser("excuse", help="Take back a fault of the last 10 minutes that was not the agent's mistake")
     p.add_argument("id", type=int, nargs="?", help="the number from the notice; without it, the list")
     p = subs.add_parser("undo", help="Restore the files of an action that acted, then told you")
@@ -851,13 +870,12 @@ def execute(ns) -> tuple[str, int]:
         if cmd == "ok":
             if not g("tenure_slash") and not sys.stdin.isatty():
                 raise CliError(tr("cli.ok.terminal"))         # a script or the agent's own terminal: never
-            if g("id") is None and not g("tenure_slash"):
-                raise CliError(tr("cli.ok.number"))           # outside a chat, one action at a time
             core = _core()
+            if not g("ids"):                                  # never a blanket "all": the list, to name what you saw
+                return ok_list(g("tenure_session")), 0
             with core.txn() as st:
                 try:
-                    session = st.root_of(g("tenure_session") or "") or None
-                    return core.seen(st, g("id"), session), 0
+                    return core.seen(st, list(g("ids"))), 0
                 except ValueError as e:
                     return str(e), 1
         if cmd == "excuse":

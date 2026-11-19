@@ -422,6 +422,26 @@ def settings_fingerprint(cfg: dict) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _migrate_b2(st: store.Store) -> None:
+    """Once, on the first settings of rule B/2: every record is rebuilt from the ledger, so the sessions of each
+    series (kept since B/2) are the replay's, and the live record never trusts more than the passport would."""
+    if st.get_meta("rule:b2") or not st.states():
+        st.set_meta("rule:b2", "1")
+        return
+    try:
+        replayed, _ = passport._replay(st.ledger())
+    except Exception:                                   # a ledger that does not replay: states stay, runs empty,
+        log.warning("tenure: records kept as they are for rule B/2 (the ledger does not replay)")   # so T3 asks
+        st.set_meta("rule:b2", "1")
+        return
+    for (agent, key), s in replayed.items():
+        live = st.recorded(agent, key)
+        if live is not None:
+            s.changed_at = live.changed_at
+        st.put_state(agent, s)
+    st.set_meta("rule:b2", "1")
+
+
 def sync_settings(st: store.Store, cfg: dict) -> list[dict]:
     """In a transaction, before any outcome: settings that differ from the last ones in the ledger are logged, then
     every type of every agent is re-evaluated under them (stricter settings can take a T3 back). Returns the derived
@@ -431,6 +451,7 @@ def sync_settings(st: store.Store, cfg: dict) -> list[dict]:
         return []
     st.log(settings_event(cfg))
     st.set_meta("settings:fingerprint", fp)
+    _migrate_b2(st)
     events = []
     for agent, s in st.states():
         before = s.to_dict()
@@ -676,10 +697,10 @@ def _ids(ids: list[int]) -> str:
     return f"{ids[0]}–{ids[-1]}" if ids == list(range(ids[0], ids[-1] + 1)) else ", ".join(map(str, ids))
 
 
-def _with_ok(text: str) -> str:
-    """The "seen and fine?" hint before the undo command, which stays last."""
+def _with_ok(text: str, ids: list[int]) -> str:
+    """The "seen and fine?" hint, naming the actions' numbers, before the undo command, which stays last."""
     i = text.rfind(" · ")
-    hint = tr("settle.acted_ok", command="/tenure ok")
+    hint = tr("settle.acted_ok", command="/tenure ok " + " ".join(map(str, ids)))
     return text + " · " + hint if i < 0 else text[:i] + " · " + hint + text[i:]
 
 
@@ -693,6 +714,8 @@ def _announce(text: str) -> None:
                 entry = ST.acted.get(key)
                 if entry and now - entry["at"] < ACTED_WINDOW and callable(getattr(entry["handle"], "edit", None)):
                     entry["ids"].append(text.undo_id)
+                    if getattr(text, "ok_hint", False):
+                        entry.setdefault("ok_ids", []).append(text.undo_id)
                     entry["shown"].extend(text.shown)
                     entry["at"] = now
                     ids = entry["ids"]
@@ -700,13 +723,14 @@ def _announce(text: str) -> None:
                                  id=ids[-1], ids=_ids(ids), what=_with_what(_join_shown(entry["shown"])))
                     if getattr(text, "ok_hint", False) or entry.get("ok"):
                         entry["ok"] = True
-                        grouped = _with_ok(grouped)
+                        grouped = _with_ok(grouped, [i for i in ids if i in entry.get("ok_ids", ids)])
                     entry["handle"].edit(grouped)
                     return
             handle = ST.ctx.post_message(str(text))
             with ST.mem:
                 ST.acted[key] = {"ids": [text.undo_id], "handle": handle, "at": now, "shown": list(text.shown),
-                                 "ok": getattr(text, "ok_hint", False)}
+                                 "ok": getattr(text, "ok_hint", False),
+                                 "ok_ids": [text.undo_id] if getattr(text, "ok_hint", False) else []}
             return
         ST.ctx.post_message(text)
     except Exception:
@@ -911,37 +935,46 @@ def excuse(st: store.Store, seq: int) -> str:
     return tr("cli.excuse.done", n=seq, type=row["type"], agent=row["agent"], tier=tier)
 
 
-def seen(st: store.Store, undo_id: int | None = None, session: str | None = None) -> str:
-    """The owner looked at act-then-tell actions and they are fine (rule B/2): each counts as a success now, source
-    ``seen``. One action by its undo number, else every open one of a conversation (``session``, the chat's root),
-    else every open one of the profile. Only a person: never while nobody answers. Raises ValueError with the owner's
-    message when there is nothing to mark."""
+def seen(st: store.Store, undo_ids: list[int]) -> str:
+    """The owner looked at these act-then-tell actions, named one by one by their undo numbers, and they are fine
+    (rule B/2): each counts as a success now, source ``seen``. Never a blanket "all of them": a person names what
+    they saw. Only a person: never while nobody answers. Raises ValueError with the owner's message when none of the
+    numbers is open."""
     why = nobody_answers()
     if why:
         raise ValueError(tr("cli.ok.nobody", why=why))
-    rows = st.open_credits(time.time() - UNDO_WINDOW, None if undo_id is not None else session)
-    if undo_id is not None:
-        rows = [r for r in rows if r["undo_id"] == undo_id]
+    wanted = set(undo_ids)
+    rows = [r for r in st.open_credits(time.time() - UNDO_WINDOW) if r["undo_id"] in wanted]
     if not rows:
         raise ValueError(tr("cli.ok.none"))
     cfg = settings()
-    events = _see(st, cfg, rows)
-    return "\n\n".join([tr("cli.ok.done", n=len(rows))] + _say(events, cfg["spot"]))
+    done: list[dict] = []
+    events = _see(st, cfg, rows, done)
+    if not done:
+        raise ValueError(tr("cli.ok.none"))
+    marked = ", ".join(f"{r['undo_id']} ({r['type']})" for r in done)
+    return "\n\n".join([tr("cli.ok.done", n=len(done), which=marked)] + _say(events, cfg["spot"]))
 
 
-def _see(st: store.Store, cfg: dict, rows: list[dict]) -> list[dict]:
+def _see(st: store.Store, cfg: dict, rows: list[dict], done: list | None = None) -> list[dict]:
     """Credit these open act-then-tell actions as seen by a person; returns the derived events."""
     sync_settings(st, cfg)
     events = []
     for r in rows:
         st.drop_credit(r["undo_id"])
         recorded = st.recorded(r["agent"], r["type"])
-        if (st.fault_since(r["agent"], r["type"], r["seq"]) or recorded is None
+        if (st.fault_since(r["agent"], r["type"], r["seq"]) or st.doubted(r["agent"], r["type"]) or recorded is None
                 or recorded.stakes != r["stakes"]):
-            continue                                     # a later fault, revoke or other stakes: nothing to credit
+            if recorded is not None:                     # a later fault, revoke, doubt or other stakes: neutral
+                events += record_outcome(st, cfg, agent=r["agent"], type_key=r["type"], stakes=recorded.stakes,
+                                         reversible=recorded.reversible, result="neutral", source="expired",
+                                         session=r["session"] or "")
+            continue
         events += record_outcome(st, cfg, agent=r["agent"], type_key=r["type"], stakes=r["stakes"],
                                  reversible=bool(r["reversible"]), result="success", source="seen",
                                  session=r["session"] or "")
+        if done is not None:
+            done.append(r)
     return events
 
 
@@ -1088,7 +1121,7 @@ def _earned(recorded: rule.TypeState | None, act, s: rule.TypeState, n, decision
     if decision == rule.NOTIFY:
         return bool(act.reversible and act.stakes in params.WALD
                     and s.wald <= params.wald_steps(act.stakes)[2] + rule.TOL)
-    return n is not None and s.series >= rule.required(s, n) and rule.sessions_met(s)
+    return n is not None and s.series >= rule.required(s, n) and (s.tier == rule.T3 or rule.sessions_met(s))
 
 
 def trusted(cfg: dict, s: rule.TypeState, n, stakes: str) -> bool:
@@ -1294,7 +1327,7 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         else:
             text = tr("settle.acted", type=key, what=what, command="/tenure undo", id=undo_id)
             if deferred:                                # rule B/2: only a person's "seen" counts toward acting alone
-                text = _with_ok(text)
+                text = _with_ok(text, [undo_id])
             posts.append(Acted(text, p["session"], key, undo_id, shown))
             posts[-1].ok_hint = deferred
     elif reason:

@@ -249,7 +249,8 @@ def test_post_revoke_tool_revokes_its_categories(env):
     cat = "mcp:crm:update_contact:@finance"
     st = core.store.Store(os.path.join(str(root), "plugin-data", "tenure", "tenure.db"))
     with st.transaction():
-        st.put_state(A, core.rule.TypeState(key=cat, stakes="medium", tier=core.rule.T3, series=300, sessions=["a", "b", "c"]))
+        st.put_state(A, core.rule.TypeState(key=cat, stakes="medium", tier=core.rule.T3, series=300, sessions=["a", "b", "c"],
+                                                 session_runs=[["a", 100], ["b", 100], ["c", 100]]))
     r = client.post(client.base + "/revoke", json={"agent": A, "type": "mcp:crm:update_contact"})
     assert r.status_code == 200 and cat in r.json()["revoked"]
     assert core.store_().recorded(A, cat).tier == core.rule.T1
@@ -642,7 +643,7 @@ def test_type_row_names_the_type_that_holds_a_sensitive_kind(env):
     with st.transaction():
         st.put_state(A, core.rule.TypeState(key=P, stakes="medium", lengthened=True))
         st.put_state(A, core.rule.TypeState(key=F_, stakes="medium", tier=core.rule.T3, series=300,
-                                            sessions=["a", "b", "c"]))
+                                            sessions=["a", "b", "c"], session_runs=[["a", 100], ["b", 100], ["c", 100]]))
     st.db.close()
     types = {t["type"]: t for t in get(client, "/agents").json()["profiles"][0]["agents"][0]["types"]}
     assert types[F_]["held"] == P and types[P]["held"] is None and types["file:write"]["held"] is None

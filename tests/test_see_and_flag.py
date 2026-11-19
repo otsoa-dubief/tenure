@@ -483,7 +483,7 @@ def test_any_display_error_leaves_the_settlement_whole(plugin, monkeypatch):
     monkeypatch.setattr(mod, "_show", broken)
     assert ctx.call("write_file", write("w")) == "ran"
     assert credit_now(mod) is not None and outcomes(mod)[-1]["source"] == "seen" and last(mod)["n"] == 13
-    assert re.fullmatch(r"tenure: file:write acted, then told you · seen and fine\? /tenure ok · /tenure undo \d+", ctx.posted[-1])
+    assert re.fullmatch(r"tenure: file:write acted, then told you · seen and fine\? /tenure ok \d+ · /tenure undo \d+", ctx.posted[-1])
 
 
 def test_a_summary_error_does_not_drop_the_t2_notice(plugin, monkeypatch):
