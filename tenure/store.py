@@ -33,6 +33,7 @@ BUSY_TIMEOUT = 5.0             # seconds a writer waits for another process's tr
 TABLES = ("types", "pending", "sessions", "undo", "stats", "meta", "ledger", "recent")
 RECENT_WINDOW = 24 * 3600      # seconds a numbered action stays in ``recent``
 EXCUSE_WINDOW = 10 * 60        # seconds the owner has to excuse a fault (protocol 0.2)
+EXCUSABLE = frozenset({"refusal", "undo"})   # faults a person caused: never a check, a spot check or a flag
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS types (agent TEXT NOT NULL, key TEXT NOT NULL, state TEXT NOT NULL,
                                   PRIMARY KEY (agent, key));
@@ -99,7 +100,8 @@ PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible"
 #       Replay: rule.revoke on that type.
 #   {"event": "excuse", "seq": int}  (protocol 0.2)
 #       The owner says the fault outcome at ledger row `seq` was not the agent's mistake (a refusal for another
-#       reason, an undo of a correct change...), within EXCUSE_WINDOW of it. Replay: that earlier outcome is replayed
+#       reason, an undo of a correct change), within EXCUSE_WINDOW of it. Only sources in EXCUSABLE (refusal, undo):
+#       never the automatic check, a spot check or a flag, which are the detection the guarantee rests on. Replay: that earlier outcome is replayed
 #       as ("neutral", "excused"), as if it had been neutral from the start; the excuse row itself changes nothing.
 OUTCOME_SOURCES = {
     "success": frozenset({"approval", "spot", "notify"}),

@@ -100,6 +100,7 @@ class TypeState:
     successes: int = 0
     faults: int = 0
     neutrals: int = 0
+    excused: int = 0                   # faults the owner excused afterwards (protocol 0.2): counted among neutrals
     spot_checks: int = 0
     changed_at: float = 0.0            # time of the last derived event, or of the carry-over that made the state
 

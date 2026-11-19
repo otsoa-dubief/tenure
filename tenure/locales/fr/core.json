@@ -364,14 +364,13 @@
   "cli.col.cause": "cause",
   "cli.excuse.unknown": "Aucune faute {n} à excuser ces {minutes} dernières minutes (déjà excusée, trop ancienne, ou pas une faute) : rien n'a changé.",
   "cli.excuse.done": "tenure : faute {n} excusée ({type}, {agent}) : elle compte comme neutre ; {type} est à {tier}.",
-  "notice.excuse.hint": "Ce n'était pas une erreur de l'agent (refus pour une autre raison, annulation d'un changement correct) ? /tenure excuse {n} dans les {minutes} minutes.",
+  "notice.excuse.hint": "Compté comme une faute de l'agent. Si l'erreur était la vôtre (refus pour une autre raison, annulation d'un changement correct) : /tenure excuse {n}, dans les {minutes} minutes.",
   "cli.excuse.trusted": "la confiance de départ",
   "cli.excuse.title": "Fautes des {minutes} dernières minutes qui peuvent être excusées, la plus récente d'abord :",
   "cli.excuse.none": "Aucune faute à excuser ces {minutes} dernières minutes.",
   "cli.excuse.footer": "Excusez celle qui n'était pas une erreur de l'agent : /tenure excuse <numéro>",
   "cli.excuse.source.refusal": "vous avez refusé",
-  "cli.excuse.source.spot": "contrôle aléatoire",
-  "cli.excuse.source.check": "contrôle automatique",
   "cli.excuse.source.undo": "vous avez annulé",
-  "cli.excuse.source.flag": "vous l'avez signalée"
+  "cli.excuse.nobody": "Pas d'excuse tant que personne ne répond aux approbations ({why}) : seule une personne peut excuser une faute.",
+  "cli.excuse.terminal": "Une excuse se tape à la main : /tenure excuse dans la conversation, ou hermes tenure excuse dans un terminal interactif."
 }

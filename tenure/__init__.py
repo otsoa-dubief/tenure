@@ -828,7 +828,8 @@ def excusable(st: store.Store, now: float | None = None) -> list[dict]:
         if now - r["at"] > store.EXCUSE_WINDOW:
             break
         e = r["event"] or {}
-        if e.get("event") == "outcome" and e.get("result") == "fault" and r["seq"] not in done:
+        if (e.get("event") == "outcome" and e.get("result") == "fault" and e.get("source") in store.EXCUSABLE
+                and r["seq"] not in done):
             out.append({"seq": r["seq"], "at": r["at"], "agent": e["agent"], "type": e["type"],
                         "source": e["source"]})
     return out
@@ -839,22 +840,27 @@ def excuse(st: store.Store, seq: int) -> str:
     names its ledger row, and every state is replayed from the ledger, where that fault now counts as neutral. Its
     effects go with it: the tier drop, the trial, the lost trusted start (unless another fault or a revoke keeps it
     lost). Call it inside ``txn()``. Raises ValueError with the owner's message when it is not excusable."""
+    why = nobody_answers()
+    if why:                                         # the agent's own command, approved by nobody: never
+        raise ValueError(tr("cli.excuse.nobody", why=why))
     row = next((r for r in excusable(st) if r["seq"] == seq), None)
     if row is None:
         raise ValueError(tr("cli.excuse.unknown", n=seq, minutes=store.EXCUSE_WINDOW // 60))
+    rows = st.ledger()
+    head = rows[-1] if rows else {"seq": 0, "at": 0}
+    replayed, _ = passport._replay(rows + [{"seq": head["seq"] + 1, "at": time.time(),   # dry run first: a ledger
+                                             "event": {"event": "excuse", "seq": seq}}])  # that cannot replay logs none
     st.log({"event": "excuse", "seq": seq})
-    replayed, _ = passport._replay(st.ledger())
-    now = time.time()
-    keys = set()
-    for (agent, key), s in replayed.items():
-        keys.add(key)
-        live = st.recorded(agent, key)
+    now, key = time.time(), row["type"]
+    for (agent, k), s in replayed.items():           # only the excused type: other records are left as they are
+        if k != key:
+            continue
+        live = st.recorded(agent, k)
         if live is None or {**live.to_dict(), "changed_at": 0} != {**s.to_dict(), "changed_at": 0}:
             s.changed_at = now
             st.put_state(agent, s)
-    for key in keys:
-        if not any(s.distrusted for (a, k), s in replayed.items() if k == key):
-            st.trust_again(key)
+    if not any(s.distrusted for (a, k), s in replayed.items() if k == key):
+        st.trust_again(key)
     st.bump(row["agent"], "faults", -1, at=row["at"])
     s = replayed.get((row["agent"], row["type"]))
     _push("changed", {"agent": row["agent"], "type": row["type"]})
@@ -863,10 +869,12 @@ def excuse(st: store.Store, seq: int) -> str:
     return tr("cli.excuse.done", n=seq, type=row["type"], agent=row["agent"], tier=tier)
 
 
-def _excuse_hint(st: store.Store) -> list[str]:
-    """After a fault the owner caused (a refusal, an undo): how to take it back if it was not the agent's mistake."""
+def _excuse_hint(st: store.Store, events: list[dict]) -> list[str]:
+    """After a fault the owner caused (a refusal, an undo) that cost something (a tier, the trusted start): how to
+    take it back if the error was the owner's. Said neutrally, and only then: never an invitation after every no."""
     seq = getattr(st, "last_outcome_seq", None)
-    return [tr("notice.excuse.hint", n=seq, minutes=store.EXCUSE_WINDOW // 60)] if seq else []
+    costly = any(ev.get("event") in ("tier", "trial") for ev in events)
+    return [tr("notice.excuse.hint", n=seq, minutes=store.EXCUSE_WINDOW // 60)] if seq and costly else []
 
 
 class UndoMessage(str):
@@ -926,7 +934,7 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
     s = st.get_state(agent, key, stakes, reversible)
     text = "\n\n".join([tr("undo.done", id=id, type=key, agent=agent, tier=tier_name(s.tier))]
                        + _say(events, cfg["spot"])        # e.g. "On probation" when it ends the trusted start
-                       + _excuse_hint(st))
+                       + _excuse_hint(st, events))
     return UndoMessage(text, True, entry["snap_id"])
 
 
@@ -1375,10 +1383,9 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
                 if p.get("snap_id"):
                     undo.discard(p["snap_id"], data_dir())
                 posts += _say(sync_settings(st, cfg), cfg["spot"])
-                posts += _say(record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
-                                             reversible=p["reversible"], result="fault", source="refusal",
-                                             session=p["session"]), cfg["spot"])
-                posts += _excuse_hint(st)
+                evs = record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
+                                     reversible=p["reversible"], result="fault", source="refusal", session=p["session"])
+                posts += _say(evs, cfg["spot"]) + _excuse_hint(st, evs)
                 _bump(st, p["agent"], "fault")
                 p = None
             if p is None or p["phase"] != "asked" or (key and p["rule_key"] != key):
@@ -1392,11 +1399,11 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
                     result, source = "fault", ("spot" if p["decision"] == rule.SPOT else "refusal")
                 else:
                     result, source = "neutral", "timeout"
-                posts += _say(record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
-                                             reversible=p["reversible"], result=result, source=source,
-                                             session=p["session"]), cfg["spot"])
-                if result == "fault":
-                    posts += _excuse_hint(st)
+                evs = record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
+                                     reversible=p["reversible"], result=result, source=source, session=p["session"])
+                posts += _say(evs, cfg["spot"])
+                if source == "refusal":                     # a refused spot check is detection: not excusable
+                    posts += _excuse_hint(st, evs)
                 _bump(st, p["agent"], result)
         for text in posts:
             _announce(text)

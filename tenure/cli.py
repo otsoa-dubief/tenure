@@ -499,9 +499,7 @@ def excuse_cmd(seq: int | None) -> tuple[str, int]:
         rows = core.excusable(core.store_())
         if not rows:
             return tr("cli.excuse.none", minutes=minutes), 0
-        cause = {"refusal": tr("cli.excuse.source.refusal"), "spot": tr("cli.excuse.source.spot"),
-                 "check": tr("cli.excuse.source.check"), "undo": tr("cli.excuse.source.undo"),
-                 "flag": tr("cli.excuse.source.flag")}
+        cause = {"refusal": tr("cli.excuse.source.refusal"), "undo": tr("cli.excuse.source.undo")}
         cells = [[str(r["seq"]), time.strftime("%H:%M", time.localtime(r["at"])), r["type"], r["agent"],
                   cause.get(r["source"], r["source"])] for r in rows]
         lines = [tr("cli.excuse.title", minutes=minutes)]
@@ -847,6 +845,8 @@ def execute(ns) -> tuple[str, int]:
         if cmd == "models":
             return models_text(g("type")), 0
         if cmd == "excuse":
+            if g("id") is not None and not g("tenure_slash") and not sys.stdin.isatty():
+                raise CliError(tr("cli.excuse.terminal"))    # a script or the agent's own terminal: never
             return excuse_cmd(g("id"))
         if cmd == "undo":
             if g("id") is None:
@@ -915,6 +915,7 @@ def slash(raw_args="", **kwargs):
         # `flag` alone lists the current session (none: the profile); Hermes hands the session id in
         ns.tenure_session = _core().anon(kwargs.get("session_id") or kwargs.get("session_key")) or None
         ns.tenure_command_name = "/tenure flag"
+        ns.tenure_slash = True                             # typed by a person in the chat
         return execute(ns)[0]
     except Exception as e:
         return f"tenure: {type(e).__name__}: {e}"

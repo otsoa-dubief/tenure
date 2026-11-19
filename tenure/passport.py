@@ -35,7 +35,8 @@ PROTOCOLS = ("earned-autonomy/0.1", PROTOCOL)   # 0.1 ledgers have no excuse eve
 RULE_NAME = "study-rule-B"
 KEY_FILE = "passport-ed25519.pem"
 TYPE_FIELDS = ("type", "stakes", "tier", "effective_tier", "series", "required", "sessions", "provisional",
-               "guarantee", "trusted")
+               "guarantee", "trusted", "excused")
+TYPE_FIELDS_01 = TYPE_FIELDS[:-1]                    # a 0.1 passport has no excused count
 ROOT_KEYS = ("protocol", "generated_at", "agent", "rule", "settings_fingerprint", "redacted", "types", "ledger",
              "public_key", "signature")
 PART_KEYS = {"agent": ("model", "provider", "profile"), "rule": ("name", "fingerprint"), "ledger": ("count", "head")}
@@ -180,6 +181,7 @@ def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState
                 raise ValueError(f"row {i}: unknown outcome {result!r} from {source!r}")
             if r.get("seq") in excused:                         # protocol 0.2: excused afterwards by the owner
                 result, source = "neutral", "excused"
+                s.excused += 1
             if result == "success" and rule.trusted(s, n, cfg.get("start")):
                 events = rule.on_trusted_success(s, source=source)
             elif result == "success":
@@ -234,6 +236,8 @@ def _excused(rows: list[dict]) -> set:
         te = (target or {}).get("event") or {}
         if target is None or seq >= r.get("seq", 0) or te.get("event") != "outcome" or te.get("result") != "fault":
             raise ValueError(f"row {i}: excuse of row {seq!r}, which is not an earlier fault")
+        if te.get("source") not in store.EXCUSABLE:
+            raise ValueError(f"row {i}: excuse of a {te.get('source')!r} fault: only a refusal or an undo")
         if seq in out:
             raise ValueError(f"row {i}: row {seq} excused twice")
         out.add(seq)
@@ -273,7 +277,8 @@ def redact_type(key: str) -> str:
 
 
 # ---------------------------------------------------------------------------------------------------- passport
-def _entries(states: dict[str, rule.TypeState], cfg: dict | None, redact: bool) -> list[dict]:
+def _entries(states: dict[str, rule.TypeState], cfg: dict | None, redact: bool,
+             excused_field: bool = True) -> list[dict]:
     risks = (cfg or {}).get("risks") or {}
     spot = (cfg or {}).get("spot", params.DEFAULT_SPOT)
     out = {}
@@ -288,7 +293,10 @@ def _entries(states: dict[str, rule.TypeState], cfg: dict | None, redact: bool) 
                      "provisional": s.provisional, "guarantee": rule.guarantee(s, n, spot),
                      # covered by the trusted start, not earned (an earned T3 is shown as T3)
                      "trusted": (rule.trusted(s, n, (cfg or {}).get("start"))
-                                 and rule.effective_tier(s, n, s.stakes) != rule.T3)}
+                                 and rule.effective_tier(s, n, s.stakes) != rule.T3),
+                     "excused": s.excused}
+        if not excused_field:                            # a 0.1 passport
+            del out[name]["excused"]
     return [out[k] for k in sorted(out)]
 
 
@@ -379,7 +387,8 @@ def build(st, agent: str, settings: dict, data_dir: str, redact: bool = True, cr
     model, provider = personal.split_agent(agent)
     profile = str((settings or {}).get("profile")
                   or os.path.basename(os.path.dirname(os.path.dirname(os.path.abspath(data_dir)))) or "default")
-    p = {"protocol": PROTOCOL,
+    excuses = any((r.get("event") or {}).get("event") == "excuse" for r in rows)
+    p = {"protocol": PROTOCOL if excuses else PROTOCOLS[0],    # 0.1 until an excuse: older verifiers still read it
          "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
          "agent": {"model": model, "provider": provider, "profile": _sha(profile)[:12]},
          "rule": {"name": RULE_NAME, "fingerprint": rule_fingerprint()},
@@ -387,7 +396,7 @@ def build(st, agent: str, settings: dict, data_dir: str, redact: bool = True, cr
          "redacted": bool(redact),
          # What the ledger proves, by replay: the very states a verifier recomputes (a record kept by an older
          # version may differ in a field the replay now derives, such as the trusted start).
-         "types": _entries(_states_for(rows, agent, st), cfg, redact),
+         "types": _entries(_states_for(rows, agent, st), cfg, redact, excused_field=excuses),
          "ledger": {"count": len(rows), "head": _head(rows)}}
     if create_key or os.path.exists(os.path.join(data_dir, KEY_FILE)):
         key, public = keypair(data_dir)
@@ -449,8 +458,9 @@ def _shape(passport) -> tuple[list[str], dict]:
         if key in seen:
             problems.append(f"type {key}: listed twice")
         seen.add(key)
-        problems += [f"type {key}: extra field {k}" for k in sorted(set(e) - set(TYPE_FIELDS), key=str)]
-        problems += [f"type {key}: missing field {k}" for k in TYPE_FIELDS if k not in e]
+        fields = TYPE_FIELDS_01 if passport.get("protocol") == PROTOCOLS[0] else TYPE_FIELDS
+        problems += [f"type {key}: extra field {k}" for k in sorted(set(e) - set(fields), key=str)]
+        problems += [f"type {key}: missing field {k}" for k in fields if k not in e]
     return problems, ok
 
 
@@ -506,6 +516,9 @@ def verify(passport: dict, rows: list[dict] | None = None, chain_ok: bool = Fals
         states, cfg = _replay(rows[:count])
     except (KeyError, TypeError, ValueError, AttributeError) as exc:
         return problems + [f"replay: {exc}"]
+    if passport.get("protocol") == PROTOCOLS[0] and any((r.get("event") or {}).get("event") == "excuse"
+                                                         for r in rows[:count]):
+        problems.append("a 0.1 passport over a ledger with an excuse: it should be 0.2")
     if passport.get("settings_fingerprint") != settings_event_fingerprint(cfg):
         problems.append("settings fingerprint differs from the ledger's last settings")
     if not ok.get("agent") or not ok.get("types"):

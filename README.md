@@ -339,8 +339,9 @@ nothing local and deterministic can tell whether B was the right one, short of a
 **Excuse a fault.** A refusal or an undo counts as a fault, even when the agent was right (you said no for another
 reason, or undid a correct change to try something else). The message that follows says how to take it back:
 `/tenure excuse N` within 10 minutes. The fault then counts as neutral, and what it cost goes with it (the tier drop,
-the trial, the lost trusted start). It stays in the ledger, with the excuse after it, so a passport shows both
-(protocol 0.2).
+the trial, the lost trusted start). Only a refusal or an undo can be excused, never the automatic check, a spot check
+or a flag, and only by a person: not while nobody answers approvals (`--yolo`, cron), not from a script. Each
+passport type counts its excused faults (protocol 0.2), so a reader sees how often it happened.
 
 **A verifier.** That rule can report to Tenure itself: a deterministic check of yours (a test, a business rule, a
 nightly reconciliation) names an action by Hermes' session and tool call id, or by its number, and reports `fault`
