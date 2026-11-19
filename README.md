@@ -324,7 +324,8 @@ it counts once (an undo and a flag of the same action never count twice). `flag 
   told, it also names the file through its undo snapshot.
 - **No number**: actions that run free or capped, refused, timed out, blocked, ambiguous, expired after 24 hours
   pending, or settled without a call id have none.
-- **What is kept.** A local table `recent` holds the number, session, agent, type and time, no argument, for 24 hours.
+- **What is kept.** A local table `recent` holds the number, session, tool call id (hashed like the session), agent,
+  type and time, no argument, for 24 hours.
   It is added to an existing database without changing the schema version (when a database is locked by another
   process at the upgrade, the first open may wait up to the busy timeout once, then carries on without the table and
   adds it at its next write). No new ledger event: a flag of an action is the same `fault` / `flag` outcome. The rule and
@@ -332,6 +333,12 @@ it counts once (an undo and a flag of the same action never count twice). `flag 
 
 **What it cannot see.** Tenure shows you the target; it does not judge it. If the agent read both A and B and wrote B,
 nothing local and deterministic can tell whether B was the right one, short of a rule you write for your own data.
+
+**A verifier.** That rule can report to Tenure itself: a deterministic check of yours (a test, a business rule, a
+nightly reconciliation) names an action by Hermes' session and tool call id, or by its number, and reports `fault`
+(the same fault as a flag, once) or `doubt` (the next action of that kind asks first), never a success:
+`hermes tenure flag --call ID --session ID [--doubt]`, or `report()` in Python. See
+[docs/verifier.md](docs/verifier.md), with a complete example and the cost of a false fault.
 
 ## Commands
 
@@ -344,6 +351,7 @@ nothing local and deterministic can tell whether B was the right one, short of a
 | `hermes tenure undo [ID]` | Restore the files of an act-then-notify action; without an ID, list what can still be undone |
 | `hermes tenure flag` · `hermes tenure flag N` | List the last numbered actions (24 hours); report action N as an error: the fault lands on the agent that acted, once |
 | `hermes tenure flag TYPE [note]` | Report an error the agent made on its own: revokes that type |
+| `hermes tenure flag --call ID --session ID [--doubt]` · `hermes tenure flag N --doubt` | A verifier: a fault on one action named by its call, or a doubt (its next action of that kind asks first) |
 | `hermes tenure revoke TYPE\|all [--model M\|--all]` | Take earned autonomy back: one type or every type, for the last active agent, one model, or every agent |
 | `hermes tenure passport [--agent A] [--out FILE] [--no-redact]` | Write the signed passport of an agent |
 | `hermes tenure card [--model M] [--no-redact]` | The passport as a short text card, one bar per action type, to paste in a chat or a post (names of your scripts hashed, as in the passport) |
@@ -406,7 +414,7 @@ Community tab shows the board once you save it as `plugin-data/tenure/community-
 <details><summary>What stays on your machine, and what a passport shows</summary>
 
 Stored, in `plugin-data/tenure/tenure.db` of each Hermes profile: action types and stakes, outcomes, tiers,
-the agent string `model@provider`, sessions as `sha256(session id)[:12]`, timestamps, and a hash chain over all of
+the agent string `model@provider`, sessions and, for 24 hours, tool call ids as `sha256(id)[:12]`, timestamps, and a hash chain over all of
 it. 
 Never in the database or the ledger: a whole command, a path, file content, a message, or a secret. Type names can
 include a script, target or alias name taken from the command (`shell:npm:run:build`, `shell:make:deploy`,

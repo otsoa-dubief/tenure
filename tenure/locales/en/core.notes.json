@@ -34,5 +34,7 @@
   "tier.short.notify": "Tier name in tables and notices. Keep the 'T2' prefix.",
   "undo.refused": "{reason} is one of the undo.refused.* phrases (lower case, no final period).",
   "ask.prompt": "Shown in the approval card of every Hermes surface (desktop, Telegram, Discord…). It names no button on purpose: their labels differ between surfaces. Use the plain verbs allow / deny of your language.",
-  "ask.why.held": "{type} is the action's kind (a tool name followed by :@ and category names, such as mcp:crm:update_contact:@finance); {held} is the tool or the related kind still carrying a mistake. Never translate either."
+  "ask.why.held": "{type} is the action's kind (a tool name followed by :@ and category names, such as mcp:crm:update_contact:@finance); {held} is the tool or the related kind still carrying a mistake. Never translate either.",
+  "cli.report.call_unknown": "A verifier named an action by its session and tool call id; {call} is that id (cut at 40). Keep call id as a technical term.",
+  "cli.report.doubt_done": "A verifier reported a doubt, not a fault: nothing counts against the agent, only the next action of this kind asks first."
 }

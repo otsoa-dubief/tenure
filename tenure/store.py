@@ -55,11 +55,12 @@ CREATE TABLE IF NOT EXISTS ledger (seq INTEGER PRIMARY KEY AUTOINCREMENT, at REA
 # column comes through a guarded ``ALTER TABLE ADD COLUMN``. No argument, path or summary is ever stored in it.
 RECENT_SCHEMA = """
 CREATE TABLE IF NOT EXISTS recent (n INTEGER PRIMARY KEY AUTOINCREMENT, session TEXT, agent TEXT, type TEXT, at REAL,
-                                   flagged INTEGER DEFAULT 0, undo_id INTEGER);
+                                   flagged INTEGER DEFAULT 0, undo_id INTEGER, call TEXT);
 CREATE INDEX IF NOT EXISTS recent_session ON recent (session);
 CREATE INDEX IF NOT EXISTS recent_at ON recent (at);
 """
-RECENT_COLS = ("n", "session", "agent", "type", "at", "flagged", "undo_id")
+RECENT_COLS = ("n", "session", "agent", "type", "at", "flagged", "undo_id", "call")
+DOUBT = "doubt:"           # meta key prefix: a kind whose next action asks first (a verifier's doubt, #6)
 INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke", "copy"})
 DISTRUST = "distrust:"     # meta key prefix: a type that lost the trusted start in this profile
 DERIVED_KINDS = frozenset({"tier", "trial", "confirmed", "revoked", "neutral_expired"})   # display only
@@ -151,6 +152,7 @@ class Store:
             raise RuntimeError(f"tenure store: {path} is not a schema {SCHEMA_VERSION} database "
                                f"(found {version!r}); open it once with the plugin first")
         self.has_recent = self._recent_exists()
+        self.has_call = self.has_recent and self._call_exists()
         return self
 
     def _ensure_schema(self) -> None:
@@ -191,12 +193,20 @@ class Store:
         return self.db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'recent'").fetchone() \
             is not None
 
+    def _call_exists(self) -> bool:
+        return any(r[1] == "call" for r in self.db.execute("PRAGMA table_info(recent)").fetchall())
+
+    def _cols(self) -> str:
+        """The columns of ``recent`` to select: a table made before the column ``call`` reads it as NULL."""
+        return ", ".join(c if c != "call" or self.has_call else "NULL" for c in RECENT_COLS)
+
     def _ensure_recent(self) -> None:
         """Add the table ``recent`` to a schema 3 database that lacks it, without touching the version, the ledger
         or any other table. Reads first: a database that has it takes no write lock. When another process holds the
         write lock past the timeout, the store opens without the table (every ``recent`` method is then empty or does
         nothing until another process or this store's next write adds it): an action never fails because of it."""
         self.has_recent = self._recent_exists()
+        self.has_call = self.has_recent and self._call_exists()
         if self.has_recent:
             return
         try:
@@ -212,7 +222,7 @@ class Store:
             self.db.execute("ROLLBACK")
             raise
         self.db.execute("COMMIT")
-        self.has_recent = True
+        self.has_recent = self.has_call = True
 
     def _backup(self, version: str | None) -> None:
         """Copy a database about to be dropped, when it holds any table, before anything is lost."""
@@ -238,6 +248,7 @@ class Store:
         except BaseException:
             self.db.execute("ROLLBACK")
             self.has_recent = self._recent_exists()        # a table added in this transaction is gone again
+            self.has_call = self.has_recent and self._call_exists()
             raise
         else:
             self.db.execute("COMMIT")
@@ -378,6 +389,7 @@ class Store:
     def _recent_ready(self) -> bool:
         if not self.has_recent:
             self.has_recent = self._recent_exists()
+            self.has_call = self.has_recent and self._call_exists()
         return self.has_recent
 
     def _recent_write(self) -> None:
@@ -386,7 +398,12 @@ class Store:
             for stmt in RECENT_SCHEMA.split(";"):
                 if stmt.strip():
                     self.db.execute(stmt)
-            self.has_recent = True
+            self.has_recent = self.has_call = True
+        if not self.has_call:                             # a table made by 1.1: the column of the call is added
+            self.has_call = self._call_exists()
+            if not self.has_call:
+                self.db.execute("ALTER TABLE recent ADD COLUMN call TEXT")
+                self.has_call = True
 
     @staticmethod
     def _recent(row) -> dict:
@@ -395,20 +412,35 @@ class Store:
         return d
 
     def add_recent(self, session: str, agent: str, type_key: str, at: float, *, flagged: bool,
-                   undo_id: int | None) -> int:
+                   undo_id: int | None, call: str = "") -> int:
         """Number one settled action and purge the rows older than 24 hours, in the same write. Numbers are never
-        reused (AUTOINCREMENT), even after every row is purged."""
+        reused (AUTOINCREMENT), even after every row is purged. ``call`` is the call id as stored (hashed, like a
+        session): with the session it lets a verifier name the action (#6)."""
         self._recent_write()
         self.db.execute("DELETE FROM recent WHERE at < ?", (at - RECENT_WINDOW,))
-        cur = self.db.execute("INSERT INTO recent (session, agent, type, at, flagged, undo_id) "
-                              "VALUES (?, ?, ?, ?, ?, ?)", (session, agent, type_key, at, int(bool(flagged)), undo_id))
+        cur = self.db.execute("INSERT INTO recent (session, agent, type, at, flagged, undo_id, call) "
+                              "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                              (session, agent, type_key, at, int(bool(flagged)), undo_id, call or None))
         return int(cur.lastrowid)
+
+    def recent_by_call(self, session: str, call: str) -> list[dict]:
+        """The numbered actions of the last 24 hours with this session and call id (both as stored). A call id is
+        reused across sessions, so both are needed; more than one row means the pair is ambiguous."""
+        if not session or not call or not self._recent_ready():
+            return []
+        if not self.has_call:
+            self.has_call = self._call_exists()              # another process may have added it since
+            if not self.has_call:
+                return []
+        rows = self.db.execute("SELECT %s FROM recent WHERE session = ? AND call = ? AND at >= ? ORDER BY n"
+                               % self._cols(), (session, call, time.time() - RECENT_WINDOW)).fetchall()
+        return [self._recent(r) for r in rows]
 
     def recent(self, n: int) -> dict | None:
         """Action number ``n``, when it is less than 24 hours old (a number beyond SQLite's integers is none)."""
         if not 0 < n < 2 ** 63 or not self._recent_ready():
             return None
-        row = self.db.execute("SELECT %s FROM recent WHERE n = ? AND at >= ?" % ", ".join(RECENT_COLS),
+        row = self.db.execute("SELECT %s FROM recent WHERE n = ? AND at >= ?" % self._cols(),
                               (n, time.time() - RECENT_WINDOW)).fetchone()
         return None if row is None else self._recent(row)
 
@@ -416,7 +448,7 @@ class Store:
         """The newest numbered actions of the last 24 hours, of one session (every session for None)."""
         if not self._recent_ready():
             return []
-        q = "SELECT %s FROM recent WHERE at >= ?" % ", ".join(RECENT_COLS)
+        q = "SELECT %s FROM recent WHERE at >= ?" % self._cols()
         args: list = [time.time() - RECENT_WINDOW]
         if session is not None:
             q += " AND session = ?"
@@ -463,6 +495,24 @@ class Store:
         return dict(zip(STAT_FIELDS, row))
 
     # --------------------------------------------------------------------------------------------------- meta
+    # -------------------------------------------------------------------------------------------- doubts (#6)
+    @staticmethod
+    def _doubt_key(agent: str, type_key: str) -> str:
+        return DOUBT + json.dumps([agent, type_key], ensure_ascii=False)
+
+    def add_doubt(self, agent: str, type_key: str) -> None:
+        """A verifier doubts an action of this kind: its next action asks first. Not a ledger event: it changes no
+        tier, no score and no passport, only one decision."""
+        self.set_meta(self._doubt_key(agent, type_key), "1")
+
+    def doubted(self, agent: str, type_key: str) -> bool:
+        return self.get_meta(self._doubt_key(agent, type_key)) == "1"
+
+    def clear_doubt(self, agent: str, type_key: str) -> None:
+        if self.doubted(agent, type_key):
+            self._write()
+            self.db.execute("DELETE FROM meta WHERE key = ?", (self._doubt_key(agent, type_key),))
+
     def get_meta(self, key: str, default: str | None = None) -> str | None:
         row = self.db.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
         return default if row is None else row[0]

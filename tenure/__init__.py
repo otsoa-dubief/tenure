@@ -780,6 +780,8 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
     if (result, source) in store.COUNTED and not failed_trial:
         events += rule.count_action(s)
     st.put_state(agent, s)
+    if source in ("approval", "refusal"):
+        st.clear_doubt(agent, type_key)                 # the owner answered: a verifier's doubt is settled
     if result == "fault":
         st.distrust(type_key)
     st.log({"event": "outcome", "agent": agent, "type": type_key, "stakes": stakes, "reversible": bool(reversible),
@@ -950,6 +952,8 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
         decision = rule.WATCH                           # after outside content: undoable file writes only                           # trusted start: run as Hermes would, with an undo if possible
     if decision != rule.ASK and _held_by(st, agent, act.type):
         decision = rule.ASK                             # a sensitive kind waits while its tool's fault is unredeemed
+    if decision != rule.ASK and st.doubted(agent, act.type):
+        decision = rule.ASK                             # a verifier doubted an action of this kind (#6)
     return recorded, s, decision, suspended
 
 
@@ -1119,7 +1123,7 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     if not blocked:                             # it ran: numbered, so the owner can flag it (a fault is born flagged)
         at = time.time()
         p["n"], p["n_at"] = st.add_recent(p["session"], agent, key, at=at, flagged=result_source[0] == "fault",
-                                          undo_id=undo_id), at
+                                          undo_id=undo_id, call=anon(p.get("call"))), at
     return posts + _say(events, cfg["spot"])
 
 

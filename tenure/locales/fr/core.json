@@ -154,6 +154,9 @@
     "other": "{n} autres actions dans ce profil : hermes tenure flag"
   },
   "cli.flag.unknown_type": "Aucun historique de {type} pour {agent}. Types : {types}.",
+  "cli.report.call_unknown": "Aucune action avec l'identifiant d'appel {call} dans cette session ces {hours} dernières heures : rien n'est enregistré.",
+  "cli.report.call_ambiguous": "L'identifiant d'appel {call} désigne plusieurs actions de cette session ({numbers}) : rien n'est enregistré. Utilisez plutôt le numéro.",
+  "cli.report.doubt_done": "tenure : doute sur l'action {n} ({type}, {agent}) : la prochaine action de ce type demandera d'abord.",
   "cli.list.joiner": " ; ",
   "cli.list.separator": ", ",
   "cli.models.few": {
