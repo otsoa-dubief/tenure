@@ -1503,6 +1503,25 @@ def pre_api_request(model="", provider="", session_id="", **kwargs):
     return None
 
 
+_PERSON_ONLY = re.compile(
+    r"(?:\bhermes\b(?:\s+-\S+(?:\s+\S+)?)*\s+tenure|-m\s+tenure(?:\.cli)?|(?:^|\s|['\"])/tenure)\s+(?:ok|excuse)\b"
+    r"|\b(?:tenure|core)\.(?:seen|excuse|_see)\s*\(", re.I)
+
+
+def _person_only(args: dict) -> bool:
+    """A tool call that would run ``tenure ok`` or ``tenure excuse`` (or their functions): those are a person's
+    word on the agent's work, never the agent's own, whatever terminal or approval it could get. Blocked outright, in
+    every string argument (a command, code, a script's text). Defence in depth: the CLI also refuses them in a child
+    of Hermes' tools (``TENURE_AGENT_CHILD``) and without a terminal."""
+    try:
+        return any(isinstance(v, str) and _PERSON_ONLY.search(v) for v in args.values())
+    except Exception:
+        return False
+
+
+AGENT_CHILD = "TENURE_AGENT_CHILD"     # set by Hermes in every tool subprocess of a session (register_session_env)
+
+
 def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_id="", **kwargs):
     """The decision for one call: None to let it run (free, acting alone, or acting then notifying with its files
     saved), else Hermes' approval gate with a rule key that ends with a fresh uuid. Any internal error, a busy store
@@ -1515,6 +1534,8 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         if not cfg["enabled"]:
             return None
         tool, args = str(tool_name or ""), (args if isinstance(args, dict) else {})
+        if _person_only(args):                              # the agent marking its own work seen, or excusing it
+            return {"action": "block", "message": tr("ask.person_only")}
         cwd = call_cwd(tool, args, session_id, task_id)
         act = classify.classify(tool, args, cwd=cwd, overrides=cfg["overrides"], vocabulary=cfg["vocabulary"])
         if act.stakes == classify.FREE:
@@ -1859,6 +1880,11 @@ def register(ctx):
     ST.ctx = ctx
     ctx.register_hook("pre_api_request", pre_api_request)
     ctx.register_hook("pre_tool_call", pre_tool_call)
+    if hasattr(ctx, "register_session_env"):           # mark the agent's own subprocesses: ok and excuse refuse them
+        try:
+            ctx.register_session_env([AGENT_CHILD], lambda _sid: {AGENT_CHILD: "1"})
+        except Exception:
+            log.warning("tenure: the agent-child marker could not be registered", exc_info=True)
     ctx.register_hook("post_approval_response", post_approval_response)
     ctx.register_hook("post_tool_call", post_tool_call)
     ctx.register_hook("post_llm_call", post_llm_call)

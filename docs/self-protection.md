@@ -24,6 +24,19 @@ starts suspended, and a child agent that read external content suspends its pare
 
 ## Self-protection
 
+**A person's word stays a person's.** `tenure ok` (marking act-then-tell actions as seen) and `tenure excuse` count
+only from a person. A tool call whose arguments would run either (`hermes tenure ok`, `python -m tenure excuse`,
+`/tenure ok`, or `tenure.seen(...)` in code) is blocked outright, whatever approval or terminal the agent could get;
+and Hermes marks every tool subprocess of a session with `TENURE_AGENT_CHILD` (`register_session_env`), where both
+commands refuse to run. An agent that hides the call from both (code that builds the name at run time, then unsets
+the marker) is the limit; the approval it needs still shows the command.
+
+**One conversation, one session.** The sessions the rule counts are conversations: a subagent counts as its parent,
+and a conversation Hermes compressed into a new session id (its `parent_session_id` in Hermes' `state.db`) stays the
+same one. **One program, one type**: `python3`, `python3.12` and `py` are `python`, `nodejs` is `node`, `pip3` is
+`pip`, so a fault on one alias puts the others on probation too. Different tools that can do the same job (`make`
+and `npm run`, `echo >` and a file write) remain different types: each earns its own record.
+
 An agent that can switch off its own supervision is not supervised. Self-protection comes in two tiers, both capped
 at **T1 (asks first)**, and no type override lowers them (`self:*`, `secrets:*`, `file:sensitive`).
 

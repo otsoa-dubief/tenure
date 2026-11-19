@@ -920,6 +920,8 @@ def execute(ns) -> tuple[str, int]:
             return models_text(g("type")), 0
         if cmd == "week":
             return week_text(g("model")), 0
+        if cmd in ("ok", "excuse") and not g("tenure_slash") and os.environ.get("TENURE_AGENT_CHILD"):
+            raise CliError(tr("ask.person_only"))            # run by one of the agent's own tools: never
         if cmd == "ok":
             if not g("tenure_slash") and not sys.stdin.isatty():
                 raise CliError(tr("cli.ok.terminal"))         # a script or the agent's own terminal: never

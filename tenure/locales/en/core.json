@@ -2,6 +2,7 @@
   "ask.capped": "tenure — {summary}\n{type} is capped: always asked.",
   "ask.internal_error": "tenure: internal error ({error}); asking you instead of letting the action through.",
   "ask.prompt": "tenure — {summary}\n{why}\nDeny it if it is wrong: that counts as a fault.",
+  "ask.person_only": "tenure: only you can mark the agent's actions as seen or excuse its faults, from your own terminal or with /tenure. This call was not run.",
   "ask.spot_nobody": "tenure: a spot check of {type} is due, and nobody can answer one now ({why}): this action was not run, and no {type} action will run until a person answers that check.",
   "notice.spot_due": "tenure: a spot check of {type} came up while nobody could answer ({why}). Its actions wait until you answer it: the next {type} action in a conversation with you asks.",
   "ask.prompt_session": "tenure — {summary}\n{why}\nAllow it for this session and tenure stops asking about this until the session ends; deny it if it is wrong (a fault).",

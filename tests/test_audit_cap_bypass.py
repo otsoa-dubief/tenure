@@ -128,7 +128,7 @@ def test_d_code_on_standard_input_is_high_stakes(cmd):
 
 def test_d_scripts_and_modules_unchanged():
     assert sh("bash script.sh") == ("shell:bash:script.sh", MEDIUM)
-    assert sh("python3 x.py") == ("shell:python3:x.py", MEDIUM)
+    assert sh("python3 x.py") == ("shell:python:x.py", MEDIUM)
     assert sh("python3 -m pytest")[1] == MEDIUM
 
 

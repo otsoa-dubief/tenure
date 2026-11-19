@@ -2,6 +2,7 @@
   "ask.capped": "tenure — {summary}\n{type} 受限：始终询问。",
   "ask.internal_error": "tenure：内部错误（{error}）；改为询问你，而不是直接放行该操作。",
   "ask.prompt": "tenure — {summary}\n{why}\n如果有误就拒绝：这会计为一次失误。",
+  "ask.person_only": "tenure：只有你可以将智能体的操作标记为已查看或豁免其过错，需在你自己的终端或通过 /tenure 进行。此调用未执行。",
   "ask.spot_nobody": "tenure：{type} 的抽查已到期，而现在无人能回应（{why}）：此操作未执行，在有人回应该抽查之前，不会执行任何 {type} 操作。",
   "notice.spot_due": "tenure：{type} 的抽查在无人能回应时到来（{why}）。其操作将等待您的回应：在与您的对话中，下一个 {type} 操作会向您询问。",
   "ask.prompt_session": "tenure — {summary}\n{why}\n选择“本会话允许”后，本会话结束前 tenure 不再就此询问；如果有误就拒绝（计为一次失误）。",
