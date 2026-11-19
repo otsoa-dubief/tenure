@@ -362,14 +362,13 @@
   "cli.col.cause": "cause",
   "cli.excuse.unknown": "No fault {n} to excuse in the last {minutes} minutes (already excused, too old, or not a fault): nothing changed.",
   "cli.excuse.done": "tenure: fault {n} excused ({type}, {agent}): it counts as neutral; {type} is at {tier}.",
-  "notice.excuse.hint": "Not the agent's mistake (you refused for another reason, or undid a correct change)? /tenure excuse {n} within {minutes} minutes.",
+  "notice.excuse.hint": "Counted as a fault of the agent. If the error was yours (you refused for another reason, or undid a correct change): /tenure excuse {n}, within {minutes} minutes.",
   "cli.excuse.trusted": "the trusted start",
   "cli.excuse.title": "Faults of the last {minutes} minutes that can be excused, newest first:",
   "cli.excuse.none": "No fault to excuse in the last {minutes} minutes.",
   "cli.excuse.footer": "Excuse one that was not the agent's mistake: /tenure excuse <number>",
   "cli.excuse.source.refusal": "you refused",
-  "cli.excuse.source.spot": "spot check",
-  "cli.excuse.source.check": "automatic check",
   "cli.excuse.source.undo": "you undid it",
-  "cli.excuse.source.flag": "you flagged it"
+  "cli.excuse.nobody": "No excuse while nobody answers approvals ({why}): only a person can excuse a fault.",
+  "cli.excuse.terminal": "An excuse is typed by a person: /tenure excuse in the chat, or hermes tenure excuse in an interactive terminal."
 }
