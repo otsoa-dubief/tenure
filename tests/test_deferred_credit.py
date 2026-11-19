@@ -1,6 +1,6 @@
 """Unseen successes (audit 19/11, item 4): an earned act-then-tell success is credited only once its undo window closed
 unused; a subagent's session counts as its root session for the two-sessions condition."""
-from test_plugin import A, FAST, climb, credit_now, outcomes, plugin, state, write  # noqa: F401
+from test_plugin import A, FAST, climb, credit_now, outcomes, plugin, silence, state, write  # noqa: F401
 from test_see_and_flag import replay_matches
 
 
@@ -32,22 +32,52 @@ def test_a_later_fault_on_the_type_turns_the_credit_neutral(plugin):
     ctx.call("write_file", write("n"))                               # acted, then told: pending credit
     ctx.call("write_file", write("bad", "def x(:\n"))                # a later fault: the series restarts
     series = state(mod, "file:write").series
-    credit_now(mod)
+    silence(mod)
     s = state(mod, "file:write")
     assert s.series == series and outcomes(mod)[-1]["source"] == "expired"
     assert replay_matches(mod)
 
 
-def test_credits_happen_on_the_next_call_after_the_window(plugin):
+def test_silence_is_neutral_and_settled_on_the_next_call(plugin):
+    """Rule B/2: 24 hours without an undo is not a check; only a person's "seen" credits the action."""
     mod, ctx = plugin(FAST)
     climb(ctx, 12)
     ctx.call("write_file", write("n"))
     with mod.txn() as st:
         st.db.execute("UPDATE undo SET at = at - 86401")
-    before = state(mod, "file:write").successes
+    before = state(mod, "file:write")
     ctx.call("terminal", {"command": "npm test"})                    # any call that reaches tenure's decision
-    assert state(mod, "file:write").successes == before + 1
+    after = state(mod, "file:write")
+    assert (after.successes, after.series) == (before.successes, before.series)
+    assert outcomes(mod)[-1]["source"] in ("unseen", "approval", "nobody", "alone") and any(
+        e["source"] == "unseen" for e in outcomes(mod))
     assert replay_matches(mod)
+
+
+def test_seen_credits_now_and_tells_how(plugin):
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    ctx.call("write_file", write("n"))
+    assert "/tenure ok" in ctx.posted[-1]
+    out = mod.cli.slash("ok")
+    assert "1 act-then-tell" in out and state(mod, "file:write").successes == 13
+    assert outcomes(mod)[-1]["source"] == "seen"
+    assert "Nothing to mark" in mod.cli.slash("ok")
+    assert replay_matches(mod)
+
+
+def test_seen_is_said_by_a_person_only(plugin, monkeypatch):
+    import io
+    from test_see_and_flag import run
+    mod, ctx = plugin(FAST)
+    climb(ctx, 12)
+    ctx.call("write_file", write("n"))
+    uid = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    monkeypatch.setattr("sys.stdin", io.StringIO(""))
+    assert run(mod, f"ok {uid}")[1] == 1                             # the agent's own terminal: never
+    monkeypatch.setenv("HERMES_YOLO_MODE", "1")
+    assert "nobody answers" in mod.cli.slash("ok")
+    assert state(mod, "file:write").successes == 12
 
 
 def test_a_subagent_session_counts_as_its_root(plugin):
@@ -72,7 +102,7 @@ def test_a_revoke_in_the_window_cancels_the_credit(plugin):
     mod, ctx = plugin(FAST)
     _t2_action(mod, ctx)
     mod.cli.slash("revoke file:write")
-    credit_now(mod)
+    silence(mod)
     assert outcomes(mod)[-1]["source"] == "expired" and state(mod, "file:write").series == 0
     assert replay_matches(mod)
 
@@ -83,7 +113,7 @@ def test_other_stakes_in_the_window_cancel_the_credit(plugin):
     with mod.txn() as st:
         st.db.execute("UPDATE credits SET stakes = 'medium'")
     series = state(mod, "file:write").series
-    credit_now(mod)
+    silence(mod)
     assert outcomes(mod)[-1]["source"] == "expired" and state(mod, "file:write").series == series
 
 

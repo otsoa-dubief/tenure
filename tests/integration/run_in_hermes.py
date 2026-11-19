@@ -250,7 +250,13 @@ check("back to T2 after the undo", tier()[0], "notify")
 
 
 def credit_all():
-    """Close every undo window now: earned act-then-tell successes are credited only then (audit 19/11)."""
+    """The owner says "seen, fine" for every open act-then-tell action (rule B/2: silence counts for nothing)."""
+    with core.txn() as st:
+        return core._see(st, core.settings(), st.open_credits(0))
+
+
+def silence_all():
+    """Every undo window closes with nobody saying anything: neutral (rule B/2)."""
     with core.txn() as st:
         st.db.execute("UPDATE undo SET at = at - 86401")
         return core._credit_due(st, core.settings())
@@ -259,9 +265,10 @@ def credit_all():
 start = tier()[1]
 for i in range(n - start):                     # the rest of the series acts then notifies, all in session it-1
     check(f"T2 write, series {start + i + 1}/{n}: acts", write(f"s{start + i}"), "ran")
-check("T2 successes wait for their undo window", tier()[1], start)
+check("T2 successes wait for the owner's \"seen\"", tier()[1], start)
+check("the notice offers /tenure ok", any("/tenure ok" in p for p in posted), True)
 credit_all()
-check("full series from one session: still T2", tier(), ("notify", n, 1))
+check("full series from one session: still T2 (rule B/2)", tier()[:2], ("notify", n))
 mark = len(posted)
 check("T2 write for the tamper test: acts", write("tamper-me"), "ran")
 tamper_ids = [p.rsplit(" ", 1)[1] for p in since(mark) if "/tenure undo" in p]
@@ -283,6 +290,8 @@ check("a tampered undo manifest is refused", (code, "refused" in out), (1, True)
 check("the path it named was never written", open(victim).read(), "keep\n")
 check("the project file stays as the action left it", read(), "tamper-me")
 check("one session only: still notifies", write("one-session"), "ran")
+for k in range(n // 2):                         # rule B/2: no session gives more than half of the series
+    write(f"second{k}", session="it-2")
 check("a second session acts, then tells", write("second", session="it-2"), "ran")
 credit_all()
 check("a second session completes the series: T3", tier(), ("alone", n, 2))
@@ -396,7 +405,7 @@ check("evidence holds no content", any(x in json.dumps(rows) for x in ("notes.md
 check("the model change is a ledger input", kinds.count("agent"), 1)
 # A timed-out prompt counts for nothing: older Hermes reports it ("timeout"), newer ones leave no outcome at all.
 check("sources seen", sorted({o["source"] for o in outcomes} - {"timeout"}),
-      sorted({"approval", "notify", "undo", "alone", "spot", "check"}))
+      sorted({"approval", "seen", "undo", "alone", "spot", "check"}))
 check("a timed-out prompt is never a fault", [o for o in outcomes if o["source"] == "timeout" and o["result"] == "fault"], [])
 
 # --------------------------------------------------------------------------------- passport, export, verify

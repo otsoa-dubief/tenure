@@ -93,7 +93,8 @@ def rule_spec() -> dict:
     return {"version": rule.VERSION, "DETECTION": str(Fraction(params.DETECTION)),
             "WALD": {k: list(v) for k, v in sorted(params.WALD.items())}, "ALPHA": params.ALPHA,
             "BETA": params.BETA, "lengthen": rule.LENGTHEN, "trial": rule.TRIAL, "wait": rule.WAIT,
-            "sessions": rule.SESSIONS, "carry": rule.CARRY, "veto": benchmarks.VETO_MARGIN}
+            "sessions": dict(sorted(rule.SESSIONS_BY_STAKES.items())), "max_share": rule.MAX_SHARE,
+            "carry": rule.CARRY, "veto": benchmarks.VETO_MARGIN}
 
 
 def rule_fingerprint() -> str:
@@ -158,7 +159,7 @@ def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState
         if kind not in store.INPUT_KINDS:
             raise ValueError(f"row {i}: unknown ledger event {kind!r}")
         if kind == "settings":
-            if e.get("rule") != rule.VERSION:
+            if e.get("rule") not in rule.VERSIONS:
                 raise ValueError(f"row {i}: settings of rule {e.get('rule')!r}, this replay knows {rule.VERSION!r}")
             cfg = e
             for s in states.values():

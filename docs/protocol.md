@@ -44,12 +44,12 @@ unknown-event error.)
 
 Sources per result:
 
-- success: `approval`, `spot`, `notify` (logged when the action's 24-hour undo window closes unused, not when it
-  runs: the reference implementation credits it then, and logs `neutral` / `expired` instead when a fault on the
-  type came in between; the `session` of an outcome is the root conversation, a subagent's counting as its parent's);
+- success: `approval`, `spot`, `notify` (rule B/1 ledgers: an act-then-tell action credited when its undo window
+  closed unused), `seen` (rule B/2: the owner marked an act-then-tell action as seen); the `session` of an outcome
+  is the root conversation, a subagent's counting as its parent's;
 - fault: `refusal`, `spot`, `check`, `undo`, `flag`;
 - neutral: `error`, `alone`, `blocked`, `timeout`, `nobody`, `expired`, `ambiguous`, `background` (a terminal call
-  Hermes ran in the background: the result is the launch, not the command's outcome), `excused` (only in a replay:
+  Hermes ran in the background: the result is the launch, not the command's outcome), `unseen` (rule B/2: an act-then-tell action left unread through its undo window), `excused` (only in a replay:
   a fault outcome named by a later `excuse` event).
 
 Executed actions, counted by the wait after a failed trial: `success/approval`, `success/spot`, `success/notify`,
@@ -115,7 +115,8 @@ different fingerprint means the replay of this implementation may not apply to t
   - `tier`: `ask` (T1), `notify` (T2), `alone` (T3), as stored;
   - `effective_tier`: the tier that would run an action of this type at its stakes under the passport's settings:
     `ask` when the level is capped or a trial or its wait is open; `alone` only when `tier` is `alone`, the series
-    reaches `required` and holds two sessions; `notify` only when `tier` is `notify` and the middle tier's score
+    reaches `required` and its sessions meet the rule (B/1: two; B/2: two at low stakes and three at medium, none
+    giving more than half of the series); `notify` only when `tier` is `notify` and the middle tier's score
     holds (`rule.effective_tier`). A spot check or a suspension can still make an action ask;
   - `series`: verified successes in a row; `required`: the series length for T3 (`null` when the level is capped);
   - `sessions`: distinct sessions in the series; `provisional`: carried-over successes not yet confirmed;

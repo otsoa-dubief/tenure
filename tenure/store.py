@@ -107,16 +107,17 @@ PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible"
 #       never the automatic check, a spot check or a flag, which are the detection the guarantee rests on. Replay: that earlier outcome is replayed
 #       as ("neutral", "excused"), as if it had been neutral from the start; the excuse row itself changes nothing.
 OUTCOME_SOURCES = {
-    "success": frozenset({"approval", "spot", "notify"}),
+    "success": frozenset({"approval", "spot", "notify", "seen"}),
     "fault": frozenset({"refusal", "spot", "check", "undo", "flag"}),
     "neutral": frozenset({"error", "alone", "blocked", "timeout", "nobody", "expired", "ambiguous", "background",
-                          "excused"}),
+                          "excused", "unseen"}),
 }
 # Outcomes of an action that ran: the wait after a failed trial counts them (rule.count_action). A failed automatic
 # check counts even when nobody answered: the action ran and the check judged it. A refused spot check never ran; an
 # approved one failing its check shares its source ("spot") and is not counted either, which changes nothing in
 # practice: a spot check is only drawn while no trial and no wait are open.
-COUNTED = frozenset({("success", "approval"), ("success", "spot"), ("success", "notify"), ("fault", "check"),
+COUNTED = frozenset({("success", "approval"), ("success", "spot"), ("success", "notify"), ("success", "seen"),
+                     ("neutral", "unseen"), ("fault", "check"),
                      ("neutral", "error"), ("neutral", "alone")})
 
 
@@ -534,6 +535,19 @@ class Store:
                                "WHERE u.at IS NULL OR u.at < ? ORDER BY c.undo_id LIMIT ?", (before, limit)).fetchall()
         keys = ("undo_id", "session", "stakes", "reversible", "agent", "type", "at", "undone", "fault", "seq")
         return [dict(zip(keys, r)) for r in rows]
+
+    def open_credits(self, since: float, session: str | None = None) -> list[dict]:
+        """Deferred credits still inside their undo window, of one root session (every one for None)."""
+        if self.db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'credits'").fetchone() is None:
+            return []
+        q = ("SELECT c.undo_id, c.session, c.stakes, c.reversible, u.agent, u.type, u.at, u.undone, u.fault, c.seq "
+             "FROM credits c JOIN undo u ON u.id = c.undo_id WHERE u.at >= ? AND u.undone = 0 AND u.fault = 0")
+        args: list = [since]
+        if session is not None:
+            q += " AND c.session = ?"
+            args.append(session)
+        keys = ("undo_id", "session", "stakes", "reversible", "agent", "type", "at", "undone", "fault", "seq")
+        return [dict(zip(keys, r)) for r in self.db.execute(q + " ORDER BY c.undo_id", args).fetchall()]
 
     def drop_credit(self, undo_id: int) -> None:
         self._write()

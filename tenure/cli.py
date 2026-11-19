@@ -12,6 +12,7 @@
     flag --call ID --session ID [--doubt]      a verifier: a fault (or, with --doubt, the next one asks) on one action
     flag N --doubt                             a verifier's doubt on numbered action N
     excuse [N]                                 alone, the faults of the last 10 minutes; with N, take that one back
+    ok [N]                                     seen and fine: this conversation's act-then-tell actions (or N) count
     revoke TYPE|all [--model M | --all]        take earned autonomy back without an error
     passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)
     card [--model M] [--no-redact]             the passport as a short text card to paste in a chat or a post
@@ -116,7 +117,7 @@ def effective_tier(s: rule.TypeState, n: int | None) -> str:
         return rule.T1
     middle = (s.reversible and s.stakes in params.WALD
               and s.wald <= params.wald_steps(s.stakes)[2] + rule.TOL)
-    if s.tier == rule.T3 and s.series >= rule.required(s, n) and len(s.sessions) >= rule.SESSIONS:
+    if s.tier == rule.T3 and s.series >= rule.required(s, n) and rule.sessions_met(s):
         return rule.T3
     if s.tier in (rule.T2, rule.T3) and middle:
         return rule.T2
@@ -181,7 +182,7 @@ def _status_agent(st, agent: str, cfg: dict) -> list[str]:
             series, sessions, guar = "-", "-", tr("cli.status.capped")
         else:
             series = f"{s.series}/{rule.required(s, n)}"
-            sessions = f"{len(s.sessions)}/{rule.SESSIONS}"
+            sessions = f"{len(s.sessions)}/{rule.sessions_needed(s.stakes)}"
             g = rule.guarantee(s, n, cfg["spot"])
             guar = "-"
             if eff == rule.T3:
@@ -300,7 +301,7 @@ def explain_text() -> str:
     lines = [tr("cli.explain.title"),
              "  " + (tr("cli.explain.t1_trusted") if cfg.get("start") == "trusted" else tr("cli.explain.t1")),
              "  " + tr("cli.explain.t2", low=t2["low"], medium=t2["medium"], command="/tenure undo N"),
-             "  " + tr("cli.explain.t3", sessions=rule.SESSIONS, spot=spot),
+             "  " + tr("cli.explain.t3", sessions=f"{rule.SESSIONS}-{rule.SESSIONS_BY_STAKES['medium']}", spot=spot),
              "  " + tr("cli.explain.fault"),
              "  " + new_model,
              "  " + tr("cli.explain.reads"),
@@ -787,6 +788,8 @@ def _add_subcommands(subparser) -> None:
     subs.add_parser("explain", help="How tenure decides and what the numbers guarantee")
     p = subs.add_parser("models", help="Each model's verified record on your own work")
     p.add_argument("--type", help="One action type")
+    p = subs.add_parser("ok", help="Seen and fine: the act-then-tell actions of this conversation (or one) count now")
+    p.add_argument("id", type=int, nargs="?", help="the undo number of one action; without it, this conversation's")
     p = subs.add_parser("excuse", help="Take back a fault of the last 10 minutes that was not the agent's mistake")
     p.add_argument("id", type=int, nargs="?", help="the number from the notice; without it, the list")
     p = subs.add_parser("undo", help="Restore the files of an action that acted, then told you")
@@ -845,6 +848,18 @@ def execute(ns) -> tuple[str, int]:
             return explain_text(), 0
         if cmd == "models":
             return models_text(g("type")), 0
+        if cmd == "ok":
+            if not g("tenure_slash") and not sys.stdin.isatty():
+                raise CliError(tr("cli.ok.terminal"))         # a script or the agent's own terminal: never
+            if g("id") is None and not g("tenure_slash"):
+                raise CliError(tr("cli.ok.number"))           # outside a chat, one action at a time
+            core = _core()
+            with core.txn() as st:
+                try:
+                    session = st.root_of(g("tenure_session") or "") or None
+                    return core.seen(st, g("id"), session), 0
+                except ValueError as e:
+                    return str(e), 1
         if cmd == "excuse":
             if g("id") is not None and not g("tenure_slash") and not sys.stdin.isatty():
                 raise CliError(tr("cli.excuse.terminal"))    # a script or the agent's own terminal: never

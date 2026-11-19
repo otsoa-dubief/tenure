@@ -676,6 +676,13 @@ def _ids(ids: list[int]) -> str:
     return f"{ids[0]}–{ids[-1]}" if ids == list(range(ids[0], ids[-1] + 1)) else ", ".join(map(str, ids))
 
 
+def _with_ok(text: str) -> str:
+    """The "seen and fine?" hint before the undo command, which stays last."""
+    i = text.rfind(" · ")
+    hint = tr("settle.acted_ok", command="/tenure ok")
+    return text + " · " + hint if i < 0 else text[:i] + " · " + hint + text[i:]
+
+
 def _announce(text: str) -> None:
     try:
         if ST.ctx is None or not hasattr(ST.ctx, "post_message"):
@@ -691,11 +698,15 @@ def _announce(text: str) -> None:
                     ids = entry["ids"]
                     grouped = tr("settle.acted_many", type=text.type_key, n=len(ids), command="/tenure undo",
                                  id=ids[-1], ids=_ids(ids), what=_with_what(_join_shown(entry["shown"])))
+                    if getattr(text, "ok_hint", False) or entry.get("ok"):
+                        entry["ok"] = True
+                        grouped = _with_ok(grouped)
                     entry["handle"].edit(grouped)
                     return
             handle = ST.ctx.post_message(str(text))
             with ST.mem:
-                ST.acted[key] = {"ids": [text.undo_id], "handle": handle, "at": now, "shown": list(text.shown)}
+                ST.acted[key] = {"ids": [text.undo_id], "handle": handle, "at": now, "shown": list(text.shown),
+                                 "ok": getattr(text, "ok_hint", False)}
             return
         ST.ctx.post_message(text)
     except Exception:
@@ -836,7 +847,7 @@ def _credit_due(st: store.Store, cfg: dict, now: float | None = None) -> list[di
                     or recorded is None or recorded.stakes != c["stakes"]):
                 result, source = "neutral", "expired"    # a later fault, revoke, doubt or other stakes: no credit
             else:
-                result, source = "success", "notify"
+                result, source = "neutral", "unseen"     # rule B/2: silence is not a check (only a person's "seen")
             stakes, reversible = ((recorded.stakes, recorded.reversible) if recorded is not None and result == "neutral"
                                   else (c["stakes"], bool(c["reversible"])))   # a neutral never rebases the record
             sync_settings(st, cfg)
@@ -898,6 +909,40 @@ def excuse(st: store.Store, seq: int) -> str:
     tier = (tr("cli.excuse.trusted") if s is not None and trusted(settings(), s, params.required_n(
         settings()["risks"], s.stakes), s.stakes) else tier_name(s.tier) if s is not None else "")
     return tr("cli.excuse.done", n=seq, type=row["type"], agent=row["agent"], tier=tier)
+
+
+def seen(st: store.Store, undo_id: int | None = None, session: str | None = None) -> str:
+    """The owner looked at act-then-tell actions and they are fine (rule B/2): each counts as a success now, source
+    ``seen``. One action by its undo number, else every open one of a conversation (``session``, the chat's root),
+    else every open one of the profile. Only a person: never while nobody answers. Raises ValueError with the owner's
+    message when there is nothing to mark."""
+    why = nobody_answers()
+    if why:
+        raise ValueError(tr("cli.ok.nobody", why=why))
+    rows = st.open_credits(time.time() - UNDO_WINDOW, None if undo_id is not None else session)
+    if undo_id is not None:
+        rows = [r for r in rows if r["undo_id"] == undo_id]
+    if not rows:
+        raise ValueError(tr("cli.ok.none"))
+    cfg = settings()
+    events = _see(st, cfg, rows)
+    return "\n\n".join([tr("cli.ok.done", n=len(rows))] + _say(events, cfg["spot"]))
+
+
+def _see(st: store.Store, cfg: dict, rows: list[dict]) -> list[dict]:
+    """Credit these open act-then-tell actions as seen by a person; returns the derived events."""
+    sync_settings(st, cfg)
+    events = []
+    for r in rows:
+        st.drop_credit(r["undo_id"])
+        recorded = st.recorded(r["agent"], r["type"])
+        if (st.fault_since(r["agent"], r["type"], r["seq"]) or recorded is None
+                or recorded.stakes != r["stakes"]):
+            continue                                     # a later fault, revoke or other stakes: nothing to credit
+        events += record_outcome(st, cfg, agent=r["agent"], type_key=r["type"], stakes=r["stakes"],
+                                 reversible=bool(r["reversible"]), result="success", source="seen",
+                                 session=r["session"] or "")
+    return events
 
 
 def _excuse_hint(st: store.Store, events: list[dict]) -> list[str]:
@@ -1043,7 +1088,7 @@ def _earned(recorded: rule.TypeState | None, act, s: rule.TypeState, n, decision
     if decision == rule.NOTIFY:
         return bool(act.reversible and act.stakes in params.WALD
                     and s.wald <= params.wald_steps(act.stakes)[2] + rule.TOL)
-    return n is not None and s.series >= rule.required(s, n) and len(s.sessions) >= rule.SESSIONS
+    return n is not None and s.series >= rule.required(s, n) and rule.sessions_met(s)
 
 
 def trusted(cfg: dict, s: rule.TypeState, n, stakes: str) -> bool:
@@ -1146,7 +1191,7 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
         why = tr("ask.why.climb", type=act.type, stakes=stakes, n=_to_t2(s))   # the next step, not the far one
     else:
         why = tr("ask.why.series", type=act.type, stakes=stakes, series=s.series, required=rule.required(s, n),
-                 sessions=len(s.sessions), needed=rule.SESSIONS)
+                 sessions=len(s.sessions), needed=rule.sessions_needed(s.stakes))
         if s.provisional:
             why += " " + tr("ask.why.provisional", n=s.provisional)
     if per_session:
@@ -1247,8 +1292,11 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         if reason:
             posts.append(tr("settle.acted_fault", type=key, reason=reason, what=what, command="/tenure undo", id=undo_id))
         else:
-            posts.append(Acted(tr("settle.acted", type=key, what=what, command="/tenure undo", id=undo_id), p["session"],
-                               key, undo_id, shown))
+            text = tr("settle.acted", type=key, what=what, command="/tenure undo", id=undo_id)
+            if deferred:                                # rule B/2: only a person's "seen" counts toward acting alone
+                text = _with_ok(text)
+            posts.append(Acted(text, p["session"], key, undo_id, shown))
+            posts[-1].ok_hint = deferred
     elif reason:
         posts.append(tr("settle.check_failed", type=key, reason=reason, what=what))
     if not blocked:                             # it ran: numbered, so the owner can flag it (a fault is born flagged)

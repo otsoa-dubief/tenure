@@ -56,8 +56,8 @@ Tenure keeps Hermes' speed and adds what is missing:
 |---|---|
 | **Trusted** (the start) | For files, memory, subagents and the usual local dev tools (npm, python, pytest, cargo, go, make, git...), the agent works as with Hermes alone: no extra question. Files it changes are saved first and can be undone for 24 hours (`/tenure undo`); anything can be flagged (`/tenure flag`). Trust is given, not earned: it reaches no tier and claims no guarantee. |
 | **T1 · Probation** (asks first) | After its first mistake (an undo, a flag, a failed automatic check, a refusal), that kind of action asks you first. Only that kind. |
-| **T2 · Under review** (acts, then tells you) | Earned back on approvals: the agent acts, then tells you, with an undo. Only for reversible types at low or medium stakes. Each of these actions counts as a success only once its 24-hour undo window has closed unused, so T3 comes at the earliest a day after T2. |
-| **T3 · Tenured** (acts on its own) | Earned on a series of verified successes over two sessions, under a risk you set. One in ten is still spot-checked. |
+| **T2 · Under review** (acts, then tells you) | Earned back on approvals: the agent acts, then tells you, with an undo. Only for reversible types at low or medium stakes. Each message ends with "seen and fine? /tenure ok": only the actions you mark as seen count toward T3; silence counts for nothing (rule B/2). |
+| **T3 · Tenured** (acts on its own) | Earned on a series of verified successes over at least two conversations (three at medium stakes), none giving more than half of it, under a risk you set. One in ten is still spot-checked. |
 
 What tenure asks that Hermes alone would not:
 
@@ -176,8 +176,9 @@ trusted gets its spot checks like any other.
 
 **Proofs.** A type climbs on verified outcomes, judged after the tool has run: an approved action that ran
 cleanly and whose automatic check passed (the written file still parses, the exit code is zero) is a success, and
-so is an act-then-notify action whose check passed, once its 24-hour undo window has closed without an undo, a flag,
-a revoke or a later fault (until then it counts for nothing; an undo is a fault). A refusal, an
+so is an act-then-notify action whose check passed once you mark it as seen (`/tenure ok`, one gesture for the
+conversation, within its 24-hour undo window). Left unread, it counts for nothing: not undone is not checked (an
+undo is a fault). A refusal, an
 undo or an error you flag is a fault, and a failed check is a fault at any tier. What nobody verified (timeout,
 failed tool, no one answering, a clean action taken alone) counts for nothing. A fault resets the series. A
 low-stakes fault at act-alone drops one tier (to act-then-notify if the type is reversible). A medium or high
@@ -265,12 +266,11 @@ the study's formula (Dodge's continuous sampling plan CSP-1, with one spot check
 number gives is in the table, and can sit slightly above the risk you picked (2.1% for a 1-in-50 risk). The
 table is generated from the same code that decides (`params.describe`), and a test checks it.
 
-Cell: verified successes in a row (the first ones approved by you, the rest acted on at T2 and credited once their
-24-hour undo window closed without an undo, a flag or a later fault; in at least two conversations, a subagent's
-counting as its parent's), guarantee (errors that run unapproved, as a share of all actions of the type, for a
-stable agent, counting the errors that get caught: a refusal, an undo, a flag, a verifier or the parse check; the act-then-tell
-successes of the series count as checked because you could undo them for a day, so the guarantee assumes you read
-the "acted, then told you" messages; if you do not, it is optimistic), worst case (for an agent that turns bad after tenure, until a caught error revokes it).
+Cell: verified successes in a row (approved by you, spot-checked, or acted on at T2 and marked as seen with
+`/tenure ok`; over at least two conversations, three at medium stakes, none giving more than half of the series, a
+subagent's counting as its parent's), guarantee (errors that run unapproved, as a share of all actions of the type,
+for a stable agent, counting the errors that get caught: a refusal, an undo, a flag, a verifier or the parse check;
+it assumes a person really looks at what they approve or mark as seen), worst case (for an agent that turns bad after tenure, until a caught error revokes it).
 
 | Preset | Low stakes (files in the project, memory) | Medium (commands, code, files elsewhere) | High (leaves the machine, money) |
 |---|---|---|---|
@@ -373,6 +373,7 @@ nightly reconciliation) names an action by Hermes' session and tool call id, or 
 | `hermes tenure undo [ID]` | Restore the files of an act-then-notify action; without an ID, list what can still be undone |
 | `hermes tenure flag` · `hermes tenure flag N` | List the last numbered actions (24 hours); report action N as an error: the fault lands on the agent that acted, once |
 | `hermes tenure flag TYPE [note]` | Report an error the agent made on its own: revokes that type |
+| `/tenure ok` · `hermes tenure ok N` | Seen and fine: the act-then-tell actions of this conversation (or action N) count toward T3; left unread, they count for nothing |
 | `hermes tenure excuse` · `hermes tenure excuse N` | List the faults of the last 10 minutes; take back fault N when it was not the agent's mistake (you refused for another reason, or undid a correct change): it counts as neutral |
 | `hermes tenure flag --call ID --session ID [--doubt]` · `hermes tenure flag N --doubt` | A verifier: a fault on one action named by its call, or a doubt (its next action of that kind asks first) |
 | `hermes tenure revoke TYPE\|all [--model M\|--all]` | Take earned autonomy back: one type or every type, for the last active agent, one model, or every agent |

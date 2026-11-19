@@ -57,7 +57,8 @@ from dataclasses import asdict, dataclass, field
 
 from . import params
 
-VERSION = "study-rule-B/1"    # the rule named in settings events and in the passport's rule fingerprint
+VERSION = "study-rule-B/2"    # B/2 (1.3): sessions per stakes, no session over half the series, seen T2 successes
+VERSIONS = ("study-rule-B/1", VERSION)   # a B/1 ledger replays under B/2: its settings are read the same way    # the rule named in settings events and in the passport's rule fingerprint
 T1, T2, T3 = "ask", "notify", "alone"                            # tiers
 ASK, NOTIFY, ALLOW, SPOT = "ask", "notify", "allow", "spot"      # decisions
 WATCH = "watch"        # trusted start: act like Hermes alone, with an undo when the files can be saved
@@ -65,7 +66,9 @@ WATCH = "watch"        # trusted start: act like Hermes alone, with an undo when
 LENGTHEN = 1.25        # the climb after a medium or high fault needs ceil(1.25 n); 1.25 is exact in binary
 TRIAL = 3              # actions in a trial, all of which must succeed
 WAIT = 50              # actions of the type to count after a failed trial before it reopens
-SESSIONS = 2           # distinct sessions needed in the series that reaches T3
+SESSIONS = 2           # distinct sessions needed in the series that reaches T3, at low stakes
+SESSIONS_BY_STAKES = {"low": 2, "medium": 3, "high": 3}   # rule B/2: more conversations where more is at stake
+MAX_SHARE = 0.5        # rule B/2: no session gives more than half of the series (a 51 + 1 split is one context)
 MAX_SESSIONS = 10      # session ids kept per type
 CARRY = 0.5            # share of the series, and of a negative score, carried over to a new agent
 TOL = 1e-12            # tolerance when comparing Wald scores
@@ -85,6 +88,8 @@ class TypeState:
     tier: str = T1
     series: int = 0
     sessions: list[str] = field(default_factory=list)       # distinct sessions in the series, at most 10
+    session_runs: list = field(default_factory=list)       # the series' own successes, oldest first, as
+                                                           # [session, count] runs (rule B/2; "" = no session)
     # Wald score of the middle tier (reversible types at low or medium stakes; 0.0 otherwise)
     wald: float = 0.0
     # descent
@@ -118,6 +123,42 @@ class TypeState:
         return cls(**kw)
 
 
+def sessions_needed(stakes: str) -> int:
+    return SESSIONS_BY_STAKES.get(stakes, SESSIONS)
+
+
+def _add_run(s: TypeState, session: str) -> None:
+    """One more own success of the series, in session ``session``; the oldest leave when the series is capped."""
+    runs = s.session_runs
+    if runs and runs[-1][0] == session:
+        runs[-1][1] += 1
+    else:
+        runs.append([session, 1])
+    own = sum(r[1] for r in runs)
+    while runs and own > max(s.series - s.provisional, 0):
+        runs[0][1] -= 1
+        own -= 1
+        if runs[0][1] == 0:
+            runs.pop(0)
+
+
+def session_counts(s: TypeState) -> dict:
+    out: dict = {}
+    for k, v in s.session_runs:
+        if k:
+            out[k] = out.get(k, 0) + v
+    return out
+
+
+def sessions_met(s: TypeState) -> bool:
+    """The series spans enough conversations (rule B/2): at least ``sessions_needed(stakes)`` of them, and none gives
+    more than ``MAX_SHARE`` of the series."""
+    if len(s.sessions) < sessions_needed(s.stakes):
+        return False
+    counts = session_counts(s)
+    return not counts or max(counts.values()) <= MAX_SHARE * max(s.series, 1)
+
+
 def required(s: TypeState, n: int) -> int:
     """Series length the type needs for T3: ``n``, or ceil(1.25 n) during the climb after a medium or high fault."""
     if n is None:
@@ -136,7 +177,7 @@ def _own_grave_fault(s: TypeState) -> bool:
 
 
 def _target(s: TypeState, n: int | None) -> str:
-    if n is not None and s.series >= required(s, n) and len(s.sessions) >= SESSIONS:
+    if n is not None and s.series >= required(s, n) and sessions_met(s):
         return T3
     if _middle(s) and s.wald <= params.wald_steps(s.stakes)[2] + TOL:
         return T2
@@ -196,7 +237,7 @@ def effective_tier(s: TypeState, n: int | None, stakes: str) -> str:
     the middle tier's bar all ask (T1). Reads only; it changes nothing."""
     if n is None or s.stakes != stakes or s.trial_left > 0 or s.trial_wait > 0:
         return T1
-    if s.tier == T3 and s.series >= required(s, n) and len(s.sessions) >= SESSIONS:
+    if s.tier == T3 and s.series >= required(s, n) and sessions_met(s):
         return T3
     if s.tier == T2 and _middle(s) and s.wald <= params.wald_steps(s.stakes)[2] + TOL:
         return T2
@@ -228,6 +269,7 @@ def on_success(s: TypeState, n: int | None, *, session: str, source: str) -> lis
         if session and session not in s.sessions:
             s.sessions.append(session)
             del s.sessions[:-MAX_SESSIONS]
+        _add_run(s, session)
         if _middle(s):
             a, step, ln_b = params.wald_steps(s.stakes)
             s.wald = max(s.wald + step, ln_b - a)
@@ -252,6 +294,7 @@ def on_fault(s: TypeState, n: int | None, *, session: str, source: str) -> list[
         s.spot_checks += 1
     grave, in_trial, old, borrowed = s.stakes in GRAVE, s.trial_left > 0, s.tier, s.provisional > 0
     s.series, s.sessions, s.provisional = 0, [], 0
+    s.session_runs = []
     if _middle(s):
         a = params.wald_steps(s.stakes)[0]
         s.wald = (max(s.wald, 0.0) if grave or borrowed else s.wald) + a
@@ -352,6 +395,7 @@ def rebase(s: TypeState) -> list[dict]:
     the new stakes (the hooks and the replay both do)."""
     old = s.tier
     s.tier, s.series, s.sessions, s.provisional, s.wald = T1, 0, [], 0, max(s.wald, 0.0)
+    s.session_runs = []
     return [_move(s, "tier", old, T1, "stakes")]
 
 
@@ -362,6 +406,7 @@ def revoke(s: TypeState) -> list[dict]:
     """
     old = s.tier
     s.tier, s.series, s.sessions, s.provisional = T1, 0, [], 0
+    s.session_runs = []
     s.wald = max(s.wald, 0.0)
     s.distrusted = True
     return [_move(s, "revoked", old, T1, "owner")]
