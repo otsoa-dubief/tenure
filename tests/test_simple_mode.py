@@ -549,8 +549,9 @@ def test_an_rm_glob_is_read_now_and_saved(plugin):
     assert sorted(os.path.basename(p) for p in glob.glob(os.path.join(ctx.cwd, "*.log"))) == ["a.log", "b.log"]
 
 
-@pytest.mark.parametrize("command,setup", [("rm *.log", []), ("rm *", ["d/x.txt"]), ("rm '*.log'", ["a.log"])])
-def test_an_rm_glob_that_matches_nothing_or_a_folder_keeps_its_question(plugin, command, setup):
+@pytest.mark.parametrize("command,setup", [("rm [ab].log", ["[ab].log"]), ("rm *", ["d/x.txt"]),
+                                           ("rm '*.log'", ["a.log"])])
+def test_an_rm_glob_that_matches_only_its_own_name_or_a_folder_keeps_its_question(plugin, command, setup):
     mod, ctx = make(plugin)
     for name in setup:
         touch(ctx, name)
@@ -572,6 +573,7 @@ def test_the_friction_bench_web_page_fourth_in_simple_mode():
     rows = replay("trusted", early_web=True, mode="simple")
     asked = [r["what"] for r in rows if r["tenure"]]
     # the bench's project has no build folder and no .log file: those two deletions name nothing to save, and ask
+    # (rm *.log without -f reports a missing file: the agent expected one)
     assert asked == ["npm install", "python -c 'import sys; print(sys.version)'", "rm -rf build", "rm *.log",
                      "git push origin main"]
 
