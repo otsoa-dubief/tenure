@@ -42,6 +42,10 @@
     "other": "{n} sessions"
   },
   "cell.tier_now": "Niveau actuel : {tier} ({name})",
+  "chip.simple_tip": {
+    "one": "{name} : {n} type d'action surveillé ou qui vous demande d'abord. Ouvrir Tenure.",
+    "other": "{name} : {n} types d'action surveillés ou qui vous demandent d'abord. Ouvrir Tenure."
+  },
   "chip.tip": {
     "one": "{name} : {earned} type d'action sur {n} a gagné son autonomie (T2 ou T3). Ouvrir Tenure.",
     "other": "{name} : {earned} types d'action sur {n} ont gagné leur autonomie (T2 ou T3). Ouvrir Tenure."
@@ -498,6 +502,48 @@
   "settings.strict_on": "Mode strict activé",
   "settings.strict_title": "Mode strict au changement de modèle",
   "settings.use": "Choisir",
+  "simple.col_kind": "type",
+  "simple.col_what": "quoi",
+  "simple.eyebrow": "{profile} · mode simple",
+  "simple.group_always": "Demande toujours",
+  "simple.group_always_help": "Ce qui sort de cette machine (push, deploy, publish, upload, messages), les types à haut risque et les types que vos réglages font toujours demander : aucun historique ne les libère.",
+  "simple.group_ask": "Vous demande d'abord",
+  "simple.group_ask_help": "Chaque action attend votre accord ; la ligne dit pourquoi, et ce qui le libère.",
+  "simple.group_noundo": "Ne peut pas être annulé",
+  "simple.group_noundo_help": "tenure ne peut pas enregistrer ce que cela modifie avant l'exécution, donc il demande.",
+  "simple.group_watched": "Surveillé après une erreur",
+  "simple.group_watched_help": "Il continue de travailler ; chaque action est listée à la fin du tour, avec une annulation.",
+  "simple.kinds_empty": "Aucun type d'action n'a encore d'historique : tout fonctionne comme avec Hermes seul, sauf ce qui sort de cette machine et les types à haut risque.",
+  "simple.kinds_footer": "Ne plus demander : {command} <type> · toujours demander : {command} <type> ask",
+  "simple.kinds_free": {
+    "one": "{n} autre type s'exécute sans demander.",
+    "other": "{n} autres types s'exécutent sans demander."
+  },
+  "simple.kinds_none": "Tous les types d'action utilisés par {agent} sont libres.",
+  "simple.kinds_title": "Ce qui vous demande encore, ou est surveillé",
+  "simple.kinds_word": "Libérer un type se dit à la main, dans la conversation ou dans un terminal : cette page n'en libère jamais.",
+  "simple.loading": "Chargement…",
+  "simple.off": "tenure est désactivé pour ce profil ({setting} : false) : l'agent fonctionne comme avec Hermes seul.",
+  "simple.study": "Mode étude : contrôles aléatoires, une garantie et un passeport signé — {command}",
+  "simple.subtitle": "Ce que l'agent a fait aujourd'hui, et ce que vous pouvez annuler",
+  "simple.tile_asks": "types qui vous demandent d'abord",
+  "simple.tile_today": "actions faites sans demander aujourd'hui",
+  "simple.tile_undo": "changements encore annulables",
+  "simple.tile_watched": "types surveillés après une erreur",
+  "simple.tiles_aria": "Ce que l'agent a fait aujourd'hui, et ce qui vous demande encore",
+  "simple.title": "Aujourd'hui",
+  "simple.undo_effect": "Remet les fichiers en place · compte comme une erreur de ce type : surveillé après une, il demande d'abord après une deuxième",
+  "simple.undo_effect_already": "Remet les fichiers en place · déjà compté comme une erreur (une vérification a échoué)",
+  "simple.undo_effect_none": "Rien n'a été enregistré à remettre · compterait quand même comme une erreur",
+  "simple.undo_no_files": "aucun fichier nommé",
+  "simple.undo_none": {
+    "one": "Rien à annuler sur la dernière {n} heure.",
+    "other": "Rien à annuler sur les {n} dernières heures."
+  },
+  "simple.undo_note": "Annuler remet les fichiers tels qu'ils étaient et marque le changement comme une erreur de son type.",
+  "simple.undo_tip": "Remettre les fichiers tels qu'ils étaient",
+  "simple.undo_title": "Changements que vous pouvez encore annuler ({n} h), du plus récent au plus ancien",
+  "simple.undone": "Fichiers remis en place. Compté comme une erreur de son type.",
   "start.change_tip": "À changer dans un terminal : hermes tenure start trusted|probation",
   "start.probation": "Départ à l'étude (probation)",
   "start.trusted": "Départ en confiance",
@@ -603,6 +649,7 @@
     "other": "{type} a fait {n} modifications, puis vous a prévenu ({name})."
   },
   "toast.acted_detail": "Annuler restaure les fichiers de la dernière modification et compte comme une faute.",
+  "toast.acted_detail_simple": "Annuler remet en place les fichiers du dernier changement et compte comme une erreur de son type.",
   "toast.transition": "{agent} · {type} : {from} → {to}",
   "transitions.empty": "Aucun depuis l'ouverture de cette page. Chaque changement de niveau automatique est listé ici et dans la chronologie de chaque agent.",
   "transitions.title": "Changements de niveau vus sur cette page",

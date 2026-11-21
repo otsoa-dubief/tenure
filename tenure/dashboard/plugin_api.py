@@ -280,6 +280,87 @@ def _activity(since: float, raw: bool) -> dict:
     return {"since": since, "totals": total, "profiles": profiles, "undoable": undoable}
 
 
+# Simple mode: where each kind stands, grouped as the page shows it. Free kinds are counted, not listed (as in
+# ``/tenure trust``); a held or doubted kind asks first like the others.
+SIMPLE_GROUPS = {"watched": "watched", "ask": "ask", "pinned": "ask", "held": "ask", "doubted": "ask",
+                 "noundo": "noundo", "out": "always", "high": "always", "capped": "always"}
+
+
+def _cli(core):
+    return importlib.import_module(core.__name__ + ".cli")
+
+
+def _simple_kinds(core, cli, cfg: dict, st, agent: str, raw: bool) -> dict:
+    """One agent's kinds in simple mode: ``/tenure trust --model`` as data. Each kind not free comes with its state
+    (``cli._kind_info``) and what that list says of it (``cli._state_parts``: the same catalog keys, the same
+    numbers), shown name and plain label side by side."""
+    kinds, free = [], 0
+    for _, s in st.states(agent):
+        info = cli._kind_info(core, cfg, s, st, agent)
+        if info["state"] == "free":
+            free += 1
+            continue
+        shown = _name(core, s.key, raw)
+        steps = []
+        for key, values in cli._state_parts(core, cfg, s, "/tenure", info):
+            values = dict(values)
+            if "held" in values:
+                values["held"] = _name(core, values["held"], raw)
+            if "command" in values:
+                values["command"] = f"/tenure trust {shown}"
+            steps.append({"key": key, **values})
+        kinds.append({"type": shown, "label": cli.kind_label(shown), "stakes": s.stakes, "state": info["state"],
+                      "group": SIMPLE_GROUPS.get(info["state"], "ask"), "left": info["left"], "n": info["n"],
+                      "held": None if info["held"] is None else _name(core, info["held"], raw),
+                      "steps": steps,
+                      "text": " ".join(core.i18n.tr(x["key"], **{k: v for k, v in x.items() if k != "key"})
+                                       for x in steps)})
+    model, provider = core.personal.split_agent(agent)
+    return {"agent": agent, "model": model, "provider": provider, "kinds": kinds, "free": free}
+
+
+def _simple(lang: str | None, raw: bool) -> dict:
+    """The dashboard's own profile in plain words, when it is in simple mode: what ran without asking today, the
+    changes that can still be undone (newest first, as ``/tenure`` lists them), and per agent, the kinds that are
+    watched, ask first, always ask or cannot be undone (as ``/tenure trust`` lists them), the profile's last active
+    agent first. Texts come in ``lang`` (the page's language). In study mode: the mode alone, the page keeps its
+    tiers. Reads only, like every GET."""
+    core = _core()
+    cli = _cli(core)
+    p = _profile(None, core)
+    now = time.time()
+    with core.i18n.speaking(lang), _open(core, p) as st:
+        cfg = core.settings() if st is None else _settings(core, st, own=True)
+        out = {"profile": p["name"], "mode": core.mode(cfg)}
+        if not core.simple(cfg):
+            return out
+        out.update(enabled=bool(cfg.get("enabled", True)), hours=core.UNDO_WINDOW // 3600, today=0, agent=None,
+                   undo={"total": 0, "rows": []}, agents=[])
+        if st is None:
+            return out
+        since = now - core.UNDO_WINDOW
+        rows = st.db.execute("SELECT id, agent, type, at, fault, snap_id FROM undo WHERE undone = 0 "
+                             "AND snap_id IS NOT NULL AND at > ? ORDER BY id DESC LIMIT ?",
+                             (since, UNDOABLE_LIMIT)).fetchall()
+        total = st.db.execute("SELECT COUNT(*) FROM undo WHERE undone = 0 AND snap_id IS NOT NULL AND at > ?",
+                              (since,)).fetchone()[0]
+        # What a change did: the command's first line when this process still remembers it (raw names only: it can
+        # name what the redacted type hides), else the files its undo restores, as /tenure shows it.
+        by_undo = ({r["undo_id"]: r for r in st.recent_rows(None, limit=500) if r["undo_id"] is not None}
+                   if raw and rows else {})
+        undoable = []
+        for uid, agent, key, at, fault, snap in rows:
+            shown = _name(core, key, raw)
+            undoable.append({"id": uid, "agent": agent, "type": shown, "label": cli.kind_label(shown),
+                             "what": cli._undo_label(core, st, by_undo, uid, snap, key), "age": round(now - at, 1),
+                             "counts_as_fault": not fault, **_snap_files(p, snap)})
+        last = cli._agent(core, None, st)
+        out.update(today=st.totals(None, now)["alone"], agent=last, undo={"total": total, "rows": undoable},
+                   agents=[_simple_kinds(core, cli, cfg, st, a, raw)
+                           for a in sorted(st.agents(), key=lambda a: (a != last, a))])
+    return out
+
+
 def _snap_files(p: dict, snap_id: str | None) -> dict:
     """What an undo would restore (``undo.describe``): the first file and how many in all, or {}."""
     return _core().undo.describe(snap_id, _data_dir(p))
@@ -461,6 +542,12 @@ async def agents(raw: bool = _RAW):
 async def activity(since: float | None = Query(None, description="epoch seconds; default: the last 24 h"),
                    raw: bool = _RAW):
     return await asyncio.to_thread(_get, _activity, time.time() - DAY if since is None else since, raw)
+
+
+@router.get("/simple")
+async def simple(lang: str | None = Query(None, description="language of the texts (default: the owner's)"),
+                 raw: bool = _RAW):
+    return await asyncio.to_thread(_get, _simple, lang, raw)
 
 
 @router.get("/models")

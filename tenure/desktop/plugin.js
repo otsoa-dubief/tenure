@@ -1,7 +1,9 @@
 /**
  * tenure, desktop half.
  *
- * - A Tenure page: each agent's earned tiers per action type, what it did on its own (with Undo and Flag), the signed
+ * - A Tenure page. Simple mode (the default): what the agent did today, the changes that can still be undone (with
+ *   Undo), and the kinds of action that are watched or ask first, in the words of `/tenure` and `/tenure trust`.
+ *   Study mode: each agent's earned tiers per action type, what it did on its own (with Undo and Flag), the signed
  *   passport, and your own benchmark per action type.
  * - A status-bar chip for the model in use, a tier badge on each model in the model menu, ⌘K commands, and an
  *   Undo toast when an action type acts, then notifies.
@@ -103,6 +105,10 @@ const TENURE_LOCALES = {
       "other": "{n} sessions"
     },
     "cell.tier_now": "Tier now: {tier} ({name})",
+    "chip.simple_tip": {
+      "one": "{name}: {n} kind of action watched or asking you first. Open Tenure.",
+      "other": "{name}: {n} kinds of action watched or asking you first. Open Tenure."
+    },
     "chip.tip": {
       "one": "{name}: {earned} of {n} action type has earned autonomy (T2 or T3). Open Tenure.",
       "other": "{name}: {earned} of {n} action types have earned autonomy (T2 or T3). Open Tenure."
@@ -555,6 +561,48 @@ const TENURE_LOCALES = {
     "settings.strict_on": "Strict mode on",
     "settings.strict_title": "Strict mode on model change",
     "settings.use": "Use",
+    "simple.col_kind": "kind",
+    "simple.col_what": "what",
+    "simple.eyebrow": "{profile} · simple mode",
+    "simple.group_always": "Always asks",
+    "simple.group_always_help": "What reaches outside this machine (push, deploy, publish, upload, messages), high-risk kinds, and kinds your settings make always ask: no record frees them.",
+    "simple.group_ask": "Asks you first",
+    "simple.group_ask_help": "Each action waits for your approval; the line says why, and what frees it.",
+    "simple.group_noundo": "Can't be undone",
+    "simple.group_noundo_help": "tenure can't save what it changes before it runs, so it asks.",
+    "simple.group_watched": "Watched after a mistake",
+    "simple.group_watched_help": "It keeps working; each action is listed at the end of the turn, with an undo.",
+    "simple.kinds_empty": "No kind of action has a record yet: everything runs as with Hermes alone, except what reaches outside this machine and high-risk kinds.",
+    "simple.kinds_footer": "Stop one asking: {command} <kind> · make one always ask: {command} <kind> ask",
+    "simple.kinds_free": {
+      "one": "{n} other kind runs without asking.",
+      "other": "{n} other kinds run without asking."
+    },
+    "simple.kinds_none": "Every kind of action {agent} used is free.",
+    "simple.kinds_title": "What still asks you, or is watched",
+    "simple.kinds_word": "Freeing a kind is a person's word, typed in the chat or in a terminal: this page never frees one.",
+    "simple.loading": "Loading…",
+    "simple.off": "tenure is off for this profile ({setting}: false): the agent runs as with Hermes alone.",
+    "simple.study": "Study mode: spot checks, a guarantee and a signed passport — {command}",
+    "simple.subtitle": "What the agent did today, and what you can undo",
+    "simple.tile_asks": "kinds that ask you first",
+    "simple.tile_today": "ran without asking today",
+    "simple.tile_undo": "changes you can still undo",
+    "simple.tile_watched": "kinds watched after a mistake",
+    "simple.tiles_aria": "What the agent did today, and what still asks you",
+    "simple.title": "Today",
+    "simple.undo_effect": "Puts the files back · counts as a mistake of this kind: watched after one, asks first after a second",
+    "simple.undo_effect_already": "Puts the files back · already counted as a mistake (a check failed)",
+    "simple.undo_effect_none": "Nothing was saved to put back · would still count as a mistake",
+    "simple.undo_no_files": "no file named",
+    "simple.undo_none": {
+      "one": "Nothing to undo from the last {n} hour.",
+      "other": "Nothing to undo from the last {n} hours."
+    },
+    "simple.undo_note": "Undo puts the files back as they were and marks the change as a mistake of its kind.",
+    "simple.undo_tip": "Put the files back as they were",
+    "simple.undo_title": "Changes you can still undo ({n} h), newest first",
+    "simple.undone": "Files put back. Counted as a mistake of its kind.",
     "start.change_tip": "Change it in a terminal: hermes tenure start trusted|probation",
     "start.probation": "Study start (probation)",
     "start.trusted": "Trusted start",
@@ -660,6 +708,7 @@ const TENURE_LOCALES = {
       "other": "{type}: {n} changes, then told you ({name})."
     },
     "toast.acted_detail": "Undo restores the files of the last change and counts as a fault.",
+    "toast.acted_detail_simple": "Undo puts the files of the last change back and counts as a mistake of its kind.",
     "toast.transition": "{agent} · {type}: {from} → {to}",
     "transitions.empty": "None since this page opened. Every automatic tier change is listed here and in each agent's timeline.",
     "transitions.title": "Tier changes seen on this page",
@@ -776,6 +825,14 @@ const TENURE_LOCALES = {
       "other": "{n} جلسة"
     },
     "cell.tier_now": "المستوى الآن: {tier} ({name})",
+    "chip.simple_tip": {
+      "zero": "{name}: {n} من أنواع الإجراءات تحت المراقبة أو تسألك أولًا. افتح Tenure.",
+      "one": "{name}: {n} من أنواع الإجراءات تحت المراقبة أو تسألك أولًا. افتح Tenure.",
+      "two": "{name}: {n} من أنواع الإجراءات تحت المراقبة أو تسألك أولًا. افتح Tenure.",
+      "few": "{name}: {n} من أنواع الإجراءات تحت المراقبة أو تسألك أولًا. افتح Tenure.",
+      "many": "{name}: {n} من أنواع الإجراءات تحت المراقبة أو تسألك أولًا. افتح Tenure.",
+      "other": "{name}: {n} من أنواع الإجراءات تحت المراقبة أو تسألك أولًا. افتح Tenure."
+    },
     "chip.tip": {
       "zero": "{name}: {earned} من {n} أنواع إجراءات اكتسبت الاستقلالية (T2 أو T3). افتح Tenure.",
       "one": "{name}: {earned} من {n} نوع إجراء اكتسب الاستقلالية (T2 أو T3). افتح Tenure.",
@@ -1348,6 +1405,56 @@ const TENURE_LOCALES = {
     "settings.strict_on": "الوضع الصارم مفعّل",
     "settings.strict_title": "الوضع الصارم عند تغيير النموذج",
     "settings.use": "استخدام",
+    "simple.col_kind": "النوع",
+    "simple.col_what": "ماذا",
+    "simple.eyebrow": "{profile} · الوضع البسيط",
+    "simple.group_always": "يسأل دائمًا",
+    "simple.group_always_help": "ما يصل إلى خارج هذا الجهاز (push وdeploy وpublish وupload والرسائل)، والأنواع عالية المخاطرة، والأنواع التي تجعلها إعداداتك تسأل دائمًا: لا سجلّ يجعلها حرّة.",
+    "simple.group_ask": "يسألك أولًا",
+    "simple.group_ask_help": "ينتظر كل إجراء موافقتك؛ يقول السطر لماذا، وما الذي يجعله حرًّا.",
+    "simple.group_noundo": "لا يمكن التراجع عنه",
+    "simple.group_noundo_help": "لا يستطيع tenure حفظ ما يغيّره قبل تشغيله، لذا يسأل.",
+    "simple.group_watched": "تحت المراقبة بعد خطأ",
+    "simple.group_watched_help": "يواصل العمل؛ يُدرج كل إجراء في نهاية الدور، مع إمكانية التراجع.",
+    "simple.kinds_empty": "لا سجلّ بعد لأي نوع من الإجراءات: كل شيء يعمل كما مع Hermes وحده، باستثناء ما يصل إلى خارج هذا الجهاز والأنواع عالية المخاطرة.",
+    "simple.kinds_footer": "ليتوقف أحدها عن السؤال: {command} <النوع> · ليسأل دائمًا: {command} <النوع> ask",
+    "simple.kinds_free": {
+      "zero": "لا نوع آخر يعمل دون سؤال.",
+      "one": "نوع آخر واحد يعمل دون سؤال.",
+      "two": "نوعان آخران يعملان دون سؤال.",
+      "few": "{n} أنواع أخرى تعمل دون سؤال.",
+      "many": "{n} نوعًا آخر يعمل دون سؤال.",
+      "other": "{n} نوع آخر يعمل دون سؤال."
+    },
+    "simple.kinds_none": "كل أنواع الإجراءات التي استخدمها {agent} حرّة.",
+    "simple.kinds_title": "ما زال يسألك، أو تحت المراقبة",
+    "simple.kinds_word": "جعل نوع حرًّا كلمة إنسان، تُكتب في المحادثة أو في طرفية: هذه الصفحة لا تجعل أي نوع حرًّا.",
+    "simple.loading": "جارٍ التحميل…",
+    "simple.off": "tenure متوقف في هذا الملف الشخصي ({setting}: false): يعمل الوكيل كما مع Hermes وحده.",
+    "simple.study": "وضع الدراسة: فحوص عشوائية وضمان وجواز موقَّع — {command}",
+    "simple.subtitle": "ما فعله الوكيل اليوم، وما يمكنك التراجع عنه",
+    "simple.tile_asks": "أنواع تسألك أولًا",
+    "simple.tile_today": "نُفّذ دون سؤال اليوم",
+    "simple.tile_undo": "تغييرات ما زال بإمكانك التراجع عنها",
+    "simple.tile_watched": "أنواع تحت المراقبة بعد خطأ",
+    "simple.tiles_aria": "ما فعله الوكيل اليوم، وما زال يسألك",
+    "simple.title": "اليوم",
+    "simple.undo_effect": "يعيد الملفات · يُعدّ خطأً لهذا النوع: تحت المراقبة بعد خطأ، ويسأل أولًا بعد خطأ ثانٍ",
+    "simple.undo_effect_already": "يعيد الملفات · عُدّ خطأً من قبل (فشل فحص آلي)",
+    "simple.undo_effect_none": "لم يُحفظ شيء لإعادته · سيُعدّ خطأً مع ذلك",
+    "simple.undo_no_files": "لا ملف مسمّى",
+    "simple.undo_none": {
+      "zero": "لا شيء للتراجع عنه خلال آخر {n} ساعة.",
+      "one": "لا شيء للتراجع عنه خلال آخر {n} ساعة.",
+      "two": "لا شيء للتراجع عنه خلال آخر {n} ساعة.",
+      "few": "لا شيء للتراجع عنه خلال آخر {n} ساعة.",
+      "many": "لا شيء للتراجع عنه خلال آخر {n} ساعة.",
+      "other": "لا شيء للتراجع عنه خلال آخر {n} ساعة."
+    },
+    "simple.undo_note": "التراجع يعيد الملفات كما كانت ويعدّ التغيير خطأً لنوعه.",
+    "simple.undo_tip": "إعادة الملفات كما كانت",
+    "simple.undo_title": "تغييرات ما زال بإمكانك التراجع عنها ({n} ساعة)، الأحدث أولًا",
+    "simple.undone": "أُعيدت الملفات. عُدّ ذلك خطأً لنوعه.",
     "start.change_tip": "غيّره من الطرفية: hermes tenure start trusted|probation",
     "start.probation": "بداية بالدراسة (فترة اختبار)",
     "start.trusted": "بداية موثوقة",
@@ -1497,6 +1604,7 @@ const TENURE_LOCALES = {
       "other": "{type}: {n} تغيير، ثم أبلغك ({name})."
     },
     "toast.acted_detail": "التراجع يستعيد ملفات آخر تغيير ويُحسب إخفاقًا.",
+    "toast.acted_detail_simple": "التراجع يعيد ملفات آخر تغيير ويُعدّ خطأً لنوعه.",
     "toast.transition": "{agent} · {type}: من {from} إلى {to}",
     "transitions.empty": "لا شيء منذ فتح هذه الصفحة. كل تغيير تلقائي في المستوى يُدرج هنا وفي الخط الزمني لكل وكيل.",
     "transitions.title": "تغييرات المستوى المرصودة في هذه الصفحة",
@@ -1617,6 +1725,10 @@ const TENURE_LOCALES = {
       "other": "{n} sesiones"
     },
     "cell.tier_now": "Nivel actual: {tier} ({name})",
+    "chip.simple_tip": {
+      "one": "{name}: {n} tipo de acción vigilado o que te pregunta antes. Abrir Tenure.",
+      "other": "{name}: {n} tipos de acción vigilados o que te preguntan antes. Abrir Tenure."
+    },
     "chip.tip": {
       "one": "{name}: {earned} de {n} tipo de acción se ha ganado autonomía (T2 o T3). Abrir Tenure.",
       "other": "{name}: {earned} de {n} tipos de acción se han ganado autonomía (T2 o T3). Abrir Tenure."
@@ -2073,6 +2185,48 @@ const TENURE_LOCALES = {
     "settings.strict_on": "Modo estricto activado",
     "settings.strict_title": "Modo estricto al cambiar de modelo",
     "settings.use": "Usar",
+    "simple.col_kind": "tipo",
+    "simple.col_what": "qué",
+    "simple.eyebrow": "{profile} · modo simple",
+    "simple.group_always": "Siempre pregunta",
+    "simple.group_always_help": "Lo que sale de esta máquina (push, deploy, publish, upload, mensajes), los tipos de alto riesgo y los tipos que tus ajustes hacen preguntar siempre: ningún historial los libera.",
+    "simple.group_ask": "Te pregunta antes",
+    "simple.group_ask_help": "Cada acción espera tu aprobación; la línea dice por qué, y qué lo libera.",
+    "simple.group_noundo": "No se puede deshacer",
+    "simple.group_noundo_help": "tenure no puede guardar lo que cambia antes de ejecutarse, así que pregunta.",
+    "simple.group_watched": "Vigilado tras un error",
+    "simple.group_watched_help": "Sigue trabajando; cada acción se lista al final del turno, con un deshacer.",
+    "simple.kinds_empty": "Ningún tipo de acción tiene historial todavía: todo funciona como con Hermes solo, salvo lo que sale de esta máquina y los tipos de alto riesgo.",
+    "simple.kinds_footer": "Que deje de preguntar: {command} <tipo> · que pregunte siempre: {command} <tipo> ask",
+    "simple.kinds_free": {
+      "one": "{n} tipo más se ejecuta sin preguntar.",
+      "other": "{n} tipos más se ejecutan sin preguntar."
+    },
+    "simple.kinds_none": "Todos los tipos de acción que usó {agent} son libres.",
+    "simple.kinds_title": "Lo que aún te pregunta, o está vigilado",
+    "simple.kinds_word": "Liberar un tipo lo dice una persona, en el chat o en un terminal: esta página nunca libera ninguno.",
+    "simple.loading": "Cargando…",
+    "simple.off": "tenure está desactivado en este perfil ({setting}: false): el agente funciona como con Hermes solo.",
+    "simple.study": "Modo estudio: controles aleatorios, una garantía y un pasaporte firmado — {command}",
+    "simple.subtitle": "Lo que el agente hizo hoy, y lo que puedes deshacer",
+    "simple.tile_asks": "tipos que te preguntan antes",
+    "simple.tile_today": "acciones hechas sin preguntar hoy",
+    "simple.tile_undo": "cambios que aún puedes deshacer",
+    "simple.tile_watched": "tipos vigilados tras un error",
+    "simple.tiles_aria": "Lo que el agente hizo hoy, y lo que aún te pregunta",
+    "simple.title": "Hoy",
+    "simple.undo_effect": "Restaura los archivos · cuenta como un error de este tipo: vigilado tras uno, pregunta antes tras un segundo",
+    "simple.undo_effect_already": "Restaura los archivos · ya contó como error (falló una comprobación)",
+    "simple.undo_effect_none": "No se guardó nada que restaurar · contaría igualmente como error",
+    "simple.undo_no_files": "ningún archivo nombrado",
+    "simple.undo_none": {
+      "one": "Nada que deshacer de la última {n} hora.",
+      "other": "Nada que deshacer de las últimas {n} horas."
+    },
+    "simple.undo_note": "Deshacer devuelve los archivos a como estaban y marca el cambio como un error de su tipo.",
+    "simple.undo_tip": "Devolver los archivos a como estaban",
+    "simple.undo_title": "Cambios que aún puedes deshacer ({n} h), del más reciente al más antiguo",
+    "simple.undone": "Archivos restaurados. Contó como un error de su tipo.",
     "start.change_tip": "Cámbialo en una terminal: hermes tenure start trusted|probation",
     "start.probation": "Inicio en estudio (período de prueba)",
     "start.trusted": "Inicio de confianza",
@@ -2178,6 +2332,7 @@ const TENURE_LOCALES = {
       "other": "{type} hizo {n} cambios y luego te avisó ({name})."
     },
     "toast.acted_detail": "Deshacer restaura los archivos del último cambio y cuenta como fallo.",
+    "toast.acted_detail_simple": "Deshacer restaura los archivos del último cambio y cuenta como un error de su tipo.",
     "toast.transition": "{agent} · {type}: {from} → {to}",
     "transitions.empty": "Ninguno desde que se abrió esta página. Cada cambio de nivel automático aparece aquí y en la cronología de cada agente.",
     "transitions.title": "Cambios de nivel vistos en esta página",
@@ -2282,6 +2437,10 @@ const TENURE_LOCALES = {
       "other": "{n} sessions"
     },
     "cell.tier_now": "Niveau actuel : {tier} ({name})",
+    "chip.simple_tip": {
+      "one": "{name} : {n} type d'action surveillé ou qui vous demande d'abord. Ouvrir Tenure.",
+      "other": "{name} : {n} types d'action surveillés ou qui vous demandent d'abord. Ouvrir Tenure."
+    },
     "chip.tip": {
       "one": "{name} : {earned} type d'action sur {n} a gagné son autonomie (T2 ou T3). Ouvrir Tenure.",
       "other": "{name} : {earned} types d'action sur {n} ont gagné leur autonomie (T2 ou T3). Ouvrir Tenure."
@@ -2738,6 +2897,48 @@ const TENURE_LOCALES = {
     "settings.strict_on": "Mode strict activé",
     "settings.strict_title": "Mode strict au changement de modèle",
     "settings.use": "Choisir",
+    "simple.col_kind": "type",
+    "simple.col_what": "quoi",
+    "simple.eyebrow": "{profile} · mode simple",
+    "simple.group_always": "Demande toujours",
+    "simple.group_always_help": "Ce qui sort de cette machine (push, deploy, publish, upload, messages), les types à haut risque et les types que vos réglages font toujours demander : aucun historique ne les libère.",
+    "simple.group_ask": "Vous demande d'abord",
+    "simple.group_ask_help": "Chaque action attend votre accord ; la ligne dit pourquoi, et ce qui le libère.",
+    "simple.group_noundo": "Ne peut pas être annulé",
+    "simple.group_noundo_help": "tenure ne peut pas enregistrer ce que cela modifie avant l'exécution, donc il demande.",
+    "simple.group_watched": "Surveillé après une erreur",
+    "simple.group_watched_help": "Il continue de travailler ; chaque action est listée à la fin du tour, avec une annulation.",
+    "simple.kinds_empty": "Aucun type d'action n'a encore d'historique : tout fonctionne comme avec Hermes seul, sauf ce qui sort de cette machine et les types à haut risque.",
+    "simple.kinds_footer": "Ne plus demander : {command} <type> · toujours demander : {command} <type> ask",
+    "simple.kinds_free": {
+      "one": "{n} autre type s'exécute sans demander.",
+      "other": "{n} autres types s'exécutent sans demander."
+    },
+    "simple.kinds_none": "Tous les types d'action utilisés par {agent} sont libres.",
+    "simple.kinds_title": "Ce qui vous demande encore, ou est surveillé",
+    "simple.kinds_word": "Libérer un type se dit à la main, dans la conversation ou dans un terminal : cette page n'en libère jamais.",
+    "simple.loading": "Chargement…",
+    "simple.off": "tenure est désactivé pour ce profil ({setting} : false) : l'agent fonctionne comme avec Hermes seul.",
+    "simple.study": "Mode étude : contrôles aléatoires, une garantie et un passeport signé — {command}",
+    "simple.subtitle": "Ce que l'agent a fait aujourd'hui, et ce que vous pouvez annuler",
+    "simple.tile_asks": "types qui vous demandent d'abord",
+    "simple.tile_today": "actions faites sans demander aujourd'hui",
+    "simple.tile_undo": "changements encore annulables",
+    "simple.tile_watched": "types surveillés après une erreur",
+    "simple.tiles_aria": "Ce que l'agent a fait aujourd'hui, et ce qui vous demande encore",
+    "simple.title": "Aujourd'hui",
+    "simple.undo_effect": "Remet les fichiers en place · compte comme une erreur de ce type : surveillé après une, il demande d'abord après une deuxième",
+    "simple.undo_effect_already": "Remet les fichiers en place · déjà compté comme une erreur (une vérification a échoué)",
+    "simple.undo_effect_none": "Rien n'a été enregistré à remettre · compterait quand même comme une erreur",
+    "simple.undo_no_files": "aucun fichier nommé",
+    "simple.undo_none": {
+      "one": "Rien à annuler sur la dernière {n} heure.",
+      "other": "Rien à annuler sur les {n} dernières heures."
+    },
+    "simple.undo_note": "Annuler remet les fichiers tels qu'ils étaient et marque le changement comme une erreur de son type.",
+    "simple.undo_tip": "Remettre les fichiers tels qu'ils étaient",
+    "simple.undo_title": "Changements que vous pouvez encore annuler ({n} h), du plus récent au plus ancien",
+    "simple.undone": "Fichiers remis en place. Compté comme une erreur de son type.",
     "start.change_tip": "À changer dans un terminal : hermes tenure start trusted|probation",
     "start.probation": "Départ à l'étude (probation)",
     "start.trusted": "Départ en confiance",
@@ -2843,6 +3044,7 @@ const TENURE_LOCALES = {
       "other": "{type} a fait {n} modifications, puis vous a prévenu ({name})."
     },
     "toast.acted_detail": "Annuler restaure les fichiers de la dernière modification et compte comme une faute.",
+    "toast.acted_detail_simple": "Annuler remet en place les fichiers du dernier changement et compte comme une erreur de son type.",
     "toast.transition": "{agent} · {type} : {from} → {to}",
     "transitions.empty": "Aucun depuis l'ouverture de cette page. Chaque changement de niveau automatique est listé ici et dans la chronologie de chaque agent.",
     "transitions.title": "Changements de niveau vus sur cette page",
@@ -2944,6 +3146,9 @@ const TENURE_LOCALES = {
       "other": "{n} 个会话"
     },
     "cell.tier_now": "当前级别：{tier}（{name}）",
+    "chip.simple_tip": {
+      "other": "{name}：{n} 个操作类型受关注或先询问你。打开 Tenure。"
+    },
     "chip.tip": {
       "other": "{name}：{n} 个操作类型中有 {earned} 个已赢得自主权（T2 或 T3）。打开 Tenure。"
     },
@@ -3366,6 +3571,46 @@ const TENURE_LOCALES = {
     "settings.strict_on": "严格模式：开",
     "settings.strict_title": "切换模型时的严格模式",
     "settings.use": "使用",
+    "simple.col_kind": "类型",
+    "simple.col_what": "内容",
+    "simple.eyebrow": "{profile} · 简单模式",
+    "simple.group_always": "始终询问",
+    "simple.group_always_help": "触及本机之外的操作（push、deploy、publish、upload、消息）、高风险类型，以及你的设置要求始终询问的类型：任何记录都不会让它们自由。",
+    "simple.group_ask": "先询问你",
+    "simple.group_ask_help": "每个操作都等待你的批准；每行说明原因，以及怎样让它自由。",
+    "simple.group_noundo": "无法撤销",
+    "simple.group_noundo_help": "tenure 无法在执行前保存它会改动的内容，所以询问。",
+    "simple.group_watched": "失误后受关注",
+    "simple.group_watched_help": "它继续工作；每个操作在本轮结束时列出，可撤销。",
+    "simple.kinds_empty": "还没有任何操作类型的记录：一切照 Hermes 本身运行，触及本机之外的操作和高风险类型除外。",
+    "simple.kinds_footer": "让某项不再询问：{command} <类型> · 让某项始终询问：{command} <类型> ask",
+    "simple.kinds_free": {
+      "other": "另有 {n} 个类型无需询问即可执行。"
+    },
+    "simple.kinds_none": "{agent} 用过的所有操作类型都是自由的。",
+    "simple.kinds_title": "仍在询问你或受关注的项",
+    "simple.kinds_word": "让某类操作自由须由人决定，在对话或终端中输入：本页面从不让任何类型自由。",
+    "simple.loading": "加载中…",
+    "simple.off": "此配置文件已关闭 tenure（{setting}: false）：智能体照 Hermes 本身运行。",
+    "simple.study": "研究模式：随机抽查、保证和签名护照 — {command}",
+    "simple.subtitle": "智能体今天做了什么，以及你可以撤销什么",
+    "simple.tile_asks": "先询问你的类型",
+    "simple.tile_today": "今天未经询问执行",
+    "simple.tile_undo": "仍可撤销的更改",
+    "simple.tile_watched": "失误后受关注的类型",
+    "simple.tiles_aria": "智能体今天做了什么，以及仍在询问你的项",
+    "simple.title": "今天",
+    "simple.undo_effect": "恢复文件 · 计为该类型的一次失误：一次后受关注，第二次后先询问",
+    "simple.undo_effect_already": "恢复文件 · 已计为失误（自动检查失败）",
+    "simple.undo_effect_none": "没有保存可恢复的内容 · 仍会计为失误",
+    "simple.undo_no_files": "未指明文件",
+    "simple.undo_none": {
+      "other": "过去 {n} 小时内没有可撤销的内容。"
+    },
+    "simple.undo_note": "撤销会把文件恢复原样，并把该更改标记为其类型的一次失误。",
+    "simple.undo_tip": "把文件恢复原样",
+    "simple.undo_title": "仍可撤销的更改（{n} 小时内），最新的在前",
+    "simple.undone": "文件已恢复。计为其类型的一次失误。",
     "start.change_tip": "在终端中更改：hermes tenure start trusted|probation",
     "start.probation": "考察起步（试用期）",
     "start.trusted": "信任起步",
@@ -3460,6 +3705,7 @@ const TENURE_LOCALES = {
       "other": "{type}：{n} 项更改，已执行并告知你（{name}）。"
     },
     "toast.acted_detail": "撤销会恢复最近一次更改的文件，并记为一次失误。",
+    "toast.acted_detail_simple": "撤销会恢复上一次更改的文件，并计为其类型的一次失误。",
     "toast.transition": "{agent} · {type}：{from} → {to}",
     "transitions.empty": "打开此页面以来没有变化。每次自动的级别变化都会列在这里，以及各智能体的时间线中。",
     "transitions.title": "本页看到的级别变化",
@@ -4660,6 +4906,14 @@ const CSS = `
 .tn-keys dd{margin:0;font-size:0.76rem;color:var(--tn-fg2)}
 .tn-kbd{display:inline-flex;min-width:1.4rem;justify-content:center;padding:0.1rem 0.35rem;font:500 0.7rem var(--tn-mono);color:var(--tn-acc-text);border:1px solid var(--tn-acc);border-block-end-width:2px}
 @media (prefers-reduced-motion:reduce){.tn-uacts,.tn-tacts{transition:none}.tn-enter,.tn-scan,.tn-chip.tn-out,.tn-chip.tn-in,.tn-band-title,.tn-leaving{animation:none!important}.tn-prow,.tn-pass,.tn-ok{transition:none!important}.tn-prow{opacity:1;transform:none}}
+.tn-simple-agent{display:flex;flex-direction:column;gap:0.5rem;margin-block-end:0.5rem}
+.tn-simple-agent-name{margin:0;font:0.72rem var(--tn-mono);color:var(--tn-fg)}
+.tn-simple-group{display:flex;flex-direction:column;gap:0.25rem}
+.tn-simple-group-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:0.25rem 0.75rem;padding-block-end:0.3rem;border-block-end:1px solid var(--tn-line);font-size:0.78rem;color:var(--tn-fg)}
+.tn-simple-kinds td:first-child{width:42%}
+.tn-simple-kinds td,.tn-simple-table td{overflow-wrap:anywhere}
+.tn-simple-what{white-space:normal;overflow-wrap:anywhere}
+@container (max-width:36rem){.tn-simple-kinds td:first-child{width:auto}.tn-simple-table th:first-child,.tn-simple-table td:first-child{display:none}}
 `
 
 // ------------------------------------------------------------------------------------------------ pieces
@@ -7290,7 +7544,7 @@ function MapView({ data, t, transitions, onOpen }) {
 }
 
 /** The page's own record of tier changes, diffed between two answers (since this page opened). */
-function usePageTransitions(data, t) {
+function usePageTransitions(data, t, off = false) {
   const prev = useRef(null)
   const [items, setItems] = useState([])
   useEffect(() => {
@@ -7301,6 +7555,10 @@ function usePageTransitions(data, t) {
     return () => bus.removeEventListener('raw', reset)
   }, [])
   useEffect(() => {
+    if (off) {
+      prev.current = null                              // simple mode has no tiers to announce
+      return
+    }
     if (!data) return
     const now = {}
     for (const a of allAgents(data)) for (const ty of a.types || []) now[a.key + '\u0000' + ty.type] = { tier: tierKey(ty), a, ty }
@@ -7325,7 +7583,7 @@ function usePageTransitions(data, t) {
     const from = tierCode(f.from, t)
     const to = tierCode(f.to, t)
     host.notify({ kind: 'info', message: t('toast.transition', { agent: displayName(f.model), type: f.type, from, to }) })
-  }, [data])
+  }, [data, off])
   return items
 }
 
@@ -7994,6 +8252,225 @@ function TimelineSection({ agent, t, n }) {
 }
 
 /** The keys of this page (while focus is inside it); the keys stay as they are, only their descriptions are translated. */
+// ------------------------------------------------------------------------------------------------ simple mode
+// The default mode, in the words of `/tenure` and `/tenure trust`: what ran without asking today, the changes that can
+// still be undone, and the kinds of action that are watched or ask first, each with why and what brings it back.
+// Every number and every kind's sentence come from GET /simple, which reads them with the CLI's own functions; the
+// only action is Undo (POST /undo, as on the Undo tab). Freeing a kind stays a person's word, typed in the chat or a
+// terminal: nothing here frees one.
+const SIMPLE_GROUPS = ['watched', 'ask', 'noundo', 'always']
+const SIMPLE_SHOWN = 10 // changes listed before "Show all", as /tenure lists ten
+const SIMPLE_SETTING = 'plugins.entries.tenure.settings.enabled'
+
+/** GET /simple for the current profile, in the page's language: the mode, and in simple mode the whole page. */
+function useSimple() {
+  const profile = useValue(host.state.profile)
+  const raw = useRaw()
+  const lang = (typeof document !== 'undefined' && document.documentElement.lang) || ''
+  return useQuery({
+    queryKey: ['tenure', profile, 'simple', raw, lang],
+    queryFn: () => rest('/simple' + (lang ? '?lang=' + encodeURIComponent(lang) : '')),
+    refetchInterval: HEARTBEAT_MS
+  })
+}
+
+/** Simple mode on the current profile, as /agents reports its settings: what the chip, the model menu and the toast
+ *  read (the page reads the mode from /simple, which answers before the profile has a database). */
+const simpleAgents = data => {
+  const here = ((data && data.profiles) || []).find(p => p.current)
+  return !!(here && here.settings && here.settings.mode === 'simple')
+}
+
+const simpleKinds = d => ((d && d.agents) || []).flatMap(a => a.kinds || [])
+const groupTitle = (g, t) => (g === 'watched' ? t('simple.group_watched') : g === 'ask' ? t('simple.group_ask') : g === 'noundo' ? t('simple.group_noundo') : t('simple.group_always'))
+const groupHelp = (g, t) =>
+  g === 'watched' ? t('simple.group_watched_help') : g === 'ask' ? t('simple.group_ask_help') : g === 'noundo' ? t('simple.group_noundo_help') : t('simple.group_always_help')
+const simpleEffect = (u, t) => (!u.file ? t('simple.undo_effect_none') : u.counts_as_fault ? t('simple.undo_effect') : t('simple.undo_effect_already'))
+
+/** A kind as the CLI names it: its key, and its plain label under it. */
+function SimpleKind({ k }) {
+  return jsxs('div', {
+    className: 'min-w-0',
+    children: [jsx('code', { className: 'tn-mono tn-bdi', children: k.type }), k.label && k.label !== k.type ? jsx('div', { className: 'tn-hint', children: k.label }) : null]
+  })
+}
+
+/** Undo, after Hermes' own confirmation dialog: the files come back, and the change counts as a mistake of its kind. */
+function SimpleUndoDialog({ target, profile, onClose, t }) {
+  const qc = useQueryClient()
+  return jsx(ConfirmDialog, {
+    confirmLabel: t('recent.undo'),
+    description: target ? simpleEffect(target, t) : null,
+    destructive: true,
+    onClose,
+    onConfirm: async () => {
+      const u = target
+      try {
+        const r = await rest('/undo?of=' + encodeURIComponent(profile), { method: 'POST', body: { id: u.id } })
+        haptic('success')
+        host.notify({ kind: r && r.ok === false ? 'warning' : 'success', message: (r && r.message) || t('simple.undone') })
+      } catch (e) {
+        host.notifyError(e, t('recent.undo_failed'))
+      } finally {
+        qc.invalidateQueries({ queryKey: ['tenure'] })
+      }
+    },
+    open: target !== null,
+    title: target ? t('confirm.undo_title', { id: target.id }) : ''
+  })
+}
+
+function SimpleTiles({ d, t }) {
+  const kinds = simpleKinds(d)
+  const watched = kinds.filter(k => k.group === 'watched').length
+  const cells = [
+    { n: d.today, label: t('simple.tile_today') },
+    { n: d.undo.total, label: t('simple.tile_undo') },
+    { n: watched, label: t('simple.tile_watched') },
+    { n: kinds.length - watched, label: t('simple.tile_asks') }
+  ]
+  return jsx('section', {
+    'aria-label': t('simple.tiles_aria'),
+    className: 'tn-tiles-wrap',
+    children: jsx('div', {
+      className: 'tn-tiles',
+      children: cells.map((c, i) =>
+        jsxs(
+          'div',
+          {
+            className: 'tn-tile',
+            children: [
+              jsx('span', { 'aria-hidden': true, className: 'tn-tnum', style: { padding: 0 }, children: '#' + pad2(i + 1) }),
+              jsx('b', { className: 'tn-tile-n', children: num(c.n) }),
+              jsx('span', { className: 'tn-tile-label', children: c.label })
+            ]
+          },
+          i
+        )
+      )
+    })
+  })
+}
+
+function SimpleUndo({ d, t }) {
+  const [all, setAll] = useState(false)
+  const [target, setTarget] = useState(null)
+  const rows = d.undo.rows || []
+  const shown = all ? rows : rows.slice(0, SIMPLE_SHOWN)
+  return jsxs('section', {
+    className: 'tn-section',
+    children: [
+      jsx(Eyebrow, { n: 1, children: t('simple.undo_title', { n: d.hours }) }),
+      rows.length
+        ? jsx('p', { className: 'tn-hint', children: t('simple.undo_note') })
+        : jsx('p', { style: { margin: 0, fontSize: '0.75rem', color: 'var(--tn-fg2)' }, children: t('simple.undo_none', { n: d.hours }) }),
+      rows.length
+        ? jsx('div', {
+            className: 'tn-map-scroll',
+            children: jsxs('table', {
+              className: 'tn-table tn-simple-table',
+              children: [
+                jsx('thead', {
+                  children: jsxs('tr', {
+                    children: [jsx('th', { children: '#' }), jsx('th', { children: t('simple.col_kind') }), jsx('th', { children: t('simple.col_what') }), jsx('th', { children: t('undo.col_when') }), jsx('th', {})]
+                  })
+                }),
+                jsx('tbody', {
+                  children: shown.map(u =>
+                    jsxs(
+                      'tr',
+                      {
+                        children: [
+                          jsx('td', { className: 'tn-mono tn-dim', children: String(u.id) }),
+                          jsx('td', { children: jsx(SimpleKind, { k: u }) }),
+                          jsx('td', { children: u.what ? jsx('code', { className: 'tn-mono tn-bdi tn-simple-what', children: u.what }) : jsx('span', { className: 'tn-hint', children: t('simple.undo_no_files') }) }),
+                          jsx('td', { children: jsx('span', { className: 'tn-mono', children: ago(t, u.age) }) }),
+                          jsx('td', {
+                            className: 'tn-end',
+                            children: jsx(Tip, { label: t('simple.undo_tip'), children: jsx('span', { children: jsx(Button, { onClick: () => setTarget(u), size: 'xs', variant: 'outline', children: t('recent.undo') }) }) })
+                          })
+                        ]
+                      },
+                      u.id
+                    )
+                  )
+                })
+              ]
+            })
+          })
+        : null,
+      rows.length > SIMPLE_SHOWN
+        ? jsx('div', { children: jsx(Button, { onClick: () => setAll(!all), size: 'xs', variant: 'outline', children: all ? t('recent.show_fewer') : t('recent.show_all', { n: d.undo.total }) }) })
+        : null,
+      jsx(SimpleUndoDialog, { onClose: () => setTarget(null), profile: d.profile, t, target })
+    ]
+  })
+}
+
+function SimpleAgent({ a, t }) {
+  return jsxs('div', {
+    className: 'tn-simple-agent',
+    children: [
+      jsxs('p', { className: 'tn-simple-agent-name', children: [jsx('span', { className: 'tn-bdi', children: displayName(a.model) }), jsx('span', { className: 'tn-dim tn-bdi', children: '@' + a.provider })] }),
+      a.kinds.length
+        ? SIMPLE_GROUPS.map(g => {
+            const ks = a.kinds.filter(k => k.group === g)
+            if (!ks.length) return null
+            return jsxs(
+              'div',
+              {
+                className: 'tn-simple-group',
+                'data-group': g,
+                children: [
+                  jsxs('div', { className: 'tn-simple-group-head', children: [jsx('b', { children: groupTitle(g, t) }), jsx('span', { className: 'tn-hint', children: groupHelp(g, t) })] }),
+                  jsx('table', {
+                    className: 'tn-table tn-simple-kinds',
+                    children: jsx('tbody', { children: ks.map(k => jsxs('tr', { children: [jsx('td', { children: jsx(SimpleKind, { k }) }), jsx('td', { children: k.text })] }, k.type)) })
+                  })
+                ]
+              },
+              g
+            )
+          })
+        : jsx('p', { className: 'tn-hint', children: t('simple.kinds_none', { agent: displayName(a.model) }) }),
+      a.free ? jsx('p', { className: 'tn-hint', children: t('simple.kinds_free', { n: a.free }) }) : null
+    ]
+  })
+}
+
+function SimpleView({ d, t }) {
+  return jsx('div', {
+    className: 'tn-root tn-doc-wrap',
+    children: jsxs('div', {
+      className: 'tn-doc tn-doc-wide',
+      children: [
+        jsxs('header', {
+          className: 'tn-hero',
+          style: { display: 'block' },
+          children: [
+            jsx('div', { className: 'tn-eyebrow', children: '#' + t('simple.eyebrow', { profile: d.profile }) }),
+            jsx('h3', { className: 'tn-name', children: t('simple.title') }),
+            jsx('p', { className: 'tn-intro-body', style: { margin: '0.35rem 0 0' }, children: t('simple.subtitle') }),
+            d.enabled === false ? jsx('p', { className: 'tn-note', style: { marginBlockStart: '0.5rem' }, children: t('simple.off', { setting: SIMPLE_SETTING }) }) : null
+          ]
+        }),
+        jsx(SimpleTiles, { d, t }),
+        jsx(SimpleUndo, { d, t }),
+        jsxs('section', {
+          className: 'tn-section',
+          children: [
+            jsx(Eyebrow, { n: 2, children: t('simple.kinds_title') }),
+            d.agents.length ? d.agents.map(a => jsx(SimpleAgent, { a, t }, a.agent)) : jsx('p', { className: 'tn-hint', children: t('simple.kinds_empty') }),
+            jsx('p', { className: 'tn-intro-body', style: { margin: 0 }, children: t('simple.kinds_footer', { command: '/tenure trust' }) }),
+            jsx('p', { className: 'tn-hint', children: t('simple.kinds_word') })
+          ]
+        }),
+        jsx('p', { className: 'tn-note', children: t('simple.study', { command: '/tenure mode study' }) })
+      ]
+    })
+  })
+}
+
 const PAGE_KEYS = [
   ['m', 'map'],
   ['b', 'benchmark'],
@@ -8079,6 +8556,10 @@ function TenurePage() {
   const t = usePluginI18n(ID)
   const { data, error, isLoading, refetch, dataUpdatedAt } = useAgents()
   const { data: activity } = useActivity()
+  // The mode comes from GET /simple: simple mode reads the whole page from it; study mode keeps the views below.
+  const { data: simple, error: simpleError } = useSimple()
+  const simpleMode = !!simple && simple.mode === 'simple'
+  const modeKnown = !!(simple || simpleError)
   const qc = useQueryClient()
   const [view, setViewNow] = useState('map')
   const back = useRef('map')                           // the view "?" or Esc returns to from Help
@@ -8101,7 +8582,7 @@ function TenurePage() {
       bus.removeEventListener('view', onView)
     }
   }, [])
-  const transitions = usePageTransitions(data, t)
+  const transitions = usePageTransitions(data, t, simpleMode)
   const agents = allAgents(data)
   const here = ((data && data.profiles) || []).find(p => p.current) || {}
   const start = startOf(here.settings, (here.agents || []).flatMap(a => a.types || []))
@@ -8110,6 +8591,15 @@ function TenurePage() {
   const undoCount = ((activity && activity.undoable) || []).length
   const onKey = e => {
     if (e.metaKey || e.ctrlKey || e.altKey || typing(e)) return
+    if (simpleMode) {
+      // One page, no views: raw names only.
+      if (e.key === 'r') {
+        setRawPref(!rawPref)
+        qc.resetQueries({ queryKey: ['tenure'] })
+        e.preventDefault()
+      }
+      return
+    }
     const hit = PAGE_KEYS.find(([k]) => k === e.key)
     if (e.key === '?') {
       setView(view === 'help' ? back.current : 'help')    // ? toggles the help
@@ -8142,7 +8632,9 @@ function TenurePage() {
     setView('agents')
   }
   let body
-  if (isLoading && !data) body = jsx(PanelEmpty, { description: t('common.loading'), icon: 'loading~spin' })
+  if (simpleMode) body = jsx(SimpleView, { d: simple, t })
+  else if (!modeKnown) body = jsx(PanelEmpty, { description: t('simple.loading'), icon: 'loading~spin' })
+  else if (isLoading && !data) body = jsx(PanelEmpty, { description: t('common.loading'), icon: 'loading~spin' })
   else if (error && !data)
     body = jsx(ErrorState, {
       description: t('backend.desc', { error: error.message || String(error) }),
@@ -8180,13 +8672,13 @@ function TenurePage() {
             className: 'tn-head-row',
             children: [
               jsx('h1', { className: 'text-sm font-semibold text-foreground', style: { margin: 0 }, children: t('page.title') }),
-              agents.length
+              agents.length && !simpleMode
                 ? jsx('span', { className: 'rounded-full bg-(--ui-bg-quaternary) px-1.5 py-px text-[0.625rem] tabular-nums text-(--ui-text-tertiary)', children: String(agents.length) })
                 : null,
-              data ? jsxs('div', { className: 'tn-head-tog', children: [jsx(RawToggle, { t }), jsx(AnimationsToggle, { t })] }) : null
+              data || simpleMode ? jsxs('div', { className: 'tn-head-tog', children: [jsx(RawToggle, { t }), jsx(AnimationsToggle, { t })] }) : null
             ]
           }),
-          data
+          data && !simpleMode
             ? jsx('div', {
                 className: 'tn-head-ctl',
                 children: jsx(SegmentedControl, {
@@ -8203,7 +8695,7 @@ function TenurePage() {
       error && data
         ? jsx('p', { className: 'tn-note', role: 'status', style: { margin: '0 1rem 0.75rem' }, children: t('page.stale', { error: error.message || String(error), time: dataUpdatedAt ? hms(dataUpdatedAt) : '—' }) })
         : null,
-      agents.length && (view === 'map' || view === 'agents' || view === 'benchmark') ? jsx(Intro, { t, spot: (here.settings || {}).spot, start }) : null,
+      agents.length && !simpleMode && (view === 'map' || view === 'agents' || view === 'benchmark') ? jsx(Intro, { t, spot: (here.settings || {}).spot, start }) : null,
       body
     ]
   })
@@ -8216,6 +8708,7 @@ function Chip() {
   const model = useValue(host.state.model)
   const a = agentForModel(data, model)
   if (!a) return null
+  if (simpleAgents(data)) return jsx(SimpleChip, { a, t })
   const total = (a.types || []).filter(x => !x.capped).length
   const n = earned(a)
   const tip = t('chip.tip', { name: displayName(a.model), earned: n, n: total })
@@ -8233,6 +8726,31 @@ function Chip() {
       },
       type: 'button',
       children: [jsx(Codicon, { className: n > 0 ? 'text-primary' : undefined, name: 'shield', size: '0.7rem' }), `${n}/${total}`]
+    })
+  })
+}
+
+/** Simple mode: the shield and how many kinds of action of the model in use are watched or ask first, as /simple
+ *  counts them; no tier. */
+function SimpleChip({ a, t }) {
+  const { data: d } = useSimple()
+  const mine = ((d && d.agents) || []).find(x => x.agent === a.agent)
+  const n = mine ? mine.kinds.length : 0
+  const tip = t('chip.simple_tip', { name: displayName(a.model), n })
+  return jsx(Tip, {
+    label: tip,
+    children: jsxs('button', {
+      'aria-label': tip,
+      className: cn(
+        'inline-flex h-full items-center gap-1 rounded-none px-1.5 text-[0.6875rem] tabular-nums transition-colors',
+        'text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground'
+      ),
+      onClick: () => {
+        haptic('tap')
+        host.navigate(ROUTE)
+      },
+      type: 'button',
+      children: [jsx(Codicon, { name: 'shield', size: '0.7rem' }), n ? String(n) : null]
     })
   })
 }
@@ -8293,17 +8811,18 @@ export default {
       const n = (acted.get(payload.type) || 0) + 1
       acted.set(payload.type, n)
       ctx.setTimeout(() => acted.delete(payload.type), 60_000)
+      const plain = simpleAgents(cache.agents)            // simple mode: a mistake, not a fault
       host.notify({
         id: 'tenure-acted-' + payload.type,
         kind: payload.fault ? 'warning' : 'info',
         message: tr('toast.acted', { type: payload.type, n, name }),
-        detail: tr('toast.acted_detail'),
+        detail: tr(plain ? 'toast.acted_detail_simple' : 'toast.acted_detail'),
         action: {
           label: tr('recent.undo'),
           onClick: async () => {
             try {
               await ctx.rest('/undo' + (payload.profile ? '?of=' + encodeURIComponent(payload.profile) : ''), { method: 'POST', body: { id: payload.undo_id } })
-              host.notify({ kind: 'success', message: tr('recent.undone') })
+              host.notify({ kind: 'success', message: tr(plain ? 'simple.undone' : 'recent.undone') })
               bus.dispatchEvent(new Event('changed'))
             } catch (e) {
               host.notifyError(e, tr('recent.undo_failed'))
@@ -8355,7 +8874,7 @@ export default {
         data: {
           decorate: ({ model }) => {
             const a = agentForModel(cache.agents, model)
-            if (!a) return null
+            if (!a || simpleAgents(cache.agents)) return null      // simple mode has no tiers to badge
             const tier = bestTier(a)
             return tier === 'ask' || tier === 'cap' || tier === 'trusted' ? null : { badge: tr('model_menu.badge', { tier: TIER_SHORT[tier] }) }
           }
@@ -8363,7 +8882,7 @@ export default {
       })
     let disposeBadge = badge()
     let badgeTiers = ''
-    const tiersKey = () => allAgents(cache.agents).map(a => a.key + ':' + bestTier(a)).join('|')
+    const tiersKey = () => (simpleAgents(cache.agents) ? 'simple|' : '') + allAgents(cache.agents).map(a => a.key + ':' + bestTier(a)).join('|')
     ctx.onEvent('plugin.tenure.changed', () => {
       fetchAgents()
         .then(() => {

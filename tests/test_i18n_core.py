@@ -186,6 +186,24 @@ def test_language_is_the_environment_then_display_language_of_the_config(monkeyp
     assert i18n.language() == "es"
 
 
+def test_speaking_answers_in_a_language_for_one_block_and_one_thread(monkeypatch):
+    """The dashboard asks for its page's language, one request at a time: inside ``speaking``, that language wins over
+    HERMES_LANGUAGE; an empty one changes nothing; another thread, and the code after the block, keep the owner's."""
+    import threading
+    monkeypatch.setenv("HERMES_LANGUAGE", "es")
+    seen = []
+    with i18n.speaking("fr"):
+        assert i18n.language() == "fr" and i18n.tr("home.title").startswith("tenure · ce que")
+        with i18n.speaking(""):
+            assert i18n.language() == "fr"
+        with i18n.speaking("zh_CN"):
+            assert i18n.language() == "zh-cn" and i18n.pct(0.5) == "50.0%"
+        worker = threading.Thread(target=lambda: seen.append(i18n.language()))
+        worker.start()
+        worker.join()
+    assert seen == ["es"] and i18n.language() == "es"
+
+
 def test_a_config_without_display_language_is_english(monkeypatch):
     cfg = fake_config(monkeypatch, {"display": {"theme": "dark"}})
     assert i18n.language() == "en"
