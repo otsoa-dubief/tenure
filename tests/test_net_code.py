@@ -197,6 +197,10 @@ def at(line, cwd):
 @pytest.mark.parametrize("tool", ["npm install", "make", "pip install -e .", "uv sync", "npm test"])
 def test_owner_a_fresh_clones_build_or_tests_is_a_normal_question_with_a_session_key(plugin, tool):
     line = f"{CLONE} && cd x && {tool}"
+    alone = kind(tool)
+    if alone[1] == classify.CAP:      # pip of a Python that is no virtualenv (CI) writes a protected folder: kept
+        assert kind(line) == kind(line, wide=True) == alone
+        return
     assert kind(line) == kind(line, wide=True) == ("shell:fetched-project", classify.HIGH)
     assert "shell:fetched-project" in params.SESSION_TYPES
     mod, ctx = plugin({**FAST, "start": "trusted"})
