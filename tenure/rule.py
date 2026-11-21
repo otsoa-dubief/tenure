@@ -111,8 +111,8 @@ class TypeState:
                                        # only by the trial a model change opens
     distrusted: bool = False           # a fault or a revoke happened: the trusted start no longer covers the type
     pinned: bool = False               # simple mode: the owner said the kind always asks first, until freed again
-    owner_freed: bool = False          # simple mode: the owner freed the kind by hand (``owner_free``), until its next
-                                       # fault: it runs even when tenure cannot tell which files it changes (no undo)
+    owner_freed: bool = False          # simple mode: the owner freed a kind tenure cannot undo (``owner_free`` with
+                                       # undo False), until its next fault: it runs with no undo
     # carry-over
     provisional: int = 0               # carried-over successes not yet matched by the agent's own series successes
     # counters (the agent's own)
@@ -589,18 +589,20 @@ def carry_over_simple(old: TypeState, *, strict: bool) -> TypeState:
 FREE, PIN = "free", "ask"     # the ``to`` of a ``trust`` ledger event (simple mode only)
 
 
-def owner_free(s: TypeState, n: int | None) -> list[dict]:
+def owner_free(s: TypeState, n: int | None, *, undo: bool = True) -> list[dict]:
     """Simple mode, a ``trust`` event with ``to: free``: a person gives the kind its freedom back now, as a full
-    series would (T3 with its series full, no longer pinned), and marks it freed by hand (``owner_freed``): a kind the
-    trusted start leaves out then runs even when tenure cannot tell which files it changes, so with no undo (the
-    hooks read it), until its next fault. The pin goes in every case. A kind simple mode does not free (an outbound
-    verb, high stakes, capped) keeps its tier. The faults stay on the record and ``distrusted`` stays set, so its next
-    fault makes it watched again (``_simple_fault`` from T3), or asks first for a kind with no middle tier."""
+    series would (T3 with its series full, no longer pinned). ``undo`` False (the event's ``undo: false``, written
+    when the kind asked only because tenure cannot undo it) marks it freed without an undo (``owner_freed``): it then
+    runs even when no undo can be prepared (the hooks read it), until its next fault; any other kind runs with its
+    undo when its files can be saved, and asks when they cannot, as a free kind does. The pin goes in every case. A
+    kind simple mode does not free (an outbound verb, high stakes, capped) keeps its tier. The faults stay on the
+    record and ``distrusted`` stays set, so its next fault makes it watched again (``_simple_fault`` from T3), or asks
+    first for a kind with no middle tier."""
     s.pinned = False
     if not simple_eligible(s, n):
         return []
     old = s.tier
-    s.tier, s.series, s.provisional, s.owner_freed = T3, n, 0, True
+    s.tier, s.series, s.provisional, s.owner_freed = T3, n, 0, not undo
     return [_move(s, "tier", old, T3, "owner")] if old != T3 else []
 
 

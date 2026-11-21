@@ -981,7 +981,8 @@ def trust_set(kind: str, to: str, prefix: str = "/tenure", model: str | None = N
               session: str | None = None) -> str:
     """``/tenure trust KIND`` (free it now) or ``/tenure trust KIND ask`` (it asks first until freed again): a
     person's word, simple mode only. A kind that asks only because tenure cannot undo it is freed too: it then runs
-    without an undo. Refused for a kind simple mode never frees (what leaves the machine, high stakes, a capped
+    without an undo (the ``trust`` event says ``undo: false``); any other kind keeps its undo where its files can be
+    saved, and asks where they cannot. Refused for a kind simple mode never frees (what leaves the machine, high stakes, a capped
     kind), whatever its state; asking those to ask writes nothing (they always do). A kind held by its parent, or
     doubted by a verifier, is explained. Raises CliError with the owner's message, nothing written, when refused."""
     core = _core()
@@ -1013,18 +1014,17 @@ def trust_set(kind: str, to: str, prefix: str = "/tenure", model: str | None = N
         if info["base"] == "free":
             return " ".join(notes) if notes else tr("trust.already_free", type=kind)
         children = [k for k in known if k != kind and fields.parent_of(k) == kind and core._held_by(st, agent, k)]
+        noundo = info["base"] == "noundo"                  # it asked only because tenure cannot undo it
         try:
-            core.owner_trust(st, cfg, agent, s, rule.FREE)
+            core.owner_trust(st, cfg, agent, s, rule.FREE, undo=not noundo)
         except ValueError as e:
             raise CliError(str(e))
         released = [k for k in children if not core._held_by(st, agent, k)]
         back = f"{prefix} trust {kind} ask"
-        if info["base"] == "noundo":
+        if noundo:
             words = [tr("trust.freed_noundo", type=kind, command=back)]
         else:
             words = [tr("trust.freed" if rule._middle(s) else "trust.freed_asks", type=kind, command=back)]
-            if not rule.trust_covers(kind):
-                words.append(tr("trust.freed_unsaved"))
         if released:
             words.append(tr("trust.released", types=_join(released)))
         return _for_agent(st, agent, " ".join(words + notes))

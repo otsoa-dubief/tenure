@@ -589,7 +589,6 @@
   "trust.state.doubted": "pregunta una vez: una revisión dudó de su última acción",
   "trust.freed_asks": "{type} vuelve a ejecutarse sin preguntar. Para deshacerlo: {command}. Un error más y te pregunta antes.",
   "trust.freed_noundo": "{type} se ejecuta ahora sin preguntar, por tu palabra. tenure no puede deshacerlo. Para volver atrás: {command}. Un error y vuelve a preguntar.",
-  "trust.freed_unsaved": "Cuando tenure no sabe qué archivos cambia, se ejecuta sin posibilidad de deshacer.",
   "trust.released": "Ya no esperan: {types}.",
   "trust.held": "{type} espera mientras {held} tenga un error por compensar: {command} libera {held}, y {type} con él.",
   "trust.doubted": "Una revisión dudó de la última acción {type}: su próxima acción te pregunta una vez y luego se ejecuta como antes.",

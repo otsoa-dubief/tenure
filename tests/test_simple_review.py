@@ -313,7 +313,8 @@ def test_7_trust_frees_a_kind_tenure_cannot_undo_and_a_mistake_makes_it_ask_agai
     out = mod.cli.slash("trust shell:docker")
     assert out == ("shell:docker now runs without asking, on your word. tenure can't undo it. To take this back: "
                    "/tenure trust shell:docker ask. One mistake and it asks again.")
-    assert ledger(mod, "trust")[-1] == {"event": "trust", "agent": A, "type": "shell:docker", "to": "free"}
+    assert ledger(mod, "trust")[-1] == {"event": "trust", "agent": A, "type": "shell:docker", "to": "free",
+                                        "undo": False}
     s = state(mod, "shell:docker")
     assert s.owner_freed and s.tier == mod.rule.T3
     undos = last_undo(mod)
@@ -636,11 +637,59 @@ def test_18_a_failed_call_that_changed_files_keeps_its_undo(plugin):
 
 
 @posix
-def test_18_study_mode_reads_the_result_as_before(plugin):
+@pytest.mark.parametrize("result", [
+    '{"output": "", "exit_code": -1, "error": "BLOCKED: Command timed out without user response.", "status": "blocked"}',
+    '{"output": "", "exit_code": 1, "error": "exit 1"}'])
+def test_18_study_mode_keeps_no_undo_and_the_same_ledger(plugin, result):
+    """Study mode: a call Hermes did not run, or a failed one that changed nothing, keeps no undo and posts nothing;
+    its outcome is the one it always had (neutral, error), so the ledger and the study replay do not change."""
     from test_plugin import pre, post
     mod, ctx = plugin({"mode": "study", "start": "trusted", **FAST})
     touch(ctx, "c.txt", "c")
     args = {"command": "rm c.txt"}
-    pre(mod, "terminal", args, "c1")
-    post(mod, "terminal", args, "c1", status="error", result='{"output": "", "exit_code": 1, "error": "exit 1"}')
-    assert last_undo(mod) is not None                                # unchanged in study mode
+    assert pre(mod, "terminal", args, "c1") is None                  # trusted start: runs, its file saved
+    ctx.posted.clear()
+    post(mod, "terminal", args, "c1", status="error", result=result)
+    assert last_undo(mod) is None and ctx.posted == []
+    assert [(e["result"], e["source"]) for e in ledger(mod, "outcome")] == [("neutral", "error")]
+    live = {s.key: stable(s) for _, s in mod.store_().states(A)}
+    assert live == {k: stable(s) for k, s in mod.passport.replay(mod.store_().ledger())[A].items()}
+
+
+# ------------------------------------------- 2'. a freedom without an undo only where none can be prepared
+@posix
+def test_2b_a_watched_kind_freed_keeps_its_undo_and_asks_when_files_cannot_be_saved(plugin, monkeypatch):
+    mod, ctx = make(plugin)
+    for name in ("x.txt", "a.txt", "b.txt"):
+        touch(ctx, name)
+    ctx.call("terminal", {"command": "rm x.txt"})
+    mod.cli.slash(f"undo {last_undo(mod)}")                           # file:shell:rm watched
+    out = mod.cli.slash("trust file:shell:rm")
+    assert out.startswith("file:shell:rm runs without asking again.") and "can't undo" not in out
+    assert ledger(mod, "trust")[-1] == {"event": "trust", "agent": A, "type": "file:shell:rm", "to": "free"}
+    assert not state(mod, "file:shell:rm").owner_freed
+    undos = last_undo(mod)
+    assert ctx.call("terminal", {"command": "rm a.txt"}) == "ran" and last_undo(mod) == undos + 1   # with its undo
+    monkeypatch.setattr(mod.undo, "snapshot", lambda *a, **k: None)   # its files cannot be saved now
+    assert ctx.call("terminal", {"command": "rm b.txt"}) == "approved"                 # asks, as a free kind does
+    live_is_replay(mod)
+
+
+def test_2b_a_replay_refuses_a_bad_undo_field(plugin):
+    mod, ctx = make(plugin)
+    ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})
+    rows = mod.store_().ledger()
+    head = rows[-1]
+    for event in ({"event": "trust", "agent": A, "type": "file:write", "to": "free", "undo": "no"},
+                  {"event": "trust", "agent": A, "type": "file:write", "to": "ask", "undo": False}):
+        with pytest.raises(ValueError):
+            mod.passport._replay_rows(rows + [{"seq": head["seq"] + 1, "at": time.time(), "event": event}])
+
+
+def test_2b_owner_free_marks_only_a_freedom_without_undo():
+    from tenure import rule
+    s = rule.TypeState(key="shell:docker", stakes="medium")
+    rule.owner_free(s, 5, undo=False)
+    assert s.owner_freed and s.tier == rule.T3
+    rule.owner_free(s, 5)
+    assert not s.owner_freed
