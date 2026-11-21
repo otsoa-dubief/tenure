@@ -385,3 +385,23 @@ def test_the_friction_bench_in_simple_mode():
     assert asked(after) == asked(simple)
     assert sum(r["watched"] for r in after) == 6
     assert len(asked(replay("trusted", after_fault="undone"))) == 11
+
+
+def test_a_second_fault_asks_first_even_when_the_score_sits_at_its_floor(plugin):
+    """Owner's decision: at the second mistake it asks again. At low stakes, five silent successes at T2 bring the
+    score to its floor ln B - a, and +a only brings it back to the bar: the type still goes to T1."""
+    mod, ctx = make(plugin, {"risks": {"low": "1/50", "medium": "1/100"}})      # n = 52: no freedom on the way
+    ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})
+    mod.cli.slash(f"undo {last_undo(mod)}")
+    for i in range(5):
+        assert ctx.call("write_file", {"path": f"src/w{i}.py", "content": "x = 1\n"}) == "ran"
+    credit_all(mod)
+    a, _, ln_b = mod.params.wald_steps("low")
+    s = state(mod, "file:write")
+    assert (s.tier, s.series) == (mod.rule.T2, 5) and math.isclose(s.wald, ln_b - a)
+    ctx.call("write_file", {"path": "src/b.py", "content": "x = 2\n"})
+    out = mod.cli.slash(f"undo {last_undo(mod)}")
+    s = state(mod, "file:write")
+    assert s.tier == mod.rule.T1 and math.isclose(s.wald, ln_b) and "second mistake" in out.lower()
+    assert ctx.call("write_file", {"path": "src/c.py", "content": "x = 3\n"}) == "approved"
+    assert state(mod, "file:write").tier == mod.rule.T2              # the score at the bar leads back up at once

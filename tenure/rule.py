@@ -47,8 +47,8 @@ Neutral outcomes (timeouts, cancellations, unverifiable results) change nothing 
 
 Simple mode (``SIMPLE_VERSION``, the default since 1.4) keeps the numbers and drops the rest. A type at low or medium
 stakes that carries no outbound verb runs freely until its first fault. That fault sends a reversible type to T2 with
-its score at the bar (ln B), any other to T1; a fault at T2 adds ``a`` to the score, which then decides between T2 and
-T1, and approvals bring it back to T2 as above. A series of ``n`` verified successes, an act-then-tell action left
+its score at the bar (ln B), any other to T1; a fault at T2 sends it to T1 whatever its score (which still takes the
+step ``a``), and approvals bring it back to T2 as above. A series of ``n`` verified successes, an act-then-tell action left
 undone through its undo window counting as one (``unseen``), gives the type its freedom back (T3, which never draws a
 spot check there). No trial, wait, lengthening, session condition or guarantee; high stakes and outbound verbs always
 ask. ``outcome`` applies one outcome under either mode, for the hooks and the replay alike.
@@ -514,7 +514,8 @@ def _simple_success(s: TypeState, n: int | None, *, source: str) -> list[dict]:
 def _simple_fault(s: TypeState, n: int | None, *, source: str, free: bool) -> list[dict]:
     """Simple mode, a verified fault. The series restarts. A free type (``free``: never faulted, or back at T3)
     goes to T2 with its score at the bar when it is reversible at low or medium stakes, else to T1. A type already
-    held back takes the study's Wald step, and the score decides between T2 and T1. No trial, wait or lengthening."""
+    held back goes to T1, whatever its score, which still takes the study's Wald step: the score only leads back up
+    to T2. No trial, wait or lengthening."""
     s.faults += 1
     s.distrusted = True
     if source == "spot":
@@ -528,11 +529,9 @@ def _simple_fault(s: TypeState, n: int | None, *, source: str, free: bool) -> li
             s.tier = T1
         return [_move(s, "tier", "trusted" if old != T3 else T3, s.tier, "fault")]
     if _middle(s):
-        a, _, ln_b = params.wald_steps(s.stakes)
+        a = params.wald_steps(s.stakes)[0]
         s.wald = (max(s.wald, 0.0) if s.stakes in GRAVE or borrowed else s.wald) + a
-        s.tier = T2 if s.tier != T1 and s.wald <= ln_b + TOL else T1
-    else:
-        s.tier = T1
+    s.tier = T1                    # a second fault asks first, whatever the score: the score only leads back up
     return [_move(s, "tier", old, s.tier, "fault")] if s.tier != old else []
 
 
