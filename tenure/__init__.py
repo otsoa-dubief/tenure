@@ -1409,7 +1409,11 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
         return UndoMessage(tr("undo.missing", id=id), False)
     st.drop_credit(id)                                    # the owner tried to undo it: never a success, even if it fails
     if entry["undone"]:
-        if st.get_meta(INDEX_PENDING + str(id)) and entry["snap_id"]:    # its files came back, git's index did not
+        if st.get_meta(INDEX_PENDING + str(id)):            # its files came back, git's index did not
+            if (not entry["snap_id"] or time.time() - entry["at"] > UNDO_WINDOW
+                    or not undo.exists(entry["snap_id"], data_dir())):
+                st.set_meta(INDEX_PENDING + str(id), "")
+                return UndoMessage(tr("undo.index_expired", id=id), False)
             index = undo.restore_index(entry["snap_id"], data_dir(), key=undo_key())
             if index:
                 return UndoMessage(tr("undo.index_failed", error=index, id=id, command="/tenure undo"), False)
@@ -1630,23 +1634,30 @@ def _local_ok(cfg: dict, act, tool: str, args: dict, cwd: str) -> bool:
 
 
 def _chain_held(cfg: dict, chain, agent: str, args: dict, deadline: float):
-    """Simple mode: the first program a chained line runs that is not free now for this agent: the owner's setting
-    raises it above medium, or its record asks (pinned, watched or asking after a mistake, doubted, held by its
-    parent). Returned as the action the whole line is then asked as, with that program's type, stakes and reason;
-    None when every program is free."""
+    """Simple mode: the first kind of a chained line that would not be free on its own now, for this agent: one of
+    its programs, its ``git rm`` or ``git mv``, or ``file:shell`` for its writing segments beside an rm. Read as
+    ``_decide`` reads it: the owner's setting, the series length for those stakes (none when they are capped), the
+    trusted start (``trusted``: pinned, on trial, distrusted...), a mistake not yet redeemed (watched or asking),
+    a verifier's doubt, a parent's hold. Returned as the action the whole line is then asked as, with that kind's
+    type, stakes and reason; None when every kind is free."""
     with _locked(deadline):
         st = store_()
-        for raw, stakes in chain.free:
+        for raw, stakes, reversible in chain.checks:
             t = classify.same_program(raw)
             ruled = classify._override(t, stakes, cfg["overrides"], raw=raw)
-            seg = classify.Action(type=t, stakes=ruled, reversible=False,
+            if ruled == classify.FREE:
+                continue                                    # the owner set it free
+            seg = classify.Action(type=t, stakes=ruled, reversible=reversible,
                                   summary=classify._summary("terminal", args, t, cfg["vocabulary"]))
-            if classify.RANK[ruled] > classify.RANK[classify.MEDIUM]:
+            n = params.required_n(cfg["risks"], ruled) if ruled in params.LEVELS else None
+            if n is None or classify.RANK[ruled] > classify.RANK[classify.MEDIUM]:
                 return seg
-            rec = st.recorded(agent, t)
-            if rec is not None and (rec.pinned or _marked(rec) or (rec.distrusted and rec.tier != rule.T3)):
-                return seg
-            if st.doubted(agent, t) or _held_by(st, agent, t):
+            recorded, s = st.recorded(agent, t), st.get_state(agent, t, ruled, reversible)
+            free = trusted(cfg, s, n, ruled)
+            if free and s.distrusted and (recorded is None or recorded.stakes != ruled):
+                free = False                                # freedom earned back counts at its own stakes
+            if (not free or _marked(recorded) or (recorded is not None and recorded.pinned)
+                    or st.doubted(agent, t) or _held_by(st, agent, t)):
                 return seg
     return None
 
@@ -2062,16 +2073,16 @@ def _pre_tool_call(tool_name, args, session_id, tool_call_id, task_id):
         wide = simple(cfg)                                  # simple mode: rm -r of a folder and rm globs can be saved
         act = classify.classify(tool, args, cwd=cwd, overrides=cfg["overrides"], vocabulary=cfg["vocabulary"],
                                 wide=wide)
-        local_ok = _local_ok(cfg, act, tool, args, cwd)
-        if act.stakes == classify.FREE:
-            return None
         chain = (classify.undo_chain(str(args.get("command", "")), cwd)
                  if wide and tool == "terminal" and act.reversible else None)
         runs, held = bool(chain and chain.runs), None
-        if chain and chain.free:                            # every program the line runs must be free now
+        if chain and chain.checks:                          # every kind of the line must be free now, even when the
             held = _chain_held(cfg, chain, agent_of(str(session_id or task_id or ""), deadline), args, deadline)
-            if held is not None:
-                act, runs = held, False                     # the line is asked as that program, for its reason
+            if held is not None:                            # owner set the line's own kind free
+                act, runs = held, False                     # the line is asked as that kind, for its reason
+        local_ok = _local_ok(cfg, act, tool, args, cwd)
+        if act.stakes == classify.FREE:
+            return None
         purged = _purge()
         uid = uuid.uuid4().hex
         if act.stakes == classify.CAP:
@@ -2430,15 +2441,18 @@ def _post_tool_call(tool_name, args, result, session_id, tool_call_id, status, e
 
 def _ambiguous(rows: list[dict]) -> None:
     """Several live rows outside any session for one call id and type: none can be told apart, so none is settled as
-    a success; each is recorded as neutral."""
+    a success; each is recorded as neutral. One that acted with its files saved keeps an undo of its own snapshot."""
     cfg, posts = settings(), []
     with txn() as st:
         posts += _say(sync_settings(st, cfg), cfg["spot"], mode(cfg))
         for r in rows:
-            if st.pop_pending(r["id"]) is not None:
+            p = st.pop_pending(r["id"])
+            if p is not None:
                 record_outcome(st, cfg, agent=r["agent"], type_key=r["type"], stakes=r["stakes"],
                                reversible=r["reversible"], result="neutral", source="ambiguous", session=r["session"])
                 _bump(st, r["agent"], "neutral")
+                if p.get("snap_id") and p["phase"] in ("notify", "unwatched"):     # it acted: each keeps its own
+                    st.add_undo(p["agent"], p["type"], p["snap_id"], fault=False)  # snapshot, as its undo
     for text in posts:
         _announce(text)
 

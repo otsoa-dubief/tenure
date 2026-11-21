@@ -530,3 +530,102 @@ def test_r16_the_lift_question_says_what_a_long_line_hides(plugin):
     assert len(long) > 200 and mod.classify.hidden_segments(long) > 0
     assert ctx.call("terminal", {"command": long}) == "approved"
     assert f"(+{mod.classify.hidden_segments(long)} segments)" in ctx.prompts[-1]["message"]
+
+
+# ---------------------------------------------------------------------------------- targeted review of 40d767b
+@pytest.mark.parametrize("line", ["rm -f x.txt >main.py && true", "rm -f x.txt >>main.py && true",
+                                  "git rm -q app.log >main.py && true"])
+def test_ra_a_redirect_beside_rm_or_git_rm_keeps_the_question(plugin, line):
+    mod, ctx = make(plugin)
+    project(ctx)
+    for name in ("x.txt", ">main.py", ">>main.py", "main.py"):
+        touch(ctx, name, "keep\n")
+    assert mod.classify.undo_chain(line, ctx.cwd) is None
+    verdict = ctx.call("terminal", {"command": line})
+    assert last_undo(mod) is None                                       # never an undo that would not hold main.py
+    # rm asks; git rm with its output redirected runs as a covered tool's output always did (`pytest > log`)
+    assert verdict == ("ran" if line.startswith("git") else "approved")
+
+
+def test_rb_git_rm_and_file_writes_beside_rm_must_be_free_on_their_own(plugin):
+    mod, ctx = make(plugin)
+    project(ctx)
+    assert ctx.call("terminal", {"command": "git rm -q --cached debug.log"}) == "ran"    # shell:git:rm recorded
+    mod.cli.slash("trust git:rm ask")
+    line = "git rm -q app.log && rm -rf tmp"
+    assert ctx.call("terminal", {"command": line}) == "approved" and "shell:git:rm" in ctx.prompts[-1]["message"]
+    mod2, ctx2 = make(plugin)
+    project(ctx2, repo=False)
+    ctx2.call("terminal", {"command": SED + "'s/ok/OK/' inventory/report.py"})          # file:shell, saved
+    mod2.cli.slash(f"undo {last_undo(mod2)}")                                          # a mistake: watched
+    line = "rm -rf tmp && " + SED + "'s/ok/OK/' inventory/report.py"
+    assert ctx2.call("terminal", {"command": line}) == "approved" and "file:shell" in ctx2.prompts[-1]["message"]
+
+
+def test_rc_a_program_at_capped_stakes_keeps_the_question(plugin):
+    mod, ctx = make(plugin, {"risks": {"low": "1/50", "medium": "cap", "high": "cap"}})
+    project(ctx, repo=False)
+    line = "rm -rf tmp && python3 -m unittest discover -s tests"       # the line is low, python is medium
+    assert ctx.call("terminal", {"command": line}) == "approved"
+
+
+def test_rc_bis_a_free_setting_on_the_line_keeps_the_pins_of_its_programs(plugin):
+    mod, ctx = make(plugin, {"types": {"file:shell:rm": "free"}})
+    project(ctx, repo=False)
+    touch(ctx, "build.py", "print(1)\n")
+    assert ctx.call("terminal", {"command": "python3 build.py"}) == "ran"
+    mod.cli.slash("trust python ask")
+    assert ctx.call("terminal", {"command": "rm -rf tmp && python3 build.py"}) == "approved"
+
+
+@pytest.mark.parametrize("line", ["rm -rf build && mv notes.bak build", "rm -rf build && cp notes.bak build/x.bak",
+                                  "git rm -rq build && git mv notes.bak build"])
+def test_rd_a_move_into_what_the_line_deleted_keeps_the_question(plugin, line):
+    mod, ctx = make(plugin)
+    project(ctx)
+    assert mod.classify.undo_chain(line, ctx.cwd) is None
+
+
+def test_re_a_program_named_git_elsewhere_is_an_ordinary_program(plugin):
+    mod, ctx = make(plugin)
+    project(ctx)
+    touch(ctx, "git", "#!/bin/sh\n")
+    assert mod.classify.undo_chain("./git rm -q app.log && rm -rf tmp", ctx.cwd) is None       # a program, then rm
+    chain = mod.classify.undo_chain("rm -rf tmp && ./git rm -q app.log", ctx.cwd)
+    assert chain is None or chain.git == ()                                                   # never saved as git rm
+
+
+def test_rg_two_identical_lines_outside_a_session_each_keep_their_undo(plugin):
+    mod, ctx = make(plugin)
+    project(ctx, repo=False)
+    args = {"command": "rm -rf tmp && python3 -m unittest discover -s tests"}
+    assert pre(mod, "terminal", args, "call_0", session="") is None
+    assert pre(mod, "terminal", args, "call_0", session="") is None
+    post(mod, "terminal", args, "call_0", session="")
+    snaps = [r[0] for r in mod.store_().db.execute("SELECT snap_id FROM undo WHERE snap_id IS NOT NULL")]
+    assert len(snaps) == 2 and len(set(snaps)) == 2
+    import shutil
+    shutil.rmtree(os.path.join(ctx.cwd, "tmp"))
+    mod.cli.slash(f"undo {last_undo(mod)}")
+    assert read(ctx, "tmp/scratch.txt") == "scratch\n"
+
+
+def test_rh_a_late_index_retry_says_it_can_no_longer_be_done(plugin):
+    mod, ctx = make(plugin)
+    project(ctx)
+    run(mod, ctx, FIRST, "c1")
+    n = last_undo(mod)
+    touch(ctx, ".git/index.lock", "")
+    mod.cli.slash(f"undo {n}")
+    os.remove(os.path.join(ctx.cwd, ".git", "index.lock"))
+    snap = mod.store_().get_undo(n)["snap_id"]
+    mod.undo.discard(snap, mod.data_dir())                             # purged meanwhile
+    again = mod.cli.slash(f"undo {n}")
+    assert "no longer" in again and "index is back" not in again
+
+
+@pytest.mark.parametrize("command", ["git diff --output=out.txt", "git diff --output out.txt"])
+def test_git_diff_output_writes_a_file_and_is_no_read(command):
+    from tenure import classify
+    for wide in (True, False):
+        assert classify.classify("terminal", {"command": command}, cwd=os.getcwd(), wide=wide).stakes != "free"

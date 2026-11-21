@@ -354,6 +354,7 @@
   "undo.gone": "Annulation {id} : l'instantané a disparu, rien n'a été restauré.",
   "undo.index_failed": "L'index de git n'a pas été remis ({error}) : les fichiers sont restaurés. Quand git sera libre, {command} {id} remettra l'index.",
   "undo.index_done": "Annulation {id} : l'index de git est revenu comme avant.",
+  "undo.index_expired": "Annulation {id} : l'index de git ne peut plus être remis (son instantané a disparu ou sa fenêtre est passée) ; git status montre ce qui est indexé.",
   "undo.missing": "Aucune annulation n° {id}.",
   "undo.no_snapshot": "Annulation {id} : aucun instantané n'a été enregistré pour cette action, rien à restaurer.",
   "undo.partial": {

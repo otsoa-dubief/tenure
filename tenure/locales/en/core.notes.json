@@ -42,6 +42,7 @@
   "simple.ask.more_segments": "Simple mode, in the question that lifts a suspension: after a long chained command cut at 200 characters, how many of its segments the cut hides.",
   "undo.index_failed": "One line after an undo of git rm or git mv when git could not put its index back. {error} is git's first error line or a short reason; {command} {id} is the undo command to run again. Keep git status, {command} and {id} as they are.",
   "undo.index_done": "After a retried undo (the files came back earlier): git's index is back too.",
+  "undo.index_expired": "A retried undo of git's index that can no longer run: its snapshot was purged or its 24-hour window has passed.",
   "simple.state.watched": "Simple mode: where a type stands after its first mistake. Shown after \"it is now at\" in undo and flag messages, and in the status table.",
   "simple.status.to_free": "Status table cell: {k} watched actions without a mistake so far, of the {n} that free the type again.",
   "cli.help": "The three commands /tenure shows. Keep {prefix} (/tenure or hermes tenure), undo [N], trust [KIND], KIND ask and advanced exactly as written, and the alignment with spaces; translate only the descriptions and the word More.",
