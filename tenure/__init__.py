@@ -1498,7 +1498,8 @@ def _to_t2(s: rule.TypeState) -> int:
 def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool,
                  earned_at: str | None, per_session: bool = False, trusted_start: bool = False,
                  held: str | None = None, doubted: bool = False, fresh: list | None = None,
-                 exec_files: list | None = None, taint_from: str = "", simple: bool = False) -> str:
+                 exec_files: list | None = None, taint_from: str = "", simple: bool = False,
+                 lifts: bool = False) -> str:
     stakes = stakes_name(act.stakes)
     if decision == rule.SPOT:
         return tr("ask.spot", summary=act.summary, type=act.type, spot=round(1 / spot))
@@ -1543,6 +1544,8 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
             why += " " + tr("ask.why.provisional", n=s.provisional)
     if per_session:
         return tr("ask.prompt_session", summary=act.summary, why=why)
+    if lifts:                                           # a no doubts the content, not the agent: no fault
+        return tr("simple.ask.prompt_lift", summary=act.summary, why=why)
     return tr("ask.prompt", summary=act.summary, why=why) + "\n" + tr("ask.always")
 
 
@@ -1851,7 +1854,8 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                                                      exec_files=[_show(x, cwd, os.path.expanduser("~"))
                                                                  for x in exec_files],
                                                      earned_at=recorded.stakes if recorded else None,
-                                                     held=_held_by(st, agent, act.type), simple=simple(cfg))}
+                                                     held=_held_by(st, agent, act.type), simple=simple(cfg),
+                                                     lifts=lifts)}
         if taken and taken != snap:
             undo.discard(taken, data_dir())
         taken = None
@@ -1917,7 +1921,9 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
                 with ST.mem:                                # refused or unanswered: its fresh scripts stay fresh
                     ST.fresh.pop((p["session"], p["call"]), None)
                 posts += _say(sync_settings(st, cfg), cfg["spot"], mode(cfg))
-                if verdict == "refused":
+                if verdict == "refused" and p["rule_key"].startswith(f"{PREFIX}:lift:") and simple(cfg):
+                    result, source = "neutral", "blocked"   # the person doubts the content, not the agent
+                elif verdict == "refused":
                     result, source = "fault", ("spot" if p["decision"] == rule.SPOT else "refusal")
                 else:
                     result, source = "neutral", "timeout"
