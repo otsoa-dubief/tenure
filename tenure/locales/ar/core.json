@@ -1,5 +1,6 @@
 {
   "ask.capped": "tenure — {summary}\n{type} مقيَّد: يُسأل عنه دائمًا.",
+  "ask.net_code": "tenure — {summary}\n{type} يشغّل شيفرة منزَّلة من الإنترنت: يسأل tenure دائمًا.",
   "ask.internal_error": "tenure: خطأ داخلي ({error})؛ نسألك بدلًا من تمرير الإجراء.",
   "ask.prompt": "tenure — {summary}\n{why}\nارفض إن كان خطأ: يُحسب ذلك خطأً على الوكيل.",
   "ask.person_only": "tenure: أنت وحدك من يستطيع تعليم إجراءات الوكيل كمرئية أو إعفاء أخطائه أو جعل نوع إجراء حرًّا، من طرفيتك الخاصة أو عبر ‎/tenure. لم يُنفَّذ هذا الاستدعاء.",
@@ -734,6 +735,7 @@
   "trust.already_pinned": "{type} يسألك أولًا أصلًا. لجعله حرًّا: {command}",
   "trust.refused.out": "{type} يصل إلى خارج هذا الجهاز: يسأل دائمًا، ولا يمكن جعله حرًّا يدويًا.",
   "trust.refused.high": "{type} عالي المخاطرة: يسأل دائمًا، ولا يمكن جعله حرًّا يدويًا.",
+  "trust.refused.net_code": "{type} يشغّل شيفرة منزَّلة من الإنترنت: يسأل tenure دائمًا، ولا يمكن جعله حرًّا يدويًا.",
   "trust.refused.capped": "{type} يسأل دائمًا وفق إعداداتك. لتغييرها: {command}",
   "trust.unknown": "لا سجل لـ {type} لدى {agent}. ما زال يسألك أو تحت المراقبة: {types}",
   "trust.study": "جعل نوع حرًّا يدويًا من شأن الوضع البسيط ({command})؛ في وضع الدراسة يكتسب النوع مستواه.",
@@ -757,6 +759,7 @@
     "other": "← حرّ بعد {n} من الإجراءات الإضافية التي تُبقيها"
   },
   "simple.ask.capped": "tenure — {summary}\n{type} محميّ (Hermes نفسه، أو أسرار، أو ملفات حساسة، أو إعداداتك): يسأل tenure دائمًا.",
+  "simple.ask.net_code": "tenure — {summary}\n{type} يشغّل شيفرة منزَّلة من الإنترنت: يسأل tenure دائمًا.",
   "simple.ask.prompt": "tenure — {summary}\n{why}\nارفضه إن كان خاطئًا: سيراقب tenure بعدها هذا النوع عن قرب أكثر.",
   "simple.ask.prompt_session": "tenure — {summary}\n{why}\nاسمح به لهذه المحادثة فيتوقف tenure عن السؤال عنه حتى نهايتها؛ ارفضه إن كان خاطئًا.",
   "simple.ask.always_button": "يُتجاهَل زر \"دائمًا\" في Hermes هنا: يقرّر tenure في كل مرة.",

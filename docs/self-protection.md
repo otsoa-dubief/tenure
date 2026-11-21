@@ -27,6 +27,12 @@ Anything else is not detected: a script that downloads by itself (`python fetch.
 file outside the project, or an MCP server under another name. A child agent started from a suspended session
 starts suspended, and a child agent that read external content suspends its parent.
 
+**Code downloaded and run at once always asks.** One of these programs piped into a shell or an interpreter that
+reads its program from standard input (`curl … | sh`, `wget -qO- … | bash`, `curl … | python -`), or handed to one
+as its program (`bash <(curl …)`, `python <(curl …)`, `sh -c "$(curl …)"`, `eval "$(curl …)"`, a here-string), is
+`shell:net-code`, capped in both modes: never allowed for the session, never freed by a series under any preset, by
+`/tenure trust` or by an override. A local file piped into a shell (`cat script.sh | sh`) stays `shell:stdin-code`.
+
 ## Self-protection
 
 **A person's word stays a person's.** `tenure ok` (marking act-then-tell actions as seen), `tenure excuse` (taking a

@@ -1,5 +1,6 @@
 {
   "ask.capped": "tenure — {summary}\n{type} 受限：始终询问。",
+  "ask.net_code": "tenure — {summary}\n{type} 运行从互联网下载的代码：tenure 始终询问。",
   "ask.internal_error": "tenure：内部错误（{error}）；改为询问你，而不是直接放行该操作。",
   "ask.prompt": "tenure — {summary}\n{why}\n如果有误就拒绝：这会计为一次失误。",
   "ask.person_only": "tenure：只有你可以将智能体的操作标记为已查看、豁免其过错或让某类操作自由，需在你自己的终端或通过 /tenure 进行。此调用未执行。",
@@ -454,6 +455,7 @@
   "trust.already_pinned": "{type} 已经会先询问你。要让它自由：{command}",
   "trust.refused.out": "{type} 会触及本机之外：它始终询问，不能手动让它自由。",
   "trust.refused.high": "{type} 属于高风险：它始终询问，不能手动让它自由。",
+  "trust.refused.net_code": "{type} 运行从互联网下载的代码：tenure 始终询问，不能手动让它自由。",
   "trust.refused.capped": "按你的设置，{type} 始终询问。要更改设置：{command}",
   "trust.unknown": "{agent} 没有 {type} 的记录。仍在询问你或受关注的项：{types}",
   "trust.study": "手动让某类操作自由属于简单模式（{command}）；在研究模式下，类型须自行赢得级别。",
@@ -467,6 +469,7 @@
     "other": "→ 再保留 {n} 个操作即自由"
   },
   "simple.ask.capped": "tenure — {summary}\n{type} 受保护（Hermes 本身、密钥、敏感文件或你自己的设置）：tenure 始终询问。",
+  "simple.ask.net_code": "tenure — {summary}\n{type} 运行从互联网下载的代码：tenure 始终询问。",
   "simple.ask.prompt": "tenure — {summary}\n{why}\n如果它不对就拒绝：tenure 之后会更密切地关注这一类型。",
   "simple.ask.prompt_session": "tenure — {summary}\n{why}\n在本对话中允许它，tenure 在对话结束前不再就此询问；如果它不对就拒绝。",
   "simple.ask.always_button": "这里会忽略 Hermes 的“始终”：tenure 每次自行决定。",

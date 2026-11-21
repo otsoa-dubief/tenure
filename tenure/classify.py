@@ -5,8 +5,8 @@
 Grid from the earned-autonomy study: an action is classed by what it does, not by the tool. Reads are free. Writes
 inside the project are low stakes and reversible; writes elsewhere, commands, code and delegation are medium;
 anything that leaves the machine (messages to others, publications, pushes, uploads) and money are high. Some
-actions are capped and always ask: secrets, the agent's own skills, plugins and guardrails, sensitive files. An
-action whose effect cannot be read is treated as high stakes.
+actions are capped and always ask: secrets, the agent's own skills, plugins and guardrails, sensitive files, code
+downloaded from the internet and run at once. An action whose effect cannot be read is treated as high stakes.
 
 Types are fine-grained so that a record says something: shell commands are typed by program (and by subcommand
 when the subcommand changes the stakes), MCP tools by server and tool. A program that runs other commands (find
@@ -33,7 +33,7 @@ from dataclasses import dataclass
 
 FREE, LOW, MEDIUM, HIGH, CAP = "free", "low", "medium", "high", "cap"
 RANK = {FREE: 0, LOW: 1, MEDIUM: 2, HIGH: 3, CAP: 4}
-PROTECTED = ("secrets:", "self:", "file:sensitive")     # caps an owner override can never lower
+PROTECTED = ("secrets:", "self:", "file:sensitive", "shell:net-code")   # caps an owner override can never lower
 
 
 @dataclass(frozen=True)
@@ -5221,18 +5221,21 @@ KEYWORDS = {"if", "then", "elif", "else", "fi", "case", "esac", "for", "while", 
 HEREDOC = re.compile(r"<<(-?)\s*([\"']?)([A-Za-z_][A-Za-z0-9_]*)\2")
 
 
-def _strip_heredocs(command: str) -> str:
-    """The command without the bodies of simple heredocs (their text is data, not grammar)."""
-    out, pending = [], []
+def _strip_heredocs(command: str, bodies: bool = False) -> str:
+    """The command without the bodies of simple heredocs (their text is data, not grammar); ``bodies``: those
+    bodies alone, without their delimiters."""
+    out, body, pending = [], [], []
     for line in command.split("\n"):
         if pending:
             strip, delim = pending[0]
             if (line.lstrip("\t") if strip else line).rstrip("\r") == delim:
                 pending.pop(0)
+            else:
+                body.append(line)
             continue
         out.append(line)
         pending += [(m.group(1) == "-", m.group(3)) for m in HEREDOC.finditer(line.replace("<<<", "   "))]
-    return "\n".join(out)
+    return "\n".join(body if bodies else out)
 
 
 def _frag(word: str) -> bool:
@@ -5513,6 +5516,8 @@ def _shell_read(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str,
         return floor, CAP, False
     if _hermes_floor(command):
         return "self:hermes", CAP, False
+    if _net_code(command):
+        return NET_CODE[0], NET_CODE[1], False      # code downloaded and run at once: always asked
     if _complex_floor(command):
         low = command.casefold()          # quotes cannot be trusted here: look at the raw text
         if tenure_named(low):
@@ -5529,6 +5534,93 @@ def _shell_read(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str,
 EXTERNAL_PROGRAMS = frozenset({"curl", "wget", "http", "https", "xh", "xhs", "lynx", "w3m", "links", "aria2c", "nc",
                                "ncat"})
 GIT_EXTERNAL = frozenset({"clone", "pull", "fetch"})
+
+# Code downloaded from the internet and run at once (the owner's decision, 21/11): capped, so it asks every time in
+# both modes, never for the rest of a session, never freed by a series under any preset nor by /tenure trust. A local
+# file piped into a shell (`cat script.sh | sh`) stays shell:stdin-code.
+NET_CODE = ("shell:net-code", CAP)
+STDIN_FILES = ("/dev/stdin", "/dev/fd/0", "/proc/self/fd/0")
+# A substitution whose output comes from another host: `$(curl …)`, `` `wget -qO- …` ``.
+NET_SUB = re.compile(r"(?:\$\(|`)[^`)]*?(?<![\w.-])(?:" + "|".join(sorted(map(re.escape, EXTERNAL_PROGRAMS)))
+                     + r")(?![\w.:/-])")
+
+
+def _code_source(toks: list[str]) -> tuple[str, str]:
+    """Where a command takes the code it runs: ("stdin", "") for a shell or interpreter reading its program from
+    standard input (`sh`, `bash -s`, `python -`, `source /dev/stdin`, `xargs sh -c`), ("arg", code) for code given as
+    an argument (`sh -c CODE`, `python -c CODE`, `eval ARGS`), else ("", "")."""
+    if not toks:
+        return "", ""
+    prog, args = os.path.basename(toks[0]), toks[1:]
+    if prog == "xargs":
+        rest = _xargs_rest(args)
+        return _code_source(rest) if rest else ("", "")
+    if prog == "eval":
+        return "arg", " ".join(args)
+    if prog in ("source", "."):
+        return ("stdin", "") if args[:1] and args[0] in STDIN_FILES + ("-",) else ("", "")
+    base = re.sub(r"\d+(\.\d+)*$", "", prog)
+    shell = prog in SHELLS
+    if not shell and prog not in INTERPRETERS and base not in INTERPRETERS:
+        return "", ""
+    flag = (next((n for n, a in enumerate(args) if re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*", a)), None) if shell
+            else next((n for n, a in enumerate(args) if a in INLINE_FLAGS or _inline_cluster([a])), None))
+    if flag is not None:
+        return ("stdin", "") if shell and flag + 1 >= len(args) else ("arg", args[flag + 1] if flag + 1 < len(args)
+                                                                      else "")   # xargs sh -c: the input is code
+    if not shell and "-m" in args:
+        return "", ""
+    script = next((a for a in args if not a.startswith("-")), "")
+    return ("stdin", "") if _stdin_code(args, script) else ("", "")
+
+
+def _net_code(command: str, depth: int = 0) -> bool:
+    """The line runs what it downloads (``NET_CODE``): a fetch piped into a command that reads its program from
+    standard input (`curl … | sh`, `wget -qO- … | bash`, `curl … | python -`), or a download handed to a shell or an
+    interpreter as its program: process substitution (`bash <(curl …)`, `python <(curl …)`, `source <(curl …)`),
+    command substitution as the code (`sh -c "$(curl …)"`, `eval "$(curl …)"`), a here-string (`bash <<< "$(curl
+    …)"`); the code of `sh -c` and `eval` is read the same way. Both readings of the line count. A heredoc's body
+    is data, unless a shell or interpreter reads it as its program (`sh <<EOF`): then it is read as code too."""
+    if depth > MAX_DEPTH:
+        return False
+    text = _strip_heredocs(command)
+    if text != command:
+        body = _strip_heredocs(command, bodies=True)
+        segs = _build(_tokens_lines(text))
+        fed = [seg for seg in segs if {"<<", "<<-"} & set(map(str, seg.tokens))]
+        if any(_code_source(_unwrap(seg.tokens))[0] == "stdin" for seg in fed) and _net_code(body, depth + 1):
+            return True                                       # sh <<EOF … curl … | sh … EOF
+        if NET_SUB.search(body) and any(_code_source(_unwrap(seg.tokens))[0] == "stdin" for seg in segs):
+            return True                                       # a download expanded in the body, then run
+
+        command = text
+    for tokens in (_tokens_lines(command), _tokens_whole(command)):
+        segs = _build(tokens)
+        for n, seg in enumerate(segs):
+            toks, raw = _unwrap(seg.tokens), [str(t) for t in seg.tokens]
+            if not toks:
+                continue
+            prog = os.path.basename(toks[0])
+            kind, code = _code_source(toks)
+            runner = bool(kind) or prog in SHELLS or prog in ("source", ".") or prog in INTERPRETERS or re.sub(
+                r"\d+(\.\d+)*$", "", prog) in INTERPRETERS
+            if runner and "<(" in raw and any(os.path.basename(t) in EXTERNAL_PROGRAMS
+                                              for t in raw[raw.index("<(") + 1:]):
+                return True                                   # bash <(curl …), source <(curl …)
+            text = re.sub(r"\$\s*\(", "$(", " ".join(raw))     # `eval $(curl …)` is lexed apart
+            if kind == "arg" and (NET_SUB.search(text) or (code and _net_code(code, depth + 1))):
+                return True                                   # sh -c "$(curl …)", or `curl … | sh` inside the code
+            if kind != "stdin":
+                continue
+            if "<<<" in raw and NET_SUB.search(re.sub(r"\$\s*\(", "$(", " ".join(raw[raw.index("<<<") + 1:]))):
+                return True                                   # bash <<< "$(curl …)"
+            k = n
+            while segs[k].sep in PIPES and k > 0:
+                k -= 1
+                feeder = _unwrap(segs[k].tokens)
+                if feeder and os.path.basename(feeder[0]) in EXTERNAL_PROGRAMS:
+                    return True                               # curl … | sh, curl … | tee log | sh
+    return False
 
 
 LOCAL_URL = re.compile(r"(?:https?://)?(?:localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(?::\d+)?(?:[/?#].*)?", re.I)

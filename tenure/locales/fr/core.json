@@ -1,5 +1,6 @@
 {
   "ask.capped": "tenure — {summary}\n{type} est plafonné : toujours demandé.",
+  "ask.net_code": "tenure — {summary}\n{type} exécute du code téléchargé depuis internet : tenure demande toujours.",
   "ask.internal_error": "tenure : erreur interne ({error}) ; on vous demande plutôt que de laisser passer l'action.",
   "ask.prompt": "tenure — {summary}\n{why}\nRefusez si c'est faux : cela compte comme une faute.",
   "ask.person_only": "tenure : vous seul pouvez marquer les actions de l'agent comme vues, excuser ses fautes ou libérer un type d'action, depuis votre propre terminal ou avec /tenure. Cet appel n'a pas été lancé.",
@@ -512,6 +513,7 @@
   "trust.already_pinned": "{type} vous demande déjà d'abord. Pour le libérer : {command}",
   "trust.refused.out": "{type} sort de cette machine : il demande toujours et ne peut pas être libéré à la main.",
   "trust.refused.high": "{type} est à haut risque : il demande toujours et ne peut pas être libéré à la main.",
+  "trust.refused.net_code": "{type} exécute du code téléchargé depuis internet : tenure demande toujours, et il ne peut pas être libéré à la main.",
   "trust.refused.capped": "{type} demande toujours selon vos réglages. Pour les changer : {command}",
   "trust.unknown": "Aucun historique de {type} pour {agent}. Ce qui vous demande encore ou est surveillé : {types}",
   "trust.study": "Libérer un type à la main relève du mode simple ({command}) ; en mode étude, un type gagne son niveau.",
@@ -527,6 +529,7 @@
     "other": "→ libre après encore {n} actions conservées"
   },
   "simple.ask.capped": "tenure — {summary}\n{type} est protégé (Hermes lui-même, des secrets, des fichiers sensibles ou vos propres réglages) : tenure demande toujours.",
+  "simple.ask.net_code": "tenure — {summary}\n{type} exécute du code téléchargé depuis internet : tenure demande toujours.",
   "simple.ask.prompt": "tenure — {summary}\n{why}\nRefusez si c'est une erreur : tenure surveillera alors ce type de plus près.",
   "simple.ask.prompt_session": "tenure — {summary}\n{why}\nAutorisez-le pour cette conversation et tenure ne redemande plus jusqu'à sa fin ; refusez si c'est une erreur.",
   "simple.ask.always_button": "Le bouton « Toujours » de Hermes est ignoré ici : tenure décide à chaque fois.",
