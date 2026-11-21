@@ -406,5 +406,7 @@
   "simple.explain.study": "此模式下没有随机抽查，也没有保证。研究规则、其保证和签名护照：{command}",
   "simple.ask.suspended": "此会话读取了外部内容：允许此操作后，本会话余下的命令会像之前一样执行（仍遵循简单规则）；拒绝则它们会继续询问。",
   "simple.ask.prompt_lift": "tenure — {summary}\n{why}\n拒绝不会记为失误：你怀疑的是内容，而不是智能体。",
-  "simple.undo.fault_anyway": "仍记为 {type} 的一次失误：你要求撤销它。"
+  "simple.undo.fault_anyway": "仍记为 {type} 的一次失误：你要求撤销它。",
+  "settle.acted_failed": "tenure：{type} 执行失败，停止前可能已修改文件{what} · {command} {id}",
+  "undo.done_unchanged": "撤销 {id}：文件已恢复。该调用失败且未作任何修改：不记为 {type} 的失误。"
 }

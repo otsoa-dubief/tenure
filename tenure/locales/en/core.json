@@ -455,5 +455,7 @@
   "simple.explain.study": "No spot check and no guarantee in this mode. For the study's rule, its guarantee and the signed passport: {command}",
   "simple.ask.suspended": "This session read outside content: allow this action and its commands run as before for the rest of the session (each still under the simple rule); deny it and they keep asking.",
   "simple.ask.prompt_lift": "tenure — {summary}\n{why}\nDenying it counts no fault: it is the content you doubt, not the agent.",
-  "simple.undo.fault_anyway": "Counted as a fault of {type} all the same: you asked to undo it."
+  "simple.undo.fault_anyway": "Counted as a fault of {type} all the same: you asked to undo it.",
+  "settle.acted_failed": "tenure: {type} failed, and may have changed files before it stopped{what} · {command} {id}",
+  "undo.done_unchanged": "Undo {id}: files restored. The call had failed without changing anything: no fault of {type} is counted."
 }

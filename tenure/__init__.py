@@ -1126,6 +1126,7 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
 
 
 UNDO_WINDOW = 24 * 3600          # seconds an act-then-notify action can be undone
+UNDO_FAILED = "undo_failed:"     # meta key prefix: the undo entry of a call that failed after its files were saved
 
 
 def _credit_due(st: store.Store, cfg: dict, now: float | None = None) -> list[dict]:
@@ -1316,7 +1317,9 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
         return UndoMessage(tr("undo.expired", id=id, n=UNDO_WINDOW // 3600), False)
     if not entry["snap_id"]:
         return _undo_failed(st, entry, tr("undo.no_snapshot", id=id))
+    after_failure = bool(st.get_meta(UNDO_FAILED + str(id)))
     try:
+        untouched = after_failure and undo.unchanged(entry["snap_id"], data_dir(), key=undo_key())
         restored, failed = undo.restore(entry["snap_id"], data_dir(), keep=True, key=undo_key())
     except undo.Refused as e:
         return _undo_failed(st, entry, tr("undo.refused", id=id, reason=e))
@@ -1329,6 +1332,8 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
     st.flag_by_undo(id)                                   # undone: it cannot be flagged afterwards
     if entry["fault"]:
         return UndoMessage(tr("undo.done_already_fault", id=id, type=key), True, entry["snap_id"])
+    if untouched:                                         # a failed call that changed nothing: restored, no fault
+        return UndoMessage(tr("undo.done_unchanged", id=id, type=key), True, entry["snap_id"])
     recorded = st.recorded(agent, key)
     stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
     cfg = settings()
@@ -1714,16 +1719,21 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
               alone=not blocked and (acted or phase == "alone"))
     posts = []
     undo_id = None
-    if acted and not blocked and not failed:    # the files were written: the owner can revert them
-        undo_id = st.add_undo(agent, key, p["snap_id"], fault=bool(reason))
+    broke = acted and not blocked and failed and bool(p.get("snap_id")) and not reason
+    if acted and not blocked and (not failed or p.get("snap_id")):   # the files were saved: the owner can revert them,
+        undo_id = st.add_undo(agent, key, p["snap_id"], fault=bool(reason))   # even after a failure (rm -r cut short)
+        if broke:
+            st.set_meta(UNDO_FAILED + str(undo_id), "1")    # undoing a failed call that changed nothing is no fault
         if deferred:
             st.add_credit(undo_id, st.root_of(p["session"]), p["stakes"], p["reversible"])
         _push("acted", {"agent": agent, "type": key, "undo_id": undo_id, "fault": bool(reason),
                         "profile": _profile_name()})
         if reason:
             posts.append(tr("settle.acted_fault", type=key, reason=reason, what=what, command="/tenure undo", id=undo_id))
+        elif broke and not simple(cfg):
+            posts.append(tr("settle.acted_failed", type=key, what=what, command="/tenure undo", id=undo_id))
         elif simple(cfg):                       # simple mode: a free action says nothing, a watched one joins the
-            if deferred:                        # line said at the end of the turn
+            if deferred or broke:               # line said at the end of the turn, and so does a failed one
                 posts.append(Watched(p["session"], undo_id, label or _join_shown(shown) or key))
         else:
             text = tr("settle.acted", type=key, what=what, command="/tenure undo", id=undo_id)

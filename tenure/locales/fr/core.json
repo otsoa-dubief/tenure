@@ -457,5 +457,7 @@
   "simple.explain.study": "Ni contrôle aléatoire ni garantie dans ce mode. Pour la règle de l'étude, sa garantie et le passeport signé : {command}",
   "simple.ask.suspended": "Cette session a lu un contenu extérieur : autorisez cette action et ses commandes s'exécutent comme avant pour le reste de la session (toujours selon la règle simple) ; refusez-la et elles continuent de demander.",
   "simple.ask.prompt_lift": "tenure — {summary}\n{why}\nLa refuser ne compte aucune faute : c'est du contenu que vous doutez, pas de l'agent.",
-  "simple.undo.fault_anyway": "Compté quand même comme une faute de {type} : vous avez demandé à l'annuler."
+  "simple.undo.fault_anyway": "Compté quand même comme une faute de {type} : vous avez demandé à l'annuler.",
+  "settle.acted_failed": "tenure : {type} a échoué, et a pu modifier des fichiers avant de s'arrêter{what} · {command} {id}",
+  "undo.done_unchanged": "Annulation {id} : fichiers restaurés. L'appel avait échoué sans rien modifier : aucune faute de {type} n'est comptée."
 }

@@ -788,3 +788,28 @@ def test_17_more_ways_git_discards_work(command):
 def test_18_globignore_and_fignore_are_hijacks(var):
     from tenure import classify
     assert classify.classify("terminal", {"command": f"{var}=x rm a"}, cwd="/tmp", wide=True).stakes == "cap"
+
+
+@pytest.mark.parametrize("mode", ["simple", "study"])
+def test_3_a_failed_call_keeps_its_undo(plugin, mode):
+    """An rm -r cut short by an error: its files were saved, so the undo is offered (both modes) and puts them back.
+    A failed call that changed nothing: the undo restores, and counts no fault."""
+    mod, ctx = plugin({"mode": mode, "start": "trusted", **FAST})
+    key = "file:shell:rm" if mode == "simple" else "file:shell"
+    touch(ctx, "c.txt", "c")
+    ctx.call("terminal", {"command": "rm c.txt"}, status="error")      # failed, changed nothing
+    out = mod.cli.slash(f"undo {last_undo(mod)}")
+    assert "no fault" in out and open(os.path.join(ctx.cwd, "c.txt")).read() == "c"
+    assert state(mod, key) is None or state(mod, key).faults == 0
+    for name in ("build/a.txt", "build/sub/b.txt"):
+        touch(ctx, name, name)
+    cmd = "rm -rf build" if mode == "simple" else "rm build/a.txt build/sub/b.txt"
+    ctx.posted.clear()
+    ctx.call("terminal", {"command": cmd}, status="error")
+    os.remove(os.path.join(ctx.cwd, "build", "a.txt"))                # what it removed before it stopped
+    mod.post_llm_call(session_id="s1")
+    n = last_undo(mod)
+    assert any(f"/tenure undo" in str(p) for p in ctx.posted)
+    mod.cli.slash(f"undo {n}")
+    assert open(os.path.join(ctx.cwd, "build", "a.txt")).read() == "build/a.txt"
+    assert state(mod, key).faults == 1                                 # it did delete: the person judged it
