@@ -509,5 +509,13 @@
   "trust.study": "Freeing a kind by hand belongs to simple mode ({command}); in study mode a kind earns its tier.",
   "trust.terminal": "Freeing a kind is a person's word: {slash} in the chat, or {cli} in an interactive terminal.",
   "trust.nobody": "Not while nobody answers approvals ({why}): only a person can free a kind.",
-  "trust.ask.pinned": "{type} asks you first, as you chose: {command} frees it."
+  "trust.ask.pinned": "{type} asks you first, as you chose: {command} frees it.",
+  "trust.state.ask_watched": {
+    "one": "asks you first: watched again after {n} more approval",
+    "other": "asks you first: watched again after {n} more approvals in a row"
+  },
+  "trust.state.then_free": {
+    "one": "(then free after {n} more action you do not undo)",
+    "other": "(then free after {n} more actions you do not undo)"
+  }
 }

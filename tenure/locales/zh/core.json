@@ -453,5 +453,11 @@
   "trust.study": "手动让某类操作自由属于简单模式（{command}）；在研究模式下，类型须自行赢得级别。",
   "trust.terminal": "让某类操作自由须由人决定：在对话中输入 {slash}，或在交互式终端中运行 {cli}。",
   "trust.nobody": "无人回答审批时（{why}）不可用：只有人可以让某类操作自由。",
-  "trust.ask.pinned": "{type} 按你的选择先询问你：{command} 让它自由。"
+  "trust.ask.pinned": "{type} 按你的选择先询问你：{command} 让它自由。",
+  "trust.state.ask_watched": {
+    "other": "先询问你：再连续批准 {n} 次即重新受关注"
+  },
+  "trust.state.then_free": {
+    "other": "（之后再有 {n} 个你未撤销的操作即重新自由）"
+  }
 }

@@ -798,6 +798,12 @@ def _state_text(core, cfg: dict, s: rule.TypeState, prefix: str) -> str:
     if not core.simple(cfg):
         return tr("trust.state.study", tier=tier_name(effective_tier(s, params.required_n(cfg["risks"], s.stakes))),
                   n=left)
+    n = params.required_n(cfg["risks"], s.stakes)
+    if state == "ask" and rule._middle(s) and s.series + core._to_t2(s) < n:
+        # a reversible kind: approvals first bring it back to watched (the Wald score, as _simple_success moves it,
+        # the series counting each one), then actions left undone through their window finish the series
+        k = core._to_t2(s)
+        return tr("trust.state.ask_watched", n=k) + " " + tr("trust.state.then_free", n=n - s.series - k)
     return tr(f"trust.state.{state}", n=left)
 
 
