@@ -352,6 +352,7 @@
     "other": "La entrada de deshacer {id} tiene más de {n} h: la instantánea ya no se conserva."
   },
   "undo.gone": "Deshacer {id}: la instantánea ya no existe, no se restauró nada.",
+  "undo.index_failed": "El índice de git no se ha restaurado ({error}): los archivos sí; git status muestra lo que está preparado.",
   "undo.missing": "No hay ninguna entrada de deshacer {id}.",
   "undo.no_snapshot": "Deshacer {id}: no se guardó ninguna instantánea de esta acción, no hay nada que restaurar.",
   "undo.partial": {

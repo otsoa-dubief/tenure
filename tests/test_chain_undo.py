@@ -96,6 +96,64 @@ def test_the_first_real_line_runs_free_and_one_undo_puts_it_all_back(plugin):
         assert read(ctx, name) == files[name], out
     assert read(ctx, "inventory/report.py") == REPORT                  # the content before sed
     assert not os.path.exists(os.path.join(ctx.cwd, "inventory/text.py"))   # what the move created is taken back
+    assert status(ctx) == "", status(ctx)                              # git's index too: the state before the line
+    assert "index" not in out
+
+
+def status(ctx):
+    return subprocess.run(["git", "status", "--porcelain"], cwd=ctx.cwd, capture_output=True, text=True,
+                          env=ENV, check=True).stdout
+
+
+def test_the_index_comes_back_as_it_was_even_with_a_change_staged_before_the_line(plugin):
+    mod, ctx = make(plugin)
+    project(ctx)
+    touch(ctx, "inventory/textutil.py", "def shout(s):\n    return s.upper() + '!'\n")
+    git(ctx, "add", "inventory/textutil.py")                          # staged, not committed
+    touch(ctx, "notes.bak", "notes, changed\n")                       # changed, not staged
+    before = status(ctx)
+    assert before == "M  inventory/textutil.py\n M notes.bak\n"
+    line = "git rm -q app.log && git mv inventory/textutil.py inventory/text.py && rm -rf tmp notes.bak"
+    assert run(mod, ctx, line, "c1").returncode == 0
+    assert status(ctx) != before
+    mod.cli.slash(f"undo {last_undo(mod)}")
+    assert status(ctx) == before and read(ctx, "notes.bak") == "notes, changed\n"
+
+
+def test_when_git_cannot_put_its_index_back_the_undo_says_so_and_the_files_stay_restored(plugin):
+    mod, ctx = make(plugin)
+    files = project(ctx)
+    assert run(mod, ctx, FIRST, "c1").returncode == 0
+    touch(ctx, ".git/index.lock", "")                                 # another git holds the index
+    out = mod.cli.slash(f"undo {last_undo(mod)}")
+    assert "index was not put back" in out and "index.lock" in out
+    assert len([ln for ln in out.splitlines() if "index" in ln]) == 1
+    for name in ("build/out.txt", "app.log", "inventory/textutil.py"):
+        assert read(ctx, name) == files[name]
+
+
+def test_a_chained_line_is_read_once_per_hook_call(plugin, monkeypatch):
+    mod, ctx = make(plugin)
+    project(ctx)
+    seen = []
+    real = mod.classify._read_chain
+    monkeypatch.setattr(mod.classify, "_read_chain", lambda *a: seen.append(a[0]) or real(*a))
+    args = {"command": SECOND}
+    assert pre(mod, "terminal", args, "c1") is None
+    assert len(seen) == 1
+    post(mod, "terminal", args, "c1")
+    assert len(seen) == 2                                             # read afresh after it ran, once
+
+
+def test_a_refused_segment_walks_no_folder(plugin, monkeypatch):
+    mod, ctx = make(plugin)
+    project(ctx, repo=False)
+    walked = []
+    monkeypatch.setattr(mod.classify, "_undo_tree", lambda folder: walked.append(folder))
+    for line in ("rm -rf build && git push origin main", "rm -rf build && curl https://example.com",
+                 "rm -rf build tmp && npm i left-pad"):
+        assert mod.classify.undo_chain(line, ctx.cwd) is None
+    assert walked == []
 
 
 def test_the_second_real_line_runs_free_and_its_undo_brings_tmp_and_the_backup_back(plugin):

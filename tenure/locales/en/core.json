@@ -350,6 +350,7 @@
     "other": "Undo {id} is older than {n} h: the snapshot is no longer kept."
   },
   "undo.gone": "Undo {id}: the snapshot is gone, nothing restored.",
+  "undo.index_failed": "Git's index was not put back ({error}): the files are restored; git status shows what is staged.",
   "undo.missing": "No undo entry {id}.",
   "undo.no_snapshot": "Undo {id}: no snapshot was saved for this action, nothing to restore.",
   "undo.partial": {

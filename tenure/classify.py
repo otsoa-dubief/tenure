@@ -14,6 +14,7 @@ when the subcommand changes the stakes), MCP tools by server and tool. A program
 """
 from __future__ import annotations
 
+import contextlib
 import fnmatch
 import functools
 import itertools
@@ -121,6 +122,31 @@ def _expand(path: str, home: str) -> str:
 
 
 _CACHE = threading.local()                       # symlink resolutions, valid for one classify() call
+_SCOPE = threading.local()                       # one hook call: the files of a command line, read once
+
+
+@contextlib.contextmanager
+def one_reading():
+    """Inside one hook call (``pre_tool_call``, ``post_tool_call``): a command line's files are read once, however
+    many times the hook asks (``undoable_shell``, ``undo_chain``). Each call reads afresh: after the command ran,
+    ``post_tool_call`` sees the disk as it is then. Outside a scope nothing is kept."""
+    outer = getattr(_SCOPE, "memo", None) is not None
+    if not outer:
+        _SCOPE.memo = {}
+    try:
+        yield
+    finally:
+        if not outer:
+            _SCOPE.memo = None
+
+
+def _scoped(key: tuple, compute):
+    memo = getattr(_SCOPE, "memo", None)
+    if memo is None:
+        return compute()
+    if key not in memo:
+        memo[key] = compute()
+    return memo[key]
 
 
 def _abs(path: str, cwd: str | None, home: str | None = None, physical: bool = True) -> str:
@@ -173,16 +199,31 @@ def _lexical(full: str) -> str:
 
 
 def _real(full: str) -> str:
-    """The symlink-resolved path (the part that exists is resolved, the rest is kept)."""
+    """The symlink-resolved path (the part that exists is resolved, the rest is kept). With a memo (one classify
+    call), a leaf that is not a link is its folder's resolved path plus its name, as ``realpath`` walks it: the
+    folders of many files are resolved once."""
     memo = getattr(_CACHE, "memo", None)
     if memo is not None and full in memo:
         return memo[full]
-    try:
-        real = _norm(os.path.realpath(full))
-        if real.startswith("/System/Volumes/Data/"):         # macOS firmlink: the data volume is the root
-            real = real[len("/System/Volumes/Data"):]
-    except (OSError, ValueError):
-        real = full
+    real = None
+    if memo is not None and getattr(os, "name", "") == "posix" and "\0" not in full:
+        head, leaf = os.path.split(full)
+        if head and leaf and leaf not in (".", "..") and head != full:
+            try:
+                linked = _stat.S_ISLNK(os.lstat(full).st_mode)
+            except FileNotFoundError:
+                linked = False                           # missing: realpath keeps the rest as written
+            except (OSError, ValueError):
+                linked = True                            # unsure: the full walk below
+            if not linked:
+                real = _real(head).rstrip("/") + "/" + leaf
+    if real is None:
+        try:
+            real = _norm(os.path.realpath(full))
+        except (OSError, ValueError):
+            real = full
+    if real.startswith("/System/Volumes/Data/"):         # macOS firmlink: the data volume is the root
+        real = real[len("/System/Volumes/Data"):]
     if memo is not None:
         memo[full] = real
     return real
@@ -1362,7 +1403,8 @@ def _file(path: str, cwd: str | None, home: str) -> tuple[str, str, bool]:
                                                      or _hermes_path(full, "/", home)
                                                      or (lexical != full and _hermes_path(lexical, "/", home))):
         return "self:hermes", CAP, False                 # the Hermes program, or a file of its installed package
-    if _sensitive(full) or _sensitive(real) or _linked_entry(real) or (lexical != full and _sensitive(lexical)):
+    if (_sensitive(full) or (real != full and _sensitive(real)) or _linked_entry(real)
+            or (lexical != full and _sensitive(lexical))):
         return "file:sensitive", CAP, False
     lexroot = _norm(os.path.normpath(base)).rstrip("/") + "/"
     try:
@@ -1429,7 +1471,12 @@ def undoable_shell(command: str, cwd: str | None, home: str, *, wide: bool = Fal
     variable, substitution, chain, pipe or second redirect: anything Tenure cannot be sure of keeps today's question.
 
     ``wide`` (simple mode) also reads ``rm -r`` of a project folder (``_undo_rm``) and an unquoted glob given to a
-    bare ``rm`` (``_undo_glob``)."""
+    bare ``rm`` (``_undo_glob``). Read once per hook call (``one_reading``)."""
+    found = _scoped(("undo", str(command or ""), cwd, home, wide), lambda: _undoable_shell(command, cwd, home, wide))
+    return list(found) if found is not None else None
+
+
+def _undoable_shell(command: str, cwd: str | None, home: str, wide: bool) -> list[str] | None:
     text = str(command or "").strip()
     if not text or not cwd or getattr(os, "name", "") == "nt":
         return None                                      # POSIX shells only: on Windows a file command keeps asking
@@ -1816,10 +1863,12 @@ class Chain:
     """A command line of segments joined by ``&&``, ``;`` or ``||`` (and a last pipe into pure readers) that simple
     mode can run with an undo: ``paths``, every file its saving segments change (one snapshot); ``rm``, a segment
     deletes (``rm``, ``git rm``): the line is ``file:shell:rm``; ``runs``, a segment that asks on its own after outside
-    content (a covered program, ``git rm``, ``git mv``): the line keeps the suspension's question."""
+    content (a covered program, ``git rm``, ``git mv``): the line keeps the suspension's question; ``git``, the files of
+    its ``git rm`` and ``git mv`` segments."""
     paths: tuple
     rm: bool
     runs: bool
+    git: tuple = ()      # the files of its git rm and git mv segments: their index entries are put back by an undo
 
 
 def chain_parts(command: str) -> list[tuple[str, str, str]] | None:
@@ -1863,11 +1912,16 @@ def undo_chain(command: str, cwd: str | None, home: str | None = None) -> Chain 
     ``git mv``, ``mv``, ``cp``, ``sed -i``, ``touch``, a redirect into the one file it saves); a last pipe goes only
     into pure readers (``tail -40``, ``head``, ``cat``, ``grep x``). The snapshot is the union of the targets, read now
     (a file an earlier segment creates and a later one deletes is not saved), under the usual caps; a target a
-    later segment runs as a script makes the line keep its question (write then run). Else None."""
+    later segment runs as a script makes the line keep its question (write then run). Else None. Every segment is
+    read before any folder is walked, and the line is read once per hook call (``one_reading``)."""
     parts = chain_parts(command)
     if not parts or not cwd or cwd == UNKNOWN or getattr(os, "name", "") == "nt":
         return None
     home = home or os.path.expanduser("~")
+    return _scoped(("chain", str(command), cwd, home), lambda: _read_chain(command, parts, cwd, home))
+
+
+def _read_chain(command: str, parts: list, cwd: str, home: str) -> Chain | None:
     saved = {k: getattr(_CACHE, k, None) for k in ("memo", "roots", "cwd", "home", "wide")}
     _CACHE.memo, _CACHE.roots, _CACHE.cwd, _CACHE.home, _CACHE.wide = {}, None, cwd, home, True
     try:
@@ -1883,32 +1937,47 @@ def _undo_chain(command: str, parts: list, cwd: str, home: str) -> Chain | None:
         return None                                      # a pipe only at the end of the line, into readers
     if not all(_chain_reader(p[0], p[1]) for p in parts[piped:]):
         return None
-    paths: list[str] = []
-    rm = runs = saving = False
-    for seg, seg_masked, _op in parts[:piped]:
-        got = _chain_segment(seg, seg_masked, cwd, home)
-        if got is None:
+    if not any(_chain_may_save(seg, seg_masked) for seg, seg_masked, _op in parts[:piped]):
+        return None                                      # no file command: nothing to read, the line is as today
+    plans = []
+    for seg, seg_masked, _op in parts[:piped]:           # every segment read first: a refused one walks nothing
+        plan = _chain_segment(seg, seg_masked, cwd, home)
+        if plan is None:
             return None
-        kind, found = got
-        if kind in ("save", "save-git"):
-            paths += found
-            saving = True
-            rm = rm or _chain_deletes(seg)
-        runs = runs or kind in ("free", "save-git")
-    if not saving:
+        plans.append((seg, *plan))
+    if not any(targets for _seg, _kind, targets in plans):
         return None                                      # nothing to save: the line is read as it is today
+    paths: list[str] = []
+    git: list[str] = []
+    for seg, kind, targets in plans:
+        found = targets() if targets else []
+        if targets and not found:
+            return None                                  # a target that cannot be saved
+        paths += found
+        git += found if kind == "save-git" else []
     out = _undo_checked(paths, cwd, home, WIDE_MAX_FILES)
     if out is None:
         return None
     ran = {os.path.realpath(p) for p in scripts_run(command, cwd)}
-    if ran & {os.path.realpath(p) for p in out}:
+    names = {os.path.basename(p).casefold() for p in ran}
+    if any(os.path.basename(p).casefold() in names and os.path.realpath(p) in ran for p in out):
         return None                                      # a file the line changes, then runs: write then run
-    return Chain(paths=tuple(out), rm=rm, runs=runs)
+    return Chain(paths=tuple(out), rm=any(t and _chain_deletes(seg) for seg, _k, t in plans),
+                 runs=any(k in ("free", "save-git") for _s, k, _t in plans), git=tuple(dict.fromkeys(git)))
 
 
 def _chain_paths(text: str, cwd: str, home: str) -> list[str] | None:
     chain = undo_chain(text, cwd, home)
     return list(chain.paths) if chain else None
+
+
+def _chain_may_save(seg: str, seg_masked: str) -> bool:
+    """A segment that could save files (a file command, ``git rm``, ``git mv``, a redirect): a cheap look first."""
+    if ">" in seg_masked:
+        return True
+    words = seg.split()
+    return bool(words) and (words[0] in ("rm", "mv", "cp", "sed", "touch")
+                            or (os.path.basename(words[0]) == "git" and words[1:2] in (["rm"], ["mv"])))
 
 
 def _chain_deletes(seg: str) -> bool:
@@ -1919,9 +1988,10 @@ def _chain_deletes(seg: str) -> bool:
     return bool(toks) and (toks[0] == "rm" or (os.path.basename(toks[0]) == "git" and toks[1:2] == ["rm"]))
 
 
-def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple[str, list[str]] | None:
-    """("save", files) for a file command whose files can all be saved, ("save-git", files) for ``git rm`` or
-    ``git mv``, ("read", []) for a free read, ("free", []) for a covered program free on its own; None otherwise."""
+def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple[str, object] | None:
+    """(kind, targets): ("save", files) for a file command whose files may be saved, ("save-git", files) for
+    ``git rm`` or ``git mv``, ("read", None) for a free read, ("free", None) for a covered program free on its own;
+    None otherwise. ``files`` is a function: the folders are walked only once every segment has been read."""
     try:
         toks = shlex.split(seg)
     except ValueError:
@@ -1938,24 +2008,31 @@ def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple[str,
         return None
     saver_ok = reading[1] != HIGH or (reading[0] == "file:unknown" and globbed)     # an rm glob reads as unknown
     if os.path.basename(prog) == "git" and toks[1:2] in (["rm"], ["mv"]) and "--cached" not in toks:
-        found = _chain_git_rm(toks[2:], cwd, home) if toks[1] == "rm" else _chain_git_mv(toks[2:], cwd, home)
-        return ("save-git", found) if found and saver_ok else None     # checked with the others (_undo_chain)
+        if not saver_ok:
+            return None                                  # its files are checked with the others (_undo_chain)
+        if toks[1] == "rm":
+            got = _undo_opts(toks[2:], "rqf")
+            return ("save-git", lambda: _chain_targets(got[0], "r" in got[1], cwd, home)) if got and got[0] else None
+        got = _undo_opts(toks[2:], "kvn")                # git mv, never -f
+        return ("save-git", lambda: _undo_mv_cp("mv", ["--"] + got[0], cwd, home)) if got and len(got[0]) >= 2 else None
     if prog == "rm":
-        found = _chain_rm(toks[1:], cwd, home)
-        return ("save", found) if found and saver_ok else None
+        got = _undo_opts(toks[1:], "fvrR")
+        if not saver_ok or not got or not got[0]:
+            return None
+        return "save", lambda: _chain_targets(got[0], bool(got[1] & {"r", "R"}), cwd, home)
     if ">" in seg_masked or prog in ("mv", "cp", "sed", "touch"):
         found = undoable_shell(seg, cwd, home, wide=True) if saver_ok and not globbed else None
         if found:
-            return "save", found
+            return "save", lambda: found
         if ">" in seg_masked:
             return None                                  # a redirect into a file it cannot save
     if globbed:
         return None
     if reading[1] == FREE:
-        return "read", []
+        return "read", None
     if (reading[1] in (LOW, MEDIUM) and params.trust_covers(same_program(reading[0]))
             and params.simple_covers(reading[0]) and not adds_dependency(seg)):
-        return "free", []
+        return "free", None
     return None
 
 
@@ -1989,30 +2066,6 @@ def _chain_targets(operands: list[str], recursive: bool, cwd: str, home: str) ->
             else:
                 return None                              # missing (nothing to save), or a special file
     return out or None
-
-
-def _chain_rm(args: list[str], cwd: str, home: str) -> list[str] | None:
-    """``rm [-r|-R|-f|-v]... PATHS``: the files it removes (``_chain_targets``)."""
-    got = _undo_opts(args, "fvrR")
-    if not got or not got[0]:
-        return None
-    return _chain_targets(got[0], bool(got[1] & {"r", "R"}), cwd, home)
-
-
-def _chain_git_rm(args: list[str], cwd: str, home: str) -> list[str] | None:
-    """``git rm [-r|-q|-f]... [--] PATHS``: the working-tree files it removes (``_chain_targets``)."""
-    got = _undo_opts(args, "rqf")
-    if not got or not got[0]:
-        return None
-    return _chain_targets(got[0], "r" in got[1], cwd, home)
-
-
-def _chain_git_mv(args: list[str], cwd: str, home: str) -> list[str] | None:
-    """``git mv [-k|-v|-n] SRC DST`` (never ``-f``): the source and the destination, read as ``mv`` reads them."""
-    got = _undo_opts(args, "kvn")
-    if not got or len(got[0]) < 2:
-        return None
-    return _undo_mv_cp("mv", ["--"] + got[0], cwd, home)
 
 
 def _chain_reader(seg: str, seg_masked: str) -> bool:

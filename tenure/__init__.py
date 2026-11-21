@@ -1415,15 +1415,17 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
                                           restored=restored))
     if restored == 0:
         return _undo_failed(st, entry, tr("simple.undo.gone" if plain else "undo.gone", id=id))
+    index = undo.restore_index(entry["snap_id"], data_dir(), key=undo_key())   # git rm / git mv: the index too
+    note = ("\n" + tr("undo.index_failed", error=index)) if index else ""
     agent, key = entry["agent"], entry["type"]
     st.mark_undone(id)
     st.flag_by_undo(id)                                   # undone: it cannot be flagged afterwards
     if entry["fault"]:
         return UndoMessage(tr("simple.undo.done_already_fault" if plain else "undo.done_already_fault", id=id,
-                              type=key), True, entry["snap_id"])
+                              type=key) + note, True, entry["snap_id"])
     if untouched:                                         # a failed call that changed nothing: restored, no fault
-        return UndoMessage(tr("simple.undo.done_unchanged" if plain else "undo.done_unchanged", id=id, type=key),
-                           True, entry["snap_id"])
+        return UndoMessage(tr("simple.undo.done_unchanged" if plain else "undo.done_unchanged", id=id, type=key)
+                           + note, True, entry["snap_id"])
     recorded = st.recorded(agent, key)
     stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
     sync_settings(st, cfg)
@@ -1433,11 +1435,11 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
     s = st.get_state(agent, key, stakes, reversible)
     if plain:                                             # two short lines at most: what happened and what now,
         line = " ".join(x for x in [tr("simple.undo.done", id=id, type=key), _undo_now(events)] if x)
-        return UndoMessage("\n".join([line] + _excuse_hint(st, events)), True, entry["snap_id"])   # then the hint
+        return UndoMessage("\n".join([line] + _excuse_hint(st, events)) + note, True, entry["snap_id"])   # hint
     text = "\n\n".join([tr("undo.done", id=id, type=key, agent=agent, tier=state_name(cfg, s))]
                        + _say(events, cfg["spot"], mode(cfg))   # e.g. "On probation" when it ends the trusted start
                        + _excuse_hint(st, events))
-    return UndoMessage(text, True, entry["snap_id"])
+    return UndoMessage(text + note, True, entry["snap_id"])
 
 
 def _undo_now(events: list[dict]) -> str:
@@ -2002,7 +2004,13 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
     """The decision for one call: None to let it run (free, acting alone, or acting then notifying with its files
     saved), else Hermes' approval gate with a rule key that ends with a fresh uuid. Any internal error, a busy store
     included, asks, unless the call was already classified free. Every call that reaches the record first expires
-    stale pending rows. Files are saved before the transaction, and the decision is checked again inside it."""
+    stale pending rows. Files are saved before the transaction, and the decision is checked again inside it. A
+    command line's files are read once per call (``classify.one_reading``)."""
+    with classify.one_reading():
+        return _pre_tool_call(tool_name, args, session_id, tool_call_id, task_id)
+
+
+def _pre_tool_call(tool_name, args, session_id, tool_call_id, task_id):
     act, taken = None, None
     deadline = time.monotonic() + HOOK_BUDGET
     try:
@@ -2044,8 +2052,10 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 preview = _decide(store_(), agent, act, n, cfg, session, nobody, _NoSpot, local_ok, runs)[2]
             if preview in (rule.NOTIFY, rule.WATCH):
                 paths = classify.files_written(tool, args, cwd, wide=wide)
+                chain = classify.undo_chain(str(args.get("command", "")), cwd) if wide and tool == "terminal" else None
                 taken = (undo.snapshot(paths, data_dir(), key=undo_key(deadline), cwd=cwd,
-                                       home=os.path.expanduser("~")) if paths else None)
+                                       home=os.path.expanduser("~"), git=list(chain.git) if chain else None)
+                         if paths else None)
             with ST.mem:                                    # a reused call id never inherits older files
                 if taken:
                     _remember(ST.saved, (session, call), list(paths))
@@ -2246,7 +2256,13 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
                    error_type=None, task_id="", **kwargs):
     """After the call. A session that read external content, or ran code, is suspended first, in a transaction of its
     own. Then the pending decision of this call in this session is settled once, from the execution status and the
-    automatic check of the written files, both gathered before the transaction."""
+    automatic check of the written files, both gathered before the transaction. The disk is read
+    afresh, once (``classify.one_reading``)."""
+    with classify.one_reading():
+        return _post_tool_call(tool_name, args, result, session_id, tool_call_id, status, error_type, task_id)
+
+
+def _post_tool_call(tool_name, args, result, session_id, tool_call_id, status, error_type, task_id):
     try:
         tool, args = str(tool_name or ""), (args if isinstance(args, dict) else {})
         cwd = call_cwd(tool, args, session_id, task_id)
@@ -2254,8 +2270,9 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         session = anon(session_id or task_id)
         wide = simple()
         ran = str(status or "").strip().lower() != "blocked" and not _not_run(tool, result)
-        with ST.mem:                                        # what was saved before it ran (a deleted file is gone)
+        with ST.mem:                                        # what was saved before it ran and is still there
             saved = ST.saved.pop((session, str(tool_call_id or "")), None) or []
+        saved = [x for x in saved if os.path.lexists(x)]    # a deleted file can be neither judged nor run
         wrote = (classify.files_written(tool, args, cwd, wide=wide) or saved) if ran else []   # never ran: none
         _touch(session, wrote)                              # every call that ran, failed or not: its files are its own
         if wrote:                                           # running one of them later asks once (24 hours)
