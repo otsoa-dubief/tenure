@@ -27,11 +27,21 @@ Anything else is not detected: a script that downloads by itself (`python fetch.
 file outside the project, or an MCP server under another name. A child agent started from a suspended session
 starts suspended, and a child agent that read external content suspends its parent.
 
-**Code downloaded and run at once always asks.** One of these programs piped into a shell or an interpreter that
-reads its program from standard input (`curl … | sh`, `wget -qO- … | bash`, `curl … | python -`), or handed to one
-as its program (`bash <(curl …)`, `python <(curl …)`, `sh -c "$(curl …)"`, `eval "$(curl …)"`, a here-string), is
-`shell:net-code`, capped in both modes: never allowed for the session, never freed by a series under any preset, by
-`/tenure trust` or by an override. A local file piped into a shell (`cat script.sh | sh`) stays `shell:stdin-code`.
+**Code downloaded and run at once always asks.** One of these programs (or `wget2`, PowerShell's `irm` and `iwr`,
+`gh api`, `gh gist view`, a `$(curl …)`, a program named by a variable), anywhere upstream of a pipe, even inside a
+`{ }` or `( )` group, into a shell or an interpreter that reads its program from standard input (`curl … | sh`,
+`wget -qO- … | bash`, `curl … | python -`, `irm … | iex`, `| sudo -s`, `| su`, `| source`, `xargs -I{} sh -c '{}'`);
+a download handed to one as its program (`bash <(curl …)`, `sh < <(curl …)`, `source <(curl …)`, `sh -c "$(curl
+…)"`, `eval "$(curl …)"`, `iex (irm …)`, a here-string, a heredoc a shell reads); a file or folder that a fetch, a
+pipe from the network, `git clone` or an unpacked download fills, then run by a later command of the same line
+(`curl -o i.sh … && bash i.sh`, `curl … | tar xz && ./install.sh`, `git clone … && cd x && ./install.sh`); and a
+program run from a URL or a remote module (`deno run https://…`, `uv run https://…`, `go run mod@version`, `npx`,
+`bunx`, `pnpm dlx`, `uvx` or `pipx run` with a URL, `git+` or `github:` spec): all are `shell:net-code`, capped in
+both modes. It asks every time, never allowed for the session, never freed by a series under any preset, by
+`/tenure trust` or by an override. Names are compared in any case, without `.exe`; a line too long to be lexed is
+read raw. A download given to a script as data (`python3 parse.py <(curl …)`, an argument after `python -c CODE`) is
+not its code, and a package named only by its registry name (`npx prettier`, `uvx ruff`) is not read here. A local
+file piped into a shell (`cat script.sh | sh`) stays `shell:stdin-code`.
 
 ## Self-protection
 
@@ -192,8 +202,8 @@ spelling tenure does not know can slip through (see Limits). Every case found so
 - The dashboard's own API (`/api/plugins/tenure/...`, where settings, revoke and undo live) is capped when a
   command or code names it.
 - A recursive copy (`cp -r`, `ditto`, `rsync`) or a git work tree into your home asks at high stakes, and is
-  capped when it names a `.hermes` folder or lands in a folder above a Hermes home. Code piped into a shell or an
-  interpreter (`| sh`, `| python3`, `bash -s`) asks at high stakes. An MCP or plugin tool whose arguments name one
+  capped when it names a `.hermes` folder or lands in a folder above a Hermes home. Local code piped into a shell or an
+  interpreter (`| sh`, `| python3`, `bash -s`) asks at high stakes; downloaded code is `shell:net-code` (above). An MCP or plugin tool whose arguments name one
   of these files on this machine is capped, whatever its name says (a `file://` URL with a host and the two
   sides of a volume, `host:inside`, are read too; a tool whose name says it runs something, `shell`, `exec`,
   `run`, `docker`..., has its command classified like the same line in the terminal, given as one string, as a
