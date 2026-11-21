@@ -235,7 +235,9 @@ the agent's own tool processes, or while nobody answers (cron, `--yolo`).
   (`curl … | sh`, `irm … | iex`) or given to one as its code (`bash <(curl …)`, `sh -c "$(curl …)"`), a file downloaded
   then run by the same line (`curl -o i.sh … && bash i.sh`, `git clone … && ./x/install.sh`), and a program run from a
   URL (`deno run https://…`, `npx github:…`). It asks every time, never "for this session"; no record, preset or
-  override frees it, and `/tenure trust` refuses it;
+  override frees it, and `/tenure trust` refuses it. A build or tests run in a project the same line just cloned
+  (`git clone … && cd x && npm install`, `make`, `pip install -e .`) is a normal high-stakes question instead, which
+  "Allow for this session" can cover;
 - programs whose changes Tenure can't save (database and unknown CLIs, `docker`, local scripts, MCP tools that write,
   messages to other Bots, other writing through the shell such as `tee` or a pipe into a file; a covered tool's own
   output, `pytest > log`, is fine), until you free them with `/tenure trust`. For these, and for inline code and shell

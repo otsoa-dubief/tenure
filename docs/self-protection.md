@@ -28,20 +28,30 @@ file outside the project, or an MCP server under another name. A child agent sta
 starts suspended, and a child agent that read external content suspends its parent.
 
 **Code downloaded and run at once always asks.** One of these programs (or `wget2`, PowerShell's `irm` and `iwr`,
-`gh api`, `gh gist view`, a `$(curl …)`, a program named by a variable), anywhere upstream of a pipe, even inside a
-`{ }` or `( )` group, into a shell or an interpreter that reads its program from standard input (`curl … | sh`,
-`wget -qO- … | bash`, `curl … | python -`, `irm … | iex`, `| sudo -s`, `| su`, `| source`, `xargs -I{} sh -c '{}'`);
-a download handed to one as its program (`bash <(curl …)`, `sh < <(curl …)`, `source <(curl …)`, `sh -c "$(curl
-…)"`, `eval "$(curl …)"`, `iex (irm …)`, a here-string, a heredoc a shell reads); a file or folder that a fetch, a
-pipe from the network, `git clone` or an unpacked download fills, then run by a later command of the same line
-(`curl -o i.sh … && bash i.sh`, `curl … | tar xz && ./install.sh`, `git clone … && cd x && ./install.sh`); and a
-program run from a URL or a remote module (`deno run https://…`, `uv run https://…`, `go run mod@version`, `npx`,
-`bunx`, `pnpm dlx`, `uvx` or `pipx run` with a URL, `git+` or `github:` spec): all are `shell:net-code`, capped in
-both modes. It asks every time, never allowed for the session, never freed by a series under any preset, by
-`/tenure trust` or by an override. Names are compared in any case, without `.exe`; a line too long to be lexed is
-read raw. A download given to a script as data (`python3 parse.py <(curl …)`, an argument after `python -c CODE`) is
-not its code, and a package named only by its registry name (`npx prettier`, `uvx ruff`) is not read here. A local
-file piped into a shell (`cat script.sh | sh`) stays `shell:stdin-code`.
+`gh api`, `gh gist view`, a `$(curl …)`, a program named by a variable, `echo`/`printf` of a `$(curl …)`), anywhere
+upstream of a pipe, even inside a `{ }` or `( )` group, into a shell or an interpreter that reads its program from
+standard input (`curl … | sh`, `wget -qO- … | bash`, `curl … | python -`, `irm … | iex`, `| sudo -s`, `| su`,
+`| source`, `xargs -I{} sh -c '{}'`, `bash -c "$(cat)"`, `pwsh -Command -`); a download handed to one as its program
+(`bash <(curl …)`, `bash -s stable < <(curl …)`, `source <(curl …)`, `sh -c "$(curl …)"`, `eval "$(curl …)"`,
+`iex (irm …)`, `[scriptblock]::Create((irm …))`, `pwsh -EncodedCommand`, decoded, a here-string, a heredoc a shell
+reads); a file downloaded, then run by a later command of the same line (`curl -o i.sh … && bash i.sh`, `sh < i.sh`,
+`cat i.sh | bash`, inline code that names a URL and quotes the file it saves: `php -r "copy('https://…','x.php')" &&
+php x.php`), or put in an install folder and run by its name (`… mv ./kubectl ~/bin/ && kubectl`); a file of a
+folder the same line cloned or unpacked, run itself (`git clone … && ./x/install.sh`, `curl … | tar xz &&
+./install.sh`; of an archive unpacked into an existing folder, only a path not on disk yet counts); and a program run
+from a URL or a remote module (`deno run https://…`, `uv run https://…`, `go run mod@version`, `npx`, `bunx`, `pnpm
+dlx`, `uvx` or `pipx run` with a URL, `git+` or `github:` spec): all are `shell:net-code`, capped in both modes. It
+asks every time, never allowed for the session, never freed by a series under any preset, by `/tenure trust` or by
+an override. A build or test tool in a project the same line cloned or unpacked (`git clone … && cd x && npm
+install`, `make`, `pip install -e .`, `uv sync`, `npm test`) is `shell:fetched-project` instead: a normal question at
+high stakes, which "Allow for this session" may cover (the owner's decision, 21/11). Names are compared in any case,
+without `.exe`; only the whole reading of the line counts (a quoted message over several lines is text); a line too
+long to be lexed is read raw, its heredoc bodies left out. Not code: a download given to a script as data (`python3
+parse.py <(curl …)`, an argument after `python -c CODE`), a substitution between single quotes given to an
+interpreter, the options a program run by `npx` gets (`npx tsc -p packages/core`). Not read: a package named only by
+its registry name (`npx prettier`, `uvx ruff`), a download in one call run in a later one (the check of a script
+written then run applies), a script that downloads by itself (`python fetch.py | sh` stays `shell:stdin-code`). A
+local file piped into a shell (`cat script.sh | sh`) stays `shell:stdin-code`.
 
 ## Self-protection
 
