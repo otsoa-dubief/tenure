@@ -539,6 +539,14 @@ class Store:
         row = self.db.execute(q, (day, agent) if agent else (day,)).fetchone()
         return dict(zip(STAT_FIELDS, row))
 
+    def drop_undo_meta(self, prefixes: tuple, before: float) -> None:
+        """Delete the meta keys ``<prefix><undo id>`` of undo entries older than ``before``: they are past their
+        window and no longer shown."""
+        for prefix in prefixes:
+            n = len(prefix)
+            self.db.execute("DELETE FROM meta WHERE substr(key, 1, ?) = ? AND substr(key, ?) IN "
+                            "(SELECT CAST(id AS TEXT) FROM undo WHERE at < ?)", (n, prefix, n + 1, before))
+
     # --------------------------------------------------------------------------------------------------- meta
     # ---------------------------------------------------------------------- deferred credit of T2 (audit 19/11)
     _CREDITS = ("CREATE TABLE IF NOT EXISTS credits (undo_id INTEGER PRIMARY KEY, session TEXT, stakes TEXT, "

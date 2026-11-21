@@ -110,8 +110,11 @@ class _State:
         self.touched: OrderedDict[str, set] = OrderedDict()    # session -> files its calls wrote (real paths)
         # (session, call id) -> scripts the agent wrote that this asked call runs: forgotten once approved
         self.fresh: OrderedDict[tuple[str, str], list] = OrderedDict()
-        # (session, call id) -> the files saved before the call: read again after it, a deleted one is gone
-        self.saved: OrderedDict[tuple[str, str], list] = OrderedDict()
+        # a call (_call_key) -> the files saved before it (and those its writing segments change)
+        self.saved: OrderedDict[tuple, tuple] = OrderedDict()
+        # a call (_call_key) -> the type it was classified as before it ran: outside any session, it is settled by
+        # it, never by a reading of the disk after the command changed it
+        self.kinds: OrderedDict[tuple, str] = OrderedDict()
         self.taint_from: OrderedDict[str, list] = OrderedDict()  # session -> the calls that brought outside content in
         self.last_agent = ""
         self.rng = random.SystemRandom()
@@ -612,6 +615,12 @@ def agent_name(model, provider) -> str:
     return f"{model}@{provider or 'unknown'}"
 
 
+def _call_key(session: str, call: str, tool: str, args: dict) -> tuple:
+    """One call in the in-memory maps that pre_tool_call fills and post_tool_call reads: outside any session, call ids
+    recur, so the tool and its target are part of it."""
+    return session, call, tool, str(args.get("command") or args.get("path") or "")
+
+
 def _remember(cache: OrderedDict, key: str, value) -> None:
     """Under ST.mem: one entry of a bounded in-memory map, the oldest dropped first."""
     cache[key] = value
@@ -1039,16 +1048,18 @@ def post_llm_call(session_id="", **kwargs):
     return None
 
 
-def _purge() -> None:
-    """Delete undo snapshots past their 24-hour window, at most once an hour per process."""
+def _purge() -> bool:
+    """Delete undo snapshots past their 24-hour window, at most once an hour per process. True when it ran: the
+    caller then drops the meta keys of those undo entries in its transaction."""
     now = time.time()
     if now - ST.purged_at < PURGE_EVERY:
-        return
+        return False
     ST.purged_at = now
     try:
         undo.purge(data_dir())
     except Exception:
         log.debug("tenure: undo purge failed", exc_info=True)
+    return True
 
 
 def state_name(cfg: dict, s: rule.TypeState | None, n=None) -> str:
@@ -1176,6 +1187,7 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
 UNDO_WINDOW = 24 * 3600          # seconds an act-then-notify action can be undone
 UNDO_FAILED = "undo_failed:"     # meta key prefix: the undo entry of a call that failed after its files were saved
 UNDO_FILES = "undo_files:"       # meta key prefix: the undo entry of a chained line, and how many files it holds
+INDEX_PENDING = "index_pending:"  # meta key prefix: an undo whose files came back but not git's index (retried)
 NOUNDO = "noundo:"               # meta key prefix: a kind whose last free call asked because tenure could not undo it
 
 
@@ -1397,6 +1409,12 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
         return UndoMessage(tr("undo.missing", id=id), False)
     st.drop_credit(id)                                    # the owner tried to undo it: never a success, even if it fails
     if entry["undone"]:
+        if st.get_meta(INDEX_PENDING + str(id)) and entry["snap_id"]:    # its files came back, git's index did not
+            index = undo.restore_index(entry["snap_id"], data_dir(), key=undo_key())
+            if index:
+                return UndoMessage(tr("undo.index_failed", error=index, id=id, command="/tenure undo"), False)
+            st.set_meta(INDEX_PENDING + str(id), "")
+            return UndoMessage(tr("undo.index_done", id=id), True, entry["snap_id"])
         return UndoMessage(tr("undo.already", id=id), False)
     if time.time() - entry["at"] > UNDO_WINDOW:
         return UndoMessage(tr("undo.expired", id=id, n=UNDO_WINDOW // 3600), False)
@@ -1416,16 +1434,19 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
     if restored == 0:
         return _undo_failed(st, entry, tr("simple.undo.gone" if plain else "undo.gone", id=id))
     index = undo.restore_index(entry["snap_id"], data_dir(), key=undo_key())   # git rm / git mv: the index too
-    note = ("\n" + tr("undo.index_failed", error=index)) if index else ""
+    note = ("\n" + tr("undo.index_failed", error=index, id=id, command="/tenure undo")) if index else ""
+    keep = None if index else entry["snap_id"]          # the index failed: its snapshot stays, for a retry
+    if index:
+        st.set_meta(INDEX_PENDING + str(id), "1")
     agent, key = entry["agent"], entry["type"]
     st.mark_undone(id)
     st.flag_by_undo(id)                                   # undone: it cannot be flagged afterwards
     if entry["fault"]:
         return UndoMessage(tr("simple.undo.done_already_fault" if plain else "undo.done_already_fault", id=id,
-                              type=key) + note, True, entry["snap_id"])
+                              type=key) + note, True, keep)
     if untouched:                                         # a failed call that changed nothing: restored, no fault
         return UndoMessage(tr("simple.undo.done_unchanged" if plain else "undo.done_unchanged", id=id, type=key)
-                           + note, True, entry["snap_id"])
+                           + note, True, keep)
     recorded = st.recorded(agent, key)
     stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
     sync_settings(st, cfg)
@@ -1435,11 +1456,11 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
     s = st.get_state(agent, key, stakes, reversible)
     if plain:                                             # two short lines at most: what happened and what now,
         line = " ".join(x for x in [tr("simple.undo.done", id=id, type=key), _undo_now(events)] if x)
-        return UndoMessage("\n".join([line] + _excuse_hint(st, events)) + note, True, entry["snap_id"])   # hint
+        return UndoMessage("\n".join([line] + _excuse_hint(st, events)) + note, True, keep)   # hint
     text = "\n\n".join([tr("undo.done", id=id, type=key, agent=agent, tier=state_name(cfg, s))]
                        + _say(events, cfg["spot"], mode(cfg))   # e.g. "On probation" when it ends the trusted start
                        + _excuse_hint(st, events))
-    return UndoMessage(text + note, True, entry["snap_id"])
+    return UndoMessage(text + note, True, keep)
 
 
 def _undo_now(events: list[dict]) -> str:
@@ -1608,14 +1629,26 @@ def _local_ok(cfg: dict, act, tool: str, args: dict, cwd: str) -> bool:
     return True
 
 
-def _chain_runs(cfg: dict, act, tool: str, args: dict, cwd: str) -> bool:
-    """Simple mode: a chained line read as one file change with an undo (``classify.undo_chain``) where a segment would
-    ask on its own after outside content (a covered program, ``git rm``, ``git mv``): after outside content the line
-    keeps the suspension's question, never the pass of undoable file writes."""
-    if not simple(cfg) or tool != "terminal" or not act.reversible:
-        return False
-    chain = classify.undo_chain(str(args.get("command", "")), cwd)
-    return bool(chain and chain.runs)
+def _chain_held(cfg: dict, chain, agent: str, args: dict, deadline: float):
+    """Simple mode: the first program a chained line runs that is not free now for this agent: the owner's setting
+    raises it above medium, or its record asks (pinned, watched or asking after a mistake, doubted, held by its
+    parent). Returned as the action the whole line is then asked as, with that program's type, stakes and reason;
+    None when every program is free."""
+    with _locked(deadline):
+        st = store_()
+        for raw, stakes in chain.free:
+            t = classify.same_program(raw)
+            ruled = classify._override(t, stakes, cfg["overrides"], raw=raw)
+            seg = classify.Action(type=t, stakes=ruled, reversible=False,
+                                  summary=classify._summary("terminal", args, t, cfg["vocabulary"]))
+            if classify.RANK[ruled] > classify.RANK[classify.MEDIUM]:
+                return seg
+            rec = st.recorded(agent, t)
+            if rec is not None and (rec.pinned or _marked(rec) or (rec.distrusted and rec.tier != rule.T3)):
+                return seg
+            if st.doubted(agent, t) or _held_by(st, agent, t):
+                return seg
+    return None
 
 
 HOOK_FILES = (".husky", ".pre-commit-config.yaml", "lefthook.yml", ".lefthook.yml")
@@ -1711,7 +1744,7 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
                  unsaved_listed: bool = False,
                  held: str | None = None, doubted: bool = False, fresh: list | None = None,
                  exec_files: list | None = None, taint_from: str = "", simple: bool = False,
-                 lifts: bool = False) -> str:
+                 lifts: bool = False, segments: int = 0) -> str:
     stakes = stakes_name(act.stakes)
     if decision == rule.SPOT:
         return tr("ask.spot", summary=act.summary, type=act.type, spot=round(1 / spot))
@@ -1762,7 +1795,8 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
     if per_session:
         return tr("simple.ask.prompt_session" if simple else "ask.prompt_session", summary=act.summary, why=why)
     if lifts:                                           # a no doubts the content, not the agent: no fault
-        return tr("simple.ask.prompt_lift", summary=act.summary, why=why)
+        summary = act.summary + (" " + tr("simple.ask.more_segments", n=segments) if segments else "")
+        return tr("simple.ask.prompt_lift", summary=summary, why=why)   # a long chained line: what the cut hides
     if simple:
         return tr("simple.ask.prompt", summary=act.summary, why=why) + "\n" + tr("simple.ask.always_button")
     return tr("ask.prompt", summary=act.summary, why=why) + "\n" + tr("ask.always")
@@ -1819,7 +1853,7 @@ def _background(tool: str, args: dict, result=None) -> bool:
 def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool, reason: str | None,
             launched: bool = False, written: list[str] | None = None, cwd: str = "", unjudged: bool = False,
             label: str = "", more: int = 0, cut: bool = False, untouched: bool = False,
-            count: int = 0) -> list[str]:
+            count: int = 0, fault_type: str | None = None) -> list[str]:
     """The verified outcome of one pending decision, from facts gathered before the transaction: was the call stopped
     (``blocked``), did the tool fail, what did the automatic check of the written files say. The check judges every
     action that ran, even one nobody answered. A background launch (``launched``) is neutral: the command's own
@@ -1828,7 +1862,8 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     on as ``p["n"]`` and ``p["n_at"]``; its undo entry, if any, as ``p["undo_id"]``. ``untouched``: a failed call whose
     saved files are all as they were, or that Hermes did not run: it keeps no undo, no notice and no end-of-turn line
     (its outcome is unchanged). ``count``: the files the undo of a chained line holds, shown as "(+N files)" (end of
-    turn, /tenure). Returns the owner's messages."""
+    turn, /tenure). ``fault_type``: the kind a broken file of a chained line is blamed on (the segment that wrote it,
+    ``file:shell``), not the line's own. Returns the owner's messages."""
     try:                                                    # display only: it never aborts a settlement
         home = os.path.expanduser("~")
         shown = [_show(x, cwd, home) for x in written or []]
@@ -1837,6 +1872,7 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         log.debug("tenure: the written files could not be shown", exc_info=True)
         shown, what = [], ""
     phase, agent, key = p["phase"], p["agent"], p["type"]
+    blamed = fault_type if reason and fault_type and fault_type != key else key   # the check's fault: its writer
     acted = phase in ("notify", "unwatched")                # T2 acted, then told the owner (who may not be there)
     decided = acted or phase in ("approved", "alone")       # approved by a person, or run by an earned tier
     spot = phase == "approved" and p["decision"] == rule.SPOT
@@ -1869,8 +1905,10 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         events = []
         _bump(st, agent, "neutral", alone=True)
     else:
-        events = record_outcome(st, cfg, agent=agent, type_key=key, stakes=p["stakes"], reversible=p["reversible"],
-                                result=result_source[0], source=result_source[1], session=st.root_of(p["session"]))
+        moved = blamed != key and result_source[0] == "fault"
+        events = record_outcome(st, cfg, agent=agent, type_key=blamed if moved else key, stakes=p["stakes"],
+                                reversible=True if moved else p["reversible"], result=result_source[0],
+                                source=result_source[1], session=st.root_of(p["session"]))
         _bump(st, agent, result_source[0], checked=phase == "approved",
               alone=not blocked and (acted or phase == "alone"))
     posts = []
@@ -1878,9 +1916,9 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     broke = acted and not blocked and failed and bool(p.get("snap_id")) and not reason and not untouched
     p["undo_id"] = None
     if acted and not blocked and (not failed or broke or (reason and p.get("snap_id"))):   # files saved: revertible,
-        undo_id = st.add_undo(agent, key, p["snap_id"], fault=bool(reason))   # even after a failure (rm -r cut short)
-        p["undo_id"] = undo_id
-        if count:
+        undo_id = st.add_undo(agent, key, p["snap_id"], fault=bool(reason) and blamed == key)   # a person undoing
+        p["undo_id"] = undo_id                              # the line blames the line, even after a failure
+        if count and simple(cfg):
             st.set_meta(UNDO_FILES + str(undo_id), str(count))     # a chained line: /tenure says "(+N files)"
         if broke:
             st.set_meta(UNDO_FAILED + str(undo_id), "1")    # undoing a failed call that changed nothing is no fault
@@ -1889,7 +1927,7 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         _push("acted", {"agent": agent, "type": key, "undo_id": undo_id, "fault": bool(reason),
                         "profile": _profile_name()})
         if reason:
-            posts.append(tr("simple.settle.acted_fault" if simple(cfg) else "settle.acted_fault", type=key,
+            posts.append(tr("simple.settle.acted_fault" if simple(cfg) else "settle.acted_fault", type=blamed,
                             reason=reason, what=what, command="/tenure undo", id=undo_id))
         elif broke and not simple(cfg):
             posts.append(tr("settle.acted_failed", type=key, what=what, command="/tenure undo", id=undo_id))
@@ -1904,7 +1942,7 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
             posts.append(Acted(text, p["session"], key, undo_id, shown))
             posts[-1].ok_hint = deferred
     elif reason:
-        posts.append(tr("simple.settle.check_failed" if simple(cfg) else "settle.check_failed", type=key,
+        posts.append(tr("simple.settle.check_failed" if simple(cfg) else "settle.check_failed", type=blamed,
                         reason=reason, what=what))
     if not blocked:                             # it ran: numbered, so the owner can flag it (a fault is born flagged)
         at = time.time()
@@ -2027,8 +2065,14 @@ def _pre_tool_call(tool_name, args, session_id, tool_call_id, task_id):
         local_ok = _local_ok(cfg, act, tool, args, cwd)
         if act.stakes == classify.FREE:
             return None
-        runs = _chain_runs(cfg, act, tool, args, cwd)
-        _purge()
+        chain = (classify.undo_chain(str(args.get("command", "")), cwd)
+                 if wide and tool == "terminal" and act.reversible else None)
+        runs, held = bool(chain and chain.runs), None
+        if chain and chain.free:                            # every program the line runs must be free now
+            held = _chain_held(cfg, chain, agent_of(str(session_id or task_id or ""), deadline), args, deadline)
+            if held is not None:
+                act, runs = held, False                     # the line is asked as that program, for its reason
+        purged = _purge()
         uid = uuid.uuid4().hex
         if act.stakes == classify.CAP:
             return {"action": "approve", "rule_key": f"{PREFIX}:cap:{act.type}:{uid}",
@@ -2036,6 +2080,9 @@ def _pre_tool_call(tool_name, args, session_id, tool_call_id, task_id):
         call, sid = str(tool_call_id or ""), str(session_id or task_id or "")
         session, agent, nobody = anon(sid), agent_of(sid, deadline), nobody_answers()
         n = params.required_n(cfg["risks"], act.stakes)
+        if call:
+            with ST.mem:
+                _remember(ST.kinds, _call_key(session, call, tool, args), act.type)
         if call:                                            # files that do not parse yet: the check skips them after
             written = classify.files_written(tool, args, cwd, wide=wide)
             bad = (proofs.broken(written) - _touched(session)) if written else frozenset()
@@ -2050,17 +2097,20 @@ def _pre_tool_call(tool_name, args, session_id, tool_call_id, task_id):
         if call:                                            # an undo is only wired through a call id
             with _locked(deadline):
                 preview = _decide(store_(), agent, act, n, cfg, session, nobody, _NoSpot, local_ok, runs)[2]
+            if held is not None:
+                preview = rule.ASK
             if preview in (rule.NOTIFY, rule.WATCH):
                 paths = classify.files_written(tool, args, cwd, wide=wide)
-                chain = classify.undo_chain(str(args.get("command", "")), cwd) if wide and tool == "terminal" else None
                 taken = (undo.snapshot(paths, data_dir(), key=undo_key(deadline), cwd=cwd,
-                                       home=os.path.expanduser("~"), git=list(chain.git) if chain else None)
+                                       home=os.path.expanduser("~"), git=list(chain.git) if chain else None,
+                                       git_specs=list(chain.git_specs) if chain else None)
                          if paths else None)
             with ST.mem:                                    # a reused call id never inherits older files
                 if taken:
-                    _remember(ST.saved, (session, call), list(paths))
+                    _remember(ST.saved, _call_key(session, call, tool, args),
+                              (list(paths), list(chain.writes) if chain else []))
                 else:
-                    ST.saved.pop((session, call), None)
+                    ST.saved.pop(_call_key(session, call, tool, args), None)
         posts, directive, snap = [], None, taken
         with txn(deadline) as st:
             posts += _say(sync_settings(st, cfg), cfg["spot"], mode(cfg))
@@ -2068,9 +2118,13 @@ def _pre_tool_call(tool_name, args, session_id, tool_call_id, task_id):
             posts += _say(_credit_due(st, cfg), cfg["spot"], mode(cfg))
             recorded, s, decision, suspended = _decide(st, agent, act, n, cfg, session, nobody, ST.rng, local_ok,
                                                               runs)
+            if held is not None:
+                decision = rule.ASK                         # a program of the line is not free now: it asks
+            if purged:
+                st.drop_undo_meta((UNDO_FILES, INDEX_PENDING), time.time() - UNDO_WINDOW)
             fresh, exec_files = [], []                      # computed even when it asks anyway: never a session key
             if tool == "terminal":                              # a script the agent wrote, run now: asked once
-                fresh = st.written_recently(classify.scripts_run(str(args.get("command", "")), cwd))
+                fresh = st.written_recently(classify.scripts_run(str(args.get("command", "")), cwd, wide=wide))
             outside = _outside(st, session, suspended)
             if outside:                                         # after outside content, writing code is code
                 exec_files = [x for x in classify.files_written(tool, args, cwd, wide=wide)
@@ -2165,7 +2219,9 @@ def _pre_tool_call(tool_name, args, session_id, tool_call_id, task_id):
                                                                  for x in exec_files],
                                                      earned_at=recorded.stakes if recorded else None,
                                                      held=_held_by(st, agent, act.type), simple=simple(cfg),
-                                                     lifts=lifts)}
+                                                     lifts=lifts,
+                                                     segments=classify.hidden_segments(str(args.get("command", "")))
+                                                     if tool == "terminal" else 0)}
         if taken and taken != snap:
             undo.discard(taken, data_dir())
         taken = None
@@ -2271,7 +2327,8 @@ def _post_tool_call(tool_name, args, result, session_id, tool_call_id, status, e
         wide = simple()
         ran = str(status or "").strip().lower() != "blocked" and not _not_run(tool, result)
         with ST.mem:                                        # what was saved before it ran and is still there
-            saved = ST.saved.pop((session, str(tool_call_id or "")), None) or []
+            saved, writes = ST.saved.pop(_call_key(session, str(tool_call_id or ""), tool, args), None) or ([], [])
+            kind = ST.kinds.pop(_call_key(session, str(tool_call_id or ""), tool, args), None)
         saved = [x for x in saved if os.path.lexists(x)]    # a deleted file can be neither judged nor run
         wrote = (classify.files_written(tool, args, cwd, wide=wide) or saved) if ran else []   # never ran: none
         _touch(session, wrote)                              # every call that ran, failed or not: its files are its own
@@ -2307,9 +2364,9 @@ def _post_tool_call(tool_name, args, result, session_id, tool_call_id, status, e
         with _locked():
             rows = store_().pending_rows(session, call)
         if not session and rows:            # outside any session, call ids recur: the type must match too
-            cfg2 = settings()
-            kind = classify.classify(tool, args, cwd=cwd, overrides=cfg2["overrides"],
-                                     vocabulary=cfg2["vocabulary"], wide=wide).type
+            cfg2 = settings()                 # the type it had before it ran: the disk has changed since
+            kind = kind or classify.classify(tool, args, cwd=cwd, overrides=cfg2["overrides"],
+                                             vocabulary=cfg2["vocabulary"], wide=wide).type
             rows = [r for r in rows if r["type"] == kind]
             if len(rows) > 1:
                 _ambiguous(rows)
@@ -2333,9 +2390,14 @@ def _post_tool_call(tool_name, args, result, session_id, tool_call_id, status, e
         if not blocked and not launched:    # a failed call is judged too: "...; false" never hides a broken file
             paths = classify.files_written(tool, args, cwd, wide=wide) or saved
             reason, unjudged = proofs.judge_files(paths, before) if paths else (None, False)
-        count = 0                           # a chained line: how many files its one undo holds, "(+N files)"
-        if tool == "terminal" and p.get("snap_id") and classify.chain_parts(str(args.get("command", ""))):
-            count = undo.describe(p["snap_id"], data_dir()).get("files", 0)
+        fault_type = None                   # a file a writing segment of a chain broke: that segment's fault
+        if reason and writes:
+            bad = next((x for x in paths if proofs.judge_files([x], before)[0]), None)
+            mine = {os.path.realpath(w) for w in writes}
+            fault_type = "file:shell" if bad and os.path.realpath(bad) in mine else None
+        count = 0                           # a chained line: the files its one undo brings back, "(+N files)"
+        if wide and tool == "terminal" and p.get("snap_id") and classify.chain_parts(str(args.get("command", ""))):
+            count = undo.describe(p["snap_id"], data_dir()).get("existed", 0)
         cfg = settings()
         posts = []
         with txn() as st:
@@ -2347,7 +2409,7 @@ def _post_tool_call(tool_name, args, result, session_id, tool_call_id, status, e
                 posts += _settle(st, cfg, p, blocked=blocked, failed=failed, reason=reason, launched=launched,
                                 written=paths, cwd=cwd, unjudged=unjudged,
                                 label=_label(tool, args, cfg["vocabulary"]), more=more, cut=cut, untouched=untouched,
-                                count=count)
+                                count=count, fault_type=fault_type)
         if p is not None and p.get("snap_id") and p.get("undo_id") is None:
             undo.discard(p["snap_id"], data_dir())          # committed, and no undo entry holds it: nothing to keep
         for text in posts:

@@ -309,7 +309,8 @@
     "other": "撤销条目 {id} 已超过 {n} 小时：快照已不再保留。"
   },
   "undo.gone": "撤销 {id}：快照已不存在，未恢复任何内容。",
-  "undo.index_failed": "git 索引未恢复（{error}）：文件已恢复；git status 显示暂存的内容。",
+  "undo.index_failed": "git 索引未恢复（{error}）：文件已恢复。git 空闲后，{command} {id} 会恢复索引。",
+  "undo.index_done": "撤销 {id}：git 索引已恢复原样。",
   "undo.missing": "没有撤销条目 {id}。",
   "undo.no_snapshot": "撤销 {id}：此操作没有保存快照，无可恢复内容。",
   "undo.partial": {
@@ -476,6 +477,9 @@
   },
   "simple.turn.count": {
     "other": "+{n} 个文件"
+  },
+  "simple.ask.more_segments": {
+    "other": "（+{n} 段）"
   },
   "simple.turn.files": "文件：{files}",
   "simple.undo.title": {

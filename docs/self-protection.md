@@ -211,7 +211,8 @@ spelling tenure does not know can slip through (see Limits). Every case found so
   - A chained line (`git rm -r build && rm -rf build && sed -i ...`, `rm -rf tmp && pytest 2>&1 | tail -40`) runs
     with one undo only when every segment is free on its own or a file command whose targets can all be saved, and
     its targets, like a glob's matches, are read before the line runs: a file an earlier segment creates and a later
-    one deletes is not saved.
+    one deletes is not saved. A program run before a saving segment, or one not free now for the agent, keeps the
+    question; the undo of a `git rm` or `git mv` puts git's index back too, never in a worktree or a submodule.
 
 ## What an approval prompt shows, and what it hides
 

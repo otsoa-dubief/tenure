@@ -350,7 +350,8 @@
     "other": "Undo {id} is older than {n} h: the snapshot is no longer kept."
   },
   "undo.gone": "Undo {id}: the snapshot is gone, nothing restored.",
-  "undo.index_failed": "Git's index was not put back ({error}): the files are restored; git status shows what is staged.",
+  "undo.index_failed": "Git's index was not put back ({error}): the files are restored. Once git is free, {command} {id} puts the index back.",
+  "undo.index_done": "Undo {id}: git's index is back as it was.",
   "undo.missing": "No undo entry {id}.",
   "undo.no_snapshot": "Undo {id}: no snapshot was saved for this action, nothing to restore.",
   "undo.partial": {
@@ -536,6 +537,10 @@
   "simple.turn.count": {
     "one": "+{n} file",
     "other": "+{n} files"
+  },
+  "simple.ask.more_segments": {
+    "one": "(+{n} segment)",
+    "other": "(+{n} segments)"
   },
   "simple.turn.files": "files: {files}",
   "simple.undo.title": {

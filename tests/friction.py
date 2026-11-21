@@ -113,6 +113,11 @@ def replay(start: str, early_web: bool = False, answer: str = "once", after_faul
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(text)
+            if chains:                                   # a repository: git rm and git mv save its index too
+                import subprocess
+                for cmd in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "start"]):
+                    subprocess.run(["git", "-c", "user.name=bench", "-c", "user.email=bench@example.com", *cmd],
+                                   cwd=project, check=True, capture_output=True)
             ctx = FakeCtx({"start": start, "mode": mode}, cwd=project)
             mod.register(ctx)
             mod.ST.rng = Picks()

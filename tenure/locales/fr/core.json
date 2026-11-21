@@ -352,7 +352,8 @@
     "other": "L'annulation {id} date de plus de {n} h : l'instantané n'est plus conservé."
   },
   "undo.gone": "Annulation {id} : l'instantané a disparu, rien n'a été restauré.",
-  "undo.index_failed": "L'index de git n'a pas été remis ({error}) : les fichiers sont restaurés ; git status montre ce qui est indexé.",
+  "undo.index_failed": "L'index de git n'a pas été remis ({error}) : les fichiers sont restaurés. Quand git sera libre, {command} {id} remettra l'index.",
+  "undo.index_done": "Annulation {id} : l'index de git est revenu comme avant.",
   "undo.missing": "Aucune annulation n° {id}.",
   "undo.no_snapshot": "Annulation {id} : aucun instantané n'a été enregistré pour cette action, rien à restaurer.",
   "undo.partial": {
@@ -538,6 +539,10 @@
   "simple.turn.count": {
     "one": "+{n} fichier",
     "other": "+{n} fichiers"
+  },
+  "simple.ask.more_segments": {
+    "one": "(+{n} segment)",
+    "other": "(+{n} segments)"
   },
   "simple.turn.files": "fichiers : {files}",
   "simple.undo.title": {

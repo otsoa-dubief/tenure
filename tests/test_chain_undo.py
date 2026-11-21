@@ -282,7 +282,8 @@ def test_a_file_the_line_deletes_never_hides_a_file_it_broke(plugin):
     project(ctx, repo=False)
     line = "rm notes.bak && " + SED + "'s/import shout/imprt shout/' inventory/report.py"
     run(mod, ctx, line, "c1")
-    assert state(mod, "file:shell:rm").faults == 1
+    assert state(mod, "file:shell").faults == 1                        # sed broke it: the writer's kind, not rm's
+    assert state(mod, "file:shell:rm") is None or state(mod, "file:shell:rm").faults == 0
 
 
 def test_the_friction_bench_of_chained_lines():
@@ -297,3 +298,235 @@ def test_the_friction_bench_of_chained_lines():
     asked = [r["what"] for r in web if r["tenure"]]
     assert len(asked) == 3 and asked[0].startswith("git rm -rq build")
     assert sum(r["undo"] for r in web) == 3
+
+
+# ------------------------------------------------------------------------------------ audits of PR #32, 1 to 16
+@pytest.mark.parametrize("line", ["rm -rf build && git apply link.patch && rm -rf build/*",
+                                  "git checkout evil && rm -rf build/*", "git stash pop && rm -rf build",
+                                  "python3 -m unittest && rm -rf tmp"])
+def test_r1_a_program_run_before_a_saved_segment_keeps_the_question(plugin, line):
+    mod, ctx = make(plugin)
+    project(ctx)
+    assert mod.classify.undo_chain(line, ctx.cwd) is None
+    assert ctx.call("terminal", {"command": line}) == "approved"
+    assert mod.classify.undo_chain("git status && " + SECOND, ctx.cwd) is not None     # a read stays allowed anywhere
+
+
+def test_r2_a_program_the_person_pinned_makes_the_line_ask_for_its_reason(plugin):
+    mod, ctx = make(plugin)
+    project(ctx, repo=False)
+    touch(ctx, "build.py", "print('build')\n")                        # (deploy.py is high stakes by its name)
+    touch(ctx, "x.tmp")
+    assert ctx.call("terminal", {"command": "python3 build.py"}) == "ran"            # recorded, free
+    mod.cli.slash("trust python ask")                                                  # every time, a person's word
+    assert ctx.call("terminal", {"command": "rm -f x.tmp && python3 build.py"}) == "approved"
+    assert "shell:python:build.py" in ctx.prompts[-1]["message"] and last_undo(mod) is None
+    assert ctx.call("terminal", {"command": "rm -f x.tmp && python3 deploy.py"}) == "approved"
+
+
+def test_r2_the_owners_setting_on_a_program_holds_inside_a_line(plugin):
+    mod, ctx = make(plugin, {"types": {"shell:python*": "high"}})
+    project(ctx, repo=False)
+    assert ctx.call("terminal", {"command": SECOND}) == "approved"
+    assert ":shell:python" in ctx.prompts[-1]["rule_key"]
+
+
+@pytest.mark.parametrize("line", ["git rm -q 'a*.log' && rm -rf tmp", "git rm -q *.log && rm -rf tmp",
+                                  "git rm -q :app.log && rm -rf tmp", "git rm -q 'app\\.log' && rm -rf tmp",
+                                  "git mv 'inventory/text[u]til.py' inventory/text.py && rm -rf tmp"])
+def test_r3_git_never_gets_a_pathspec_it_would_expand(plugin, line):
+    mod, ctx = make(plugin)
+    project(ctx)
+    assert mod.classify.undo_chain(line, ctx.cwd) is None
+
+
+@pytest.mark.parametrize("line,name", [(SED + "'s/a/b/' RUN.py && python3 run.py", "run.py"),
+                                       (SED + "'s/a/b/' makefile && make", "makefile"),
+                                       (SED + "'s/a/b/' GNUmakefile && make", "GNUmakefile")])
+def test_r4_a_file_changed_then_run_is_read_as_the_file_system_reads_names(plugin, line, name):
+    mod, ctx = make(plugin)
+    project(ctx, repo=False)
+    touch(ctx, name, "a = 1\n")
+    assert mod.classify.undo_chain(line, ctx.cwd) is None
+
+
+def test_r5_a_broken_file_blames_its_writer_and_an_undo_blames_the_line(plugin):
+    mod, ctx = make(plugin)
+    project(ctx, repo=False)
+    run(mod, ctx, "rm notes.bak && " + SED + "'s/import shout/imprt shout/' inventory/report.py", "c1")
+    assert state(mod, "file:shell").faults == 1
+    run(mod, ctx, "rm -rf tmp && python3 -m unittest discover -s tests", "c2")
+    mod.cli.slash(f"undo {last_undo(mod)}")
+    assert state(mod, "file:shell:rm").faults == 1 and state(mod, "file:shell").faults == 1
+
+
+def test_r6_outside_any_session_a_chained_line_is_settled_by_its_type_before_it_ran(plugin):
+    mod, ctx = make(plugin)
+    project(ctx, repo=False)
+    args = {"command": SECOND}
+    assert pre(mod, "terminal", args, "c1", session="") is None
+    subprocess.run(["bash", "-c", SECOND], cwd=ctx.cwd, capture_output=True, env=ENV)
+    post(mod, "terminal", args, "c1", session="")
+    assert mod.store_().pending_rows(mod.anon(""), "c1") == [] and last_undo(mod) is not None
+
+
+def test_r7_a_worktree_or_a_submodule_index_is_not_promised(plugin, tmp_path):
+    from tenure import undo
+    mod, ctx = make(plugin)
+    project(ctx)
+    wt = str(tmp_path / "wt")
+    git(ctx, "worktree", "add", "-q", wt)
+    line = "git rm -q app.log && rm -rf tmp"
+    assert mod.classify.undo_chain(line, ctx.cwd) is not None
+    assert mod.classify.undo_chain(line, wt) is None                     # .git is a file there
+    assert undo.snapshot([os.path.join(wt, "app.log")], str(tmp_path / "data"), key=b"k" * 32, cwd=wt,
+                         git=[os.path.join(wt, "app.log")]) is None
+
+
+def test_r8_one_budget_for_the_whole_line(plugin, monkeypatch):
+    mod, ctx = make(plugin)
+    project(ctx, repo=False)
+    for folder in ("a", "b"):
+        for i in range(1100):
+            touch(ctx, f"{folder}/f{i}.txt", "x")
+    assert mod.classify.undo_chain("rm -rf a a a && true", ctx.cwd) is not None       # one operand given thrice
+    assert mod.classify.undo_chain("rm -rf a && rm -rf b && true", ctx.cwd) is None   # 2200 files in all
+    touch(ctx, "big/one.txt", "x" * 3_000_000)
+    touch(ctx, "big2/two.txt", "x" * 3_000_000)
+    assert mod.classify.undo_chain("rm -rf big && true", ctx.cwd) is not None
+    assert mod.classify.undo_chain("rm -rf big big2 && true", ctx.cwd) is None         # 6 MB together
+    monkeypatch.setattr(mod.classify, "CHAIN_SECONDS", -1.0)
+    assert mod.classify.undo_chain("rm -rf big && true", ctx.cwd) is None              # past its deadline: asks
+
+
+def test_r9_the_index_of_a_folder_comes_back_with_entries_that_had_no_file(plugin, monkeypatch):
+    mod, ctx = make(plugin)
+    project(ctx)
+    os.remove(os.path.join(ctx.cwd, "build", "out.txt"))               # tracked, gone from the disk
+    monkeypatch.setattr(mod.undo, "LS_BATCH", 2)                       # several git ls-files calls
+    before = status(ctx)
+    run(mod, ctx, "git rm -rq build app.log debug.log && rm -rf tmp", "c1")
+    mod.cli.slash(f"undo {last_undo(mod)}")
+    assert status(ctx) == before
+
+
+@pytest.mark.parametrize("flag,line", [
+    (["add", "-N", "new.txt"], "git mv new.txt newer.txt && rm -rf tmp"),
+    (["update-index", "--skip-worktree", "app.log"], "git rm -q app.log && rm -rf tmp"),
+    (["update-index", "--assume-unchanged", "app.log"], "git rm -q app.log && rm -rf tmp"),
+])
+def test_r9_an_index_entry_with_a_flag_is_not_promised_back(plugin, flag, line):
+    mod, ctx = make(plugin)
+    project(ctx)
+    touch(ctx, "new.txt", "new\n")
+    git(ctx, *flag)
+    assert mod.classify.undo_chain(line, ctx.cwd) is not None           # read as a chain...
+    d = pre(mod, "terminal", {"command": line}, "c9")
+    assert d is not None and "can't save" in d["message"]               # ...but no undo it could not keep: asked
+
+
+def test_r9_a_failed_index_is_kept_and_put_back_by_the_same_undo(plugin):
+    mod, ctx = make(plugin)
+    project(ctx)
+    run(mod, ctx, FIRST, "c1")
+    n = last_undo(mod)
+    lock = os.path.join(ctx.cwd, ".git", "index.lock")
+    touch(ctx, ".git/index.lock", "")
+    out = mod.cli.slash(f"undo {n}")
+    assert f"/tenure undo {n}" in out
+    os.remove(lock)
+    again = mod.cli.slash(f"undo {n}")
+    assert "index is back" in again and status(ctx) == ""
+
+
+def test_r9_no_word_about_an_index_outside_git(plugin):
+    mod, ctx = make(plugin)
+    project(ctx, repo=False)
+    run(mod, ctx, SECOND, "c1")
+    assert "index" not in mod.cli.slash(f"undo {last_undo(mod)}")
+
+
+def test_r10_a_link_to_git_data_is_git_data(plugin):
+    mod, ctx = make(plugin)
+    project(ctx)
+    os.symlink(".git", os.path.join(ctx.cwd, "g"))
+    assert not mod.classify._undo_target_ok(os.path.join(ctx.cwd, "g", "HEAD"), ctx.cwd, os.path.expanduser("~"),
+                                            wide=True)
+    assert mod.classify.undo_chain("rm g/HEAD && true", ctx.cwd) is None
+
+
+def test_r11_one_reading_whatever_the_spaces_around_the_line(plugin, monkeypatch):
+    mod, ctx = make(plugin)
+    project(ctx, repo=False)
+    seen = []
+    real = mod.classify._read_chain
+    monkeypatch.setattr(mod.classify, "_read_chain", lambda *a: seen.append(1) or real(*a))
+    with mod.classify.one_reading():
+        mod.classify.undo_chain(SECOND, ctx.cwd)
+        mod.classify.undo_chain("  " + SECOND + " ", ctx.cwd)
+    assert len(seen) == 1
+
+
+@pytest.mark.parametrize("line,ok", [("set -euo pipefail && rm -rf tmp && python3 -m unittest", True),
+                                     ("set -x; rm -rf tmp", True), ("set -f && rm -rf tmp", False),
+                                     ("shopt -s dotglob && rm -rf tmp", False), ("rm -rf tmp && echo =ls", False),
+                                     ("rm -rf tmp =ls && true", False)])
+def test_r12_what_the_shell_may_be_told(plugin, line, ok):
+    mod, ctx = make(plugin)
+    project(ctx, repo=False)
+    assert (mod.classify.undo_chain(line, ctx.cwd) is not None) == ok
+
+
+def test_r12_a_zsh_equals_word_is_never_an_rm_target():
+    from tenure import classify
+    assert classify._undo_rm(["=ls"], os.getcwd(), os.path.expanduser("~"), wide=True) is None
+
+
+def test_r13_a_program_of_the_project_is_a_script_the_agent_may_have_written(plugin):
+    mod, ctx = make(plugin)
+    project(ctx, repo=False)
+    ctx.call("write_file", {"path": "bin/python3", "content": "#!/bin/sh\n"})
+    assert ctx.call("terminal", {"command": "./bin/python3 x.py"}) == "approved"     # written, now run: asked once
+
+
+@pytest.mark.parametrize("command", ["git checkout-index -a -f", "git read-tree -u --reset HEAD"])
+def test_r13_more_ways_to_throw_work_away(command):
+    from tenure import classify
+    assert classify.classify("terminal", {"command": command}, cwd=os.getcwd(), wide=True).type == "shell:git:discard"
+    assert classify.classify("terminal", {"command": command}, cwd=os.getcwd()).type != "shell:git:discard"   # study
+
+
+def test_r14_the_count_says_the_files_that_come_back(plugin):
+    mod, ctx = make(plugin)
+    project(ctx)
+    touch(ctx, "x.txt")
+    ctx.call("terminal", {"command": "rm x.txt"})
+    mod.cli.slash(f"undo {last_undo(mod)}")                           # watched now
+    ctx.posted.clear()
+    assert ctx.call("terminal", {"command": FIRST}) == "ran"
+    mod.post_llm_call(session_id="s1")
+    assert "(+6 files)" in ctx.posted[-1]                            # text.py did not exist: not counted
+
+
+def test_r15_study_mode_writes_no_count_and_old_counts_go(plugin):
+    mod, ctx = make(plugin, {"mode": "study", "start": "trusted"})
+    project(ctx, repo=False)
+    run(mod, ctx, "rm notes.bak && rm app.log", "c1")
+    assert last_undo(mod) is not None
+    st = mod.store_()
+    assert st.db.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'undo_files:%'").fetchone()[0] == 0
+    with mod.txn() as st:
+        st.set_meta(mod.UNDO_FILES + str(last_undo(mod)), "2")
+        st.db.execute("UPDATE undo SET at = at - ?", (mod.UNDO_WINDOW + 10,))
+        st.drop_undo_meta((mod.UNDO_FILES,), __import__("time").time() - mod.UNDO_WINDOW)
+        assert st.get_meta(mod.UNDO_FILES + str(last_undo(mod))) is None
+
+
+def test_r16_the_lift_question_says_what_a_long_line_hides(plugin):
+    mod, ctx = make(plugin)
+    project(ctx, repo=False)
+    ctx.call("web_extract", {"urls": ["https://example.com"]})
+    long = SECOND + " | grep -v DEBUG" * 12
+    assert len(long) > 200 and mod.classify.hidden_segments(long) > 0
+    assert ctx.call("terminal", {"command": long}) == "approved"
+    assert f"(+{mod.classify.hidden_segments(long)} segments)" in ctx.prompts[-1]["message"]
