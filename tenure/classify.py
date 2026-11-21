@@ -2105,11 +2105,10 @@ def unknown_reason(command: str) -> str:
     return "path"
 
 
-def _rm_matches_nothing(command: str, cwd: str | None, home: str, forced: bool = True) -> bool:
-    """A lone ``rm -f`` whose operands are all plain globs, unquoted, that match nothing in the folder now and are
-    not the name of a file either: bash passes each pattern as it is and rm -f finds nothing to remove, silently; zsh
-    stops on the pattern. Nothing is removed, nothing needs saving (simple mode: free). Without -f, rm says the file
-    is missing: the agent expected one, the ordinary question stays (``forced=False`` reads it too)."""
+def _rm_matches_nothing(command: str, cwd: str | None, home: str) -> bool:
+    """A lone ``rm`` whose operands are all plain globs, unquoted, that match nothing in the folder now and are not
+    the name of a file either: bash passes each pattern as it is and rm finds nothing to remove (with -f silently,
+    without it it fails); zsh stops on the pattern. Nothing is removed, nothing needs saving (simple mode: free)."""
     import glob as _globmod
     text = str(command or "").strip()
     masked = _undo_mask(text, bang=True)
@@ -2120,7 +2119,7 @@ def _rm_matches_nothing(command: str, cwd: str | None, home: str, forced: bool =
     except ValueError:
         return False
     got = _undo_opts(toks[1:], "fvrR") if toks[:1] == ["rm"] else None
-    return bool(got and got[0]) and ("f" in got[1] or not forced) and all(
+    return bool(got and got[0]) and all(
         _GLOB & set(a) and _plain_glob(a) and not any(True for _ in _globmod.iglob(_undo_path(a, cwd, home)))
         and not os.path.lexists(_undo_path(a, cwd, home)) for a in got[0])
 
@@ -5991,8 +5990,6 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
                 t, stakes, rev = "shell:rm", FREE, False
             elif rest is not None:                            # the rest of the line is read as it is
                 t, stakes, rev = _shell(rest, cwd, home)
-            elif _rm_matches_nothing(command, cwd, home, forced=False):
-                t, stakes = "shell:rm", MEDIUM                # no -f: rm says the file is missing, a plain rm
         if wide and t == "file:shell" and any(os.path.basename(w[0]) == "rm" for w in _segments(command) if w):
             t = RM_TYPE                                 # simple mode: deleting earns its freedom apart from writing
         if t.split(":")[0] in ("shell", "file") and stakes != CAP and adds_dependency(command):

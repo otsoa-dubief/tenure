@@ -64,20 +64,14 @@ def test_a_glob_written_with_dot_slash_is_the_same_glob(plugin, plain, dotted):
     assert chain is not None and list(chain.paths) == files
 
 
-@pytest.mark.parametrize("command", ["rm -f *.log", "rm -f ./*.log", "rm -rf ./*.log", "rm -fv *.log *.tmp"])
+@pytest.mark.parametrize("command", ["rm -f *.log", "rm *.log", "rm -f ./*.log", "rm -rf ./*.log",
+                                     "rm -fv *.log *.tmp"])
 def test_an_rm_whose_patterns_match_nothing_removes_nothing_and_runs_free(plugin, command):
     mod, ctx = make(plugin)
     project(ctx, logs=False)
-    assert kind(mod, ctx, command) == ("shell:rm", "free")
+    assert kind(mod, ctx, command) == ("shell:rm", "free")           # without -f it fails, it removes nothing either
     assert ctx.call("terminal", {"command": command}) == "ran" and ctx.prompts == []
     assert last_undo(mod) is None                                                # nothing to save
-
-
-def test_without_f_an_rm_of_nothing_keeps_the_ordinary_question(plugin):
-    mod, ctx = make(plugin)
-    project(ctx, logs=False)
-    assert kind(mod, ctx, "rm *.log") == ("shell:rm", "medium")                  # rm reports a missing file
-    assert ctx.call("terminal", {"command": "rm *.log"}) == "approved"
 
 
 def test_a_pattern_that_matches_nothing_but_names_a_file_keeps_the_question(plugin):

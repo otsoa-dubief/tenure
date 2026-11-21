@@ -384,7 +384,8 @@ def test_the_friction_bench_in_simple_mode():
     from friction import replay
     asked = lambda rows: [r["what"] for r in rows if r["tenure"]]       # noqa: E731
     simple, study = replay("trusted", mode="simple"), replay("trusted")
-    assert asked(simple) == asked(study) and len(asked(simple)) == 5
+    # simple mode asks what the trusted start asks, but rm *.log: it matches nothing and removes nothing
+    assert asked(simple) == [a for a in asked(study) if a != "rm *.log"] and len(asked(simple)) == 4
     after = replay("trusted", after_fault="undone", mode="simple")
     assert asked(after) == asked(simple)
     assert sum(r["watched"] for r in after) == 6
@@ -572,9 +573,9 @@ def test_the_friction_bench_web_page_fourth_in_simple_mode():
     from friction import replay
     rows = replay("trusted", early_web=True, mode="simple")
     asked = [r["what"] for r in rows if r["tenure"]]
-    # the bench's project has no build folder and no .log file: those two deletions name nothing to save, and ask
-    # (rm *.log without -f reports a missing file: the agent expected one)
-    assert asked == ["npm install", "python -c 'import sys; print(sys.version)'", "rm -rf build", "rm *.log",
+    # the bench's project has no build folder and no .log file: rm -rf build names nothing to save and asks;
+    # rm *.log matches nothing and removes nothing: free
+    assert asked == ["npm install", "python -c 'import sys; print(sys.version)'", "rm -rf build",
                      "git push origin main"]
 
 
