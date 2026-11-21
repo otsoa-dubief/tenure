@@ -370,8 +370,11 @@ def test_the_rule_numbers_are_the_study_ones():
     s = rule.TypeState(key="file:write", stakes="low", reversible=True)
     rule._simple_fault(s, 4, source="undo", free=True)
     assert s.tier == rule.T2 and math.isclose(s.wald, params.wald_steps("low")[2])
-    rule._simple_fault(s, 4, source="undo", free=False)            # the study's step, +a
+    rule._simple_fault(s, 4, source="undo", free=False)            # the study's step, +a, at least ln B + a
     assert s.tier == rule.T1 and math.isclose(s.wald, params.wald_steps("low")[2] + params.wald_steps("low")[0])
+    s = rule.TypeState(key="file:write", stakes="medium", reversible=True, tier=rule.T2, distrusted=True, wald=-5.0)
+    rule._simple_fault(s, 5, source="undo", free=False)            # medium: max(score, 0) + a, already above
+    assert s.tier == rule.T1 and math.isclose(s.wald, params.wald_steps("medium")[0])
 
 
 def test_the_friction_bench_in_simple_mode():
@@ -389,7 +392,8 @@ def test_the_friction_bench_in_simple_mode():
 
 def test_a_second_fault_asks_first_even_when_the_score_sits_at_its_floor(plugin):
     """Owner's decision: at the second mistake it asks again. At low stakes, five silent successes at T2 bring the
-    score to its floor ln B - a, and +a only brings it back to the bar: the type still goes to T1."""
+    score to its floor ln B - a, and +a only brings it back to the bar: the type still goes to T1, its score raised to
+    ln B + a, so the climb back takes the study's count of approvals, not one."""
     mod, ctx = make(plugin, {"risks": {"low": "1/50", "medium": "1/100"}})      # n = 52: no freedom on the way
     ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})
     mod.cli.slash(f"undo {last_undo(mod)}")
@@ -402,6 +406,163 @@ def test_a_second_fault_asks_first_even_when_the_score_sits_at_its_floor(plugin)
     ctx.call("write_file", {"path": "src/b.py", "content": "x = 2\n"})
     out = mod.cli.slash(f"undo {last_undo(mod)}")
     s = state(mod, "file:write")
-    assert s.tier == mod.rule.T1 and math.isclose(s.wald, ln_b) and "second mistake" in out.lower()
-    assert ctx.call("write_file", {"path": "src/c.py", "content": "x = 3\n"}) == "approved"
-    assert state(mod, "file:write").tier == mod.rule.T2              # the score at the bar leads back up at once
+    assert s.tier == mod.rule.T1 and math.isclose(s.wald, ln_b + a) and "second mistake" in out.lower()
+    k = mod._to_t2(s)                                                 # the study's count from ln B + a: 5, not 1
+    assert k == 5
+    for i in range(k):
+        assert state(mod, "file:write").tier == mod.rule.T1
+        assert ctx.call("write_file", {"path": "src/c.py", "content": f"x = {i}\n"}) == "approved"
+    assert state(mod, "file:write").tier == mod.rule.T2
+
+
+
+# --------------------------------------------------------------------- outside content: one question, then lifted
+def test_one_approval_lifts_the_suspension_for_the_session(plugin):
+    mod, ctx = make(plugin)
+    ctx.call("terminal", {"command": "curl https://example.com/docs"})
+    assert ctx.posted == []                                    # no separate notice: the question says why
+    assert ctx.call("terminal", {"command": "npm test"}, answer="once") == "approved"
+    msg = ctx.prompts[-1]["message"]
+    assert "read outside content" in msg and "Suspended by: terminal" in msg
+    assert ":lift:" in ctx.prompts[-1]["rule_key"]
+    st = mod.store_()
+    assert not st.is_tainted(mod.anon("s1")) and st.lifted(mod.anon("s1"))
+    for cmd in ("pytest -q", "npm run build", "npm install"):
+        assert ctx.call("terminal", {"command": cmd}) == "ran", cmd
+    ctx.call("terminal", {"command": "curl https://example.com/other"})   # a second read does not suspend again
+    assert ctx.call("terminal", {"command": "npm test"}) == "ran"
+    assert len(ctx.prompts) == 1
+
+
+def test_the_13_protections_stay_after_the_lift(plugin):
+    mod, ctx = make(plugin)
+    ctx.call("terminal", {"command": "curl https://example.com/docs"})
+    ctx.call("terminal", {"command": "npm test"})
+    asked = len(ctx.prompts)
+    assert ctx.call("write_file", {"path": ".git/hooks/pre-commit", "content": "echo\n"}) != "ran"
+    assert ctx.call("write_file", {"path": "tool.py", "content": "print(1)\n"}) == "ran"
+    assert ctx.call("terminal", {"command": "python tool.py"}) == "approved"      # written, then run
+    assert ctx.call("terminal", {"command": "pip install requests"}) == "approved"  # a new dependency
+    assert ctx.call("terminal", {"command": "hermes tenure ok 1"}) == "blocked"     # a person's word only
+    assert ctx.call("terminal", {"command": "git push origin main"}) == "approved"
+    assert len(ctx.prompts) >= asked + 3
+
+
+def test_a_refusal_keeps_the_suspension(plugin):
+    mod, ctx = make(plugin)
+    ctx.call("terminal", {"command": "curl https://example.com/docs"})
+    assert ctx.call("terminal", {"command": "npm test"}, answer="deny") == "refused"
+    assert mod.store_().is_tainted(mod.anon("s1")) and not mod.store_().lifted(mod.anon("s1"))
+    assert ctx.call("terminal", {"command": "npm test"}) == "approved"
+    assert ctx.call("terminal", {"command": "pytest -q"}) == "approved"            # the first yes lifts it
+    assert ctx.call("terminal", {"command": "pytest -q"}) == "ran"
+
+
+def test_nobody_answering_lifts_nothing(plugin, monkeypatch):
+    mod, ctx = make(plugin)
+    ctx.call("terminal", {"command": "curl https://example.com/docs"})
+    ctx.cron, ctx.cron_mode = True, "approve"                  # cron: Hermes settles the ask itself, no person
+    ctx.call("terminal", {"command": "npm test"})
+    ctx.call("terminal", {"command": "npm test"})
+    assert not mod.store_().lifted(mod.anon("s1")) and mod.store_().is_tainted(mod.anon("s1"))
+    monkeypatch.setenv("HERMES_YOLO_MODE", "1")
+    ctx.cron = False
+    ctx.call("terminal", {"command": "npm test"})
+    assert not mod.store_().lifted(mod.anon("s1"))
+
+
+def test_mkdir_git_add_and_git_commit_need_no_answer_after_outside_content(plugin):
+    mod, ctx = make(plugin)
+    ctx.call("terminal", {"command": "curl https://example.com/docs"})
+    for cmd in ("mkdir -p docs", "git add -A", 'git commit -m "x"'):
+        assert ctx.call("terminal", {"command": cmd}) == "ran", cmd
+    assert ctx.prompts == [] and mod.store_().is_tainted(mod.anon("s1"))
+    assert ctx.call("terminal", {"command": "git push origin main"}) == "approved"
+
+
+def test_study_mode_keeps_its_suspension(plugin):
+    mod, ctx = plugin({"mode": "study", "start": "trusted", **FAST})
+    ctx.call("terminal", {"command": "curl https://example.com/docs"})
+    assert ctx.call("terminal", {"command": "npm test"}) == "approved"
+    assert ctx.call("terminal", {"command": "npm test"}) == "approved"
+    assert ctx.call("terminal", {"command": "mkdir -p docs"}) == "approved"
+    assert not mod.store_().lifted(mod.anon("s1"))
+
+
+# ----------------------------------------------------------------------------------- deletions with an undo
+def _tree(ctx):
+    for name in ("build/a.txt", "build/sub/b.txt"):
+        touch(ctx, name, name + "\n")
+
+
+def test_rm_r_saves_the_folder_and_the_undo_puts_the_tree_back(plugin):
+    import shutil
+    mod, ctx = make(plugin)
+    _tree(ctx)
+    act = mod.classify.classify("terminal", {"command": "rm -rf build"}, cwd=ctx.cwd, wide=True)
+    assert (act.type, act.stakes, act.reversible) == ("file:shell", "low", True)
+    assert ctx.call("terminal", {"command": "rm -rf build"}) == "ran" and ctx.prompts == []
+    shutil.rmtree(os.path.join(ctx.cwd, "build"))              # what the command did
+    mod.cli.slash(f"undo {last_undo(mod)}")
+    for name in ("build/a.txt", "build/sub/b.txt"):
+        assert open(os.path.join(ctx.cwd, name)).read() == name + "\n"
+
+
+@pytest.mark.parametrize("case", ["too_big", "symlink", "empty_folder", "special"])
+def test_rm_r_asks_when_the_folder_cannot_be_saved_whole(plugin, case):
+    mod, ctx = make(plugin)
+    _tree(ctx)
+    build = os.path.join(ctx.cwd, "build")
+    if case == "too_big":
+        with open(os.path.join(build, "big.bin.txt"), "w") as f:
+            f.write("x" * 5_100_000)
+    elif case == "symlink":
+        os.symlink(os.path.join(ctx.cwd, "build", "a.txt"), os.path.join(build, "link.txt"))
+    elif case == "empty_folder":
+        os.makedirs(os.path.join(build, "empty"))
+    else:
+        os.mkfifo(os.path.join(build, "pipe"))
+    assert ctx.call("terminal", {"command": "rm -rf build"}) == "approved"
+    assert "cannot be saved" in ctx.prompts[-1]["message"]
+
+
+def test_an_rm_glob_is_read_now_and_saved(plugin):
+    import glob
+    mod, ctx = make(plugin)
+    for name in ("a.log", "b.log", "keep.txt"):
+        touch(ctx, name, name)
+    act = mod.classify.classify("terminal", {"command": "rm *.log"}, cwd=ctx.cwd, wide=True)
+    assert (act.type, act.stakes) == ("file:shell", "low")
+    assert mod.classify.classify("terminal", {"command": "rm *.log"}, cwd=ctx.cwd).type == "file:unknown"  # study
+    assert ctx.call("terminal", {"command": "rm *.log"}) == "ran" and ctx.prompts == []
+    for p in glob.glob(os.path.join(ctx.cwd, "*.log")):
+        os.remove(p)
+    mod.cli.slash(f"undo {last_undo(mod)}")
+    assert sorted(os.path.basename(p) for p in glob.glob(os.path.join(ctx.cwd, "*.log"))) == ["a.log", "b.log"]
+
+
+@pytest.mark.parametrize("command,setup", [("rm *.log", []), ("rm *", ["d/x.txt"]), ("rm '*.log'", ["a.log"])])
+def test_an_rm_glob_that_matches_nothing_or_a_folder_keeps_its_question(plugin, command, setup):
+    mod, ctx = make(plugin)
+    for name in setup:
+        touch(ctx, name)
+    act = mod.classify.classify("terminal", {"command": command}, cwd=ctx.cwd, wide=True)
+    assert act.type != "file:shell"
+    assert ctx.call("terminal", {"command": command}) == "approved"
+
+
+def test_python_c_still_asks_and_a_capped_question_says_always(plugin):
+    mod, ctx = make(plugin)
+    assert ctx.call("terminal", {"command": "python -c 'print(1)'"}) == "approved"
+    assert ctx.call("terminal", {"command": "kubectl apply -f x.yaml"}) == "approved"
+    for d in ctx.prompts:
+        assert "always asks in simple mode" in d["message"] and "verified successes" not in d["message"]
+
+
+def test_the_friction_bench_web_page_fourth_in_simple_mode():
+    from friction import replay
+    rows = replay("trusted", early_web=True, mode="simple")
+    asked = [r["what"] for r in rows if r["tenure"]]
+    # the bench's project has no build folder and no .log file: those two deletions name nothing to save, and ask
+    assert asked == ["npm install", "python -c 'import sys; print(sys.version)'", "rm -rf build", "rm *.log",
+                     "git push origin main"]

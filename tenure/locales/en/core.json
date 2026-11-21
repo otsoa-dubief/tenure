@@ -451,6 +451,7 @@
   "simple.explain.ask": "After a second mistake, it asks you first: {low} approvals in a row at low stakes, {medium} at medium, and it is watched again.",
   "simple.explain.free_again": "A watched action you do not undo within {hours} hours counts as fine: {low} in a row without a mistake at low stakes, {medium} at medium, and it is free again.",
   "simple.explain.free_again_capped": "A watched action you do not undo within {hours} hours counts as fine; a run without a mistake frees it again.",
-  "simple.explain.always": "Always asks: what leaves your machine (push, deploy, publish, upload...), high stakes, capped kinds, a script the agent just wrote, a new package, and, after outside content, commands (file edits continue, with their undo).",
-  "simple.explain.study": "No spot check and no guarantee in this mode. For the study's rule, its guarantee and the signed passport: {command}"
+  "simple.explain.always": "Always asks: what leaves your machine (push, deploy, publish, upload...), high stakes, capped kinds, a script the agent just wrote, a new package, and a file that runs code written after outside content. After outside content, the next command asks once: approved, the session works as before (mkdir, git add and git commit never ask).",
+  "simple.explain.study": "No spot check and no guarantee in this mode. For the study's rule, its guarantee and the signed passport: {command}",
+  "simple.ask.suspended": "This session read outside content: allow this action and its commands run as before for the rest of the session (each still under the simple rule); deny it and they keep asking."
 }

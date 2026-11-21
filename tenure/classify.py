@@ -1362,11 +1362,12 @@ def _v4a_unreadable(patch: str) -> bool:
     return any(m.group(1) not in _V4A_VERBS for m in _V4A_FILE.finditer(patch or ""))
 
 
-def files_written(tool_name: str, args: dict, cwd: str | None, home: str | None = None) -> list[str]:
+def files_written(tool_name: str, args: dict, cwd: str | None, home: str | None = None, *,
+                  wide: bool = False) -> list[str]:
     """Absolute paths a write_file or patch call touches (the `path` argument and every V4A header), or a plain file
-    command changes (``undoable_shell``); else []."""
+    command changes (``undoable_shell``; ``wide``: simple mode's folders and globs too); else []."""
     if tool_name == "terminal" and isinstance(args, dict):
-        return undoable_shell(str(args.get("command", "")), cwd, home or os.path.expanduser("~")) or []
+        return undoable_shell(str(args.get("command", "")), cwd, home or os.path.expanduser("~"), wide=wide) or []
     if tool_name not in ("write_file", "patch") or not isinstance(args, dict):
         return []
     raw = [str(args.get("path") or args.get("file_path") or "")]
@@ -1382,15 +1383,20 @@ def files_written(tool_name: str, args: dict, cwd: str | None, home: str | None 
 # ------------------------------------------------------------------------------------------ undoable file commands
 UNDOABLE_PROGRAMS = frozenset({"rm", "mv", "cp", "sed", "touch", "echo", "printf", "cat"})
 UNDOABLE_MAX_FILES = 50
+WIDE_MAX_FILES = 2000                                    # simple mode's rm -r: files of a folder (5 MB in all)
+_GLOB = set("*?[]")
 UNDOABLE_MAX_BYTES = 5_000_000                           # undo.snapshot's own limit
 _UNDOABLE_BAD = set(";|&$`(){}*?[]<\n\\~!#")
 
 
-def undoable_shell(command: str, cwd: str | None, home: str) -> list[str] | None:
+def undoable_shell(command: str, cwd: str | None, home: str, *, wide: bool = False) -> list[str] | None:
     """Every file a plain rm, mv, cp, sed -i, touch, or echo/printf/cat redirected to a file creates, changes or
     removes, as absolute paths, when each is a regular file of the project (or a new one in an existing project
     folder), not a link, not under .git, low stakes for ``_file``, and all of them can be saved; else None. No glob,
-    variable, substitution, chain, pipe or second redirect: anything Tenure cannot be sure of keeps today's question."""
+    variable, substitution, chain, pipe or second redirect: anything Tenure cannot be sure of keeps today's question.
+
+    ``wide`` (simple mode) also reads ``rm -r`` of a project folder (``_undo_rm``) and an unquoted glob given to a
+    bare ``rm`` (``_undo_glob``)."""
     text = str(command or "").strip()
     if not text or not cwd or getattr(os, "name", "") == "nt":
         return None                                      # POSIX shells only: on Windows a file command keeps asking
@@ -1405,10 +1411,13 @@ def undoable_shell(command: str, cwd: str | None, home: str) -> list[str] | None
         parts = [text[b:e].strip() for b, e in zip(bounds, cuts + [len(text)])]
         if not all(parts):
             return None
-        found = [undoable_shell(part, cwd, home) for part in parts]
+        found = [undoable_shell(part, cwd, home, wide=wide) for part in parts]
         if any(f is None for f in found):
             return None
-        return _undo_checked([p for f in found for p in f], cwd, home)
+        return _undo_checked([p for f in found for p in f], cwd, home, WIDE_MAX_FILES if wide else UNDOABLE_MAX_FILES)
+    if (wide and masked is not None and masked == text and _GLOB & set(masked)
+            and not (set(masked) - _GLOB) & _UNDOABLE_BAD and ">" not in masked):
+        return _undo_checked(_undo_glob(text, cwd, home), cwd, home, WIDE_MAX_FILES)
     if masked is None or any(c in _UNDOABLE_BAD for c in masked.replace(">", "")):
         return None
     redirect = None
@@ -1433,7 +1442,7 @@ def undoable_shell(command: str, cwd: str | None, home: str) -> list[str] | None
     if redirect is not None:
         out = _undo_redirect(prog, args, redirect, cwd, home)
     elif prog == "rm":
-        out = _undo_rm(args, cwd, home)
+        out = _undo_rm(args, cwd, home, wide=wide)
     elif prog in ("mv", "cp"):
         out = _undo_mv_cp(prog, args, cwd, home)
     elif prog == "sed":
@@ -1442,16 +1451,17 @@ def undoable_shell(command: str, cwd: str | None, home: str) -> list[str] | None
         out = _undo_touch(args, cwd, home)
     else:
         out = None
-    return _undo_checked(out, cwd, home)
+    return _undo_checked(out, cwd, home, WIDE_MAX_FILES if wide else UNDOABLE_MAX_FILES)
 
 
 def _undo_odd(c: str) -> bool:
     return ord(c) < 32 or ord(c) == 127 or (c.isspace() and c != " ") or c in "\u200b\u200c\u200d\u2060\ufeff"
 
 
-def _undo_checked(out: list[str] | None, cwd: str, home: str) -> list[str] | None:
+def _undo_checked(out: list[str] | None, cwd: str, home: str,
+                  max_files: int = UNDOABLE_MAX_FILES) -> list[str] | None:
     """The files, once each, when every one is a target ``_undo_target_ok`` accepts and all can be saved; else None."""
-    if not out or len(out) > UNDOABLE_MAX_FILES:
+    if not out or len(out) > max_files:
         return None
     seen: list[str] = []
     for p in out:
@@ -1558,12 +1568,73 @@ def _undo_source_ok(p: str, cwd: str, home: str) -> bool:
             and _file(p, cwd, home)[1] == LOW)
 
 
-def _undo_rm(args: list[str], cwd: str, home: str) -> list[str] | None:
-    got = _undo_opts(args, "fv")
+def _undo_rm(args: list[str], cwd: str, home: str, *, wide: bool = False) -> list[str] | None:
+    """The files rm removes. ``wide`` (simple mode): with -r (or -R), a folder operand gives every file under it
+    (``_undo_tree``)."""
+    got = _undo_opts(args, "fvrR" if wide else "fv")
     if not got or not got[0]:
         return None
     paths = [_undo_path(a, cwd, home) for a in got[0]]
+    if wide and got[1] & {"r", "R"}:
+        out: list[str] = []
+        for p in paths:
+            found = _undo_tree(p) if os.path.isdir(p) and not os.path.islink(p) else (
+                [p] if os.path.isfile(p) and not os.path.islink(p) else None)
+            if found is None:
+                return None
+            out += found
+        return out
     return paths if all(os.path.isfile(p) and not os.path.islink(p) for p in paths) else None
+
+
+def _undo_tree(folder: str) -> list[str] | None:
+    """Every file under a folder rm -r would remove, when the tree holds only regular files and folders that each hold
+    something (an undo writes the files back and their folders with them: an empty folder would not come back); no
+    link anywhere, followed or not, no special file. At most WIDE_MAX_FILES files, else None (the size cap is
+    ``_undo_checked``'s). Files created in the folder after this read and before the command runs are removed without
+    being saved: the snapshot is taken in the same hook, just before the command runs."""
+    out: list[str] = []
+    for root, dirs, files in os.walk(folder, followlinks=False):
+        if not dirs and not files:
+            return None                                  # an empty folder: the undo could not bring it back
+        for name in dirs:
+            if os.path.islink(os.path.join(root, name)):
+                return None
+        for name in files:
+            p = os.path.join(root, name)
+            if os.path.islink(p) or not os.path.isfile(p):
+                return None
+            out.append(p)
+            if len(out) > WIDE_MAX_FILES:
+                return None
+    return out or None
+
+
+def _undo_glob(text: str, cwd: str, home: str) -> list[str] | None:
+    """Simple mode: ``rm [-f|-v] PATTERN...`` with unquoted glob patterns, read the way the shell expands them in the
+    working directory now (no hidden file for a leading ``*``, a pattern that matches nothing makes the command keep
+    its question). Every match must be a regular file. Limit: the shell expands the pattern when the command runs, so
+    a matching file created between this read and the run is removed without being saved."""
+    import glob as _globmod
+    try:
+        toks = shlex.split(text)
+    except ValueError:
+        return None
+    if len(toks) < 2 or toks[0] != "rm":
+        return None
+    got = _undo_opts(toks[1:], "fv")
+    if not got or not got[0]:
+        return None
+    out: list[str] = []
+    for a in got[0]:
+        if _GLOB & set(a):
+            matches = sorted(_globmod.glob(_undo_path(a, cwd, home)))
+            if not matches:
+                return None
+            out += matches
+        else:
+            out.append(_undo_path(a, cwd, home))
+    return out if all(os.path.isfile(p) and not os.path.islink(p) for p in out) else None
 
 
 def _undo_mv_cp(prog: str, args: list[str], cwd: str, home: str) -> list[str] | None:
@@ -5282,7 +5353,7 @@ def same_program(t: str) -> str:
 
 
 def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overrides: dict | None = None,
-             home: str | None = None, vocabulary: fields.Vocabulary | None = None) -> Action:
+             home: str | None = None, vocabulary: fields.Vocabulary | None = None, wide: bool = False) -> Action:
     args = args if isinstance(args, dict) else {}
     home = home or os.path.expanduser("~")
     _CACHE.memo, _CACHE.roots, _CACHE.cwd, _CACHE.home = {}, None, cwd, home
@@ -5296,8 +5367,11 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         plain = (stakes in (LOW, MEDIUM) and t.split(":")[0] == "shell" and t.split(":")[1:2]
                  and t.split(":")[1] in UNDOABLE_PROGRAMS)
         heredoc = "\n" in command.strip() and stakes != CAP     # its body is data, not the commands _shell read
-        if (plain or heredoc) and undoable_shell(command, cwd, home):
+        if (plain or heredoc) and undoable_shell(command, cwd, home, wide=wide):
             t, stakes, rev = "file:shell", LOW, True    # every file it changes can be saved first: a file change
+        elif (wide and (t, stakes) == ("file:unknown", HIGH) and _GLOB & set(command)
+              and undoable_shell(command, cwd, home, wide=True)):
+            t, stakes, rev = "file:shell", LOW, True    # simple mode: an rm glob read now, every match saved first
         parts = t.split(":")
         if (parts[0] == "shell" and stakes != CAP and (len(parts) == 2 and parts[1] in DEPENDENCY_PROGRAMS
                                                        or parts[2:] == ["-m", "pip"])

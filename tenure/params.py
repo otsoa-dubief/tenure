@@ -48,6 +48,9 @@ STARTS = ("trusted", "probation")   # trusted: no ask before a type's first faul
 DEFAULT_START = "trusted"
 MODES = ("simple", "study")         # simple: act, notified after a mistake, asks after a second; study: rule B/2
 DEFAULT_MODE = "simple"
+# Simple mode: local commands that change nothing outside the project and can be taken back (a folder, git's index,
+# a local commit), allowed even after outside content. Never a push: that is another type, and always asks.
+SUSPENDED_LOCAL = frozenset({"shell:mkdir", "shell:git:add", "shell:git:commit"})
 # Asks that the owner may silence for the rest of a session ("Allow for this session") under the trusted start: code
 # run inline and shell constructs read as complex. Each answer is the owner's, never evidence; a new session asks again.
 SESSION_TYPES = frozenset({"shell:python:inline", "shell:node:inline", "shell:stdin-code",
