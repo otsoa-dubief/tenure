@@ -534,6 +534,10 @@
     "one": "+{n} ligne",
     "other": "+{n} lignes"
   },
+  "simple.turn.count": {
+    "one": "+{n} fichier",
+    "other": "+{n} fichiers"
+  },
   "simple.turn.files": "fichiers : {files}",
   "simple.undo.title": {
     "one": "Changements que vous pouvez encore annuler ({n} h), du plus récent au plus ancien. En annuler un le marque comme une erreur :",

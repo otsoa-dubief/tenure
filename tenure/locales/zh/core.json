@@ -473,6 +473,9 @@
   "simple.turn.lines": {
     "other": "+{n} 行"
   },
+  "simple.turn.count": {
+    "other": "+{n} 个文件"
+  },
   "simple.turn.files": "文件：{files}",
   "simple.undo.title": {
     "other": "仍可撤销的更改（{n} 小时内），最新的在前。撤销一项即标记为失误："

@@ -1438,6 +1438,8 @@ def undoable_shell(command: str, cwd: str | None, home: str, *, wide: bool = Fal
     if any(_undo_odd(c) for c in text):
         return None                                      # a control character or an unusual space: read differently
     masked = _undo_mask(text)
+    if wide and masked is not None and CHAIN_OPS.search(masked):
+        return _chain_paths(text, cwd, home)             # simple mode: free and saved segments, read as one line
     if masked is not None and "&&" in masked:            # plain file commands joined by &&: every file of each
         cuts = [m.start() for m in re.finditer("&&", masked)]
         bounds = [0] + [c + 2 for c in cuts]
@@ -1789,6 +1791,280 @@ def _undo_redirect(prog: str, args: list[str], target: str, cwd: str, home: str)
     elif prog == "printf" and args and args[0].startswith("-"):
         return None                                      # printf -v writes a variable: not ours to read
     return [_undo_path(target, cwd, home)]
+
+
+# ------------------------------------------------------------------------------- chained lines (simple mode only)
+CHAIN_OPS = re.compile(r"&&|\|\||;|\|")
+_DUP = re.compile(r"(?:(?<=\s)|^)[12]?>&[12](?=\s|$)")    # 2>&1, >&2: one output joined to the other, no file
+_CHAIN_BAD = set("$`<\\(){}!#~\n\r")                     # substitutions, input, grouping, history, comments, homes
+CHAIN_READERS = {"tail", "head", "cat", "grep", "egrep", "fgrep"}
+CHAIN_STATE = {"cd", "pushd", "popd", "export", "unset", "set", "shopt", "setopt", "alias", "unalias", "source", ".",
+               "eval", "exec", "declare", "typeset", "local", "readonly", "umask", "trap", "hash", "enable",
+               "builtin", "command", "ulimit", "read", "mapfile", "readarray", "getopts", "let"}
+_GREP_FLAGS = set("iIvnwxcqsEFGHhloabUzZ")
+_GREP_VALUES = {"-A", "-B", "-C", "-m", "-e", "--max-count", "--after-context", "--before-context", "--context",
+                "--regexp"}
+_GREP_LONG = {"--ignore-case", "--invert-match", "--line-number", "--word-regexp", "--line-regexp", "--count",
+              "--quiet", "--silent", "--extended-regexp", "--fixed-strings", "--basic-regexp", "--with-filename",
+              "--no-filename", "--only-matching", "--color", "--colour", "--color=never", "--color=always",
+              "--color=auto", "--colour=never", "--colour=always", "--colour=auto", "--text", "--byte-offset"}
+_COUNT = re.compile(r"\+?\d+")
+
+
+@dataclass(frozen=True)
+class Chain:
+    """A command line of segments joined by ``&&``, ``;`` or ``||`` (and a last pipe into pure readers) that simple
+    mode can run with an undo: ``paths``, every file its saving segments change (one snapshot); ``rm``, a segment
+    deletes (``rm``, ``git rm``): the line is ``file:shell:rm``; ``runs``, a segment that asks on its own after outside
+    content (a covered program, ``git rm``, ``git mv``): the line keeps the suspension's question."""
+    paths: tuple
+    rm: bool
+    runs: bool
+
+
+def chain_parts(command: str) -> list[tuple[str, str, str]] | None:
+    """The segments of a chained line, as (text, text with its quoted characters masked, operator before it), when
+    the line is made only of plain words joined by ``&&``, ``||``, ``;`` and ``|``, with at most a ``2>&1``: no
+    substitution, variable, input redirect, grouping, background job, comment, ``~``, new line or control character.
+    None for a line of one segment or anything else."""
+    text = str(command or "").strip()
+    if not text or len(text) > 8192 or any(_undo_odd(c) for c in text):
+        return None
+    masked = _undo_mask(text)
+    if masked is None:
+        return None
+    spans = [m.span() for m in _DUP.finditer(masked)]
+    if spans:
+        t, m_ = list(text), list(masked)
+        for a, b in spans:
+            t[a:b] = m_[a:b] = " " * (b - a)
+        text, masked = "".join(t), "".join(m_)
+    if any(c in _CHAIN_BAD for c in masked) or re.search(r"(?<!&)&(?!&)|&&&|;;|\|\|\|", masked):
+        return None
+    ops = list(CHAIN_OPS.finditer(masked))
+    if not ops:
+        return None
+    parts, start, op = [], 0, ""
+    for m in ops + [None]:
+        end = m.start() if m else len(text)
+        seg, seg_masked = text[start:end].strip(), masked[start:end].strip()
+        if not seg:
+            return None
+        parts.append((seg, seg_masked, op))
+        if m:
+            start, op = m.end(), m.group()
+    return parts
+
+
+def undo_chain(command: str, cwd: str | None, home: str | None = None) -> Chain | None:
+    """Simple mode: a chained line (``chain_parts``) every segment of which is either free on its own in simple mode
+    (a read, or a covered program at low or medium stakes that reaches nothing outside, adds no dependency and writes
+    no file through a redirect), or a deletion or a move whose targets can all be saved (``rm``, ``git rm``,
+    ``git mv``, ``mv``, ``cp``, ``sed -i``, ``touch``, a redirect into the one file it saves); a last pipe goes only
+    into pure readers (``tail -40``, ``head``, ``cat``, ``grep x``). The snapshot is the union of the targets, read now
+    (a file an earlier segment creates and a later one deletes is not saved), under the usual caps; a target a
+    later segment runs as a script makes the line keep its question (write then run). Else None."""
+    parts = chain_parts(command)
+    if not parts or not cwd or cwd == UNKNOWN or getattr(os, "name", "") == "nt":
+        return None
+    home = home or os.path.expanduser("~")
+    saved = {k: getattr(_CACHE, k, None) for k in ("memo", "roots", "cwd", "home", "wide")}
+    _CACHE.memo, _CACHE.roots, _CACHE.cwd, _CACHE.home, _CACHE.wide = {}, None, cwd, home, True
+    try:
+        return _undo_chain(command, parts, cwd, home)
+    finally:
+        for k, v in saved.items():
+            setattr(_CACHE, k, v)
+
+
+def _undo_chain(command: str, parts: list, cwd: str, home: str) -> Chain | None:
+    piped = next((i for i, p in enumerate(parts) if p[2] == "|"), len(parts))
+    if piped == 0 or any(p[2] != "|" for p in parts[piped:]):
+        return None                                      # a pipe only at the end of the line, into readers
+    if not all(_chain_reader(p[0], p[1]) for p in parts[piped:]):
+        return None
+    paths: list[str] = []
+    rm = runs = saving = False
+    for seg, seg_masked, _op in parts[:piped]:
+        got = _chain_segment(seg, seg_masked, cwd, home)
+        if got is None:
+            return None
+        kind, found = got
+        if kind in ("save", "save-git"):
+            paths += found
+            saving = True
+            rm = rm or _chain_deletes(seg)
+        runs = runs or kind in ("free", "save-git")
+    if not saving:
+        return None                                      # nothing to save: the line is read as it is today
+    out = _undo_checked(paths, cwd, home, WIDE_MAX_FILES)
+    if out is None:
+        return None
+    ran = {os.path.realpath(p) for p in scripts_run(command, cwd)}
+    if ran & {os.path.realpath(p) for p in out}:
+        return None                                      # a file the line changes, then runs: write then run
+    return Chain(paths=tuple(out), rm=rm, runs=runs)
+
+
+def _chain_paths(text: str, cwd: str, home: str) -> list[str] | None:
+    chain = undo_chain(text, cwd, home)
+    return list(chain.paths) if chain else None
+
+
+def _chain_deletes(seg: str) -> bool:
+    try:
+        toks = shlex.split(seg)
+    except ValueError:
+        return True
+    return bool(toks) and (toks[0] == "rm" or (os.path.basename(toks[0]) == "git" and toks[1:2] == ["rm"]))
+
+
+def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple[str, list[str]] | None:
+    """("save", files) for a file command whose files can all be saved, ("save-git", files) for ``git rm`` or
+    ``git mv``, ("read", []) for a free read, ("free", []) for a covered program free on its own; None otherwise."""
+    try:
+        toks = shlex.split(seg)
+    except ValueError:
+        return None
+    if not toks or ENV_ASSIGN.match(toks[0]) or os.path.basename(toks[0]) in CHAIN_STATE:
+        return None                                      # it changes the shell for the segments after it
+    if os.path.basename(toks[0]) in EXTERNAL_PROGRAMS | set(OUTSIDE) or _cmd_reads_external(seg, 0):
+        return None                                      # it reaches another host, even for a read: asked as today
+    if _GLOB & set(seg) and seg_masked != seg:
+        return None                                      # a glob next to quotes: which words expand is unsure
+    prog, globbed = toks[0], bool(_GLOB & set(seg_masked))
+    reading = _shell(seg, cwd, home)
+    if reading[1] == CAP:
+        return None
+    saver_ok = reading[1] != HIGH or (reading[0] == "file:unknown" and globbed)     # an rm glob reads as unknown
+    if os.path.basename(prog) == "git" and toks[1:2] in (["rm"], ["mv"]) and "--cached" not in toks:
+        found = _chain_git_rm(toks[2:], cwd, home) if toks[1] == "rm" else _chain_git_mv(toks[2:], cwd, home)
+        return ("save-git", found) if found and saver_ok else None     # checked with the others (_undo_chain)
+    if prog == "rm":
+        found = _chain_rm(toks[1:], cwd, home)
+        return ("save", found) if found and saver_ok else None
+    if ">" in seg_masked or prog in ("mv", "cp", "sed", "touch"):
+        found = undoable_shell(seg, cwd, home, wide=True) if saver_ok and not globbed else None
+        if found:
+            return "save", found
+        if ">" in seg_masked:
+            return None                                  # a redirect into a file it cannot save
+    if globbed:
+        return None
+    if reading[1] == FREE:
+        return "read", []
+    if (reading[1] in (LOW, MEDIUM) and params.trust_covers(same_program(reading[0]))
+            and params.simple_covers(reading[0]) and not adds_dependency(seg)):
+        return "free", []
+    return None
+
+
+def _chain_targets(operands: list[str], recursive: bool, cwd: str, home: str) -> list[str] | None:
+    """The files a deletion of these operands removes, read now: a plain glob is expanded as the shell would (it must
+    match), a folder needs ``recursive`` and gives every file under it (``_undo_tree``); every target exists, is a
+    regular file or folder, and is no link."""
+    import glob as _globmod
+    out: list[str] = []
+    for a in operands:
+        if a.startswith(":"):
+            return None                                  # a git pathspec with magic
+        if _GLOB & set(a):
+            if not _plain_glob(a):
+                return None
+            found = sorted(_globmod.glob(_undo_path(a, cwd, home)))
+            if not found:
+                return None
+        else:
+            found = [_undo_path(a, cwd, home)]
+        for p in found:
+            if os.path.islink(p):
+                return None
+            if os.path.isdir(p):
+                tree = _undo_tree(p) if recursive else None
+                if tree is None:
+                    return None
+                out += tree
+            elif os.path.isfile(p):
+                out.append(p)
+            else:
+                return None                              # missing (nothing to save), or a special file
+    return out or None
+
+
+def _chain_rm(args: list[str], cwd: str, home: str) -> list[str] | None:
+    """``rm [-r|-R|-f|-v]... PATHS``: the files it removes (``_chain_targets``)."""
+    got = _undo_opts(args, "fvrR")
+    if not got or not got[0]:
+        return None
+    return _chain_targets(got[0], bool(got[1] & {"r", "R"}), cwd, home)
+
+
+def _chain_git_rm(args: list[str], cwd: str, home: str) -> list[str] | None:
+    """``git rm [-r|-q|-f]... [--] PATHS``: the working-tree files it removes (``_chain_targets``)."""
+    got = _undo_opts(args, "rqf")
+    if not got or not got[0]:
+        return None
+    return _chain_targets(got[0], "r" in got[1], cwd, home)
+
+
+def _chain_git_mv(args: list[str], cwd: str, home: str) -> list[str] | None:
+    """``git mv [-k|-v|-n] SRC DST`` (never ``-f``): the source and the destination, read as ``mv`` reads them."""
+    got = _undo_opts(args, "kvn")
+    if not got or len(got[0]) < 2:
+        return None
+    return _undo_mv_cp("mv", ["--"] + got[0], cwd, home)
+
+
+def _chain_reader(seg: str, seg_masked: str) -> bool:
+    """A program that only reads what the pipe gives it and prints: ``tail``/``head`` with a count, ``cat`` with
+    display flags, ``grep`` with plain flags and one pattern; never a file operand."""
+    if _GLOB & set(seg_masked) or ">" in seg_masked:
+        return False
+    try:
+        toks = shlex.split(seg)
+    except ValueError:
+        return False
+    if not toks or toks[0] not in CHAIN_READERS:
+        return False
+    prog, args = toks[0], toks[1:]
+    if prog in ("tail", "head"):
+        it = iter(args)
+        for a in it:
+            if re.fullmatch(r"-\d+|-[nc]\+?\d+|--(?:lines|bytes)=\+?\d+|-[qv]", a):
+                continue
+            if a in ("-n", "-c", "--lines", "--bytes") and _COUNT.fullmatch(next(it, "")):
+                continue
+            return False
+        return True
+    if prog == "cat":
+        return all(re.fullmatch(r"-[nbsvetAETu]+", a) for a in args)
+    pattern, it = False, iter(args)
+    for a in it:
+        if a in _GREP_VALUES:
+            value = next(it, None)
+            if value is None or (a not in ("-e", "--regexp") and not value.isdigit()):
+                return False
+            pattern = pattern or a in ("-e", "--regexp")
+        elif re.fullmatch(r"--(?:max-count|after-context|before-context|context)=\d+", a) or a in _GREP_LONG:
+            continue
+        elif a.startswith("--regexp="):
+            pattern = True
+        elif a.startswith("-") and len(a) > 1 and not a.startswith("--"):
+            body = a[1:]
+            if body[-1] in "ABCme" and len(body) > 1 and all(c in _GREP_FLAGS for c in body[:-1]):
+                value = next(it, None)                   # -iA 3, -ie x: the last flag takes the next word
+                if value is None or (body[-1] != "e" and not value.isdigit()):
+                    return False
+                pattern = pattern or body[-1] == "e"
+            elif re.fullmatch(r"[ABCm]\d+", body):
+                continue
+            elif not all(c in _GREP_FLAGS for c in body):
+                return False
+        elif not pattern:
+            pattern = True                               # the pattern: one word, then no file
+        else:
+            return False
+    return pattern
 
 
 def _files(tool_name: str, args: dict, cwd: str | None, home: str) -> tuple[str, str, bool]:
@@ -5435,7 +5711,11 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         plain = (stakes in (LOW, MEDIUM) and t.split(":")[0] == "shell" and t.split(":")[1:2]
                  and t.split(":")[1] in UNDOABLE_PROGRAMS)
         heredoc = "\n" in command.strip() and stakes != CAP     # its body is data, not the commands _shell read
-        if (plain or heredoc) and undoable_shell(command, cwd, home, wide=wide):
+        chain = (undo_chain(command, cwd, home) if wide and (stakes in (LOW, MEDIUM) or (
+            (t, stakes) == ("file:unknown", HIGH) and _GLOB & set(command))) else None)
+        if chain:                                       # simple mode: free segments and saved ones, one undo
+            t, stakes, rev = (RM_TYPE if chain.rm else "file:shell"), LOW, True
+        elif (plain or heredoc) and undoable_shell(command, cwd, home, wide=wide):
             t, stakes, rev = "file:shell", LOW, True    # every file it changes can be saved first: a file change
         elif (wide and (t, stakes) == ("file:unknown", HIGH) and _GLOB & set(command)
               and undoable_shell(command, cwd, home, wide=True)):

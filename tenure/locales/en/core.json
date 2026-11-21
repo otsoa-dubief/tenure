@@ -532,6 +532,10 @@
     "one": "+{n} line",
     "other": "+{n} lines"
   },
+  "simple.turn.count": {
+    "one": "+{n} file",
+    "other": "+{n} files"
+  },
   "simple.turn.files": "files: {files}",
   "simple.undo.title": {
     "one": "Changes you can still undo ({n} h), newest first. Undoing one marks it as a mistake:",

@@ -534,6 +534,10 @@
     "one": "+{n} línea",
     "other": "+{n} líneas"
   },
+  "simple.turn.count": {
+    "one": "+{n} archivo",
+    "other": "+{n} archivos"
+  },
   "simple.turn.files": "archivos: {files}",
   "simple.undo.title": {
     "one": "Cambios que aún puedes deshacer ({n} h), del más reciente al más antiguo. Deshacer uno lo marca como error:",
