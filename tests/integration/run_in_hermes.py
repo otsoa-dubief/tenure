@@ -35,7 +35,8 @@ with open(os.path.join(home, "config.yaml"), "w") as f:
     f.write("approvals:\n  cron_mode: approve\n"
             "plugins:\n  enabled: [tenure]\n  entries:\n    tenure:\n      settings:\n"
             "        risks: {low: 1/20, medium: 1/5, high: cap}\n"
-            f"        start: {START}\n")
+            f"        start: {START}\n"
+            "        mode: study\n")   # this run checks the study rule; simple mode has its own tests
 
 sys.path.insert(0, os.environ.get("HERMES_AGENT_DIR") or os.path.expanduser("~/.hermes/hermes-agent"))
 from hermes_cli import plugin_messages, plugins  # noqa: E402
