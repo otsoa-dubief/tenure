@@ -269,3 +269,66 @@ def test_the_acted_event_in_study_mode_is_never_watched(plugin, monkeypatch):
     mod, ctx = plugin({"mode": "study", "start": "trusted", **FAST})
     ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})
     assert sent and sent[-1]["simple"] is False and sent[-1]["watched"] is False
+
+
+def test_each_kind_and_change_says_whether_its_name_is_hidden(plugin):
+    mod, ctx = make(plugin)
+    ctx.call("terminal", {"command": "git my-alias"})
+    mod.cli.slash("trust shell:git:my-alias ask")
+    watched_and_asking(mod, ctx)
+    api, client = client_for()
+    for raw, want in ((0, True), (1, False)):
+        d = simple(client, raw=raw)
+        flags = {k["type"].split(":")[1]: k["hidden"] for a in d["agents"] for k in a["kinds"]}
+        assert flags["git"] is want and flags["npm"] is False and flags["write"] is False
+        assert all(r["hidden"] is False for r in d["undo"]["rows"])
+
+
+def test_lang_is_short_and_shaped_like_a_language(plugin):
+    mod, ctx = make(plugin)
+    api, client = client_for()
+    for bad in ("../../etc", "x" * 17, "fr/../en", "f", "fr fr"):
+        assert client.get("/api/plugins/tenure/simple", params={"lang": bad}).status_code == 422, bad
+    for good in ("zh-hant", "fr_FR", "es"):
+        assert client.get("/api/plugins/tenure/simple", params={"lang": good}).status_code == 200, good
+
+
+def test_an_unknown_language_is_never_kept_in_memory(plugin):
+    mod, ctx = make(plugin)
+    watched_and_asking(mod, ctx)
+    api, client = client_for()
+    mod.i18n.reset_cache()
+    for i in range(30):
+        simple(client, lang="q" + chr(97 + i % 26) + "-z" + str(i))         # shaped like languages, none shipped
+    langs = {lang for _, lang in mod.i18n._cache}
+    assert langs <= {"en", "fr", "es", "zh", "ar"} and "en" in langs
+
+
+def test_a_failed_look_up_of_linked_kinds_keeps_the_page(plugin, monkeypatch):
+    mod, ctx = make(plugin)
+    watched_and_asking(mod, ctx)
+    api, client = client_for()
+    monkeypatch.setattr(mod, "_held_by", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("linked kinds")))
+    d = simple(client, raw=1)                                       # as /agents keeps answering (_held)
+    assert {"file:write", "shell:npm"} <= set(kinds_of(d))
+
+
+def test_a_home_outside_the_root_s_profiles_still_answers(plugin, monkeypatch, tmp_path):
+    mod, ctx = make(plugin)
+    watched_and_asking(mod, ctx)
+    api, client = client_for()
+    monkeypatch.setattr(api, "_root", lambda: tmp_path / "elsewhere")      # HERMES_HOME not under <root>/profiles
+    d = simple(client, raw=1)
+    assert d["mode"] == "simple" and "file:write" in kinds_of(d)
+    assert d["profile"] == os.path.basename(os.environ["HERMES_HOME"])
+
+
+def test_actions_left_never_go_below_zero(plugin, monkeypatch):
+    mod, ctx = make(plugin)
+    ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})
+    mod.cli.slash(f"undo {last_undo(mod)}")                                       # watched
+    monkeypatch.setattr(mod.cli, "_pending", lambda *a, **k: 99)                  # more waiting than needed
+    api, client = client_for()
+    k = kinds_of(simple(client, raw=1))["file:write"]
+    assert k["state"] == "watched" and k["left"] == 0
+    assert k["steps"] == [{"key": "trust.state.watched_wait", "hours": 24}]
