@@ -4,11 +4,14 @@ This is the reference behind the summary in the [README](../README.md#self-prote
 
 ## Suspension after external content
 
-A session asks for everything until it ends (under the trusted start: everything but file writes, which keep
-their undo; `/new` starts a fresh session), after using one of these
-tools or commands. In simple mode, the next command asks once, and a person's yes lets the session work as before
-(mkdir, git add, and git commit without an active hook, never ask); what follows outside content whatever the
-suspension (a file that runs code, a script written then run, a new dependency) still asks:
+A session is suspended after using one of the tools or commands listed below. In simple mode (the default), its next
+command asks once. A person's yes lets the session work as before until it ends, even if it reads more outside
+content later: a deliberate choice, one yes per conversation. A no keeps its commands asking, and is not counted
+against the agent. File edits keep going with their undo, and `mkdir`, `git add` and `git commit` without an active
+hook never ask. In study mode, the session asks for everything until it ends (under the trusted start: everything but
+file writes, which keep their undo; `/new` starts a fresh session). In both modes, what outside content makes risky
+whatever the suspension (a file that runs code, a script written then run, a new dependency, outside content written
+into a file) still asks. The tools and commands:
 
 - the tools `web_search`, `web_extract`, every `browser_*` tool, `read_file` on a path outside the project, and
   `execute_code`;
@@ -51,8 +54,8 @@ of a compression: a branch, a reset or `/new` is a new conversation, as Hermes i
 and `npm run`, `echo >` and a file write, `python -m pip` and `pip`, `bash x.sh` and `sh x.sh`, `uv run python`
 and `python`) remain different types: each earns its own record, and a probation on one does not hold the other.
 
-An agent that can switch off its own supervision is not supervised. Self-protection comes in two tiers, both capped
-at **T1 (asks first)**, and no type override lowers them (`self:*`, `secrets:*`, `file:sensitive`).
+An agent that can switch off its own supervision is not supervised. Self-protection comes in two tiers, both capped:
+they **always ask**, in both modes, and no type override lowers them (`self:*`, `secrets:*`, `file:sensitive`).
 
 **Checked on the path: Hermes' own files, tenure's data and Hermes' CLI.** The check is on the path once it is
 normalised and resolved, whatever program is given it. It covers what a command, a tool call or a piece of code

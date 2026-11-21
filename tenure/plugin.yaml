@@ -4,14 +4,16 @@ manifest_version: 2
 api_version: 1
 label: tenure
 description: >-
-  Your agent works without asking. When it gets a change wrong, you undo it, and that kind of action gets watched.
-  File edits and deletions are saved first and can be undone for 24 hours (/tenure undo); other commands can't be
-  undone. After one mistake on a kind of action (an undo, a refusal, a flag, a file that no longer parses), its actions
-  are listed at the end of the turn with an undo (a kind tenure can't undo asks first); after a second, it asks first;
-  a run of actions you keep frees it again. Pushes, publishing, uploads, messages to people and payments always ask; after outside content, the next
-  command asks once. Three commands: /tenure, /tenure undo, /tenure trust. Opt-in study mode: the rule of a
-  preregistered study, with spot checks, a guarantee you choose (Dodge's CSP-1) and a signed, tamper-evident autonomy
-  passport. Local only: no network, no LLM call.
+  Your agent works without asking. When it gets a change wrong, you undo it, and from then on that kind of action is
+  listed for you after each turn, with an undo. Edits through Hermes' file tools and plain file commands on project
+  files (rm, mv, cp, sed -i, touch, > file, alone or chained) are saved before they run and can be undone for 24 hours
+  (/tenure undo); everything else (a test run, a build, a commit, files changed by another program) can't be undone.
+  After one mistake on a kind of action (an undo, a refusal, a flag, a file that no longer parses), its actions are
+  listed at the end of the turn with an undo (a kind Tenure can't undo asks first); after a second, it asks first; a
+  run of actions you keep frees it again. Pushes, publishing, uploads, messages to people and payments always ask;
+  after outside content, the next command asks once. Three commands: /tenure, /tenure undo, /tenure trust. Opt-in
+  study mode: the rule of a preregistered study, with spot checks, a guarantee you choose (Dodge's CSP-1) and a
+  signed, tamper-evident autonomy passport. Local only: no network, no LLM call.
 author: Otsoa Dubief
 license: Apache-2.0
 homepage: https://github.com/otsoa-dubief/tenure
@@ -58,7 +60,7 @@ config_schema:
   strict:
     type: bool
     default: false
-    description: "On a model or provider change, start every type over instead of carrying half the record on trial"
+    description: "On a model or provider change, start every kind over (a kind that made a mistake asks first again) instead of keeping its record as it stands (study mode: half of it, on trial)"
     required: false
   types:
     type: dict
@@ -73,5 +75,5 @@ config_schema:
   enabled:
     type: bool
     default: true
-    description: "Turn tenure off without uninstalling it"
+    description: "Turn Tenure off without uninstalling it"
     required: false
