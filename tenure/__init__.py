@@ -1867,7 +1867,7 @@ def _background(tool: str, args: dict, result=None) -> bool:
 def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool, reason: str | None,
             launched: bool = False, written: list[str] | None = None, cwd: str = "", unjudged: bool = False,
             label: str = "", more: int = 0, cut: bool = False, untouched: bool = False,
-            count: int = 0, fault_type: str | None = None) -> list[str]:
+            count: int = 0, fault_type: str | None = None, hidden: bool = False) -> list[str]:
     """The verified outcome of one pending decision, from facts gathered before the transaction: was the call stopped
     (``blocked``), did the tool fail, what did the automatic check of the written files say. The check judges every
     action that ran, even one nobody answered. A background launch (``launched``) is neutral: the command's own
@@ -1877,7 +1877,9 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     saved files are all as they were, or that Hermes did not run: it keeps no undo, no notice and no end-of-turn line
     (its outcome is unchanged). ``count``: the files the undo of a chained line holds, shown as "(+N files)" (end of
     turn, /tenure). ``fault_type``: the kind a broken file of a chained line is blamed on (the segment that wrote it,
-    ``file:shell``), not the line's own. Returns the owner's messages."""
+    ``file:shell``), not the line's own. ``hidden``: a terminal line that exited 0 but whose code may hide an earlier
+    program's failure (``classify.hides_failure``): no verified success, neutral, except an act-then-tell credit,
+    which comes from the action kept through its undo window, not from the code. Returns the owner's messages."""
     try:                                                    # display only: it never aborts a settlement
         home = os.path.expanduser("~")
         shown = [_show(x, cwd, home) for x in written or []]
@@ -1911,6 +1913,8 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     else:                                                   # nobody answered (cron, yolo, approvals off), or no hook
         result_source = ("neutral", "nobody")
     deferred = phase == "notify" and p["decision"] == rule.NOTIFY and result_source == ("success", "notify")
+    if hidden and result_source[0] == "success" and not deferred:
+        result_source = ("neutral", "ambiguous")            # exit 0 is the last program's: proves nothing before it
     if p["decision"] == rule.WATCH and result_source[0] == "success":
         now = st.get_state(agent, key, p["stakes"], p["reversible"])
         if not trusted(cfg, now, params.required_n(cfg["risks"], p["stakes"]), p["stakes"]):
@@ -2407,6 +2411,8 @@ def _post_tool_call(tool_name, args, result, session_id, tool_call_id, status, e
             except Exception:               # a snapshot it cannot read: kept, the undo says why
                 untouched = False
         launched = not blocked and not failed and _background(tool, args, result)
+        hidden = (tool == "terminal" and not blocked and not failed
+                  and classify.hides_failure(str(args.get("command", ""))))
         reason, paths, unjudged = None, [], False
         if not blocked and not launched:    # a failed call is judged too: "...; false" never hides a broken file
             paths = classify.files_written(tool, args, cwd, wide=wide) or saved
@@ -2430,6 +2436,7 @@ def _post_tool_call(tool_name, args, result, session_id, tool_call_id, status, e
                 posts += _settle(st, cfg, p, blocked=blocked, failed=failed, reason=reason, launched=launched,
                                 written=paths, cwd=cwd, unjudged=unjudged,
                                 label=_label(tool, args, cfg["vocabulary"]), more=more, cut=cut, untouched=untouched,
+                                hidden=hidden,
                                 count=count, fault_type=fault_type)
         if p is not None and p.get("snap_id") and p.get("undo_id") is None:
             undo.discard(p["snap_id"], data_dir())          # committed, and no undo entry holds it: nothing to keep
