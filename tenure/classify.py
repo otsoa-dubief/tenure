@@ -1501,8 +1501,10 @@ def _undoable_shell(command: str, cwd: str | None, home: str, wide: bool) -> lis
         return _undo_checked([p for f in found for p in f], cwd, home, WIDE_MAX_FILES if wide else UNDOABLE_MAX_FILES,
                              wide=wide)
     if (wide and masked is not None and masked == text and _GLOB & set(masked)
-            and not (set(masked) - _GLOB) & _UNDOABLE_BAD and ">" not in masked):
+            and not (set(masked) - _GLOB) & _UNDOABLE_BAD and ">" not in masked and text.split()[0] == "rm"):
         return _undo_checked(_undo_glob(text, cwd, home), cwd, home, WIDE_MAX_FILES, wide=True)
+    if wide and masked is not None and _GLOB & set(masked) and text.split()[0] == "sed":
+        return _undo_checked(_sed_glob(text, cwd, home), cwd, home, WIDE_MAX_FILES, wide=True)
     if masked is None or any(c in _UNDOABLE_BAD for c in masked.replace(">", "")):
         return None
     redirect = None
@@ -1743,12 +1745,31 @@ def _glob_superset(path: str) -> set[str] | None:
     return {os.path.join(folder, n) for n in names if rx.match(n)}
 
 
+def _glob_matches(word: str, cwd: str, home: str) -> list[str] | None:
+    """The paths an unquoted glob names now, as the shell expands it in ``cwd``: [] when it matches nothing (the shell
+    passes it as it is, so nothing is named). None when Python and the shell may read it differently (not a
+    ``_plain_glob``, or names a user's glob options would add: ``_glob_superset``), for more than WIDE_MAX_FILES
+    matches, or for none but a file of that very name (bash then names that file)."""
+    import glob as _globmod
+    if not _plain_glob(word) or not cwd or cwd == UNKNOWN:
+        return None
+    path = _undo_path(word, cwd, home)
+    try:
+        found = sorted(itertools.islice(_globmod.iglob(path), WIDE_MAX_FILES + 1))
+    except (OSError, ValueError):
+        return None
+    if len(found) > WIDE_MAX_FILES or (not found and os.path.lexists(path)):
+        return None                                      # none, but a file of that name: bash names it
+    if _glob_superset(path) != set(found):
+        return None                                      # a hidden name, another case: the user's options may take it
+    return found
+
+
 def _undo_glob(text: str, cwd: str, home: str) -> list[str] | None:
     """Simple mode: ``rm [-f|-v] PATTERN...`` with unquoted glob patterns, read the way the shell expands them in the
     working directory now (no hidden file for a leading ``*``, a pattern that matches nothing makes the command keep
     its question). Every match must be a regular file. Limit: the shell expands the pattern when the command runs, so
     a matching file created between this read and the run is removed without being saved."""
-    import glob as _globmod
     try:
         toks = shlex.split(text)
     except ValueError:
@@ -1761,14 +1782,9 @@ def _undo_glob(text: str, cwd: str, home: str) -> list[str] | None:
     out: list[str] = []
     for a in got[0]:
         if _GLOB & set(a):
-            if not _plain_glob(a):
+            matches = _glob_matches(a, cwd, home)
+            if matches is None:
                 return None                              # read differently by Python and the shell: keep asking
-            path = _undo_path(a, cwd, home)
-            matches = sorted(itertools.islice(_globmod.iglob(path), WIDE_MAX_FILES + 1))
-            if len(matches) > WIDE_MAX_FILES or (not matches and os.path.lexists(path)):
-                return None                              # none, but a file of that name: bash removes it
-            if _glob_superset(path) != set(matches):
-                return None                              # a hidden name, another case: the user's options may take it
             out += matches                               # none: the shell passes the pattern, nothing is removed
         else:
             out.append(_undo_path(a, cwd, home))
@@ -1793,10 +1809,12 @@ def _undo_mv_cp(prog: str, args: list[str], cwd: str, home: str) -> list[str] | 
     return (srcs + targets) if prog == "mv" else targets
 
 
-def _undo_sed(args: list[str], cwd: str, home: str) -> list[str] | None:
+def _undo_sed(args: list[str], cwd: str, home: str, expands: list[bool] | None = None) -> list[str] | None:
     """sed with one -i (GNU -i, -iSUFFIX, BSD -i '' or -i SUFFIX), its scripts (one, or several -e, which sed joins
     with new lines: each and the whole are plain) that neither write nor execute under both readings, then the
-    files."""
+    files. ``expands`` (simple mode): for each word of ``args``, whether the shell expands its glob; only a file
+    operand may, read as rm's globs are (``_glob_matches``), and [] when every operand is a glob that matches
+    nothing: sed edits nothing."""
     rest, suffix, scripts, in_place = list(args), None, [], False
     while rest and rest[0].startswith("-"):
         a = rest.pop(0)
@@ -1824,6 +1842,10 @@ def _undo_sed(args: list[str], cwd: str, home: str) -> list[str] | None:
         scripts.append(rest.pop(0))
     if not rest or any(r.startswith("-") for r in rest):
         return None
+    expands = expands or [False] * len(args)
+    first = len(args) - len(rest)                        # the file operands are the last words
+    if len(expands) != len(args) or any(expands[:first]):
+        return None                                      # a glob in an option or a script: the shell expands it too
     script = "\n".join(scripts)                          # how sed reads several -e
     if not all(_sed_plain(x) for x in scripts + [script]):
         return None                                      # only substitutions and deletions: no r, R, w, e, y, a, i, c
@@ -1831,10 +1853,32 @@ def _undo_sed(args: list[str], cwd: str, home: str) -> list[str] | None:
         read = _sed_script(script, brackets)
         if read is None or read[0] or read[1]:
             return None
-    files = [_undo_path(r, cwd, home) for r in rest]
+    files: list[str] = []
+    for word, expand in zip(rest, expands[first:]):
+        found = _glob_matches(word, cwd, home) if expand else [_undo_path(word, cwd, home)]
+        if found is None:
+            return None
+        files += found
     if not all(os.path.isfile(f) and not os.path.islink(f) for f in files):
         return None
-    return files + ([f + suffix for f in files] if suffix else [])
+    return list(dict.fromkeys(files)) + ([f + suffix for f in dict.fromkeys(files)] if suffix else [])
+
+
+def _sed_glob(text: str, cwd: str | None, home: str) -> list[str] | None:
+    """Simple mode: ``sed -i`` whose file operands hold unquoted globs (``_undo_sed`` with ``expands``): the files it
+    edits now, [] when they all match nothing. None for anything else, or a word whose glob is half quoted."""
+    text = str(text or "").strip()
+    if not cwd or cwd == UNKNOWN or any(_undo_odd(c) for c in text):
+        return None
+    masked = _undo_mask(text, bang=True)
+    if masked is None or not _GLOB & set(masked) or (set(masked) - _GLOB) & _UNDOABLE_BAD or ">" in masked:
+        return None
+    try:
+        toks = shlex.split(text)
+    except ValueError:
+        return None
+    expands = _glob_words(toks, masked) if toks[:1] == ["sed"] else None
+    return None if expands is None else _undo_sed(toks[1:], cwd, home, expands[1:])
 
 
 _SED_ADDR = r"(?:\d+|\$|/(?:\\.|[^/\\\n])*/I?)"
@@ -2255,6 +2299,8 @@ def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple | No
         ops = list(zip(got[0], expands[len(toks) - len(got[0]):]))     # (word, its glob is the shell's)
         return ("save", lambda b: _chain_targets(ops, bool(got[1] & {"r", "R"}), cwd, home, b),
                 {"deletes": True, "gone": [_undo_path(a, cwd, home) for a, e in ops if not e]})
+    if prog == "sed" and globbed:                        # its file operands read as rm's globs, once every segment
+        return ("save", lambda b: _sed_targets(seg, cwd, home, b), {"writes": True}) if saver_ok else None   # is read
     if ">" in seg_masked or prog in ("mv", "cp", "sed", "touch"):
         found = undoable_shell(seg, cwd, home, wide=True) if saver_ok and not globbed else None
         if found:
@@ -2279,20 +2325,14 @@ def _chain_targets(operands: list[tuple[str, bool]], recursive: bool, cwd: str, 
     removes nothing: the shell passes it as it is); a quoted one is a name. A folder needs ``recursive`` and gives
     every file under it (``_undo_tree``); every other target exists, is a regular file or folder, and is no link;
     the line's ``budget`` holds for all of them. An operand given twice is read once."""
-    import glob as _globmod
     out: list[str] = []
     for a, expand in dict.fromkeys(operands):
         if a.startswith(":"):
             return None                                  # a git pathspec with magic
         if expand:
-            if not _plain_glob(a):
+            found = _glob_matches(a, cwd, home)
+            if found is None:
                 return None
-            path = _undo_path(a, cwd, home)
-            found = sorted(itertools.islice(_globmod.iglob(path), WIDE_MAX_FILES + 1))
-            if len(found) > WIDE_MAX_FILES or (not found and os.path.lexists(path)):
-                return None                              # none, but a file of that name: bash removes it
-            if _glob_superset(path) != set(found):
-                return None                              # a hidden name, another case: the user's options may take it
         else:
             found = [_undo_path(a, cwd, home)]
         for p in found:
@@ -2310,6 +2350,15 @@ def _chain_targets(operands: list[tuple[str, bool]], recursive: bool, cwd: str, 
             else:
                 return None                              # missing (nothing to save), or a special file
     return out
+
+
+def _sed_targets(seg: str, cwd: str, home: str, budget: _Budget) -> list[str] | None:
+    """The files a ``sed -i`` over globs edits (``_sed_glob``), each taken from the line's ``budget``; [] when its
+    patterns match nothing."""
+    files = _sed_glob(seg, cwd, home)
+    if files is None or budget.late() or not all(budget.take(f) for f in files):
+        return None
+    return files
 
 
 def _chain_reader(seg: str, seg_masked: str) -> bool:
@@ -3830,6 +3879,23 @@ def _tool_outputs(tokens: list[str]) -> list[str]:
     return out
 
 
+_NO_FILE = {"-", "/dev/null", "/dev/stdout", "/dev/stderr"}
+
+
+def _fetch_saves(toks: list[str]) -> bool:
+    """curl or wget writing what it fetches (or its headers, cookies, a trace) into a file: an output option in any
+    spelling (``-o f``, ``-sSo f``, ``--output=f``, wget's ``-qO f``), curl's ``-O`` or ``--remote-name`` grouped or
+    not (a file named after the URL), wget's ``-P``. Standard output and /dev/null are no file."""
+    prog = os.path.basename(toks[0]) if toks else ""
+    if any(t not in _NO_FILE for t in _tool_outputs(toks)):
+        return True
+    if prog != "curl":
+        return False
+    args = _canon_long(toks[1:], ("--remote-name", "--remote-name-all", "--remote-header-name"))
+    return any(a.split("=", 1)[0] in ("--remote-name", "--remote-name-all") or
+               (re.match(r"-[^-]", a) and "O" in a.split("=", 1)[0]) for a in args)
+
+
 def _fetcher_risky(tokens: list[str], home: str) -> tuple[str, str] | None:
     """curl reading a config file (-K), wget running its own commands (-e) or an askpass program, or either one
     saving into the home folder itself: where the files land, or what runs, is not on the command line."""
@@ -4273,7 +4339,7 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
                  or re.search(r"(-X|--request|--method)[\s=]*(POST|PUT|PATCH|DELETE)", joined, re.I))
         if sends:
             return f"shell:{prog}:send", HIGH
-        return f"shell:{prog}", MEDIUM if writes or "-o" in args or "-O" in args else FREE
+        return f"shell:{prog}", MEDIUM if writes or _fetch_saves(toks) else FREE
     if prog == "rsync":
         remote = [a for a in args if not a.startswith("-") and re.match(r"^[^/]*:", a)
                   and not (_nt() and _DRIVE_ROOT.match(a[:3]))]          # Windows: C:/x is a drive, not a host
@@ -6059,6 +6125,8 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
                 t, stakes, rev = "shell:rm", FREE, False
             elif rest is not None:                            # the rest of the line is read as it is
                 t, stakes, rev = _shell(rest, cwd, home)
+            elif _sed_glob(command, cwd, home) == []:         # sed -i over patterns that match nothing
+                t, stakes, rev = "shell:sed", FREE, False     # edits nothing: free, nothing to save
         if wide and t == "file:shell" and any(os.path.basename(w[0]) == "rm" for w in _segments(command) if w):
             t = RM_TYPE                                 # simple mode: deleting earns its freedom apart from writing
         if t.split(":")[0] in ("shell", "file") and stakes != CAP and adds_dependency(command):
