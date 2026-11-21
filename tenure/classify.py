@@ -1885,11 +1885,11 @@ def _undo_redirect(prog: str, args: list[str], target: str, cwd: str, home: str)
 CHAIN_OPS = re.compile(r"&&|\|\||;|\|")
 _DUP = re.compile(r"(?:(?<=\s)|^)[12]?>&[12](?=\s|$)")    # 2>&1, >&2: one output joined to the other, no file
 _CHAIN_BAD = set("$`<\\(){}!#~\n\r")                     # substitutions, input, grouping, history, comments, homes
-CHAIN_READERS = {"tail", "head", "cat", "grep", "egrep", "fgrep"}
+CHAIN_READERS = {"tail", "head", "cat", "grep", "egrep", "fgrep", "wc", "sort", "uniq"}
 CHAIN_STATE = {"cd", "pushd", "popd", "export", "unset", "set", "shopt", "setopt", "alias", "unalias", "source", ".",
                "eval", "exec", "declare", "typeset", "local", "readonly", "umask", "trap", "hash", "enable",
                "builtin", "command", "ulimit", "read", "mapfile", "readarray", "getopts", "let"}
-_GREP_FLAGS = set("iIvnwxcqsEFGHhloabUzZ")
+_GREP_FLAGS = set("iIvnwxcqsEFGHhlLoabUzZ")
 _GREP_VALUES = {"-A", "-B", "-C", "-m", "-e", "--max-count", "--after-context", "--before-context", "--context",
                 "--regexp"}
 _GREP_LONG = {"--ignore-case", "--invert-match", "--line-number", "--word-regexp", "--line-regexp", "--count",
@@ -1897,6 +1897,12 @@ _GREP_LONG = {"--ignore-case", "--invert-match", "--line-number", "--word-regexp
               "--no-filename", "--only-matching", "--color", "--colour", "--color=never", "--color=always",
               "--color=auto", "--colour=never", "--colour=always", "--colour=auto", "--text", "--byte-offset"}
 _COUNT = re.compile(r"\+?\d+")
+_SORT_FLAGS = re.compile(r"-[bdfghinMrsuVz]+|--(?:reverse|numeric-sort|general-numeric-sort|human-numeric-sort|"
+                         r"version-sort|month-sort|unique|ignore-case|ignore-leading-blanks|dictionary-order|"
+                         r"ignore-nonprinting|stable|zero-terminated)")
+_SORT_KEY = re.compile(r"\d+(?:\.\d+)?[bdfghinMrV]*(?:,\d+(?:\.\d+)?[bdfghinMrV]*)?")
+_UNIQ_FLAGS = re.compile(r"-[cdiuz]+|-[fsw]\d+|--(?:count|repeated|unique|ignore-case|zero-terminated)|"
+                         r"--(?:skip-fields|skip-chars|check-chars)=\d+")
 
 
 @dataclass(frozen=True)
@@ -1954,8 +1960,9 @@ def undo_chain(command: str, cwd: str | None, home: str | None = None) -> Chain 
     """Simple mode: a chained line (``chain_parts``) every segment of which is either free on its own in simple mode
     (a read, or a covered program at low or medium stakes that reaches nothing outside, adds no dependency and writes
     no file through a redirect), or a deletion or a move whose targets can all be saved (``rm``, ``git rm``,
-    ``git mv``, ``mv``, ``cp``, ``sed -i``, ``touch``, a redirect into the one file it saves); a last pipe goes only
-    into pure readers (``tail -40``, ``head``, ``cat``, ``grep x``). The snapshot is the union of the targets, read now
+    ``git mv``, ``mv``, ``cp``, ``sed -i``, ``touch``, a redirect into the one file it saves); a pipe, anywhere in the
+    line, goes only into pure readers (``tail -40``, ``head``, ``cat``, ``grep x``, ``wc -l``, ``sort``, ``uniq``) and
+    the segment it leaves is read as itself, at its place. The snapshot is the union of the targets, read now
     (a file an earlier segment creates and a later one deletes is not saved), under the usual caps; a target a
     later segment runs as a script makes the line keep its question (write then run). Else None. Every segment is
     read before any folder is walked, and the line is read once per hook call (``one_reading``)."""
@@ -1977,15 +1984,16 @@ def _read_chain(command: str, parts: list, cwd: str, home: str) -> Chain | None:
 
 
 def _undo_chain(command: str, parts: list, cwd: str, home: str) -> Chain | None:
-    piped = next((i for i, p in enumerate(parts) if p[2] == "|"), len(parts))
-    if piped == 0 or any(p[2] != "|" for p in parts[piped:]):
-        return None                                      # a pipe only at the end of the line, into readers
-    if not all(_chain_reader(p[0], p[1]) for p in parts[piped:]):
-        return None
-    if not any(_chain_may_save(seg, seg_masked) for seg, seg_masked, _op in parts[:piped]):
+    heads = []                                           # the segments, each without the readers piped after it
+    for seg, seg_masked, op in parts:
+        if op != "|":
+            heads.append((seg, seg_masked, op))
+        elif not _chain_reader(seg, seg_masked):
+            return None                                  # a pipe only into pure readers: `X 2>&1 | tail -40` is X
+    if not any(_chain_may_save(seg, seg_masked) for seg, seg_masked, _op in heads):
         return None                                      # no file command: nothing to read, the line is as today
     plans, ran_free = [], False
-    for seg, seg_masked, _op in parts[:piped]:           # every segment read first: a refused one walks nothing
+    for seg, seg_masked, _op in heads:                   # every segment read first: a refused one walks nothing
         plan = _chain_segment(seg, seg_masked, cwd, home)
         if plan is None:
             return None
@@ -2304,7 +2312,9 @@ def _chain_targets(operands: list[tuple[str, bool]], recursive: bool, cwd: str, 
 
 def _chain_reader(seg: str, seg_masked: str) -> bool:
     """A program that only reads what the pipe gives it and prints: ``tail``/``head`` with a count, ``cat`` with
-    display flags, ``grep`` with plain flags and one pattern; never a file operand."""
+    display flags, ``grep`` with plain flags and one pattern (never ``-r``: it would read the folder), ``wc`` with
+    its counts, ``sort`` with plain orderings and keys (never ``-o``, ``-T``, ``--compress-program``), ``uniq`` with
+    its flags; never a file operand (a second one is where ``uniq`` writes)."""
     if _GLOB & set(seg_masked) or ">" in seg_masked:
         return False
     try:
@@ -2325,6 +2335,21 @@ def _chain_reader(seg: str, seg_masked: str) -> bool:
         return True
     if prog == "cat":
         return all(re.fullmatch(r"-[nbsvetAETu]+", a) for a in args)
+    if prog == "wc":
+        return all(re.fullmatch(r"-[lwcmL]+|--(?:lines|words|bytes|chars|max-line-length)", a) for a in args)
+    if prog in ("sort", "uniq"):
+        flags, it = (_SORT_FLAGS if prog == "sort" else _UNIQ_FLAGS), iter(args)
+        for a in it:
+            if flags.fullmatch(a):
+                continue
+            if prog == "sort" and (a == "-k" and _SORT_KEY.fullmatch(next(it, ""))
+                                   or a.startswith("-k") and _SORT_KEY.fullmatch(a[2:])
+                                   or a.startswith("--key=") and _SORT_KEY.fullmatch(a[6:])):
+                continue
+            if prog == "uniq" and a in ("-f", "-s", "-w") and next(it, "").isdigit():
+                continue
+            return False
+        return True
     pattern, it = False, iter(args)
     for a in it:
         if a in _GREP_VALUES:
