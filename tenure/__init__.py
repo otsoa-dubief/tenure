@@ -99,6 +99,7 @@ class _State:
         self.agents: OrderedDict[str, str] = OrderedDict()     # session id -> agent of its latest API request
         self.tainted: OrderedDict[str, float] = OrderedDict()  # suspended sessions (anonymised) -> since when
         self.acted: dict = {}           # (session, type) -> {"ids", "handle", "at"}: this turn's acted message
+        self.turn: dict = {}            # session -> {"items", "at"}: simple mode's watched actions of this turn
         self.cwds: OrderedDict[str, str] = OrderedDict()       # session id -> terminal cwd its last command reported
         # (store path, action number) -> (its time, the call's summary): `flag` shows the target of an action this
         # process ran; never stored anywhere
@@ -252,8 +253,7 @@ def _check_copied(st: store.Store) -> None:
             strict = bool(cfg["strict"])
             st.log({"event": "copy", "mode": "strict" if strict else "carry"})
             for agent, s in st.states():
-                st.put_state(agent, rule.carry_over(s, n_new=params.required_n(cfg["risks"], s.stakes), veto=False,
-                                                    strict=strict))
+                st.put_state(agent, passport._carry(s, cfg, mode(cfg), veto=False, strict=strict))
             st.db.execute("UPDATE undo SET undone = 1 WHERE undone = 0")
             st.db.execute("DELETE FROM pending")
             st.clear_recent()
@@ -383,7 +383,7 @@ def parse_risk(value, default):
 
 def settings() -> dict:
     """The owner's settings: preset, risk per stakes level (None = capped), spot-check rate (strictly between 0 and
-    1, else the default), strict mode, type overrides, enabled."""
+    1, else the default), strict mode, type overrides, enabled, mode (simple or study)."""
     preset = str(_get("preset", params.DEFAULT_PRESET) or params.DEFAULT_PRESET).strip().lower()
     if preset not in params.PRESETS:
         preset = params.DEFAULT_PRESET
@@ -396,20 +396,33 @@ def settings() -> dict:
     spot = parse_risk(_get("spot_check", params.DEFAULT_SPOT), params.DEFAULT_SPOT)
     overrides = _get("types")
     start = str(_get("start", params.DEFAULT_START) or params.DEFAULT_START).strip().lower()
+    mode = str(_get("mode", params.DEFAULT_MODE) or params.DEFAULT_MODE).strip().lower()
+    mode = mode if mode in params.MODES else params.DEFAULT_MODE
     typed = _get("fields")                              # a mistyped block is reported by the vocabulary, then ignored
     raw_fields = typed if isinstance(typed, dict) else {}
     vocabulary = fields.load(raw_fields or (typed if typed not in (None, "") else None))
     return dict(vocabulary=vocabulary, fields=raw_fields, preset=preset, risks=risks,
                 spot=params.DEFAULT_SPOT if spot is None else spot,
                 strict=_truthy(_get("strict", False)), overrides=overrides if isinstance(overrides, dict) else {},
-                enabled=_truthy(_get("enabled", True)),
-                start=start if start in params.STARTS else params.DEFAULT_START)
+                enabled=_truthy(_get("enabled", True)), mode=mode,
+                # simple mode starts every type free: the trusted start, whatever the start setting says
+                start="trusted" if mode == rule.SIMPLE else start if start in params.STARTS else params.DEFAULT_START)
+
+
+def mode(cfg: dict | None = None) -> str:
+    """The mode in force: simple or study."""
+    return (cfg if cfg is not None else settings()).get("mode") or rule.STUDY
+
+
+def simple(cfg: dict | None = None) -> bool:
+    return mode(cfg) == rule.SIMPLE
 
 
 def settings_event(cfg: dict) -> dict:
-    """The settings as the ledger records them: what a replay needs to recompute the tiers."""
+    """The settings as the ledger records them: what a replay needs to recompute the tiers. The rule version tells
+    the mode (simple mode: ``rule.SIMPLE_VERSION``)."""
     return {"event": "settings", "risks": dict(cfg["risks"]), "spot": cfg["spot"], "strict": bool(cfg["strict"]),
-            "start": cfg.get("start", "probation"), "rule": RULE}
+            "start": cfg.get("start", "probation"), "rule": rule.SIMPLE_VERSION if simple(cfg) else RULE}
 
 
 def settings_fingerprint(cfg: dict) -> str:
@@ -444,6 +457,23 @@ def _migrate_b2(st: store.Store) -> None:
     st.set_meta("rule:b2", "1")
 
 
+def _rebuild(st: store.Store, new_mode: str) -> None:
+    """The mode changed: every record is rebuilt from the ledger, replayed whole under the new mode, so the same
+    ledger always gives the same records in a mode, whatever was switched before. A ledger that does not replay
+    keeps its records as they are."""
+    try:
+        replayed, _ = passport._replay(st.ledger(), new_mode)
+    except Exception:
+        log.warning("tenure: records kept as they are for mode %s (the ledger does not replay)", new_mode)
+        replayed = {}
+    for (agent, key), s in replayed.items():
+        live = st.recorded(agent, key)
+        if live is None or {**live.to_dict(), "changed_at": 0} != {**s.to_dict(), "changed_at": 0}:
+            s.changed_at = time.time()
+            st.put_state(agent, s)
+    st.set_meta("rule:mode", new_mode)
+
+
 def sync_settings(st: store.Store, cfg: dict) -> list[dict]:
     """In a transaction, before any outcome: settings that differ from the last ones in the ledger are logged, then
     every type of every agent is re-evaluated under them (stricter settings can take a T3 back). Returns the derived
@@ -454,6 +484,8 @@ def sync_settings(st: store.Store, cfg: dict) -> list[dict]:
     st.log(settings_event(cfg))
     st.set_meta("settings:fingerprint", fp)
     _migrate_b2(st)
+    if (st.get_meta("rule:mode") or rule.STUDY) != mode(cfg):
+        _rebuild(st, mode(cfg))                         # another mode: every record replayed under it
     events = []
     for agent, s in st.states():
         before = s.to_dict()
@@ -805,6 +837,46 @@ def _with_what(files: str) -> str:
 
 
 ACTED_WINDOW = 600.0            # seconds: without an end-of-turn signal, a later action starts a new message
+LABEL_CAP = 60                  # characters of a command shown in the end-of-turn line
+
+
+class Watched:
+    """Simple mode: one watched action of this turn (acted, then shown, with an undo), kept in memory until the turn
+    ends (``post_llm_call``), when one line lists them all."""
+    def __init__(self, session: str, undo_id: int, label: str):
+        self.session, self.undo_id, self.label = session, undo_id, label
+
+
+def _label(tool: str, args: dict) -> str:
+    """A watched action in the end-of-turn line: a terminal command's first line (60 characters at most), else "" (the
+    files it changed are shown instead). Control and format characters become U+FFFD."""
+    if tool != "terminal" or not isinstance(args.get("command"), str):
+        return ""
+    text = args["command"].strip().splitlines()[0] if args["command"].strip() else ""
+    text = "".join("\ufffd" if unicodedata.category(c) in ("Cc", "Cf") else c for c in text)
+    return text if len(text) <= LABEL_CAP else text[:LABEL_CAP - 1] + "\u2026"
+
+
+def _turn_line(items: list) -> str:
+    return tr("simple.turn", n=len(items), actions=", ".join(w.label for w in items), command="/tenure undo")
+
+
+def _flush_turn(session: str | None) -> None:
+    """Post the line of the watched actions of the turn that ended (of every session when ``session`` is None)."""
+    with ST.mem:
+        keys = [k for k in ST.turn if session is None or k == session]
+        batches = [ST.turn.pop(k)["items"] for k in keys]
+    for items in batches:
+        if items:
+            _post(_turn_line(items))
+
+
+def _post(text: str) -> None:
+    try:
+        if ST.ctx is not None and hasattr(ST.ctx, "post_message"):
+            ST.ctx.post_message(text)
+    except Exception:
+        log.debug("tenure: post_message failed", exc_info=True)
 
 
 def _ids(ids: list[int]) -> str:
@@ -819,7 +891,19 @@ def _with_ok(text: str, ids: list[int]) -> str:
     return text + " · " + hint if i < 0 else text[:i] + " · " + hint + text[i:]
 
 
-def _announce(text: str) -> None:
+def _announce(text) -> None:
+    if isinstance(text, Watched):                       # said once, at the end of the turn
+        now = time.time()
+        with ST.mem:
+            entry = ST.turn.get(text.session)
+            stale = entry is not None and now - entry["at"] >= ACTED_WINDOW   # no end-of-turn signal came
+            old = ST.turn.pop(text.session)["items"] if stale else None
+            entry = ST.turn.setdefault(text.session, {"items": [], "at": now})
+            entry["items"].append(text)
+            entry["at"] = now
+        if old:
+            _post(_turn_line(old))
+        return
     try:
         if ST.ctx is None or not hasattr(ST.ctx, "post_message"):
             return
@@ -853,12 +937,14 @@ def _announce(text: str) -> None:
 
 
 def post_llm_call(session_id="", **kwargs):
-    """The turn ended: the next acted action of a type starts a new message."""
+    """The turn ended: the next acted action of a type starts a new message; in simple mode, the watched actions of
+    the turn are listed in one line."""
     try:
         session = anon(session_id or kwargs.get("task_id") or "")
         with ST.mem:
             for key in [k for k in ST.acted if k[0] == session or not session_id]:
                 del ST.acted[key]
+        _flush_turn(session if (session_id or kwargs.get("task_id")) else None)
     except Exception:
         log.debug("tenure: post_llm_call failed", exc_info=True)
     return None
@@ -876,8 +962,44 @@ def _purge() -> None:
         log.debug("tenure: undo purge failed", exc_info=True)
 
 
-def _say(events: list[dict], spot: float) -> list[str]:
+def state_name(cfg: dict, s: rule.TypeState | None, n=None) -> str:
+    """Simple mode: where a type stands, in plain words (free, watched, asks first); study mode: its tier."""
+    if s is None:
+        return ""
+    if not simple(cfg):
+        return tier_name(s.tier)
+    n = params.required_n(cfg["risks"], s.stakes) if n is None else n
+    if trusted(cfg, s, n, s.stakes):
+        return tr("simple.state.free")
+    if rule.decide(s, n, cfg["spot"], suspended=False, rng=_NoSpot, mode=rule.SIMPLE) == rule.NOTIFY:
+        return tr("simple.state.watched")
+    return tr("simple.state.ask")
+
+
+def _say_simple(events: list[dict]) -> list[str]:
+    """Simple mode's announcements, in plain words: no tiers, no trials, no spot checks."""
+    out = []
+    for ev in events:
+        t, kind, reason, to = ev.get("type"), ev.get("event"), ev.get("reason"), ev.get("to")
+        if kind == "tier" and reason == "fault" and ev.get("from") in ("trusted", rule.T3):
+            out.append(tr("simple.notice.first_watched" if to == rule.T2 else "simple.notice.first_ask", type=t))
+        elif kind == "tier" and reason == "fault" and to == rule.T1:
+            out.append(tr("simple.notice.second", type=t))
+        elif kind == "tier" and reason == "wald":
+            out.append(tr("simple.notice.watched_again", type=t))
+        elif kind == "tier" and reason == "series":
+            out.append(tr("simple.notice.free_again", type=t, n=ev.get("required")))
+        elif kind == "tier" and reason == "settings":
+            out.append(tr("simple.notice.now", type=t,
+                          state=tr({rule.T3: "simple.state.free", rule.T2: "simple.state.watched"}.get(
+                              to, "simple.state.ask"))))
+    return out
+
+
+def _say(events: list[dict], spot: float, mode: str = rule.STUDY) -> list[str]:
     """Plain announcements for the owner: tier changes, trials, confirmed carry-overs."""
+    if mode == rule.SIMPLE:
+        return _say_simple(events)
     out = []
     for ev in events:
         t, kind, reason = ev.get("type"), ev.get("event"), ev.get("reason")
@@ -937,14 +1059,7 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
     n = params.required_n(cfg["risks"], stakes)
     rebased = rule.rebase(s) if recorded is not None and recorded.stakes != stakes else []
     was_trusted = trusted(cfg, s, n, stakes)
-    if result == "success" and was_trusted:
-        events = rule.on_trusted_success(s, source=source)
-    elif result == "success":
-        events = rule.on_success(s, n, session=session, source=source)
-    elif result == "fault":
-        events = rule.on_fault(s, n, session=session, source=source)
-    else:
-        events = rule.on_neutral(s, source)
+    events = rule.outcome(s, n, result, source, session=session, start=cfg.get("start"), mode=mode(cfg))
     failed_trial = any(ev["event"] == "trial" and ev.get("reason") == "failed" for ev in events)
     if was_trusted and result == "fault" and not any(ev["event"] == "tier" for ev in events):
         events.insert(0, {"event": "tier", "type": type_key, "stakes": stakes, "from": "trusted", "to": s.tier,
@@ -1057,8 +1172,11 @@ def excuse(st: store.Store, seq: int) -> str:
     st.bump(row["agent"], "faults", -1, at=row["at"])
     s = replayed.get((row["agent"], row["type"]))
     _push("changed", {"agent": row["agent"], "type": row["type"]})
-    tier = (tr("cli.excuse.trusted") if s is not None and trusted(settings(), s, params.required_n(
-        settings()["risks"], s.stakes), s.stakes) else tier_name(s.tier) if s is not None else "")
+    cfg = settings()
+    tier = (state_name(cfg, s) if simple(cfg) else
+            tr("cli.excuse.trusted") if s is not None and trusted(cfg, s, params.required_n(cfg["risks"], s.stakes),
+                                                                  s.stakes) else tier_name(s.tier) if s is not None
+            else "")
     return tr("cli.excuse.done", n=seq, type=row["type"], agent=row["agent"], tier=tier)
 
 
@@ -1070,6 +1188,8 @@ def seen(st: store.Store, undo_ids: list[int]) -> str:
     why = nobody_answers()
     if why:
         raise ValueError(tr("cli.ok.nobody", why=why))
+    if simple():                                    # harmless, and not needed: silence already counts there
+        return tr("simple.ok")
     wanted = set(undo_ids)
     rows = [r for r in st.open_credits(time.time() - UNDO_WINDOW) if r["undo_id"] in wanted]
     if not rows:
@@ -1080,7 +1200,7 @@ def seen(st: store.Store, undo_ids: list[int]) -> str:
     if not done:                                    # they expired now (a later fault...): say so, it is recorded
         return tr("cli.ok.expired", which=", ".join(str(r["undo_id"]) for r in rows))
     marked = ", ".join(f"{r['undo_id']} ({r['type']})" for r in done)
-    return "\n\n".join([tr("cli.ok.done", n=len(done), which=marked)] + _say(events, cfg["spot"]))
+    return "\n\n".join([tr("cli.ok.done", n=len(done), which=marked)] + _say(events, cfg["spot"], mode(cfg)))
 
 
 def _see(st: store.Store, cfg: dict, rows: list[dict], done: list | None = None) -> list[dict]:
@@ -1176,8 +1296,8 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
                             result="fault", source="undo")
     st.bump(agent, "faults")
     s = st.get_state(agent, key, stakes, reversible)
-    text = "\n\n".join([tr("undo.done", id=id, type=key, agent=agent, tier=tier_name(s.tier))]
-                       + _say(events, cfg["spot"])        # e.g. "On probation" when it ends the trusted start
+    text = "\n\n".join([tr("undo.done", id=id, type=key, agent=agent, tier=state_name(cfg, s))]
+                       + _say(events, cfg["spot"], mode(cfg))   # e.g. "On probation" when it ends the trusted start
                        + _excuse_hint(st, events))
     return UndoMessage(text, True, entry["snap_id"])
 
@@ -1219,8 +1339,8 @@ def _carry(st: store.Store, cfg: dict, old: str, new: str) -> str:
             continue
         n_new = params.required_n(cfg["risks"], s.stakes)
         eligible = not strict and s.stakes != "high" and n_new is not None
-        veto = eligible and benchmarks.veto(old_model, new_model, s.key)
-        made = rule.carry_over(s, n_new=n_new, veto=veto, strict=strict)
+        veto = eligible and not simple(cfg) and benchmarks.veto(old_model, new_model, s.key)
+        made = passport._carry(s, cfg, mode(cfg), veto=veto, strict=strict)
         st.put_state(new, made)
         if veto:
             vetoed.append(s.key)
@@ -1261,7 +1381,7 @@ def _earned(recorded: rule.TypeState | None, act, s: rule.TypeState, n, decision
 def trusted(cfg: dict, s: rule.TypeState, n, stakes: str) -> bool:
     """The trusted start covers the type (``rule.trusted``) at these stakes. Such a type asks nothing Hermes alone
     would not ask; its first fault puts it under the study rule."""
-    return s.stakes == stakes and rule.trusted(s, n, cfg.get("start"))
+    return s.stakes == stakes and rule.trusted(s, n, cfg.get("start"), mode(cfg))
 
 
 def _due_key(agent: str, type_key: str) -> str:
@@ -1273,7 +1393,7 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
     recorded = st.recorded(agent, act.type)
     s = st.get_state(agent, act.type, act.stakes, act.reversible)
     suspended = _suspended(st, session)
-    decision = rule.decide(s, n, cfg["spot"], suspended=suspended, rng=rng)
+    decision = rule.decide(s, n, cfg["spot"], suspended=suspended, rng=rng, mode=mode(cfg))
     if not _earned(recorded, act, s, n, decision) or ST.copy_unchecked:
         decision = rule.ASK                             # copy_unchecked: this record may be a copy, not yet settled
     # A check drawn while nobody could answer stays due (sticky): every action of the type is that check until a
@@ -1335,7 +1455,7 @@ def _to_t2(s: rule.TypeState) -> int:
 def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool,
                  earned_at: str | None, per_session: bool = False, trusted_start: bool = False,
                  held: str | None = None, doubted: bool = False, fresh: list | None = None,
-                 exec_files: list | None = None, taint_from: str = "") -> str:
+                 exec_files: list | None = None, taint_from: str = "", simple: bool = False) -> str:
     stakes = stakes_name(act.stakes)
     if decision == rule.SPOT:
         return tr("ask.spot", summary=act.summary, type=act.type, spot=round(1 / spot))
@@ -1358,9 +1478,15 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
     elif earned_at and earned_at != act.stakes:
         why = tr("ask.why.other_stakes", type=act.type, earned=stakes_name(earned_at), stakes=stakes)
     elif unsaved:
-        why = tr("ask.why.unsaved", type=act.type)
+        why = tr("simple.ask.unsaved" if simple else "ask.why.unsaved", type=act.type)
     elif held:                                          # before the trusted start's own reasons: name what holds it
         why = tr("ask.why.held", type=act.type, held=held)
+    elif simple and not rule.simple_eligible(s, n):     # what leaves the machine, high stakes: always asked
+        why = tr("simple.ask.always", type=act.type, stakes=stakes)
+    elif simple and s.tier != rule.T2 and act.reversible and act.stakes in params.WALD:
+        why = tr("simple.ask.mistakes", type=act.type, n=_to_t2(s))
+    elif simple:
+        why = tr("simple.ask.mistake", type=act.type, n=max(n - s.series, 1))
     elif trusted_start and _uncovered_local(act, s, n):
         why = tr("ask.why.untrusted", type=act.type, stakes=stakes)
     elif s.tier == rule.T1 and s.faults and act.reversible and act.stakes in params.WALD:
@@ -1406,7 +1532,8 @@ def _background(tool: str, args: dict, result=None) -> bool:
 
 
 def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool, reason: str | None,
-            launched: bool = False, written: list[str] | None = None, cwd: str = "", unjudged: bool = False) -> list[str]:
+            launched: bool = False, written: list[str] | None = None, cwd: str = "", unjudged: bool = False,
+            label: str = "") -> list[str]:
     """The verified outcome of one pending decision, from facts gathered before the transaction: was the call stopped
     (``blocked``), did the tool fail, what did the automatic check of the written files say. The check judges every
     action that ran, even one nobody answered. A background launch (``launched``) is neutral: the command's own
@@ -1467,6 +1594,9 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
                         "profile": _profile_name()})
         if reason:
             posts.append(tr("settle.acted_fault", type=key, reason=reason, what=what, command="/tenure undo", id=undo_id))
+        elif simple(cfg):                       # simple mode: a free action says nothing, a watched one joins the
+            if deferred:                        # line said at the end of the turn
+                posts.append(Watched(p["session"], undo_id, label or _join_shown(shown) or key))
         else:
             text = tr("settle.acted", type=key, what=what, command="/tenure undo", id=undo_id)
             if deferred:                                # rule B/2: only a person's "seen" counts toward acting alone
@@ -1479,7 +1609,7 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         at = time.time()
         p["n"], p["n_at"] = st.add_recent(p["session"], agent, key, at=at, flagged=result_source[0] == "fault",
                                           undo_id=undo_id, call=anon(p.get("call"))), at
-    return posts + _say(events, cfg["spot"])
+    return posts + _say(events, cfg["spot"], mode(cfg))
 
 
 # ------------------------------------------------------------------------------------------------------ hooks
@@ -1506,7 +1636,7 @@ def pre_api_request(model="", provider="", session_id="", **kwargs):
                 st.set_meta(f"agent:known:{agent}", "1")
                 old = prev if prev and prev != agent else last
                 if old and old != agent and st.states(old):
-                    posts += _say(sync_settings(st, cfg), cfg["spot"])
+                    posts += _say(sync_settings(st, cfg), cfg["spot"], mode(cfg))
                     posts.append(_carry(st, cfg, old, agent))
         with ST.mem:
             ST.last_agent = agent
@@ -1591,9 +1721,9 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                                        home=os.path.expanduser("~")) if paths else None)
         posts, directive, snap = [], None, taken
         with txn(deadline) as st:
-            posts += _say(sync_settings(st, cfg), cfg["spot"])
-            posts += _say(_expire(st, cfg), cfg["spot"])
-            posts += _say(_credit_due(st, cfg), cfg["spot"])
+            posts += _say(sync_settings(st, cfg), cfg["spot"], mode(cfg))
+            posts += _say(_expire(st, cfg), cfg["spot"], mode(cfg))
+            posts += _say(_credit_due(st, cfg), cfg["spot"], mode(cfg))
             recorded, s, decision, suspended = _decide(st, agent, act, n, cfg, session, nobody, ST.rng)
             fresh, exec_files = [], []                      # computed even when it asks anyway: never a session key
             if tool == "terminal":                              # a script the agent wrote, run now: asked once
@@ -1609,13 +1739,15 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 else:
                     ST.fresh.pop((session, call), None)
             watched = decision == rule.WATCH
+            # Simple mode frees kinds the trusted start leaves out (rm, mv...) only with their files saved first.
+            needs_undo = watched and simple(cfg) and not rule.trust_covers(act.type)
             if watched:                                     # files saved: act then tell, with an undo; else run alone
                 files = bool(snap) or bool(classify.files_written(tool, args, cwd))
-                decision = (rule.NOTIFY if snap else rule.ASK if suspended   # suspended: never without an undo
+                decision = (rule.NOTIFY if snap else rule.ASK if suspended or needs_undo   # never without an undo
                             else rule.NOTIFY if files else rule.ALLOW)    # files that could not be saved: ask (below)
             if decision != rule.NOTIFY:
                 snap = None                                 # the record changed since the preview: no undo needed
-            unsaved = decision == rule.NOTIFY and snap is None
+            unsaved = (decision == rule.NOTIFY and snap is None) or (needs_undo and not snap and not suspended)
             if unsaved:
                 decision = rule.ASK                         # no undo can be prepared: ask instead
             row = dict(call=call, agent=agent, type=act.type, stakes=act.stakes, reversible=act.reversible,
@@ -1662,7 +1794,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                                                      exec_files=[_show(x, cwd, os.path.expanduser("~"))
                                                                  for x in exec_files],
                                                      earned_at=recorded.stakes if recorded else None,
-                                                     held=_held_by(st, agent, act.type))}
+                                                     held=_held_by(st, agent, act.type), simple=simple(cfg))}
         if taken and taken != snap:
             undo.discard(taken, data_dir())
         taken = None
@@ -1705,13 +1837,13 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
                 st.pop_pending(p["id"])
                 if p.get("snap_id"):
                     undo.discard(p["snap_id"], data_dir())
-                posts += _say(sync_settings(st, cfg), cfg["spot"])
+                posts += _say(sync_settings(st, cfg), cfg["spot"], mode(cfg))
                 # A refused action of an earned T3 is what a spot check is: detection, never excusable.
                 checked = p["phase"] == "alone" and p["decision"] == rule.ALLOW
                 evs = record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
                                      reversible=p["reversible"], result="fault",
                                      source="spot" if checked else "refusal", session=p["session"])
-                posts += _say(evs, cfg["spot"]) + ([] if checked else _excuse_hint(st, evs))
+                posts += _say(evs, cfg["spot"], mode(cfg)) + ([] if checked else _excuse_hint(st, evs))
                 _bump(st, p["agent"], "fault")
                 p = None
             if p is None or p["phase"] != "asked" or (key and p["rule_key"] != key):
@@ -1725,14 +1857,14 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
                 st.pop_pending(p["id"])
                 with ST.mem:                                # refused or unanswered: its fresh scripts stay fresh
                     ST.fresh.pop((p["session"], p["call"]), None)
-                posts += _say(sync_settings(st, cfg), cfg["spot"])
+                posts += _say(sync_settings(st, cfg), cfg["spot"], mode(cfg))
                 if verdict == "refused":
                     result, source = "fault", ("spot" if p["decision"] == rule.SPOT else "refusal")
                 else:
                     result, source = "neutral", "timeout"
                 evs = record_outcome(st, cfg, agent=p["agent"], type_key=p["type"], stakes=p["stakes"],
                                      reversible=p["reversible"], result=result, source=source, session=p["session"])
-                posts += _say(evs, cfg["spot"])
+                posts += _say(evs, cfg["spot"], mode(cfg))
                 if source == "refusal":                     # a refused spot check is detection: not excusable
                     posts += _excuse_hint(st, evs)
                 _bump(st, p["agent"], result)
@@ -1812,9 +1944,9 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
             path = st.path
             p = st.pop_pending(p["id"])                         # settled once, by whoever comes first
             if p is not None:
-                posts += _say(sync_settings(st, cfg), cfg["spot"])
+                posts += _say(sync_settings(st, cfg), cfg["spot"], mode(cfg))
                 posts += _settle(st, cfg, p, blocked=blocked, failed=failed, reason=reason, launched=launched,
-                                written=paths, cwd=cwd, unjudged=unjudged)
+                                written=paths, cwd=cwd, unjudged=unjudged, label=_label(tool, args))
         for text in posts:
             _announce(text)
         if p is not None and p.get("n") is not None:            # committed: remember what it did, in memory only
@@ -1836,7 +1968,7 @@ def _ambiguous(rows: list[dict]) -> None:
     a success; each is recorded as neutral."""
     cfg, posts = settings(), []
     with txn() as st:
-        posts += _say(sync_settings(st, cfg), cfg["spot"])
+        posts += _say(sync_settings(st, cfg), cfg["spot"], mode(cfg))
         for r in rows:
             if st.pop_pending(r["id"]) is not None:
                 record_outcome(st, cfg, agent=r["agent"], type_key=r["type"], stakes=r["stakes"],

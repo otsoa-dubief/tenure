@@ -113,16 +113,16 @@ def settings_event_fingerprint(event: dict | None) -> str | None:
 _REPLAYED: dict = {}             # (rows, head) -> deep copy source: building then verifying a passport replays once
 
 
-def _replay(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState], dict | None]:
+def _replay(rows: list[dict], mode: str | None = None) -> tuple[dict[tuple[str, str], rule.TypeState], dict | None]:
     """Memoised ``_replay_rows``: the ledger is append-only and hash-chained, so its length and head name its content.
     Callers get their own copy of the states."""
     try:
-        key = hashlib.sha256("\n".join(str(r["hash"]) for r in rows).encode()).hexdigest()   # chain hashes
+        key = hashlib.sha256(("\n".join(str(r["hash"]) for r in rows) + f"|{mode}").encode()).hexdigest()
     except (KeyError, TypeError):
-        return _replay_rows(rows)
+        return _replay_rows(rows, mode)
     hit = _REPLAYED.get(key)
     if hit is None:
-        hit = _replay_rows(rows)
+        hit = _replay_rows(rows, mode)
         if len(_REPLAYED) > 8:
             _REPLAYED.clear()
         _REPLAYED[key] = hit
@@ -130,7 +130,8 @@ def _replay(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState], di
     return {k: rule.TypeState.from_dict(v.to_dict()) for k, v in states.items()}, cfg
 
 
-def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState], dict | None]:
+def _replay_rows(rows: list[dict],
+                 mode: str | None = None) -> tuple[dict[tuple[str, str], rule.TypeState], dict | None]:
     """States by (agent, type), and the last settings event. Mirrors the hooks of ``tenure/__init__.py``:
 
     - settings (``sync_settings``): ``rule.reevaluate`` on every type of every agent known so far (R23);
@@ -140,10 +141,19 @@ def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState
     - agent (``_carry``): ``rule.carry_over`` for every type of ``old`` that ``new`` has no state for (R24);
     - revoke (``cli.revoke``): ``rule.revoke``.
 
+    The whole ledger replays under one mode (``mode``, else the one of its last settings event): switching modes
+    rebuilds every record from the ledger under the new one. An act-then-tell action simple mode ran without asking
+    (``success``, ``notify``) that the study would not have left free replays there as neutral (``alone``).
+
     Derived events are skipped. Raises ValueError on an unknown event, an outcome before any settings, or settings
     of another rule."""
     cfg, states, distrust = None, {}, set()
     excused = _excused(rows)
+    if mode is None:
+        mode = rule.mode_of(next((r["event"] for r in reversed(rows) if isinstance(r, dict) and isinstance(
+            r.get("event"), dict) and r["event"].get("event") == "settings"), None))
+    simple = mode == rule.SIMPLE
+    from_simple = False                                          # the rows that follow were recorded in simple mode
 
     def lose_trust(key):                                         # a fault or revoke: every model of the profile
         distrust.add(key)
@@ -161,7 +171,7 @@ def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState
         if kind == "settings":
             if e.get("rule") not in rule.VERSIONS:
                 raise ValueError(f"row {i}: settings of rule {e.get('rule')!r}, this replay knows {rule.VERSION!r}")
-            cfg = e
+            cfg, from_simple = e, rule.mode_of(e) == rule.SIMPLE
             for s in states.values():
                 rule.reevaluate(s, params.required_n(cfg["risks"], s.stakes))
             continue
@@ -183,14 +193,21 @@ def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState
             if r.get("seq") in excused:                         # protocol 0.2: excused afterwards by the owner
                 result, source = "neutral", "excused"
                 s.excused += 1
-            if result == "success" and rule.trusted(s, n, cfg.get("start")):
-                events = rule.on_trusted_success(s, source=source)
-            elif result == "success":
-                events = rule.on_success(s, n, session=e.get("session", ""), source=source)
-            elif result == "fault":
-                events = rule.on_fault(s, n, session=e.get("session", ""), source=source)
-            else:
-                events = rule.on_neutral(s, source)
+            if simple:
+                events = rule.outcome(s, n, result, source, session=e.get("session", ""), start=cfg.get("start"),
+                                      mode=mode)
+            else:                                                # study: the hot path of a long ledger, inline
+                if (from_simple and result == "success" and source == "notify"
+                        and not rule.trusted(s, n, cfg.get("start"))):
+                    result, source = "neutral", "alone"
+                if result == "success" and rule.trusted(s, n, cfg.get("start")):
+                    events = rule.on_trusted_success(s, source=source)
+                elif result == "success":
+                    events = rule.on_success(s, n, session=e.get("session", ""), source=source)
+                elif result == "fault":
+                    events = rule.on_fault(s, n, session=e.get("session", ""), source=source)
+                else:
+                    events = rule.on_neutral(s, source)
             failed = any(v["event"] == "trial" and v.get("reason") == "failed" for v in events)
             if (result, source) in store.COUNTED and not failed:
                 rule.count_action(s)
@@ -204,14 +221,12 @@ def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState
             vetoed = set(e.get("vetoed") or ())
             for (a, k), s in sorted(states.items()):
                 if a == e["old"] and k not in have:
-                    states[(e["new"], k)] = rule.carry_over(s, n_new=params.required_n(cfg["risks"], s.stakes),
-                                                            veto=k in vetoed, strict=e["mode"] == "strict")
+                    states[(e["new"], k)] = _carry(s, cfg, mode, veto=k in vetoed, strict=e["mode"] == "strict")
         elif kind == "copy":                                     # the record was copied into another profile
             if e.get("mode") not in ("carry", "strict"):
                 raise ValueError(f"row {i}: copy event with mode {e.get('mode')!r}, expected carry or strict")
             for k, s in sorted(states.items()):
-                states[k] = rule.carry_over(s, n_new=params.required_n(cfg["risks"], s.stakes), veto=False,
-                                            strict=e["mode"] == "strict")
+                states[k] = _carry(s, cfg, mode, veto=False, strict=e["mode"] == "strict")
         elif kind == "excuse":
             continue                                             # read ahead by _excused
         elif kind == "revoke":
@@ -223,13 +238,20 @@ def _replay_rows(rows: list[dict]) -> tuple[dict[tuple[str, str], rule.TypeState
     return states, cfg
 
 
+def _carry(s: rule.TypeState, cfg: dict, mode: str, *, veto: bool, strict: bool) -> rule.TypeState:
+    """A type of the previous agent for the new one, under the mode (``rule.carry_over``, or its simple twin)."""
+    if mode == rule.SIMPLE:
+        return rule.carry_over_simple(s, strict=strict)
+    return rule.carry_over(s, n_new=params.required_n(cfg["risks"], s.stakes), veto=veto, strict=strict)
+
+
 def ghost(rows: list[dict]) -> dict[tuple[str, str], rule.TypeState]:
     """The states the same ledger would give under the study's start (``probation``): what the trusted start's types
     would have earned by now. An estimate for the owner's first days, never a claim: not in any passport."""
     copy = [{**r, "event": {**r["event"], "start": "probation"}} if (r.get("event") or {}).get("event") == "settings"
             else r for r in rows]
     try:
-        return _replay_rows(copy)[0]
+        return _replay_rows(copy, rule.STUDY)[0]
     except (KeyError, TypeError, ValueError, AttributeError):
         return {}
 

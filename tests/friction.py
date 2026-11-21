@@ -67,10 +67,13 @@ def session(early_web: bool = False) -> list:
     return rest[:3] + web + rest[3:]
 
 
-def replay(start: str, early_web: bool = False, answer: str = "once", after_fault: str = "") -> list[dict]:
-    """One row per call: the call, whether tenure asked, whether Hermes alone would ask (None: unknown). answer: what
-    the owner picks when tenure asks ("once", or "session" for "Allow for this session"). after_fault: before the
-    session, one file write is undone ("undone": a fault on file:write), then excused ("excused")."""
+def replay(start: str, early_web: bool = False, answer: str = "once", after_fault: str = "",
+           mode: str = "study") -> list[dict]:
+    """One row per call: the call, whether tenure asked, whether Hermes alone would ask (None: unknown), whether it
+    was a watched action listed at the end of its turn (simple mode). answer: what the owner picks when tenure asks
+    ("once", or "session" for "Allow for this session"). after_fault: before the session, one file write is undone
+    ("undone": a fault on file:write), then excused ("excused"). mode: "study" (the start applies) or "simple" (every
+    call is its own turn)."""
     detect = _hermes_detect()
     old = os.environ.get("HERMES_HOME")
     with tempfile.TemporaryDirectory() as tmp:
@@ -80,23 +83,26 @@ def replay(start: str, early_web: bool = False, answer: str = "once", after_faul
             mod = importlib.reload(importlib.import_module(PKG))
             project = os.path.join(tmp, "project")
             os.makedirs(project)
-            ctx = FakeCtx({"start": start}, cwd=project)
+            ctx = FakeCtx({"start": start, "mode": mode}, cwd=project)
             mod.register(ctx)
             mod.ST.rng = Picks()
             mod.pre_api_request(model="model-a", provider="nous", session_id="s1")
             if after_fault:
                 ctx.call("write_file", {"path": "src/draft.py", "content": "x = 0\n"}, session="s0")
-                out = mod.cli.slash("undo " + ctx.posted[-1].rsplit(" ", 1)[1])
+                last = mod.store_().db.execute("SELECT MAX(id) FROM undo").fetchone()[0]   # the write's undo
+                out = mod.cli.slash(f"undo {last}")
                 if after_fault == "excused":
                     import re
                     mod.cli.slash("excuse " + re.search(r"excuse (\d+)", out).group(1))
             rows = []
             for tool, args in session(early_web):
-                before = len(ctx.prompts)
+                before, said = len(ctx.prompts), len(ctx.posted)
                 ctx.call(tool, args, answer=answer)
+                mod.post_llm_call(session_id="s1")             # the turn ends: simple mode lists what it watched
                 cmd = args.get("command") if tool == "terminal" else None
                 rows.append({"tool": tool, "what": cmd or args.get("path"), "tenure": len(ctx.prompts) > before,
-                             "hermes": (detect(cmd) if cmd and detect else False if not cmd else None)})
+                             "hermes": (detect(cmd) if cmd and detect else False if not cmd else None),
+                             "watched": any("to watch" in str(x) for x in ctx.posted[said:])})
             return rows
         finally:
             if old is None:
@@ -105,8 +111,8 @@ def replay(start: str, early_web: bool = False, answer: str = "once", after_faul
                 os.environ["HERMES_HOME"] = old
 
 
-def count_asks(start: str) -> tuple[int, int | None]:
+def count_asks(start: str, mode: str = "study") -> tuple[int, int | None]:
     """(questions tenure adds on calls Hermes alone would not ask about, questions Hermes asks by itself)."""
-    rows = replay(start)
+    rows = replay(start, mode=mode)
     hermes = None if any(r["hermes"] is None for r in rows) else sum(bool(r["hermes"]) for r in rows)
     return sum(r["tenure"] and not r["hermes"] for r in rows), hermes

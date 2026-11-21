@@ -21,6 +21,8 @@
     anchor                                     one line to publish: the ledger's head, date and length
     export [PATH]                              write the evidence ledger (hash-chained JSON lines)
     strict on|off                              strict mode: a new model starts with an empty record
+    mode simple|study                          simple (default): free, watched after a mistake, asks after a second;
+                                               study: the preregistered rule, spot checks, guarantee and passport
     cleanup                                    list dead tenure keys in Hermes' permanent allowlist
     share [--out FILE]                         write a signed record of counts for the community benchmark (opt-in)
 """
@@ -204,6 +206,35 @@ def _status_agent(st, agent: str, cfg: dict) -> list[str]:
     return lines
 
 
+def _simple_cells(st, agent: str, s: rule.TypeState, cfg: dict) -> list[str]:
+    """Simple mode, one type: where it stands and what brings it back, in plain words."""
+    core = _core()
+    n = params.required_n(cfg["risks"], s.stakes)
+    if not rule.simple_eligible(s, n):
+        state, next_ = tr("simple.state.always"), "-"
+    elif core.trusted(cfg, s, n, s.stakes):
+        state, next_ = tr("simple.state.free"), "-"
+    elif s.tier == rule.T2 and rule._middle(s):
+        state, next_ = tr("simple.state.watched"), tr("simple.status.to_free", k=s.series, n=n)
+    elif s.reversible and s.stakes in params.WALD:
+        state, next_ = tr("simple.state.ask"), tr("simple.status.to_watched", n=core._to_t2(s))
+    else:
+        state, next_ = tr("simple.state.ask"), tr("simple.status.to_free", k=s.series, n=n)
+    held = core._held_by(st, agent, s.key) if state != tr("simple.state.ask") else None
+    if held:
+        next_ = tr("cli.status.held", held=held)
+    return [s.key, _stakes(s.stakes), state, next_, _record(s.faults, s.successes)]
+
+
+def _status_simple(st, agent: str, cfg: dict) -> list[str]:
+    rows = st.states(agent)
+    if not rows:
+        return [agent, "  " + tr("simple.status.empty")]
+    cells = [_simple_cells(st, agent, s, cfg) for _, s in rows]
+    return [agent] + ["  " + ln for ln in _table([tr("cli.col.type"), tr("cli.col.stakes"), tr("simple.col.state"),
+                                                  tr("simple.col.next"), tr("cli.col.record")], cells)]
+
+
 def status_text(agent: str | None = None, *, profile: str | None = None, model: str | None = None,
                 every: bool = False) -> str:
     core = _core()
@@ -213,7 +244,8 @@ def status_text(agent: str | None = None, *, profile: str | None = None, model: 
         last = passport._last_settings(st.ledger())
         if last:
             cfg = {**cfg, "risks": dict(last["risks"]), "spot": last.get("spot", cfg["spot"]),
-                   "strict": bool(last.get("strict")), "start": last.get("start", "probation")}
+                   "strict": bool(last.get("strict")), "start": last.get("start", "probation"),
+                   "mode": rule.mode_of(last)}
         agents = (_targets(core, st, agent=agent, model=model, every=every) if (agent or model or every) else
                   [st.get_meta("agent:last") or "unknown@unknown"])
     else:
@@ -221,8 +253,13 @@ def status_text(agent: str | None = None, *, profile: str | None = None, model: 
         agents = _targets(core, st, agent=agent, model=model, every=every)
     header = ("cli.status.header.profile" if profile else "cli.status.header.here") + ("_strict" if cfg["strict"]
                                                                                         else "")
-    lines = [tr(header, profile=profile, preset=cfg["preset"], spot=round(1 / cfg["spot"]))]
-    if cfg.get("start") == "trusted":
+    simple = core.simple(cfg)
+    if simple:
+        lines = [tr("simple.status.header.profile" if profile else "simple.status.header.here", profile=profile,
+                    preset=cfg["preset"]), tr("simple.status.intro", command="hermes tenure mode study")]
+    else:
+        lines = [tr(header, profile=profile, preset=cfg["preset"], spot=round(1 / cfg["spot"]))]
+    if cfg.get("start") == "trusted" and not simple:
         lines.append(tr("cli.status.trusted_start", command="hermes tenure start probation"))
         ghosts = passport.ghost(st.ledger())          # what the study's start would have earned by now (estimate)
         shown = []
@@ -250,7 +287,7 @@ def status_text(agent: str | None = None, *, profile: str | None = None, model: 
     if vocab is not None and vocab.unknown:
         lines.append(tr("cli.status.fields.unknown", names=_join(vocab.unknown)))
     for a in agents:
-        lines += [""] + _status_agent(st, a, cfg)
+        lines += [""] + (_status_simple(st, a, cfg) if simple else _status_agent(st, a, cfg))
     others = [] if (agent or model or every) else [a for a in st.agents() if a not in agents]
     if others:
         lines += ["", tr("cli.status.others", n=len(others), agents=_join(others),
@@ -306,9 +343,35 @@ def card_text(model: str | None = None, redact: bool = True) -> str:
 
 
 # ------------------------------------------------------------------------------------------------ explain
+def _simple_climb(stakes: str) -> int:
+    """Approvals in a row that take a reversible type asking after its second mistake back to watched: from the
+    score a fault at the bar leaves."""
+    a, _, ln_b = params.wald_steps(stakes)
+    s = rule.TypeState(key="", stakes=stakes, reversible=True,
+                       wald=(max(ln_b, 0.0) if stakes in rule.GRAVE else ln_b) + a)
+    return _core()._to_t2(s)
+
+
+def explain_simple(cfg: dict) -> str:
+    n = {lv: params.required_n(cfg["risks"], lv) for lv in params.WALD}
+    lines = [tr("simple.explain.title"),
+             "  " + tr("simple.explain.free"),
+             "  " + tr("simple.explain.watched", command="/tenure undo"),
+             "  " + tr("simple.explain.ask", low=_simple_climb("low"), medium=_simple_climb("medium")),
+             "  " + (tr("simple.explain.free_again", hours=_core().UNDO_WINDOW // 3600, low=n["low"],
+                        medium=n["medium"]) if n["low"] and n["medium"] else
+                     tr("simple.explain.free_again_capped", hours=_core().UNDO_WINDOW // 3600)),
+             "  " + tr("simple.explain.always"),
+             "  " + tr("cli.explain.reads"),
+             "", tr("simple.explain.study", command="hermes tenure mode study")]
+    return "\n".join(lines)
+
+
 def explain_text() -> str:
     core = _core()
     cfg = core.settings()
+    if core.simple(cfg):
+        return explain_simple(cfg)
     d = params.describe(cfg["risks"], cfg["spot"])
     spot = round(1 / cfg["spot"])
     t2 = {lv: math.ceil(params.wald_steps(lv)[2] / params.wald_steps(lv)[1] - 1e-9) for lv in params.WALD}
@@ -365,7 +428,7 @@ def flag(type_key: str, note: str = "", agent: str | None = None, model: str | N
                             result="fault", source="flag")
         st.bump(agent, "faults")
         s = st.get_state(agent, type_key, s.stakes, s.reversible)
-    return tr("cli.flag.done", type=type_key, agent=agent, tier=tier_name(s.tier))
+    return tr("cli.flag.done", type=type_key, agent=agent, tier=core.state_name(cfg, s))
 
 
 def flag_action(n: int, note: str = "") -> str:
@@ -379,7 +442,7 @@ def flag_action(n: int, note: str = "") -> str:
         if r is None:
             raise CliError(tr("cli.flag.action_unknown", n=n, hours=store.RECENT_WINDOW // 3600))
         s = _fault_on(core, st, cfg, r)
-    return tr("cli.flag.action_done", n=n, type=r["type"], agent=r["agent"], tier=tier_name(s.tier))
+    return tr("cli.flag.action_done", n=n, type=r["type"], agent=r["agent"], tier=core.state_name(cfg, s))
 
 
 def _fault_on(core, st, cfg, r: dict):
@@ -436,7 +499,8 @@ def report(verdict: str, *, n: int | None = None, session: str | None = None, ca
             r = rows[0]
         if verdict == "fault":
             s = _fault_on(core, st, cfg, r)
-            return tr("cli.flag.action_done", n=r["n"], type=r["type"], agent=r["agent"], tier=tier_name(s.tier))
+            return tr("cli.flag.action_done", n=r["n"], type=r["type"], agent=r["agent"],
+                      tier=core.state_name(cfg, s))
         st.add_doubt(r["agent"], r["type"])
     return tr("cli.report.doubt_done", n=r["n"], type=r["type"], agent=r["agent"])
 
@@ -539,7 +603,7 @@ def week_text(agent: str | None = None) -> str:
                                     and r["event"].get("seq") in mine_seq),
                         changes=changes, spot=spot, seen=by("seen"), unseen=by("unseen")))
     opened = st.open_credits(time.time() - core.UNDO_WINDOW)
-    if opened:
+    if opened and not core.simple():
         lines.append(tr("cli.week.open", n=len(opened), command="/tenure ok"))
     return "\n".join(lines)
 
@@ -623,6 +687,8 @@ def undo_action(entry_id: int) -> str:
 def passport_cmd(agent: str | None = None, out: str = "", redact: bool = True) -> str:
     core = _core()
     cfg = core.settings()
+    if core.simple(cfg):
+        return tr("simple.passport", command="hermes tenure mode study")
     with core.txn() as st:
         name = _targets(core, st, agent=agent)[0]
         if not st.states(name):
@@ -674,6 +740,8 @@ def _load_ledger(path: str) -> list[dict]:
 
 
 def verify_cmd(passport_path: str, ledger_path: str = "", key: str = "") -> tuple[str, int]:
+    if _core().simple():
+        return tr("simple.passport", command="hermes tenure mode study"), 0
     try:
         p = _load_json(passport_path)
         rows = _load_ledger(ledger_path) if ledger_path else None
@@ -719,6 +787,8 @@ def share(out: str = "") -> tuple[str, int]:
     """Write the signed community record to a file the owner publishes himself: nothing is sent."""
     core = _core()
     cfg = core.settings()
+    if core.simple(cfg):
+        return tr("simple.passport", command="hermes tenure mode study"), 0
     st = core.store_()
     rows = community.counts(st)
     if not rows:
@@ -797,6 +867,16 @@ def start(value: str) -> str:
     if err:
         return tr("cli.start.save_failed", error=err, setting=f"{SETTINGS}.start", value=value)
     return tr("cli.start.trusted") if value == "trusted" else tr("cli.start.probation")
+
+
+def mode(value: str) -> str:
+    """Simple or study mode, saved like the other settings: the ledger logs the change and every record is replayed
+    under the new mode."""
+    core = _core()
+    err = _save_setting(core, "mode", value)
+    if err:
+        return tr("simple.mode.save_failed", error=err, setting=f"{SETTINGS}.mode", value=value)
+    return tr("simple.mode.simple" if value == rule.SIMPLE else "simple.mode.study")
 
 
 def strict(value: str) -> str:
@@ -896,6 +976,9 @@ def _add_subcommands(subparser) -> None:
     p.add_argument("value", choices=params.STARTS)
     p = subs.add_parser("strict", help="Strict mode: a new model starts with an empty record")
     p.add_argument("value", choices=("on", "off"))
+    p = subs.add_parser("mode", help="simple (default): free, watched after a mistake, asks after a second; "
+                                     "study: the preregistered rule, with spot checks, guarantee and passport")
+    p.add_argument("value", choices=params.MODES)
     subs.add_parser("cleanup", help="List dead tenure keys in Hermes' permanent allowlist")
     p = subs.add_parser("share", help="Write a signed record of counts for the community benchmark (nothing is sent)")
     p.add_argument("--out", default="", help="Output file (default: tenure-record-<date>.json here)")
@@ -929,6 +1012,8 @@ def execute(ns) -> tuple[str, int]:
             if not g("tenure_slash") and not sys.stdin.isatty():
                 raise CliError(tr("cli.ok.terminal"))         # a script or the agent's own terminal: never
             core = _core()
+            if core.simple():                                 # harmless, and not needed in simple mode
+                return tr("simple.ok"), 0
             if not g("ids"):                                  # never a blanket "all": the list, to name what you saw
                 return ok_list(g("tenure_session")), 0
             with core.txn() as st:
@@ -984,6 +1069,8 @@ def execute(ns) -> tuple[str, int]:
             return start(g("value")), 0
         if cmd == "strict":
             return strict(g("value")), 0
+        if cmd == "mode":
+            return mode(g("value")), 0
         if cmd == "cleanup":
             return cleanup(), 0
         if cmd == "share":
