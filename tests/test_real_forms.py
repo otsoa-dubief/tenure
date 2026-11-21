@@ -64,14 +64,39 @@ def test_a_glob_written_with_dot_slash_is_the_same_glob(plugin, plain, dotted):
     assert chain is not None and list(chain.paths) == files
 
 
-def test_a_glob_that_matches_nothing_removes_nothing(plugin):
+@pytest.mark.parametrize("command", ["rm -f *.log", "rm -f ./*.log", "rm -rf ./*.log", "rm -fv *.log *.tmp"])
+def test_an_rm_whose_patterns_match_nothing_removes_nothing_and_runs_free(plugin, command):
     mod, ctx = make(plugin)
     project(ctx, logs=False)
-    assert kind(mod, ctx, "rm -f ./*.log") == ("shell:rm", "medium")              # a plain rm, never unknown files
-    assert ctx.call("terminal", {"command": "rm -f ./*.log"}) == "approved"        # nothing to save: it asks
-    assert "can't save" in ctx.prompts[-1]["message"]
-    chain = mod.classify.undo_chain("rm -f ./*.log && rm -rf build", ctx.cwd)     # in a chain: no target, no refusal
+    assert kind(mod, ctx, command) == ("shell:rm", "free")
+    assert ctx.call("terminal", {"command": command}) == "ran" and ctx.prompts == []
+    assert last_undo(mod) is None                                                # nothing to save
+
+
+def test_without_f_an_rm_of_nothing_keeps_the_ordinary_question(plugin):
+    mod, ctx = make(plugin)
+    project(ctx, logs=False)
+    assert kind(mod, ctx, "rm *.log") == ("shell:rm", "medium")                  # rm reports a missing file
+    assert ctx.call("terminal", {"command": "rm *.log"}) == "approved"
+
+
+def test_a_pattern_that_matches_nothing_but_names_a_file_keeps_the_question(plugin):
+    mod, ctx = make(plugin)
+    project(ctx, logs=False)
+    touch(ctx, "[ab].log", "named like the pattern\n")                        # bash would remove this one
+    assert kind(mod, ctx, "rm -f [ab].log")[1] != "free"
+    assert ctx.call("terminal", {"command": "rm -f [ab].log"}) == "approved"
+    assert mod.classify.undo_chain("rm -f [ab].log && rm -rf build", ctx.cwd) is None
+
+
+def test_in_a_chain_an_rm_that_removes_nothing_is_left_out_of_the_reading(plugin):
+    mod, ctx = make(plugin)
+    project(ctx, logs=False)
+    chain = mod.classify.undo_chain("rm -f ./*.log && rm -rf build", ctx.cwd)     # nothing from it, no refusal
     assert chain is not None and all("build" in p for p in chain.paths)
+    assert kind(mod, ctx, "rm -f ./*.log && python3 -m pytest -q") == ("shell:python:-m:pytest", "medium")
+    assert ctx.call("terminal", {"command": "rm -f ./*.log && python3 -m pytest -q"}) == "ran"
+    assert kind(mod, ctx, "rm -f ./*.log && git push origin main")[0] == "shell:git:push"
 
 
 # --------------------------------------------------------------------------------------------- 2. sed -i

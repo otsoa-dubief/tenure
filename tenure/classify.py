@@ -1740,8 +1740,8 @@ def _undo_glob(text: str, cwd: str, home: str) -> list[str] | None:
             if not _plain_glob(a):
                 return None                              # read differently by Python and the shell: keep asking
             matches = sorted(itertools.islice(_globmod.iglob(_undo_path(a, cwd, home)), WIDE_MAX_FILES + 1))
-            if len(matches) > WIDE_MAX_FILES:
-                return None
+            if len(matches) > WIDE_MAX_FILES or (not matches and os.path.lexists(_undo_path(a, cwd, home))):
+                return None                              # none, but a file of that name: bash removes it
             out += matches                               # none: the shell passes the pattern, nothing is removed
         else:
             out.append(_undo_path(a, cwd, home))
@@ -2105,9 +2105,11 @@ def unknown_reason(command: str) -> str:
     return "path"
 
 
-def _rm_matches_nothing(command: str, cwd: str | None, home: str) -> bool:
-    """A lone ``rm`` whose operands are all plain globs, unquoted, that match nothing in the folder now: the shell
-    passes each pattern as it is and rm removes nothing (simple mode reads it as a plain rm, not unknown files)."""
+def _rm_matches_nothing(command: str, cwd: str | None, home: str, forced: bool = True) -> bool:
+    """A lone ``rm -f`` whose operands are all plain globs, unquoted, that match nothing in the folder now and are
+    not the name of a file either: bash passes each pattern as it is and rm -f finds nothing to remove, silently; zsh
+    stops on the pattern. Nothing is removed, nothing needs saving (simple mode: free). Without -f, rm says the file
+    is missing: the agent expected one, the ordinary question stays (``forced=False`` reads it too)."""
     import glob as _globmod
     text = str(command or "").strip()
     masked = _undo_mask(text, bang=True)
@@ -2118,9 +2120,23 @@ def _rm_matches_nothing(command: str, cwd: str | None, home: str) -> bool:
     except ValueError:
         return False
     got = _undo_opts(toks[1:], "fvrR") if toks[:1] == ["rm"] else None
-    return bool(got and got[0]) and all(
+    return bool(got and got[0]) and ("f" in got[1] or not forced) and all(
         _GLOB & set(a) and _plain_glob(a) and not any(True for _ in _globmod.iglob(_undo_path(a, cwd, home)))
-        for a in got[0])
+        and not os.path.lexists(_undo_path(a, cwd, home)) for a in got[0])
+
+
+def _without_empty_rm(command: str, cwd: str | None, home: str) -> str | None:
+    """Simple mode: the line read without its rm segments that remove nothing (``_rm_matches_nothing``): "" when
+    nothing else is left, None when there is none to drop."""
+    if _rm_matches_nothing(command, cwd, home):
+        return ""
+    parts = chain_parts(command)
+    if not parts:
+        return None
+    kept = [(seg, op) for seg, _m, op in parts if not _rm_matches_nothing(seg, cwd, home)]
+    if len(kept) == len(parts):
+        return None
+    return " ".join([seg if i == 0 else f"{op} {seg}" for i, (seg, op) in enumerate(kept)])
 
 
 def _set_ok(args: list[str]) -> bool:
@@ -2224,8 +2240,8 @@ def _chain_targets(operands: list[tuple[str, bool]], recursive: bool, cwd: str, 
             if not _plain_glob(a):
                 return None
             found = sorted(itertools.islice(_globmod.iglob(_undo_path(a, cwd, home)), WIDE_MAX_FILES + 1))
-            if len(found) > WIDE_MAX_FILES:
-                return None
+            if len(found) > WIDE_MAX_FILES or (not found and os.path.lexists(_undo_path(a, cwd, home))):
+                return None                              # none, but a file of that name: bash removes it
         else:
             found = [_undo_path(a, cwd, home)]
         for p in found:
@@ -5969,8 +5985,14 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         elif (wide and (t, stakes) == ("file:unknown", HIGH) and _GLOB & set(command)
               and undoable_shell(command, cwd, home, wide=True)):
             t, stakes, rev = "file:shell", LOW, True    # simple mode: an rm glob read now, every match saved first
-        elif wide and (t, stakes) == ("file:unknown", HIGH) and _rm_matches_nothing(command, cwd, home):
-            t, stakes = "shell:rm", MEDIUM              # simple mode: patterns that match nothing remove nothing
+        elif wide and (t, stakes) == ("file:unknown", HIGH) and _GLOB & set(command):
+            rest = _without_empty_rm(command, cwd, home)      # simple mode: an rm of patterns that match nothing
+            if rest == "":                                    # removes nothing: free, nothing to save
+                t, stakes, rev = "shell:rm", FREE, False
+            elif rest is not None:                            # the rest of the line is read as it is
+                t, stakes, rev = _shell(rest, cwd, home)
+            elif _rm_matches_nothing(command, cwd, home, forced=False):
+                t, stakes = "shell:rm", MEDIUM                # no -f: rm says the file is missing, a plain rm
         if wide and t == "file:shell" and any(os.path.basename(w[0]) == "rm" for w in _segments(command) if w):
             t = RM_TYPE                                 # simple mode: deleting earns its freedom apart from writing
         if t.split(":")[0] in ("shell", "file") and stakes != CAP and adds_dependency(command):
