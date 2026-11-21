@@ -1486,7 +1486,7 @@ def _undoable_shell(command: str, cwd: str | None, home: str, wide: bool) -> lis
         return _undo_checked(_undo_heredoc(text, cwd, home), cwd, home, wide=wide)
     if any(_undo_odd(c) for c in text):
         return None                                      # a control character or an unusual space: read differently
-    masked = _undo_mask(text)
+    masked = _undo_mask(text, bang=wide)
     if wide and masked is not None and CHAIN_OPS.search(masked):
         return _chain_paths(text, cwd, home)             # simple mode: free and saved segments, read as one line
     if masked is not None and "&&" in masked:            # plain file commands joined by &&: every file of each
@@ -1586,9 +1586,11 @@ def _undo_heredoc(text: str, cwd: str, home: str) -> list[str] | None:
     return [_undo_path(target, cwd, home)]
 
 
-def _undo_mask(text: str) -> str | None:
+def _undo_mask(text: str, bang: bool = False) -> str | None:
     """The command with every quoted character replaced by `_`, so only what the shell reads as syntax is left; None
-    when a double-quoted part holds `$`, a backtick or a backslash (it would be expanded), or a quote is not closed."""
+    when a double-quoted part holds `$`, a backtick or a backslash (it would be expanded), with ``bang`` (simple mode)
+    a `!` too (history, in an interactive shell), or a quote is not closed. Inside single quotes nothing is
+    expanded: `#`, `!`, `~`, braces and glob characters there are plain text."""
     out, i, n = [], 0, len(text)
     while i < n:
         c = text[i]
@@ -1600,7 +1602,7 @@ def _undo_mask(text: str) -> str | None:
             i = j + 1
         elif c == '"':
             j = text.find('"', i + 1)
-            if j < 0 or any(x in text[i + 1:j] for x in "$`\\"):
+            if j < 0 or any(x in text[i + 1:j] for x in ("$`\\!" if bang else "$`\\")):
                 return None
             out.append("_" * (j - i + 1))
             i = j + 1
@@ -1738,12 +1740,12 @@ def _undo_glob(text: str, cwd: str, home: str) -> list[str] | None:
             if not _plain_glob(a):
                 return None                              # read differently by Python and the shell: keep asking
             matches = sorted(itertools.islice(_globmod.iglob(_undo_path(a, cwd, home)), WIDE_MAX_FILES + 1))
-            if not matches or len(matches) > WIDE_MAX_FILES:
+            if len(matches) > WIDE_MAX_FILES:
                 return None
-            out += matches
+            out += matches                               # none: the shell passes the pattern, nothing is removed
         else:
             out.append(_undo_path(a, cwd, home))
-    return out if all(os.path.isfile(p) and not os.path.islink(p) for p in out) else None
+    return out if out and all(os.path.isfile(p) and not os.path.islink(p) for p in out) else None
 
 
 def _undo_mv_cp(prog: str, args: list[str], cwd: str, home: str) -> list[str] | None:
@@ -1895,7 +1897,7 @@ def chain_parts(command: str) -> list[tuple[str, str, str]] | None:
     text = str(command or "").strip()
     if not text or len(text) > 8192 or any(_undo_odd(c) for c in text):
         return None
-    masked = _undo_mask(text)
+    masked = _undo_mask(text, bang=True)
     if masked is None:
         return None
     spans = [m.span() for m in _DUP.finditer(masked)]
@@ -2075,6 +2077,52 @@ def _chain_deletes(seg: str) -> bool:
     return bool(toks) and (toks[0] == "rm" or (toks[0] == "git" and toks[1:2] == ["rm"]))
 
 
+def _glob_words(toks: list[str], seg_masked: str) -> list[bool] | None:
+    """For each word of a segment, whether the shell expands its glob characters (they stand outside quotes); None
+    when a word has them both inside and outside quotes. The masked segment keeps the words apart (a quoted space is
+    masked), so its words line up with the shell's."""
+    masked = seg_masked.split()
+    if len(masked) != len(toks):
+        return None
+    out = []
+    for word, shown in zip(toks, masked):
+        real, bare = sum(word.count(c) for c in _GLOB), sum(shown.count(c) for c in _GLOB)
+        if bare and bare != real:
+            return None
+        out.append(bool(bare))
+    return out
+
+
+def unknown_reason(command: str) -> str:
+    """Why a command's files could not be identified (``file:unknown``): "glob" for a pattern the shell expands,
+    "variable" for a variable or a substitution, else "path"."""
+    text = str(command or "")
+    masked = _undo_mask(text) or text
+    if _GLOB & set(masked):
+        return "glob"
+    if "$" in text or "`" in text:
+        return "variable"
+    return "path"
+
+
+def _rm_matches_nothing(command: str, cwd: str | None, home: str) -> bool:
+    """A lone ``rm`` whose operands are all plain globs, unquoted, that match nothing in the folder now: the shell
+    passes each pattern as it is and rm removes nothing (simple mode reads it as a plain rm, not unknown files)."""
+    import glob as _globmod
+    text = str(command or "").strip()
+    masked = _undo_mask(text, bang=True)
+    if not cwd or masked != text or set(masked) & (_UNDOABLE_BAD - _GLOB) or ">" in masked:
+        return False
+    try:
+        toks = shlex.split(text)
+    except ValueError:
+        return False
+    got = _undo_opts(toks[1:], "fvrR") if toks[:1] == ["rm"] else None
+    return bool(got and got[0]) and all(
+        _GLOB & set(a) and _plain_glob(a) and not any(True for _ in _globmod.iglob(_undo_path(a, cwd, home)))
+        for a in got[0])
+
+
 def _set_ok(args: list[str]) -> bool:
     """``set -e``, ``-u``, ``-x``, ``-o pipefail`` and their clusters (``set -euo pipefail``): nothing else."""
     it = iter(args)
@@ -2104,8 +2152,9 @@ def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple | No
         return None                                      # it changes the shell for the segments after it
     if os.path.basename(toks[0]) in EXTERNAL_PROGRAMS | set(OUTSIDE) or _cmd_reads_external(seg, 0):
         return None                                      # it reaches another host, even for a read: asked as today
-    if _GLOB & set(seg) and seg_masked != seg:
-        return None                                      # a glob next to quotes: which words expand is unsure
+    expands = _glob_words(toks, seg_masked)
+    if expands is None:
+        return None                                      # a word whose glob is half quoted: which part expands?
     prog, globbed = toks[0], bool(_GLOB & set(seg_masked))
     if ">" in seg_masked and prog not in ("echo", "printf", "cat"):
         return None                                      # `rm x >main.py` empties main.py: only a saved redirect
@@ -2127,7 +2176,7 @@ def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple | No
             if not got or not got[0]:
                 return None
             ops = [_undo_path(a, cwd, home) for a in got[0]]
-            return ("save-git", lambda b: _chain_targets(got[0], "r" in got[1], cwd, home, b),
+            return ("save-git", lambda b: _chain_targets([(a, False) for a in got[0]], "r" in got[1], cwd, home, b),
                     {"specs": ops, "deletes": True, "check": check})
         got = _undo_opts(toks[2:], "kvn")                # git mv, never -f
         if not got or len(got[0]) < 2:
@@ -2139,8 +2188,9 @@ def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple | No
         got = _undo_opts(toks[1:], "fvrR")
         if not saver_ok or not got or not got[0]:
             return None
-        return ("save", lambda b: _chain_targets(got[0], bool(got[1] & {"r", "R"}), cwd, home, b),
-                {"deletes": True, "gone": [_undo_path(a, cwd, home) for a in got[0] if not _GLOB & set(a)]})
+        ops = list(zip(got[0], expands[len(toks) - len(got[0]):]))     # (word, its glob is the shell's)
+        return ("save", lambda b: _chain_targets(ops, bool(got[1] & {"r", "R"}), cwd, home, b),
+                {"deletes": True, "gone": [_undo_path(a, cwd, home) for a, e in ops if not e]})
     if ">" in seg_masked or prog in ("mv", "cp", "sed", "touch"):
         found = undoable_shell(seg, cwd, home, wide=True) if saver_ok and not globbed else None
         if found:
@@ -2158,21 +2208,23 @@ def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple | No
     return None
 
 
-def _chain_targets(operands: list[str], recursive: bool, cwd: str, home: str, budget: _Budget) -> list[str] | None:
-    """The files a deletion of these operands removes, read now: a plain glob is expanded as the shell would (it must
-    match, at most WIDE_MAX_FILES matches read), a folder needs ``recursive`` and gives every file under it
-    (``_undo_tree``); every target exists, is a regular file or folder, and is no link; the line's ``budget`` holds
-    for all of them. An operand given twice is read once."""
+def _chain_targets(operands: list[tuple[str, bool]], recursive: bool, cwd: str, home: str,
+                   budget: _Budget) -> list[str] | None:
+    """The files a deletion of these operands removes, read now. ``operands``: (word, whether the shell expands its
+    glob). A plain glob is expanded as the shell would (at most WIDE_MAX_FILES matches read; one that matches nothing
+    removes nothing: the shell passes it as it is); a quoted one is a name. A folder needs ``recursive`` and gives
+    every file under it (``_undo_tree``); every other target exists, is a regular file or folder, and is no link;
+    the line's ``budget`` holds for all of them. An operand given twice is read once."""
     import glob as _globmod
     out: list[str] = []
-    for a in dict.fromkeys(operands):
+    for a, expand in dict.fromkeys(operands):
         if a.startswith(":"):
             return None                                  # a git pathspec with magic
-        if _GLOB & set(a):
+        if expand:
             if not _plain_glob(a):
                 return None
             found = sorted(itertools.islice(_globmod.iglob(_undo_path(a, cwd, home)), WIDE_MAX_FILES + 1))
-            if not found or len(found) > WIDE_MAX_FILES:
+            if len(found) > WIDE_MAX_FILES:
                 return None
         else:
             found = [_undo_path(a, cwd, home)]
@@ -5917,6 +5969,8 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         elif (wide and (t, stakes) == ("file:unknown", HIGH) and _GLOB & set(command)
               and undoable_shell(command, cwd, home, wide=True)):
             t, stakes, rev = "file:shell", LOW, True    # simple mode: an rm glob read now, every match saved first
+        elif wide and (t, stakes) == ("file:unknown", HIGH) and _rm_matches_nothing(command, cwd, home):
+            t, stakes = "shell:rm", MEDIUM              # simple mode: patterns that match nothing remove nothing
         if wide and t == "file:shell" and any(os.path.basename(w[0]) == "rm" for w in _segments(command) if w):
             t = RM_TYPE                                 # simple mode: deleting earns its freedom apart from writing
         if t.split(":")[0] in ("shell", "file") and stakes != CAP and adds_dependency(command):

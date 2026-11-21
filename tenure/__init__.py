@@ -1188,6 +1188,7 @@ UNDO_WINDOW = 24 * 3600          # seconds an act-then-notify action can be undo
 UNDO_FAILED = "undo_failed:"     # meta key prefix: the undo entry of a call that failed after its files were saved
 UNDO_FILES = "undo_files:"       # meta key prefix: the undo entry of a chained line, and how many files it holds
 INDEX_PENDING = "index_pending:"  # meta key prefix: an undo whose files came back but not git's index (retried)
+UNKNOWN_WHY = "unknown_why"      # meta key: why the last file:unknown command was unknown (glob, variable, path)
 NOUNDO = "noundo:"               # meta key prefix: a kind whose last free call asked because tenure could not undo it
 
 
@@ -1755,7 +1756,7 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
                  unsaved_listed: bool = False,
                  held: str | None = None, doubted: bool = False, fresh: list | None = None,
                  exec_files: list | None = None, taint_from: str = "", simple: bool = False,
-                 lifts: bool = False, segments: int = 0) -> str:
+                 lifts: bool = False, segments: int = 0, unknown: str = "") -> str:
     stakes = stakes_name(act.stakes)
     if decision == rule.SPOT:
         return tr("ask.spot", summary=act.summary, type=act.type, spot=round(1 / spot))
@@ -1765,6 +1766,8 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
         why = tr("ask.why.fresh_script", files=", ".join(fresh[:3]))
     elif exec_files:
         why = tr("ask.why.exec_file", files=", ".join(exec_files[:3]))
+    elif n is None and simple and unknown:              # files it could not identify: say what it could not read
+        why = tr("simple.ask.unknown", type=act.type, reason=tr(f"unknown.why.{unknown}"))
     elif n is None:                                     # simple mode: high stakes, or capped by the owner's settings
         why = ((tr("simple.ask.always", type=act.type) if act.stakes == "high" or not params.simple_covers(act.type)
                 else tr("simple.ask.settings", type=act.type)) if simple else
@@ -2134,6 +2137,10 @@ def _pre_tool_call(tool_name, args, session_id, tool_call_id, task_id):
                                                               runs)
             if held is not None:
                 decision = rule.ASK                         # a program of the line is not free now: it asks
+            unknown = (classify.unknown_reason(str(args.get("command", "")))
+                       if wide and tool == "terminal" and act.type == "file:unknown" else "")
+            if unknown and st.get_meta(UNKNOWN_WHY) != unknown:
+                st.set_meta(UNKNOWN_WHY, unknown)           # /tenure trust says it too
             if purged:
                 st.drop_undo_meta((UNDO_FILES, INDEX_PENDING), time.time() - UNDO_WINDOW)
             fresh, exec_files = [], []                      # computed even when it asks anyway: never a session key
@@ -2235,7 +2242,7 @@ def _pre_tool_call(tool_name, args, session_id, tool_call_id, task_id):
                                                      held=_held_by(st, agent, act.type), simple=simple(cfg),
                                                      lifts=lifts,
                                                      segments=classify.hidden_segments(str(args.get("command", "")))
-                                                     if tool == "terminal" else 0)}
+                                                     if tool == "terminal" else 0, unknown=unknown)}
         if taken and taken != snap:
             undo.discard(taken, data_dir())
         taken = None

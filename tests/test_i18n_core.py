@@ -31,6 +31,7 @@ DYNAMIC = {
     "notice.tier.": ("fault", "settings"),
     "trust.state.": ("out", "high", "capped", "noundo", "doubted", "watched", "ask"),
     "trust.refused.": ("out", "high", "capped"),
+    "unknown.why.": ("glob", "variable", "path"),
     "cli.col.": ("type", "stakes", "tier_now", "series", "sessions", "record", "guarantee", "model", "provider",
                  "fault_rate", "note", "number", "restores", "when", "agent", "time", "target", "undo"),
 }

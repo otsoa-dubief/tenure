@@ -422,6 +422,7 @@
   "simple.notice.now": "tenure · {type}, con tus nuevos ajustes: {state}.",
   "simple.ask.unsaved": "tenure no puede deshacer {type}: no sabe qué archivos cambia, así que pregunta.",
   "simple.ask.always": "{type} sale de esta máquina, o hace algo que tenure no puede deshacer ni leer: siempre pregunta.",
+  "simple.ask.unknown": "{type} toca archivos que tenure no pudo identificar ({reason}): siempre pregunta.",
   "simple.ask.mistakes": {
     "one": "{type} pregunta antes tras sus errores: {n} aprobación más y vuelve a actuar, mostrándote cada acción.",
     "other": "{type} pregunta antes tras sus errores: {n} aprobaciones seguidas más y vuelve a actuar, mostrándote cada acción."
@@ -499,6 +500,7 @@
   "trust.state.pinned_hidden": "te pregunta antes, por tu decisión: muestra los nombres (r) para copiar el comando que lo libera",
   "trust.state.out": "siempre pregunta: sale de esta máquina",
   "trust.state.high": "siempre pregunta: riesgo alto",
+  "trust.state.unknown": "siempre pregunta: archivos que tenure no pudo identificar ({reason})",
   "trust.state.capped": "siempre pregunta: así lo dicen tus ajustes",
   "trust.state.study": {
     "one": "{tier}: {n} éxito verificado más antes de actuar solo",
@@ -584,6 +586,10 @@
   "kind.file_write": "ediciones de archivos en el proyecto",
   "kind.file_write_outside": "ediciones de archivos fuera del proyecto",
   "kind.file_shell": "archivos cambiados por comandos",
+  "unknown.why.path": "una ruta que tenure no pudo leer",
+  "unknown.why.variable": "una variable o una sustitución que tenure no pudo leer",
+  "unknown.why.glob": "un patrón que tenure no pudo expandir",
+  "kind.file_unknown": "archivos que tenure no pudo identificar",
   "kind.file_shell_rm": "borrar archivos (rm)",
   "kind.memory_write": "notas de memoria",
   "kind.delegate_task": "trabajo confiado a un subagente",

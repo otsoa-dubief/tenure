@@ -704,6 +704,7 @@ def undo_action(entry_id: int) -> str:
 HOME_UNDO = 10                                   # undoable actions /tenure shows, newest first
 _SAID = {"file:write": "kind.file_write", "file:write-outside": "kind.file_write_outside",
          "file:shell": "kind.file_shell", "file:shell:rm": "kind.file_shell_rm", "memory:write": "kind.memory_write",
+         "file:unknown": "kind.file_unknown",
          "delegate:task": "kind.delegate_task", "shell:complex": "kind.shell_complex",
          "shell:stdin-code": "kind.shell_stdin_code", "code:execute": "kind.code_execute"}   # kinds with a label of their own
 
@@ -912,6 +913,13 @@ def _state_parts(core, cfg: dict, s: rule.TypeState, prefix: str, info: dict | N
         if hidden:
             return [("trust.state.pinned_hidden", {})]
         return [("trust.state.pinned", {"command": f"{prefix} trust {s.key}"})]
+    if state in ("high", "capped") and s.key == "file:unknown" and core.simple(cfg):
+        try:
+            why = core.store_().get_meta(core.UNKNOWN_WHY) or "path"     # what the last such command hid
+        except Exception:
+            why = "path"
+        return [("trust.state.unknown",
+                 {"reason": tr(f"unknown.why.{why if why in ('glob', 'variable') else 'path'}")})]
     if state in ("out", "high", "capped", "noundo", "doubted"):
         return [(f"trust.state.{state}", {})]
     if state == "held":
