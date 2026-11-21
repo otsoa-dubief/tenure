@@ -69,6 +69,7 @@ WRITTEN_SCHEMA = "CREATE TABLE IF NOT EXISTS written (h TEXT PRIMARY KEY, at REA
 WRITTEN_WINDOW = 24 * 3600
 DOUBT = "doubt:"           # meta key prefix: a kind whose next action asks first (a verifier's doubt, #6)
 INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke", "copy", "excuse"})
+LIFTED = "lifted:"         # meta key prefix: a session whose suspension a person lifted (simple mode)
 DISTRUST = "distrust:"     # meta key prefix: a type that lost the trusted start in this profile
 PROGRAM_ALIASES = {"python2": "python", "python3": "python", "py": "python", "nodejs": "node", "pip3": "pip"}
 
@@ -382,6 +383,16 @@ class Store:
         self._write()
         self.db.execute("INSERT INTO sessions (session, tainted, at) VALUES (?, 1, ?) "
                         "ON CONFLICT(session) DO UPDATE SET tainted = 1", (session, time.time()))
+
+    def lift(self, session: str) -> None:
+        """Simple mode: a person approved the question the suspension asked; the session works as before, for good
+        (``lifted``: a later outside read never suspends it again)."""
+        self._write()
+        self.db.execute("UPDATE sessions SET tainted = 0 WHERE session = ?", (session,))
+        self.set_meta(LIFTED + session, "1")
+
+    def lifted(self, session: str) -> bool:
+        return bool(session) and bool(self.get_meta(LIFTED + session))
 
     def is_tainted(self, session: str) -> bool:
         row = self.db.execute("SELECT tainted FROM sessions WHERE session = ?", (session,)).fetchone()

@@ -98,6 +98,7 @@ class _State:
         self.opening = threading.Lock()          # opening the store
         self.agents: OrderedDict[str, str] = OrderedDict()     # session id -> agent of its latest API request
         self.tainted: OrderedDict[str, float] = OrderedDict()  # suspended sessions (anonymised) -> since when
+        self.lifted: OrderedDict[str, float] = OrderedDict()   # simple mode: suspensions a person lifted -> when
         self.acted: dict = {}           # (session, type) -> {"ids", "handle", "at"}: this turn's acted message
         self.turn: dict = {}            # session -> {"items", "at"}: simple mode's watched actions of this turn
         self.cwds: OrderedDict[str, str] = OrderedDict()       # session id -> terminal cwd its last command reported
@@ -725,10 +726,46 @@ def _taint_label(session: str) -> str:
     return seen[-1] if len(seen) == 1 else tr("ask.why.suspended_more", source=seen[-1], n=len(seen) - 1)
 
 
+def _lifted(session: str, st: store.Store | None = None) -> bool:
+    """Simple mode: a person lifted this session's suspension (``_lift``)."""
+    with ST.mem:
+        if session in ST.lifted:
+            return True
+    if not session:
+        return False
+    if st is not None:
+        return st.lifted(session)
+    with _locked():
+        return store_().lifted(session)
+
+
+def _lift(st: store.Store, session: str) -> None:
+    """Simple mode: a person approved the question a suspension asked. The session works as before for the rest of
+    its life: the next commands follow the simple rule, and a later outside read does not suspend it again (``_taint``).
+    What 1.3 asks after outside content whatever the suspension stays (``_outside``): a file that runs code, written
+    after outside content, and a script written then run."""
+    with ST.mem:
+        ST.tainted.pop(session, None)
+        _remember(ST.lifted, session, time.time())
+    if session:
+        st.lift(session)
+
+
+def _outside(st: store.Store, session: str, suspended: bool) -> bool:
+    """The session read outside content, suspended or lifted since."""
+    return suspended or _lifted(session, st)
+
+
 def _taint(session: str) -> None:
     """Suspend a session: in this process at once, then in the store in a transaction of its own, so that nothing
     that fails later (or a busy store) can take it back. The empty session (calls outside any session) is never
-    suspended as a whole: only in this process, for an hour."""
+    suspended as a whole: only in this process, for an hour. Simple mode: a session whose suspension a person lifted
+    is not suspended again."""
+    try:
+        if simple() and _lifted(session):
+            return
+    except Exception:
+        log.debug("tenure: could not read whether the suspension was lifted; suspending", exc_info=True)
     with ST.mem:
         _remember(ST.tainted, session, time.time())
     if not session:
@@ -1401,7 +1438,7 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
     if decision in (rule.ALLOW, rule.SPOT) and st.get_meta(_due_key(agent, act.type)):
         decision = rule.SPOT
     if (decision == rule.ASK and not ST.copy_unchecked and trusted(cfg, s, n, act.stakes)
-            and (not suspended or (act.reversible and act.type.startswith("file:")))):
+            and (not suspended or (act.reversible and act.type.startswith("file:")) or _local_ok(cfg, act))):
         # trusted start: run as Hermes would, with an undo if possible; after outside content, undoable file writes only
         decision = rule.WATCH
     if decision != rule.ASK and _held_by(st, agent, act.type):
@@ -1409,6 +1446,12 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
     if decision != rule.ASK and st.doubted(agent, act.type):
         decision = rule.ASK                             # a verifier doubted an action of this kind (#6)
     return recorded, s, decision, suspended
+
+
+def _local_ok(cfg: dict, act) -> bool:
+    """Simple mode: a local command that changes nothing outside the project and can be taken back (mkdir, git add,
+    git commit), allowed after outside content too."""
+    return simple(cfg) and act.type in params.SUSPENDED_LOCAL
 
 
 def _marked(s: rule.TypeState | None) -> bool:
@@ -1466,9 +1509,11 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
     elif exec_files:
         why = tr("ask.why.exec_file", files=", ".join(exec_files[:3]))
     elif n is None:
-        why = tr("ask.why.capped", type=act.type, stakes=stakes, n=s.successes)
+        why = (tr("simple.ask.always", type=act.type, stakes=stakes) if simple else
+               tr("ask.why.capped", type=act.type, stakes=stakes, n=s.successes))
     elif suspended:
-        why = tr("ask.why.suspended_trusted" if trusted_start else "ask.why.suspended")
+        why = tr("simple.ask.suspended" if simple else
+                 "ask.why.suspended_trusted" if trusted_start else "ask.why.suspended")
         if taint_from:                                  # which call suspended it: a tool, and a host if any
             why += " " + tr("ask.why.suspended_from", source=taint_from)
     elif s.trial_left:
@@ -1690,7 +1735,9 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         if _person_only(tool, args):                              # the agent marking its own work seen, or excusing it
             return {"action": "block", "message": tr("ask.person_only")}
         cwd = call_cwd(tool, args, session_id, task_id)
-        act = classify.classify(tool, args, cwd=cwd, overrides=cfg["overrides"], vocabulary=cfg["vocabulary"])
+        wide = simple(cfg)                                  # simple mode: rm -r of a folder and rm globs can be saved
+        act = classify.classify(tool, args, cwd=cwd, overrides=cfg["overrides"], vocabulary=cfg["vocabulary"],
+                                wide=wide)
         if act.stakes == classify.FREE:
             return None
         _purge()
@@ -1702,7 +1749,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         session, agent, nobody = anon(sid), agent_of(sid, deadline), nobody_answers()
         n = params.required_n(cfg["risks"], act.stakes)
         if call:                                            # files that do not parse yet: the check skips them after
-            written = classify.files_written(tool, args, cwd)
+            written = classify.files_written(tool, args, cwd, wide=wide)
             bad = (proofs.broken(written) - _touched(session)) if written else frozenset()
             with ST.mem:                                    # set or cleared: a reused call id never inherits it
                 if bad:
@@ -1716,7 +1763,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             with _locked(deadline):
                 preview = _decide(store_(), agent, act, n, cfg, session, nobody, _NoSpot)[2]
             if preview in (rule.NOTIFY, rule.WATCH):
-                paths = classify.files_written(tool, args, cwd)
+                paths = classify.files_written(tool, args, cwd, wide=wide)
                 taken = (undo.snapshot(paths, data_dir(), key=undo_key(deadline), cwd=cwd,
                                        home=os.path.expanduser("~")) if paths else None)
         posts, directive, snap = [], None, taken
@@ -1728,8 +1775,10 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             fresh, exec_files = [], []                      # computed even when it asks anyway: never a session key
             if tool == "terminal":                              # a script the agent wrote, run now: asked once
                 fresh = st.written_recently(classify.scripts_run(str(args.get("command", "")), cwd))
-            if suspended:                                       # after outside content, writing code is code
-                exec_files = [x for x in classify.files_written(tool, args, cwd) if classify.runs_on_execution(x)]
+            outside = _outside(st, session, suspended)
+            if outside:                                         # after outside content, writing code is code
+                exec_files = [x for x in classify.files_written(tool, args, cwd, wide=wide)
+                              if classify.runs_on_execution(x)]
             only_fresh = bool(fresh) and not exec_files and decision != rule.ASK   # it would not have asked otherwise
             if fresh or exec_files:
                 decision = rule.ASK
@@ -1742,8 +1791,8 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             # Simple mode frees kinds the trusted start leaves out (rm, mv...) only with their files saved first.
             needs_undo = watched and simple(cfg) and not rule.trust_covers(act.type)
             if watched:                                     # files saved: act then tell, with an undo; else run alone
-                files = bool(snap) or bool(classify.files_written(tool, args, cwd))
-                decision = (rule.NOTIFY if snap else rule.ASK if suspended or needs_undo   # never without an undo
+                files = bool(snap) or bool(classify.files_written(tool, args, cwd, wide=wide))
+                decision = (rule.NOTIFY if snap else rule.ASK if (suspended and not _local_ok(cfg, act)) or needs_undo
                             else rule.NOTIFY if files else rule.ALLOW)    # files that could not be saved: ask (below)
             if decision != rule.NOTIFY:
                 snap = None                                 # the record changed since the preview: no undo needed
@@ -1770,11 +1819,11 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 # for the session: "Allow for this session" then covers that type until the session ends.
                 # A file change whose files could not be saved is asked about each time: a session answer must
                 # never let a write run without its undo.
-                no_undo = act.reversible and not snap and bool(classify.files_written(tool, args, cwd))
+                no_undo = act.reversible and not snap and bool(classify.files_written(tool, args, cwd, wide=wide))
                 per_session = (cfg.get("start") == "trusted" and not nobody and decision == rule.ASK and not no_undo
                                and fields.parent_of(act.type) is None           # never for a category kind
                                and not st.doubted(agent, act.type)              # a doubt is asked, whatever the grant
-                               and not exec_files and not (fresh and suspended)  # code written after outside content
+                               and not exec_files and not (fresh and outside)    # code written after outside content
                                and (act.type in params.SESSION_TYPES or (suspended and trusted(cfg, s, n, act.stakes))
                                     or _uncovered_local(act, s, n) or only_fresh)
                                and (only_fresh or not fresh))                   # another reason asks each time
@@ -1783,6 +1832,14 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 scope = ("fresh" if only_fresh else
                          "suspended" if suspended and trusted(cfg, s, n, act.stakes) and act.type not in params.SESSION_TYPES
                          else act.type)
+                # Simple mode: a question only the suspension asks lifts it once a person approves it (even once).
+                lifts = (simple(cfg) and suspended and not nobody and not fresh and not exec_files
+                         and not st.doubted(agent, act.type) and not _held_by(st, agent, act.type)
+                         and (trusted(cfg, s, n, act.stakes)
+                              or rule.decide(s, n, cfg["spot"], suspended=False, rng=_NoSpot,
+                                             mode=rule.SIMPLE) == rule.NOTIFY))
+                if lifts:
+                    per_session, kind = False, "lift"
                 key = f"{PREFIX}:session:{scope}:{session}" if per_session else f"{PREFIX}:{kind}:{act.type}:{uid}"
                 st.add_pending(uid, phase="nobody" if nobody else "asked", rule_key=key, **row)
                 directive = {"action": "approve", "rule_key": key,
@@ -1850,6 +1907,8 @@ def post_approval_response(pattern_key="", tool_call_id="", choice="", **kwargs)
                 pass                                        # not one of our open asks
             elif verdict == "approved":
                 st.set_phase(p["id"], "approved")
+                if p["rule_key"].startswith(f"{PREFIX}:lift:") and simple(cfg):
+                    _lift(st, p["session"])                 # a person's yes, even once: the session works as before
                 with ST.mem:
                     ran = ST.fresh.pop((p["session"], p["call"]), None)
                 st.forget_written(ran)                      # approved once: it runs without asking until rewritten
@@ -1887,7 +1946,9 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         cwd = call_cwd(tool, args, session_id, task_id)
         _follow_cwd(tool, args, result, session_id, task_id)
         session = anon(session_id or task_id)
-        wrote = [] if str(status or "").strip().lower() == "blocked" else classify.files_written(tool, args, cwd)
+        wide = simple()
+        wrote = ([] if str(status or "").strip().lower() == "blocked"
+                 else classify.files_written(tool, args, cwd, wide=wide))
         _touch(session, wrote)                              # every call that ran, failed or not: its files are its own
         if wrote:                                           # running one of them later asks once (24 hours)
             try:
@@ -1911,7 +1972,7 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
                     _remember(ST.taint_from, session, (seen + [label])[-20:])
             except Exception:
                 log.debug("tenure: the source of a suspension could not be named", exc_info=True)
-            if first and settings().get("start") == "trusted":
+            if first and settings().get("start") == "trusted" and not simple():
                 _announce(tr("notice.suspended"))           # said once: the asks that follow stay short
         call = str(tool_call_id or "")
         if not call:
@@ -1923,7 +1984,7 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         if not session and rows:            # outside any session, call ids recur: the type must match too
             cfg2 = settings()
             kind = classify.classify(tool, args, cwd=cwd, overrides=cfg2["overrides"],
-                                     vocabulary=cfg2["vocabulary"]).type
+                                     vocabulary=cfg2["vocabulary"], wide=wide).type
             rows = [r for r in rows if r["type"] == kind]
             if len(rows) > 1:
                 _ambiguous(rows)
@@ -1936,7 +1997,7 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         launched = not blocked and not failed and _background(tool, args, result)
         reason, paths, unjudged = None, [], False
         if not blocked and not launched:    # a failed call is judged too: "...; false" never hides a broken file
-            paths = classify.files_written(tool, args, cwd)
+            paths = classify.files_written(tool, args, cwd, wide=wide)
             reason, unjudged = proofs.judge_files(paths, before) if paths else (None, False)
         cfg = settings()
         posts = []

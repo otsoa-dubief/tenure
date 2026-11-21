@@ -453,6 +453,7 @@
   "simple.explain.ask": "Tras un segundo error, te pregunta antes: {low} aprobaciones seguidas con riesgo bajo, {medium} con riesgo medio, y vuelve a estar vigilado.",
   "simple.explain.free_again": "Una acción vigilada que no deshaces en {hours} horas cuenta como correcta: {low} seguidas sin errores con riesgo bajo, {medium} con riesgo medio, y vuelve a ser libre.",
   "simple.explain.free_again_capped": "Una acción vigilada que no deshaces en {hours} horas cuenta como correcta; una racha sin errores la vuelve a liberar.",
-  "simple.explain.always": "Siempre pregunta: lo que sale de tu máquina (push, deploy, publish, upload...), el riesgo alto, los tipos limitados, un script que el agente acaba de escribir, un paquete nuevo y, tras contenido externo, los comandos (las ediciones de archivos siguen, con su deshacer).",
-  "simple.explain.study": "Sin controles aleatorios ni garantía en este modo. Para la regla del estudio, su garantía y el pasaporte firmado: {command}"
+  "simple.explain.always": "Siempre pregunta: lo que sale de tu máquina (push, deploy, publish, upload...), el riesgo alto, los tipos limitados, un script que el agente acaba de escribir, un paquete nuevo y un archivo que ejecuta código escrito tras contenido externo. Tras contenido externo, el siguiente comando pregunta una vez: aprobado, la sesión funciona como antes (mkdir, git add y git commit nunca preguntan).",
+  "simple.explain.study": "Sin controles aleatorios ni garantía en este modo. Para la regla del estudio, su garantía y el pasaporte firmado: {command}",
+  "simple.ask.suspended": "Esta sesión leyó contenido externo: permite esta acción y sus comandos se ejecutan como antes el resto de la sesión (siempre con la regla simple); recházala y siguen preguntando."
 }

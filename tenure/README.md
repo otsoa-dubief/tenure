@@ -19,7 +19,8 @@ the numbers of a rule preregistered on OSF (`hermes tenure mode study` applies t
   `•••` (the keys it recognises, no guarantee); an action that ran under Tenure's watch has a number for 24 hours (`/tenure flag`,
   `/tenure flag 12`).
 - **Always asks** what leaves the machine (push, publish, deploy, uploads, payments) and what cannot be undone;
-  after the agent reads outside content (web, mail, downloads), commands ask for the rest of the session.
+  after the agent reads outside content (web, mail, downloads), the next command asks once, and your yes lets the
+  session work as before (study mode: commands ask for the rest of the session).
 - **Field categories**: an MCP call that touches a secret or a bank field (IBAN, password, token...), or a field it
   cannot read (custom field ids, free SQL, generic REST writes), earns trust apart from its tool and always asks
   under the default preset. Other categories ship off; `fields:` turns them on.

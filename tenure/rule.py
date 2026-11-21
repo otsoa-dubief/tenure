@@ -514,8 +514,8 @@ def _simple_success(s: TypeState, n: int | None, *, source: str) -> list[dict]:
 def _simple_fault(s: TypeState, n: int | None, *, source: str, free: bool) -> list[dict]:
     """Simple mode, a verified fault. The series restarts. A free type (``free``: never faulted, or back at T3)
     goes to T2 with its score at the bar when it is reversible at low or medium stakes, else to T1. A type already
-    held back goes to T1, whatever its score, which still takes the study's Wald step: the score only leads back up
-    to T2. No trial, wait or lengthening."""
+    held back goes to T1, whatever its score, which still takes the study's Wald step and is then at least ln B + a:
+    the score only leads back up to T2, after the study's count of approvals. No trial, wait or lengthening."""
     s.faults += 1
     s.distrusted = True
     if source == "spot":
@@ -529,8 +529,9 @@ def _simple_fault(s: TypeState, n: int | None, *, source: str, free: bool) -> li
             s.tier = T1
         return [_move(s, "tier", "trusted" if old != T3 else T3, s.tier, "fault")]
     if _middle(s):
-        a = params.wald_steps(s.stakes)[0]
+        a, _, ln_b = params.wald_steps(s.stakes)
         s.wald = (max(s.wald, 0.0) if s.stakes in GRAVE or borrowed else s.wald) + a
+        s.wald = max(s.wald, ln_b + a)  # the climb back to T2 takes the study's count from there, never one approval
     s.tier = T1                    # a second fault asks first, whatever the score: the score only leads back up
     return [_move(s, "tier", old, s.tier, "fault")] if s.tier != old else []
 
