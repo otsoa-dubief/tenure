@@ -39,6 +39,9 @@
     "other": "{n} 个会话"
   },
   "cell.tier_now": "当前级别：{tier}（{name}）",
+  "chip.simple_tip": {
+    "other": "{name}：{n} 个操作类型受关注或先询问你。打开 Tenure。"
+  },
   "chip.tip": {
     "other": "{name}：{n} 个操作类型中有 {earned} 个已赢得自主权（T2 或 T3）。打开 Tenure。"
   },
@@ -461,6 +464,46 @@
   "settings.strict_on": "严格模式：开",
   "settings.strict_title": "切换模型时的严格模式",
   "settings.use": "使用",
+  "simple.col_kind": "类型",
+  "simple.col_what": "内容",
+  "simple.eyebrow": "{profile} · 简单模式",
+  "simple.group_always": "始终询问",
+  "simple.group_always_help": "触及本机之外的操作（push、deploy、publish、upload、消息）、高风险类型，以及你的设置要求始终询问的类型：任何记录都不会让它们自由。",
+  "simple.group_ask": "先询问你",
+  "simple.group_ask_help": "每个操作都等待你的批准；每行说明原因，以及怎样让它自由。",
+  "simple.group_noundo": "无法撤销",
+  "simple.group_noundo_help": "tenure 无法在执行前保存它会改动的内容，所以询问。",
+  "simple.group_watched": "失误后受关注",
+  "simple.group_watched_help": "它继续工作；每个操作在本轮结束时列出，可撤销。",
+  "simple.kinds_empty": "还没有任何操作类型的记录：一切照 Hermes 本身运行，触及本机之外的操作和高风险类型除外。",
+  "simple.kinds_footer": "让某项不再询问：{command} <类型> · 让某项始终询问：{command} <类型> ask",
+  "simple.kinds_free": {
+    "other": "另有 {n} 个类型无需询问即可执行。"
+  },
+  "simple.kinds_none": "{agent} 用过的所有操作类型都是自由的。",
+  "simple.kinds_title": "仍在询问你或受关注的项",
+  "simple.kinds_word": "让某类操作自由须由人决定，在对话或终端中输入：本页面从不让任何类型自由。",
+  "simple.loading": "加载中…",
+  "simple.off": "此配置文件已关闭 tenure（{setting}: false）：智能体照 Hermes 本身运行。",
+  "simple.study": "研究模式：随机抽查、保证和签名护照 — {command}",
+  "simple.subtitle": "智能体今天做了什么，以及你可以撤销什么",
+  "simple.tile_asks": "先询问你的类型",
+  "simple.tile_today": "今天未经询问执行",
+  "simple.tile_undo": "仍可撤销的更改",
+  "simple.tile_watched": "失误后受关注的类型",
+  "simple.tiles_aria": "智能体今天做了什么，以及仍在询问你的项",
+  "simple.title": "今天",
+  "simple.undo_effect": "恢复文件 · 计为该类型的一次失误：一次后受关注，第二次后先询问",
+  "simple.undo_effect_already": "恢复文件 · 已计为失误（自动检查失败）",
+  "simple.undo_effect_none": "没有保存可恢复的内容 · 仍会计为失误",
+  "simple.undo_no_files": "未指明文件",
+  "simple.undo_none": {
+    "other": "过去 {n} 小时内没有可撤销的内容。"
+  },
+  "simple.undo_note": "撤销会把文件恢复原样，并把该更改标记为其类型的一次失误。",
+  "simple.undo_tip": "把文件恢复原样",
+  "simple.undo_title": "仍可撤销的更改（{n} 小时内），最新的在前",
+  "simple.undone": "文件已恢复。计为其类型的一次失误。",
   "start.change_tip": "在终端中更改：hermes tenure start trusted|probation",
   "start.probation": "考察起步（试用期）",
   "start.trusted": "信任起步",
@@ -555,6 +598,7 @@
     "other": "{type}：{n} 项更改，已执行并告知你（{name}）。"
   },
   "toast.acted_detail": "撤销会恢复最近一次更改的文件，并记为一次失误。",
+  "toast.acted_detail_simple": "撤销会恢复上一次更改的文件，并计为其类型的一次失误。",
   "toast.transition": "{agent} · {type}：{from} → {to}",
   "transitions.empty": "打开此页面以来没有变化。每次自动的级别变化都会列在这里，以及各智能体的时间线中。",
   "transitions.title": "本页看到的级别变化",

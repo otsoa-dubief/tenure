@@ -4,9 +4,13 @@
 //   NODE_PATH=<node_modules with playwright> node scripts/dashboard_shots.cjs http://127.0.0.1:9219 OUT_DIR
 //
 // For each theme (dark: the default Hermes Teal; light: Nous Blue) and viewport (1440x900, 390x844), it opens
-// /tenure and saves one screenshot per view: map, agent drawer, models, switch preview, passport, undo, settings.
-// The light theme is chosen by answering the dashboard's theme request in the browser only: nothing is written to the
-// server's config. Exits non-zero when "Tenure", the map grid or "Your benchmark" is missing, or a view fails to render.
+// /tenure. A profile in simple mode (the default) shows one page in the words of /tenure and /tenure trust: one
+// screenshot of it, and a failure when its undo list, its kinds or its study-mode line is missing, when a tier, the
+// trusted start, probation, a spot check or a guarantee shows, or when a study tab or a control that frees a kind
+// appears. A profile in study mode gets one screenshot per view: map, agent drawer, models, switch preview, passport,
+// undo, settings. The light theme is chosen by answering the dashboard's theme request in the browser only: nothing is
+// written to the server's config. Exits non-zero when "Tenure", the map grid or "Your benchmark" is missing, or a view
+// fails to render.
 "use strict";
 
 const path = require("path");
@@ -24,6 +28,9 @@ function fail(msg) {
   console.error("FAIL: " + msg);
   process.exitCode = 1;
 }
+
+const STUDY_LINE = "Study mode: spot checks, a guarantee and a signed passport";
+const STUDY_WORDS = /\b(?:T[123]|trusted|probation|spot checks?|spot-check\w*|guarantee|tiers?)\b/i;
 
 // The dashboard scrolls inside its own container, so a full-length capture grows the viewport to the content first.
 async function shot(page, file, full) {
@@ -47,9 +54,26 @@ async function shot(page, file, full) {
   console.log("  " + file);
 }
 
+// Simple mode: the page of /tenure and /tenure trust, and nothing of the study.
+async function simplePage(page, prefix, mobile) {
+  await page.waitForFunction(() => /\d/.test((document.querySelector(".tnr-counter-n") || {}).textContent || ""));
+  const text = await page.locator(".tnr").first().innerText();
+  for (const s of ["What still asks you, or is watched", STUDY_LINE]) {
+    if (!text.includes(s)) fail(`${prefix}: the simple page has no "${s}"`);
+  }
+  if (!/Changes you can still undo|Nothing to undo/.test(text)) fail(`${prefix}: the simple page has no undo list`);
+  const rest = text.split(STUDY_LINE).join("");
+  if (STUDY_WORDS.test(rest)) fail(`${prefix}: study words on the simple page: ${rest.match(STUDY_WORDS)[0]}`);
+  if (await page.locator(".tnr-tab").count()) fail(`${prefix}: study tabs on the simple page`);
+  if (await page.locator(".tnr").getByRole("button", { name: /trust|free/i }).count()) fail(`${prefix}: a control that frees a kind`);
+  await page.mouse.move(0, 0);
+  await shot(page, `${prefix}-simple.png`, mobile);
+}
+
 async function run() {
   const browser = await chromium.launch({ headless: true });
   const errors = [];
+  const seen = { simple: 0, study: 0 };
   try {
     for (const [themeName, theme] of THEMES) {
       for (const [vpName, viewport] of VIEWPORTS) {
@@ -82,7 +106,17 @@ async function run() {
         await page.waitForSelector(".tnr", { timeout: 20000 });
         const registered = Date.now() - t0;
         if (!(await page.locator(".tnr").getByRole("heading", { name: "Tenure" }).isVisible())) fail(`${prefix}: no "Tenure" heading`);
-        await page.waitForSelector(mobile ? ".tnr-agent-card" : "table.tnr-map[role=grid] .tnr-map-row", { timeout: 15000 });
+        const study = mobile ? ".tnr-agent-card" : "table.tnr-map[role=grid] .tnr-map-row";
+        await page.waitForSelector(`.tnr-simple, ${study}`, { timeout: 15000 });
+        if (await page.locator(".tnr-simple").count()) {
+          console.log(`  simple page rendered with data in ${registered} ms`);
+          await simplePage(page, prefix, mobile);
+          seen.simple++;
+          await ctx.close();
+          continue;
+        }
+        seen.study++;
+        await page.waitForSelector(study, { timeout: 15000 });
         await page.waitForFunction(() => /\d/.test((document.querySelector(".tnr-counter-n") || {}).textContent || ""));
         if (!mobile && (await page.locator("table.tnr-map[role=grid] td.tnr-cell").count()) < 4) fail(`${prefix}: map grid has no cells`);
         if (!(await page.getByRole("tab", { name: /Your benchmark/ }).isVisible())) fail(`${prefix}: no "Your benchmark" tab`);
@@ -159,7 +193,8 @@ async function run() {
     errors.forEach((e) => console.error("page error: " + e));
     fail(`${errors.length} page error(s)`);
   }
-  if (!process.exitCode) console.log("smoke: Tenure, the map grid and the benchmark are rendered in every theme and viewport");
+  if (!process.exitCode && seen.simple) console.log("smoke: the simple page is rendered in every theme and viewport, without the study's words");
+  if (!process.exitCode && seen.study) console.log("smoke: Tenure, the map grid and the benchmark are rendered in every theme and viewport");
 }
 
 run().catch((e) => { console.error(e); process.exit(1); });

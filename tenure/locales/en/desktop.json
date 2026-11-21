@@ -42,6 +42,10 @@
     "other": "{n} sessions"
   },
   "cell.tier_now": "Tier now: {tier} ({name})",
+  "chip.simple_tip": {
+    "one": "{name}: {n} kind of action watched or asking you first. Open Tenure.",
+    "other": "{name}: {n} kinds of action watched or asking you first. Open Tenure."
+  },
   "chip.tip": {
     "one": "{name}: {earned} of {n} action type has earned autonomy (T2 or T3). Open Tenure.",
     "other": "{name}: {earned} of {n} action types have earned autonomy (T2 or T3). Open Tenure."
@@ -494,6 +498,48 @@
   "settings.strict_on": "Strict mode on",
   "settings.strict_title": "Strict mode on model change",
   "settings.use": "Use",
+  "simple.col_kind": "kind",
+  "simple.col_what": "what",
+  "simple.eyebrow": "{profile} · simple mode",
+  "simple.group_always": "Always asks",
+  "simple.group_always_help": "What reaches outside this machine (push, deploy, publish, upload, messages), high-risk kinds, and kinds your settings make always ask: no record frees them.",
+  "simple.group_ask": "Asks you first",
+  "simple.group_ask_help": "Each action waits for your approval; the line says why, and what frees it.",
+  "simple.group_noundo": "Can't be undone",
+  "simple.group_noundo_help": "tenure can't save what it changes before it runs, so it asks.",
+  "simple.group_watched": "Watched after a mistake",
+  "simple.group_watched_help": "It keeps working; each action is listed at the end of the turn, with an undo.",
+  "simple.kinds_empty": "No kind of action has a record yet: everything runs as with Hermes alone, except what reaches outside this machine and high-risk kinds.",
+  "simple.kinds_footer": "Stop one asking: {command} <kind> · make one always ask: {command} <kind> ask",
+  "simple.kinds_free": {
+    "one": "{n} other kind runs without asking.",
+    "other": "{n} other kinds run without asking."
+  },
+  "simple.kinds_none": "Every kind of action {agent} used is free.",
+  "simple.kinds_title": "What still asks you, or is watched",
+  "simple.kinds_word": "Freeing a kind is a person's word, typed in the chat or in a terminal: this page never frees one.",
+  "simple.loading": "Loading…",
+  "simple.off": "tenure is off for this profile ({setting}: false): the agent runs as with Hermes alone.",
+  "simple.study": "Study mode: spot checks, a guarantee and a signed passport — {command}",
+  "simple.subtitle": "What the agent did today, and what you can undo",
+  "simple.tile_asks": "kinds that ask you first",
+  "simple.tile_today": "ran without asking today",
+  "simple.tile_undo": "changes you can still undo",
+  "simple.tile_watched": "kinds watched after a mistake",
+  "simple.tiles_aria": "What the agent did today, and what still asks you",
+  "simple.title": "Today",
+  "simple.undo_effect": "Puts the files back · counts as a mistake of this kind: watched after one, asks first after a second",
+  "simple.undo_effect_already": "Puts the files back · already counted as a mistake (a check failed)",
+  "simple.undo_effect_none": "Nothing was saved to put back · would still count as a mistake",
+  "simple.undo_no_files": "no file named",
+  "simple.undo_none": {
+    "one": "Nothing to undo from the last {n} hour.",
+    "other": "Nothing to undo from the last {n} hours."
+  },
+  "simple.undo_note": "Undo puts the files back as they were and marks the change as a mistake of its kind.",
+  "simple.undo_tip": "Put the files back as they were",
+  "simple.undo_title": "Changes you can still undo ({n} h), newest first",
+  "simple.undone": "Files put back. Counted as a mistake of its kind.",
   "start.change_tip": "Change it in a terminal: hermes tenure start trusted|probation",
   "start.probation": "Study start (probation)",
   "start.trusted": "Trusted start",
@@ -599,6 +645,7 @@
     "other": "{type}: {n} changes, then told you ({name})."
   },
   "toast.acted_detail": "Undo restores the files of the last change and counts as a fault.",
+  "toast.acted_detail_simple": "Undo puts the files of the last change back and counts as a mistake of its kind.",
   "toast.transition": "{agent} · {type}: {from} → {to}",
   "transitions.empty": "None since this page opened. Every automatic tier change is listed here and in each agent's timeline.",
   "transitions.title": "Tier changes seen on this page",

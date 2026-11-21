@@ -42,6 +42,10 @@
     "other": "{n} sesiones"
   },
   "cell.tier_now": "Nivel actual: {tier} ({name})",
+  "chip.simple_tip": {
+    "one": "{name}: {n} tipo de acción vigilado o que te pregunta antes. Abrir Tenure.",
+    "other": "{name}: {n} tipos de acción vigilados o que te preguntan antes. Abrir Tenure."
+  },
   "chip.tip": {
     "one": "{name}: {earned} de {n} tipo de acción se ha ganado autonomía (T2 o T3). Abrir Tenure.",
     "other": "{name}: {earned} de {n} tipos de acción se han ganado autonomía (T2 o T3). Abrir Tenure."
@@ -498,6 +502,48 @@
   "settings.strict_on": "Modo estricto activado",
   "settings.strict_title": "Modo estricto al cambiar de modelo",
   "settings.use": "Usar",
+  "simple.col_kind": "tipo",
+  "simple.col_what": "qué",
+  "simple.eyebrow": "{profile} · modo simple",
+  "simple.group_always": "Siempre pregunta",
+  "simple.group_always_help": "Lo que sale de esta máquina (push, deploy, publish, upload, mensajes), los tipos de alto riesgo y los tipos que tus ajustes hacen preguntar siempre: ningún historial los libera.",
+  "simple.group_ask": "Te pregunta antes",
+  "simple.group_ask_help": "Cada acción espera tu aprobación; la línea dice por qué, y qué lo libera.",
+  "simple.group_noundo": "No se puede deshacer",
+  "simple.group_noundo_help": "tenure no puede guardar lo que cambia antes de ejecutarse, así que pregunta.",
+  "simple.group_watched": "Vigilado tras un error",
+  "simple.group_watched_help": "Sigue trabajando; cada acción se lista al final del turno, con un deshacer.",
+  "simple.kinds_empty": "Ningún tipo de acción tiene historial todavía: todo funciona como con Hermes solo, salvo lo que sale de esta máquina y los tipos de alto riesgo.",
+  "simple.kinds_footer": "Que deje de preguntar: {command} <tipo> · que pregunte siempre: {command} <tipo> ask",
+  "simple.kinds_free": {
+    "one": "{n} tipo más se ejecuta sin preguntar.",
+    "other": "{n} tipos más se ejecutan sin preguntar."
+  },
+  "simple.kinds_none": "Todos los tipos de acción que usó {agent} son libres.",
+  "simple.kinds_title": "Lo que aún te pregunta, o está vigilado",
+  "simple.kinds_word": "Liberar un tipo lo dice una persona, en el chat o en un terminal: esta página nunca libera ninguno.",
+  "simple.loading": "Cargando…",
+  "simple.off": "tenure está desactivado en este perfil ({setting}: false): el agente funciona como con Hermes solo.",
+  "simple.study": "Modo estudio: controles aleatorios, una garantía y un pasaporte firmado — {command}",
+  "simple.subtitle": "Lo que el agente hizo hoy, y lo que puedes deshacer",
+  "simple.tile_asks": "tipos que te preguntan antes",
+  "simple.tile_today": "acciones hechas sin preguntar hoy",
+  "simple.tile_undo": "cambios que aún puedes deshacer",
+  "simple.tile_watched": "tipos vigilados tras un error",
+  "simple.tiles_aria": "Lo que el agente hizo hoy, y lo que aún te pregunta",
+  "simple.title": "Hoy",
+  "simple.undo_effect": "Restaura los archivos · cuenta como un error de este tipo: vigilado tras uno, pregunta antes tras un segundo",
+  "simple.undo_effect_already": "Restaura los archivos · ya contó como error (falló una comprobación)",
+  "simple.undo_effect_none": "No se guardó nada que restaurar · contaría igualmente como error",
+  "simple.undo_no_files": "ningún archivo nombrado",
+  "simple.undo_none": {
+    "one": "Nada que deshacer de la última {n} hora.",
+    "other": "Nada que deshacer de las últimas {n} horas."
+  },
+  "simple.undo_note": "Deshacer devuelve los archivos a como estaban y marca el cambio como un error de su tipo.",
+  "simple.undo_tip": "Devolver los archivos a como estaban",
+  "simple.undo_title": "Cambios que aún puedes deshacer ({n} h), del más reciente al más antiguo",
+  "simple.undone": "Archivos restaurados. Contó como un error de su tipo.",
   "start.change_tip": "Cámbialo en una terminal: hermes tenure start trusted|probation",
   "start.probation": "Inicio en estudio (período de prueba)",
   "start.trusted": "Inicio de confianza",
@@ -603,6 +649,7 @@
     "other": "{type} hizo {n} cambios y luego te avisó ({name})."
   },
   "toast.acted_detail": "Deshacer restaura los archivos del último cambio y cuenta como fallo.",
+  "toast.acted_detail_simple": "Deshacer restaura los archivos del último cambio y cuenta como un error de su tipo.",
   "toast.transition": "{agent} · {type}: {from} → {to}",
   "transitions.empty": "Ninguno desde que se abrió esta página. Cada cambio de nivel automático aparece aquí y en la cronología de cada agente.",
   "transitions.title": "Cambios de nivel vistos en esta página",

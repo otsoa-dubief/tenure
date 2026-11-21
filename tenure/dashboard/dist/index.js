@@ -1,8 +1,10 @@
 /*
  * tenure: the live map. Dashboard tab of the tenure plugin.
  *
- * What each agent has earned, per action type: discrete tiers with their evidence, the personal benchmark per model,
- * the model-switch preview, the passport and its verification, the undo list and the risk dial.
+ * Simple mode (the default): what the agent did today, the changes that can still be undone, and the kinds of action
+ * that are watched or ask first, in the words of `/tenure` and `/tenure trust` (GET /simple).
+ * Study mode: what each agent has earned, per action type: discrete tiers with their evidence, the personal benchmark
+ * per model, the model-switch preview, the passport and its verification, the undo list and the risk dial.
  *
  * Plain IIFE, no build step. React, fetchJSON (the dashboard's auth: session token header, or the gated cookie) and
  * the theme come from window.__HERMES_PLUGIN_SDK__. Every number shown comes from the plugin API
@@ -481,6 +483,45 @@ const TENURE_LOCALES = {
     "settings.strict_on": "Strict mode on",
     "settings.strict_title": "Strict mode on model change",
     "settings.use": "Use",
+    "simple.col.kind": "kind",
+    "simple.col.what": "what",
+    "simple.counter.aria": "What the agent did today, and what still asks you",
+    "simple.counter.asks": "kinds that ask you first",
+    "simple.counter.today": "ran without asking today",
+    "simple.counter.undo": "changes you can still undo",
+    "simple.counter.watched": "kinds watched after a mistake",
+    "simple.group.always": "Always asks",
+    "simple.group.always_help": "What reaches outside this machine (push, deploy, publish, upload, messages), high-risk kinds, and kinds your settings make always ask: no record frees them.",
+    "simple.group.ask": "Asks you first",
+    "simple.group.ask_help": "Each action waits for your approval; the line says why, and what frees it.",
+    "simple.group.noundo": "Can't be undone",
+    "simple.group.noundo_help": "tenure can't save what it changes before it runs, so it asks.",
+    "simple.group.watched": "Watched after a mistake",
+    "simple.group.watched_help": "It keeps working; each action is listed at the end of the turn, with an undo.",
+    "simple.kinds.empty": "No kind of action has a record yet: everything runs as with Hermes alone, except what reaches outside this machine and high-risk kinds.",
+    "simple.kinds.footer": "Stop one asking: {command} <kind> · make one always ask: {command} <kind> ask",
+    "simple.kinds.free": {
+      "one": "{n} other kind runs without asking.",
+      "other": "{n} other kinds run without asking."
+    },
+    "simple.kinds.none": "Every kind of action {agent} used is free.",
+    "simple.kinds.title": "What still asks you, or is watched",
+    "simple.kinds.word": "Freeing a kind is a person's word, typed in the chat or in a terminal: this page never frees one.",
+    "simple.loading": "Loading…",
+    "simple.off": "tenure is off for this profile ({setting}: false): the agent runs as with Hermes alone.",
+    "simple.study": "Study mode: spot checks, a guarantee and a signed passport — {command}",
+    "simple.subtitle": "What the agent did today, and what you can undo",
+    "simple.undo.effect": "Puts the files back · counts as a mistake of this kind: watched after one, asks first after a second",
+    "simple.undo.effect_already": "Puts the files back · already counted as a mistake (a check failed)",
+    "simple.undo.effect_none": "Nothing was saved to put back · would still count as a mistake",
+    "simple.undo.no_files": "no file named",
+    "simple.undo.none": {
+      "one": "Nothing to undo from the last {n} hour.",
+      "other": "Nothing to undo from the last {n} hours."
+    },
+    "simple.undo.note": "Undo puts the files back as they were and marks the change as a mistake of its kind.",
+    "simple.undo.tip": "Put the files back as they were",
+    "simple.undo.title": "Changes you can still undo ({n} h), newest first",
     "stakes.group.high": "high stakes",
     "stakes.group.low": "low stakes",
     "stakes.group.medium": "medium stakes",
@@ -1214,6 +1255,53 @@ const TENURE_LOCALES = {
     "settings.strict_on": "الوضع الصارم مفعّل",
     "settings.strict_title": "الوضع الصارم عند تغيير النموذج",
     "settings.use": "استخدام",
+    "simple.col.kind": "النوع",
+    "simple.col.what": "ماذا",
+    "simple.counter.aria": "ما فعله الوكيل اليوم، وما زال يسألك",
+    "simple.counter.asks": "أنواع تسألك أولًا",
+    "simple.counter.today": "نُفّذ دون سؤال اليوم",
+    "simple.counter.undo": "تغييرات ما زال بإمكانك التراجع عنها",
+    "simple.counter.watched": "أنواع تحت المراقبة بعد خطأ",
+    "simple.group.always": "يسأل دائمًا",
+    "simple.group.always_help": "ما يصل إلى خارج هذا الجهاز (push وdeploy وpublish وupload والرسائل)، والأنواع عالية المخاطرة، والأنواع التي تجعلها إعداداتك تسأل دائمًا: لا سجلّ يجعلها حرّة.",
+    "simple.group.ask": "يسألك أولًا",
+    "simple.group.ask_help": "ينتظر كل إجراء موافقتك؛ يقول السطر لماذا، وما الذي يجعله حرًّا.",
+    "simple.group.noundo": "لا يمكن التراجع عنه",
+    "simple.group.noundo_help": "لا يستطيع tenure حفظ ما يغيّره قبل تشغيله، لذا يسأل.",
+    "simple.group.watched": "تحت المراقبة بعد خطأ",
+    "simple.group.watched_help": "يواصل العمل؛ يُدرج كل إجراء في نهاية الدور، مع إمكانية التراجع.",
+    "simple.kinds.empty": "لا سجلّ بعد لأي نوع من الإجراءات: كل شيء يعمل كما مع Hermes وحده، باستثناء ما يصل إلى خارج هذا الجهاز والأنواع عالية المخاطرة.",
+    "simple.kinds.footer": "ليتوقف أحدها عن السؤال: {command} <النوع> · ليسأل دائمًا: {command} <النوع> ask",
+    "simple.kinds.free": {
+      "zero": "لا نوع آخر يعمل دون سؤال.",
+      "one": "نوع آخر واحد يعمل دون سؤال.",
+      "two": "نوعان آخران يعملان دون سؤال.",
+      "few": "{n} أنواع أخرى تعمل دون سؤال.",
+      "many": "{n} نوعًا آخر يعمل دون سؤال.",
+      "other": "{n} نوع آخر يعمل دون سؤال."
+    },
+    "simple.kinds.none": "كل أنواع الإجراءات التي استخدمها {agent} حرّة.",
+    "simple.kinds.title": "ما زال يسألك، أو تحت المراقبة",
+    "simple.kinds.word": "جعل نوع حرًّا كلمة إنسان، تُكتب في المحادثة أو في طرفية: هذه الصفحة لا تجعل أي نوع حرًّا.",
+    "simple.loading": "جارٍ التحميل…",
+    "simple.off": "tenure متوقف في هذا الملف الشخصي ({setting}: false): يعمل الوكيل كما مع Hermes وحده.",
+    "simple.study": "وضع الدراسة: فحوص عشوائية وضمان وجواز موقَّع — {command}",
+    "simple.subtitle": "ما فعله الوكيل اليوم، وما يمكنك التراجع عنه",
+    "simple.undo.effect": "يعيد الملفات · يُعدّ خطأً لهذا النوع: تحت المراقبة بعد خطأ، ويسأل أولًا بعد خطأ ثانٍ",
+    "simple.undo.effect_already": "يعيد الملفات · عُدّ خطأً من قبل (فشل فحص آلي)",
+    "simple.undo.effect_none": "لم يُحفظ شيء لإعادته · سيُعدّ خطأً مع ذلك",
+    "simple.undo.no_files": "لا ملف مسمّى",
+    "simple.undo.none": {
+      "zero": "لا شيء للتراجع عنه خلال آخر {n} ساعة.",
+      "one": "لا شيء للتراجع عنه خلال آخر {n} ساعة.",
+      "two": "لا شيء للتراجع عنه خلال آخر {n} ساعة.",
+      "few": "لا شيء للتراجع عنه خلال آخر {n} ساعة.",
+      "many": "لا شيء للتراجع عنه خلال آخر {n} ساعة.",
+      "other": "لا شيء للتراجع عنه خلال آخر {n} ساعة."
+    },
+    "simple.undo.note": "التراجع يعيد الملفات كما كانت ويعدّ التغيير خطأً لنوعه.",
+    "simple.undo.tip": "إعادة الملفات كما كانت",
+    "simple.undo.title": "تغييرات ما زال بإمكانك التراجع عنها ({n} ساعة)، الأحدث أولًا",
     "stakes.group.high": "خطورة عالية",
     "stakes.group.low": "خطورة منخفضة",
     "stakes.group.medium": "خطورة متوسطة",
@@ -1898,6 +1986,45 @@ const TENURE_LOCALES = {
     "settings.strict_on": "Modo estricto activado",
     "settings.strict_title": "Modo estricto al cambiar de modelo",
     "settings.use": "Usar",
+    "simple.col.kind": "tipo",
+    "simple.col.what": "qué",
+    "simple.counter.aria": "Lo que el agente hizo hoy, y lo que aún te pregunta",
+    "simple.counter.asks": "tipos que te preguntan antes",
+    "simple.counter.today": "acciones hechas sin preguntar hoy",
+    "simple.counter.undo": "cambios que aún puedes deshacer",
+    "simple.counter.watched": "tipos vigilados tras un error",
+    "simple.group.always": "Siempre pregunta",
+    "simple.group.always_help": "Lo que sale de esta máquina (push, deploy, publish, upload, mensajes), los tipos de alto riesgo y los tipos que tus ajustes hacen preguntar siempre: ningún historial los libera.",
+    "simple.group.ask": "Te pregunta antes",
+    "simple.group.ask_help": "Cada acción espera tu aprobación; la línea dice por qué, y qué lo libera.",
+    "simple.group.noundo": "No se puede deshacer",
+    "simple.group.noundo_help": "tenure no puede guardar lo que cambia antes de ejecutarse, así que pregunta.",
+    "simple.group.watched": "Vigilado tras un error",
+    "simple.group.watched_help": "Sigue trabajando; cada acción se lista al final del turno, con un deshacer.",
+    "simple.kinds.empty": "Ningún tipo de acción tiene historial todavía: todo funciona como con Hermes solo, salvo lo que sale de esta máquina y los tipos de alto riesgo.",
+    "simple.kinds.footer": "Que deje de preguntar: {command} <tipo> · que pregunte siempre: {command} <tipo> ask",
+    "simple.kinds.free": {
+      "one": "{n} tipo más se ejecuta sin preguntar.",
+      "other": "{n} tipos más se ejecutan sin preguntar."
+    },
+    "simple.kinds.none": "Todos los tipos de acción que usó {agent} son libres.",
+    "simple.kinds.title": "Lo que aún te pregunta, o está vigilado",
+    "simple.kinds.word": "Liberar un tipo lo dice una persona, en el chat o en un terminal: esta página nunca libera ninguno.",
+    "simple.loading": "Cargando…",
+    "simple.off": "tenure está desactivado en este perfil ({setting}: false): el agente funciona como con Hermes solo.",
+    "simple.study": "Modo estudio: controles aleatorios, una garantía y un pasaporte firmado — {command}",
+    "simple.subtitle": "Lo que el agente hizo hoy, y lo que puedes deshacer",
+    "simple.undo.effect": "Restaura los archivos · cuenta como un error de este tipo: vigilado tras uno, pregunta antes tras un segundo",
+    "simple.undo.effect_already": "Restaura los archivos · ya contó como error (falló una comprobación)",
+    "simple.undo.effect_none": "No se guardó nada que restaurar · contaría igualmente como error",
+    "simple.undo.no_files": "ningún archivo nombrado",
+    "simple.undo.none": {
+      "one": "Nada que deshacer de la última {n} hora.",
+      "other": "Nada que deshacer de las últimas {n} horas."
+    },
+    "simple.undo.note": "Deshacer devuelve los archivos a como estaban y marca el cambio como un error de su tipo.",
+    "simple.undo.tip": "Devolver los archivos a como estaban",
+    "simple.undo.title": "Cambios que aún puedes deshacer ({n} h), del más reciente al más antiguo",
     "stakes.group.high": "impacto alto",
     "stakes.group.low": "impacto bajo",
     "stakes.group.medium": "impacto medio",
@@ -2526,6 +2653,45 @@ const TENURE_LOCALES = {
     "settings.strict_on": "Mode strict activé",
     "settings.strict_title": "Mode strict au changement de modèle",
     "settings.use": "Choisir",
+    "simple.col.kind": "type",
+    "simple.col.what": "quoi",
+    "simple.counter.aria": "Ce que l'agent a fait aujourd'hui, et ce qui vous demande encore",
+    "simple.counter.asks": "types qui vous demandent d'abord",
+    "simple.counter.today": "actions faites sans demander aujourd'hui",
+    "simple.counter.undo": "changements encore annulables",
+    "simple.counter.watched": "types surveillés après une erreur",
+    "simple.group.always": "Demande toujours",
+    "simple.group.always_help": "Ce qui sort de cette machine (push, deploy, publish, upload, messages), les types à haut risque et les types que vos réglages font toujours demander : aucun historique ne les libère.",
+    "simple.group.ask": "Vous demande d'abord",
+    "simple.group.ask_help": "Chaque action attend votre accord ; la ligne dit pourquoi, et ce qui le libère.",
+    "simple.group.noundo": "Ne peut pas être annulé",
+    "simple.group.noundo_help": "tenure ne peut pas enregistrer ce que cela modifie avant l'exécution, donc il demande.",
+    "simple.group.watched": "Surveillé après une erreur",
+    "simple.group.watched_help": "Il continue de travailler ; chaque action est listée à la fin du tour, avec une annulation.",
+    "simple.kinds.empty": "Aucun type d'action n'a encore d'historique : tout fonctionne comme avec Hermes seul, sauf ce qui sort de cette machine et les types à haut risque.",
+    "simple.kinds.footer": "Ne plus demander : {command} <type> · toujours demander : {command} <type> ask",
+    "simple.kinds.free": {
+      "one": "{n} autre type s'exécute sans demander.",
+      "other": "{n} autres types s'exécutent sans demander."
+    },
+    "simple.kinds.none": "Tous les types d'action utilisés par {agent} sont libres.",
+    "simple.kinds.title": "Ce qui vous demande encore, ou est surveillé",
+    "simple.kinds.word": "Libérer un type se dit à la main, dans la conversation ou dans un terminal : cette page n'en libère jamais.",
+    "simple.loading": "Chargement…",
+    "simple.off": "tenure est désactivé pour ce profil ({setting} : false) : l'agent fonctionne comme avec Hermes seul.",
+    "simple.study": "Mode étude : contrôles aléatoires, une garantie et un passeport signé — {command}",
+    "simple.subtitle": "Ce que l'agent a fait aujourd'hui, et ce que vous pouvez annuler",
+    "simple.undo.effect": "Remet les fichiers en place · compte comme une erreur de ce type : surveillé après une, il demande d'abord après une deuxième",
+    "simple.undo.effect_already": "Remet les fichiers en place · déjà compté comme une erreur (une vérification a échoué)",
+    "simple.undo.effect_none": "Rien n'a été enregistré à remettre · compterait quand même comme une erreur",
+    "simple.undo.no_files": "aucun fichier nommé",
+    "simple.undo.none": {
+      "one": "Rien à annuler sur la dernière {n} heure.",
+      "other": "Rien à annuler sur les {n} dernières heures."
+    },
+    "simple.undo.note": "Annuler remet les fichiers tels qu'ils étaient et marque le changement comme une erreur de son type.",
+    "simple.undo.tip": "Remettre les fichiers tels qu'ils étaient",
+    "simple.undo.title": "Changements que vous pouvez encore annuler ({n} h), du plus récent au plus ancien",
     "stakes.group.high": "enjeu élevé",
     "stakes.group.low": "enjeu faible",
     "stakes.group.medium": "enjeu moyen",
@@ -3124,6 +3290,43 @@ const TENURE_LOCALES = {
     "settings.strict_on": "严格模式：开",
     "settings.strict_title": "切换模型时的严格模式",
     "settings.use": "使用",
+    "simple.col.kind": "类型",
+    "simple.col.what": "内容",
+    "simple.counter.aria": "智能体今天做了什么，以及仍在询问你的项",
+    "simple.counter.asks": "先询问你的类型",
+    "simple.counter.today": "今天未经询问执行",
+    "simple.counter.undo": "仍可撤销的更改",
+    "simple.counter.watched": "失误后受关注的类型",
+    "simple.group.always": "始终询问",
+    "simple.group.always_help": "触及本机之外的操作（push、deploy、publish、upload、消息）、高风险类型，以及你的设置要求始终询问的类型：任何记录都不会让它们自由。",
+    "simple.group.ask": "先询问你",
+    "simple.group.ask_help": "每个操作都等待你的批准；每行说明原因，以及怎样让它自由。",
+    "simple.group.noundo": "无法撤销",
+    "simple.group.noundo_help": "tenure 无法在执行前保存它会改动的内容，所以询问。",
+    "simple.group.watched": "失误后受关注",
+    "simple.group.watched_help": "它继续工作；每个操作在本轮结束时列出，可撤销。",
+    "simple.kinds.empty": "还没有任何操作类型的记录：一切照 Hermes 本身运行，触及本机之外的操作和高风险类型除外。",
+    "simple.kinds.footer": "让某项不再询问：{command} <类型> · 让某项始终询问：{command} <类型> ask",
+    "simple.kinds.free": {
+      "other": "另有 {n} 个类型无需询问即可执行。"
+    },
+    "simple.kinds.none": "{agent} 用过的所有操作类型都是自由的。",
+    "simple.kinds.title": "仍在询问你或受关注的项",
+    "simple.kinds.word": "让某类操作自由须由人决定，在对话或终端中输入：本页面从不让任何类型自由。",
+    "simple.loading": "加载中…",
+    "simple.off": "此配置文件已关闭 tenure（{setting}: false）：智能体照 Hermes 本身运行。",
+    "simple.study": "研究模式：随机抽查、保证和签名护照 — {command}",
+    "simple.subtitle": "智能体今天做了什么，以及你可以撤销什么",
+    "simple.undo.effect": "恢复文件 · 计为该类型的一次失误：一次后受关注，第二次后先询问",
+    "simple.undo.effect_already": "恢复文件 · 已计为失误（自动检查失败）",
+    "simple.undo.effect_none": "没有保存可恢复的内容 · 仍会计为失误",
+    "simple.undo.no_files": "未指明文件",
+    "simple.undo.none": {
+      "other": "过去 {n} 小时内没有可撤销的内容。"
+    },
+    "simple.undo.note": "撤销会把文件恢复原样，并把该更改标记为其类型的一次失误。",
+    "simple.undo.tip": "把文件恢复原样",
+    "simple.undo.title": "仍可撤销的更改（{n} 小时内），最新的在前",
     "stakes.group.high": "高风险",
     "stakes.group.low": "低风险",
     "stakes.group.medium": "中风险",
@@ -5762,6 +5965,126 @@ const TENURE_LOCALES = {
       granted ? h(DitherFade) : null);
   }
 
+  // ----------------------------------------------------------------------------------------------- simple mode
+  // The default mode, in the words of `/tenure` and `/tenure trust`: what ran without asking today, the changes that
+  // can still be undone, and the kinds of action that are watched or ask first, each with why and what brings it back.
+  // Every number and every kind's sentence come from GET /simple, which reads them with the CLI's own functions; the
+  // only action is Undo (POST /undo, the route the Undo tab uses). Freeing a kind stays a person's word, typed in the
+  // chat or a terminal: nothing on this page frees one.
+  var SIMPLE_GROUPS = ["watched", "ask", "noundo", "always"];
+  var SIMPLE_SHOWN = 10;    // changes listed before "Show all", as /tenure lists ten
+  var SIMPLE_SETTING = "plugins.entries.tenure.settings.enabled";
+  function simpleKinds(d) {
+    var out = [];
+    ((d && d.agents) || []).forEach(function (a) { out = out.concat(a.kinds || []); });
+    return out;
+  }
+  function groupTitle(g) {
+    return g === "watched" ? t("simple.group.watched") : g === "ask" ? t("simple.group.ask")
+      : g === "noundo" ? t("simple.group.noundo") : t("simple.group.always");
+  }
+  function groupHelp(g) {
+    return g === "watched" ? t("simple.group.watched_help") : g === "ask" ? t("simple.group.ask_help")
+      : g === "noundo" ? t("simple.group.noundo_help") : t("simple.group.always_help");
+  }
+  function simpleEffect(u) {
+    return !u.file ? t("simple.undo.effect_none") : u.counts_as_fault ? t("simple.undo.effect") : t("simple.undo.effect_already");
+  }
+  /** A kind as the CLI names it: its key, and its plain label under it. */
+  function KindName(props) {
+    var k = props.k;
+    return h(Fragment, null, h("code", { className: "tnr-kind-key" }, h("bdi", null, k.type)),
+      k.label && k.label !== k.type ? h("div", { className: "tnr-dim tnr-small" }, k.label) : null);
+  }
+  function SimpleUndoBtn(props) {
+    var u = props.u;
+    return h(ConfirmBtn, {
+      confirm: t("undo.confirm", { id: String(u.id) }),
+      dialogTitle: t("confirm.undo.title", { id: String(u.id) }), dialogDesc: simpleEffect(u),
+      title: t("simple.undo.tip"),
+      onConfirm: function () {
+        return apiPost("/undo", { id: u.id }, { raw: props.raw }).then(function (r) {
+          props.onDone(r.message, r.ok ? "success" : "error");
+        }, function (e) { props.onDone(errText(e), "error"); });
+      }
+    }, t("undo.button"));
+  }
+  function SimpleCounters(props) {
+    var d = props.data, kinds = simpleKinds(d);
+    var watched = kinds.filter(function (k) { return k.group === "watched"; }).length;
+    var cells = [
+      { n: d ? d.today : null, label: t("simple.counter.today") },
+      { n: d ? d.undo.total : null, label: t("simple.counter.undo") },
+      { n: d ? watched : null, label: t("simple.counter.watched") },
+      { n: d ? kinds.length - watched : null, label: t("simple.counter.asks") }
+    ];
+    return h("div", { className: "tnr-counters", "aria-label": t("simple.counter.aria") },
+      cells.map(function (c, i) {
+        return h(Fragment, { key: i },
+          i ? h("span", { className: "tnr-counter-dot", "aria-hidden": true }, "·") : null,
+          h("div", { className: "tnr-counter tnr-in", style: { "--i": i } },
+            h("span", { className: "tnr-counter-tag", "aria-hidden": true }, nth(i + 1)),
+            h("span", { className: "tnr-counter-n" }, num(c.n)),
+            h("span", { className: "tnr-counter-label" }, c.label)));
+      }));
+  }
+  function SimpleUndo(props) {
+    var d = props.data, rows = d.undo.rows || [];
+    var all = useState(false), showAll = all[0], setAll = all[1];
+    var shown = showAll ? rows : rows.slice(0, SIMPLE_SHOWN);
+    return h("section", { className: "tnr-simple-sec" },
+      h(Eyebrow, { n: 1 }, t("simple.undo.title", { n: d.hours })),
+      !rows.length ? h("p", { className: "tnr-dim tnr-simple-p" }, t("simple.undo.none", { n: d.hours })) : h(Fragment, null,
+        h("p", { className: "tnr-dim tnr-small tnr-simple-p" }, t("simple.undo.note")),
+        h("div", { className: "tnr-table-scroll" },
+          h("table", { className: "tnr-dtable tnr-dtable--simple" },
+            h("thead", null, h("tr", null, h("th", { className: "tnr-num" }, "#"), h("th", null, t("simple.col.kind")),
+              h("th", null, t("simple.col.what")), h("th", null, t("th.when")), h("th", null, ""))),
+            h("tbody", null, shown.map(function (u) {
+              return h("tr", { key: u.id },
+                h("td", { className: "tnr-num tnr-dim" }, u.id),
+                h("td", null, h(KindName, { k: u })),
+                h("td", null, u.what ? h("code", { className: "tnr-simple-what" }, h("bdi", null, u.what))
+                  : h("span", { className: "tnr-dim tnr-small" }, t("simple.undo.no_files"))),
+                h("td", { className: "tnr-mono tnr-small" }, ago(u.age)),
+                h("td", { className: "tnr-dtable-actions" }, h(SimpleUndoBtn, { u: u, raw: props.raw, onDone: props.onDone })));
+            })))),
+        rows.length > SIMPLE_SHOWN ? h(Btn, { kind: "ghost", onClick: function () { setAll(!showAll); } },
+          showAll ? t("recent.show_fewer") : t("recent.show_all", { n: d.undo.total })) : null));
+  }
+  function SimpleAgent(props) {
+    var a = props.a;
+    return h("div", { className: "tnr-simple-agent" },
+      h("div", { className: "tnr-simple-agent-name" }, h("bdi", null, a.model), h("bdi", { className: "tnr-dim" }, "@" + a.provider)),
+      !a.kinds.length ? h("p", { className: "tnr-dim tnr-simple-p" }, t("simple.kinds.none", { agent: a.model })) :
+        SIMPLE_GROUPS.map(function (g) {
+          var ks = a.kinds.filter(function (k) { return k.group === g; });
+          if (!ks.length) return null;
+          return h("div", { key: g, className: "tnr-simple-group tnr-simple-group--" + g },
+            h("div", { className: "tnr-simple-group-head" }, h("b", null, groupTitle(g)),
+              h("span", { className: "tnr-dim tnr-small" }, groupHelp(g))),
+            h("div", { className: "tnr-table-scroll" },
+              h("table", { className: "tnr-dtable tnr-dtable--simple-kinds" },
+                h("tbody", null, ks.map(function (k) {
+                  return h("tr", { key: k.type }, h("td", null, h(KindName, { k: k })), h("td", null, k.text));
+                })))));
+        }),
+      a.free ? h("p", { className: "tnr-dim tnr-small tnr-simple-p" }, t("simple.kinds.free", { n: a.free })) : null);
+  }
+  function SimpleView(props) {
+    var d = props.data;
+    return h("div", { className: "tnr-simple" },
+      d.enabled === false ? h("div", { className: "tnr-msg tnr-tone--warn" }, t("simple.off", { setting: SIMPLE_SETTING })) : null,
+      h(SimpleUndo, { data: d, raw: props.raw, onDone: props.onDone }),
+      h("section", { className: "tnr-simple-sec" },
+        h(Eyebrow, { n: 2 }, t("simple.kinds.title")),
+        !d.agents.length ? h("p", { className: "tnr-dim tnr-simple-p" }, t("simple.kinds.empty"))
+          : d.agents.map(function (a) { return h(SimpleAgent, { key: a.agent, a: a }); }),
+        h("p", { className: "tnr-small tnr-simple-p" }, t("simple.kinds.footer", { command: "/tenure trust" })),
+        h("p", { className: "tnr-dim tnr-small tnr-simple-p" }, t("simple.kinds.word"))),
+      h("p", { className: "tnr-note tnr-simple-study" }, t("simple.study", { command: "/tenure mode study" })));
+  }
+
   // ------------------------------------------------------------------------------------------------------ page
   function TenurePage() {
     var viewS = useState("map"), view = viewS[0], setView = viewS[1];
@@ -5808,6 +6131,9 @@ const TENURE_LOCALES = {
       });
     }, [raw, version]);
     var agentsRes = tick;
+    // The mode comes from GET /simple, which answers even before the profile has a database: simple mode reads the
+    // whole page from it; study mode keeps the tabs below, unchanged.
+    var simpleRes = usePoll(function () { return apiGet("/simple", { raw: raw, lang: LANG }); }, [raw, version, LANG]);
 
     var data = tick.data ? tick.data.agents : null;
     var profiles = data ? data.profiles : [];
@@ -5822,9 +6148,13 @@ const TENURE_LOCALES = {
     }, [data]);
     var currentProfile = data ? data.current : "";
     var current = profiles.filter(function (p) { return p.current; })[0];
+    var simpleData = simpleRes.data && simpleRes.data.mode === "simple" ? simpleRes.data : null;
+    var simpleMode = !!simpleData;
+    var modeKnown = !!(simpleRes.data || simpleRes.error);
 
     // Every automatic tier change is announced: diff the effective tiers between two polls.
     useEffect(function () {
+      if (simpleMode) { prev.current = null; return; }      // simple mode has no tiers to announce
       if (!data) return;
       var now = {};
       rows.forEach(function (r) {
@@ -5861,7 +6191,7 @@ const TENURE_LOCALES = {
         var f = found[0];
         setToast({ text: t("toast.transition", { agent: f.agent, type: f.type, from: TIER[f.from], to: TIER[f.to] }), type: "info", at: Date.now() });
       }
-    }, [data]);
+    }, [data, simpleMode]);
 
     // Hermes themes say nothing about light or dark: read it from the background, so status colors keep contrast.
     useEffect(function () {
@@ -5891,6 +6221,7 @@ const TENURE_LOCALES = {
     var onKey = useCallback(function (e) {
       if (e.metaKey || e.ctrlKey || e.altKey || typing(e)) return;
       var k = e.key;
+      if (simpleMode) { if (k === "r") setRaw(!raw); return; }      // one page, no tabs: raw names only
       if (k === "Escape") { if (drawer) setDrawer(null); else if (view === "help") setView(backS.current); return; }
       if (k === "?") { openView(view === "help" ? backS.current : "help"); e.preventDefault(); return; }
       var v = VIEWS.filter(function (x) { return x.key === k; })[0];
@@ -5905,7 +6236,7 @@ const TENURE_LOCALES = {
         if (tag === "button" || tag === "a" || (e.target && e.target.getAttribute && e.target.getAttribute("role") === "tab")) return;
         setDrawer(focusRow.key);
       }
-    }, [drawer, raw, view, focus, rows, focusRow]);
+    }, [drawer, raw, view, focus, rows, focusRow, simpleMode]);
     // Shortcuts only while focus is inside the tab (WCAG 2.1.4): the root takes focus when the tab opens.
     var rootRef = useRef(null);
     useEffect(function () { if (rootRef.current && document.activeElement === document.body) rootRef.current.focus(); }, []);
@@ -5914,13 +6245,15 @@ const TENURE_LOCALES = {
     function done(text, type) { setToast({ text: text, type: type, at: Date.now() }); setVersion(version + 1); }
 
     var activity = tick.data ? tick.data.activity : null;
-    var err = tick.error;
+    var err = simpleMode ? simpleRes.error : tick.error;
     var unreadable = profiles.filter(function (p) { return p.error; });
-    var updated = agentsRes.at ? hms(agentsRes.at) : "—";
+    var updated = simpleMode ? hms(simpleRes.at) : agentsRes.at ? hms(agentsRes.at) : "—";
 
     var retry = h(Btn, { kind: "ghost", onClick: function () { setVersion(version + 1); } }, t("page.retry"));
     var body;
-    if (!data && !err) body = h("div", { className: "tnr-dim tnr-pad" }, t("common.loading"));
+    if (simpleMode) body = h(SimpleView, { data: simpleData, raw: raw, onDone: done });
+    else if (!modeKnown && !err) body = h("div", { className: "tnr-dim tnr-pad" }, t("simple.loading"));
+    else if (!data && !err) body = h("div", { className: "tnr-dim tnr-pad" }, t("common.loading"));
     else if (!data && err) body = h("div", { className: "tnr-error" }, t("page.error", { error: errText(err) }), " ", retry);
     else if (view === "map") {
       body = h(MapView, { profiles: profiles, rows: rows, settings: current && current.settings, focus: focus, onFocus: setFocus,
@@ -5945,7 +6278,7 @@ const TENURE_LOCALES = {
           h("div", { className: "tnr-title-block" },
             h("div", { className: "tnr-eyebrow" }, h("span", { className: "tnr-eyebrow-n" }, nth(0)), h("bdi", null, t("passport.card.signature"))),
             h("h1", { className: "tnr-title" }, t("page.title")),
-            h("span", { className: "tnr-subtitle" }, t("page.subtitle"))),
+            h("span", { className: "tnr-subtitle" }, simpleMode ? t("simple.subtitle") : t("page.subtitle"))),
           h("div", { className: "tnr-head-right" },
             h("span", { className: cx("tnr-live", err && "is-stale"), title: err ? errText(err) : t("page.polling", { s: POLL_MS / 1000 }) },
               h("span", { className: "tnr-live-dot", "aria-hidden": true }), err ? t("page.retrying") : t("page.live"),
@@ -5956,16 +6289,17 @@ const TENURE_LOCALES = {
               onClick: function () { writeAnimPref(!animOn); setAnimOn(!animOn); },
               title: reduced ? t("page.anim_reduced") : t("page.anim_title") },
               h("span", { className: "tnr-anim-dot", "aria-hidden": true }), moving ? t("page.anim_on") : t("page.anim_off")),
-            h("button", { type: "button", className: "tnr-chip-btn tnr-head-help", onClick: function () { openView("help"); }, title: t("help.aria") }, h(Kbd, null, "?")))),
-        h(Counters, { totals: activity && activity.totals })),
-      h(Tabs, { view: view, width: width, onView: openView,
+            simpleMode ? null : h("button", { type: "button", className: "tnr-chip-btn tnr-head-help", onClick: function () { openView("help"); }, title: t("help.aria") }, h(Kbd, null, "?")))),
+        simpleMode ? h(SimpleCounters, { data: simpleData }) : h(Counters, { totals: activity && activity.totals })),
+      simpleMode ? null : h(Tabs, { view: view, width: width, onView: openView,
         undoCount: activity && activity.undoable ? activity.undoable.length : 0 }),
       unreadable.length ? h("div", { className: "tnr-msg tnr-tone--warn" }, t("page.unreadable", {
         profiles: unreadable.map(function (p) { return p.profile; }).join(t("common.list_sep")) })) : null,
-      data && err ? h("div", { className: "tnr-msg tnr-tone--warn" }, t("stale.message", { error: errText(err), time: updated }), " ", retry) : null,
-      moment ? h(Moment, { key: moment.at, moment: moment, onClose: function () { setMoment(null); } }) : null,
-      h("main", { className: "tnr-body", "data-view": view, id: "tnr-panel", role: "tabpanel", "aria-labelledby": "tnr-tab-" + view }, body),
-      drawerRow ? h(AgentDrawer, { row: drawerRow, raw: raw, version: version, undoable: activity && activity.undoable, onClose: function () { setDrawer(null); }, onDone: done }) : null,
+      (simpleMode || data) && err ? h("div", { className: "tnr-msg tnr-tone--warn" }, t("stale.message", { error: errText(err), time: updated }), " ", retry) : null,
+      moment && !simpleMode ? h(Moment, { key: moment.at, moment: moment, onClose: function () { setMoment(null); } }) : null,
+      simpleMode ? h("main", { className: "tnr-body", "data-view": "simple", id: "tnr-panel" }, body)
+        : h("main", { className: "tnr-body", "data-view": view, id: "tnr-panel", role: "tabpanel", "aria-labelledby": "tnr-tab-" + view }, body),
+      drawerRow && !simpleMode ? h(AgentDrawer, { row: drawerRow, raw: raw, version: version, undoable: activity && activity.undoable, onClose: function () { setDrawer(null); }, onDone: done }) : null,
       toast ? h("div", { className: "tnr-toast tnr-toast--" + toast.type, role: "status" }, toast.text) : null);
   }
 

@@ -860,3 +860,22 @@
 .tnr-community-where { font-size: 12px; overflow-wrap: anywhere; }
 .tnr-community-meta { margin: -8px 0 18px; font-family: var(--tnr-mono); }
 .tnr-community-table { padding-inline: 0; }
+
+/* ---- simple mode: one page, the words of /tenure and /tenure trust --------------------------------------------- */
+.tnr-simple { max-width: 980px; display: flex; flex-direction: column; gap: 26px; }
+.tnr-simple-sec { min-width: 0; }
+.tnr-simple-p { margin: 0 0 10px; max-width: 820px; }
+.tnr-simple-agent { margin: 0 0 14px; }
+.tnr-simple-agent-name { font-family: var(--tnr-mono); font-size: 12px; margin: 0 0 8px; }
+.tnr-simple-group { margin: 0 0 14px; }
+.tnr-simple-group-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding-bottom: 6px; border-bottom: 1px solid var(--tnr-line-2); }
+.tnr-simple-group--always .tnr-simple-group-head b, .tnr-simple-group--noundo .tnr-simple-group-head b { font-weight: 500; }
+.tnr-dtable--simple-kinds td:first-child { width: 42%; min-width: 160px; }
+.tnr-dtable--simple td, .tnr-dtable--simple-kinds td { overflow-wrap: anywhere; }
+.tnr-kind-key { font-size: 12px; }
+.tnr-simple-what { font-size: 12px; white-space: normal; overflow-wrap: anywhere; }
+.tnr-simple-study { margin: 0; }
+@media (max-width: 760px) {
+  .tnr-dtable--simple-kinds td:first-child { width: auto; min-width: 0; }
+  .tnr-dtable--simple th:nth-child(1), .tnr-dtable--simple td:nth-child(1) { display: none; }
+}

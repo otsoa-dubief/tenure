@@ -5,11 +5,14 @@
 Catalogs: ``tenure/locales/<lang>/core.json``, flat dotted keys; a value is a string or an object of CLDR plural
 categories selected by the variable ``n``. The language is resolved at every call, in Hermes' own order:
 ``HERMES_LANGUAGE``, else ``display.language`` from the profile's config (public ``hermes_cli.config.load_config``,
-re-read every few seconds), else en. Fallback chain: exact id, base language (``zh-hant`` -> ``zh``), en; a
+re-read every few seconds), else en; inside ``speaking(lang)``, that language first (the dashboard asks for its page's
+language, one request at a time). Fallback chain: exact id, base language (``zh-hant`` -> ``zh``), en; a
 missing key gives the en value, then the key itself; a missing variable leaves its ``{placeholder}``. Never raises.
 """
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import json
 import os
 import re
@@ -26,6 +29,7 @@ _config_lang: dict[str, tuple[str, float]] = {}
 CONFIG_TTL = 5.0
 _lock = threading.Lock()
 _VAR = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
+_SPEAKING: contextvars.ContextVar = contextvars.ContextVar("tenure_speaking", default="")
 
 
 # ----------------------------------------------------------------------------------------------- language
@@ -58,11 +62,30 @@ def _config_language() -> str:
 
 
 def language() -> str:
-    """The owner's language now, in Hermes' own order: ``HERMES_LANGUAGE``, else ``display.language``, else en."""
+    """The owner's language now, in Hermes' own order: ``HERMES_LANGUAGE``, else ``display.language``, else en; the
+    language of ``speaking`` while its block runs."""
+    said = _SPEAKING.get()
+    if said:
+        return normalize(said)
     env = os.environ.get("HERMES_LANGUAGE") or ""
     if env.strip():
         return normalize(env)
     return normalize(_config_language() or DEFAULT)
+
+
+@contextlib.contextmanager
+def speaking(lang):
+    """Inside the block, ``tr`` and ``pct`` answer in ``lang`` (the dashboard's language for one request, in its own
+    thread or task: a context variable); nothing changes when ``lang`` is empty."""
+    said = str(lang or "").strip()
+    if not said:
+        yield
+        return
+    token = _SPEAKING.set(said)
+    try:
+        yield
+    finally:
+        _SPEAKING.reset(token)
 
 
 def chain(lang) -> list[str]:
@@ -201,4 +224,4 @@ def ljust(text: str, columns: int) -> str:
     return text + " " * max(0, columns - width(text))
 
 
-__all__ = ["tr", "language", "chain", "catalog", "plural_category", "pct", "width", "ljust", "reset_cache"]
+__all__ = ["tr", "language", "speaking", "chain", "catalog", "plural_category", "pct", "width", "ljust", "reset_cache"]

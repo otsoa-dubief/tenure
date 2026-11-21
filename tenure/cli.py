@@ -94,8 +94,10 @@ _RANK = {rule.T1: 1, rule.T2: 2, rule.T3: 3}
 
 
 # ------------------------------------------------------------------------------------------------ agents
-def _agent(core, agent: str | None) -> str:
-    return agent or core.ST.last_agent or core.store_().get_meta("agent:last") or "unknown@unknown"
+def _agent(core, agent: str | None, st=None) -> str:
+    """``agent``, else the profile's last active agent (``st``: a store already open, the dashboard's read-only one)."""
+    return (agent or core.ST.last_agent or (st if st is not None else core.store_()).get_meta("agent:last")
+            or "unknown@unknown")
 
 
 def _targets(core, st, *, agent: str | None = None, model: str | None = None, every: bool = False) -> list[str]:
@@ -899,27 +901,33 @@ def home_text(prefix: str = "/tenure") -> str:
     return "\n".join(lines)
 
 
-def _state_text(core, cfg: dict, s: rule.TypeState, prefix: str, info: dict | None = None) -> str:
+def _state_parts(core, cfg: dict, s: rule.TypeState, prefix: str, info: dict | None = None) -> list[tuple[str, dict]]:
+    """What ``/tenure trust`` says of a kind, as (catalog key, values) pairs read one after the other: why it asks or
+    is watched, and what brings it back. The dashboard shows the same pairs, so the same numbers."""
     info = info or _kind_info(core, cfg, s)
     state, left = info["state"], info["left"]
     if state == "pinned":
-        return tr("trust.state.pinned", command=f"{prefix} trust {s.key}")
+        return [("trust.state.pinned", {"command": f"{prefix} trust {s.key}"})]
     if state in ("out", "high", "capped", "noundo", "doubted"):
-        return tr(f"trust.state.{state}")
+        return [(f"trust.state.{state}", {})]
     if state == "held":
-        return tr("trust.state.held", held=info["held"])
+        return [("trust.state.held", {"held": info["held"]})]
     if not core.simple(cfg):
-        return tr("trust.state.study", tier=tier_name(effective_tier(s, params.required_n(cfg["risks"], s.stakes))),
-                  n=left)
+        return [("trust.state.study", {"tier": tier_name(effective_tier(s, params.required_n(cfg["risks"], s.stakes))),
+                                       "n": left})]
     n = info["n"]
     if state == "ask" and rule._middle(s) and s.series + core._to_t2(s) < n:
         # a reversible kind: approvals first bring it back to watched (the Wald score, as _simple_success moves it,
         # the series counting each one), then actions left undone through their window finish the series
         k = core._to_t2(s)
-        return tr("trust.state.ask_watched", n=k) + " " + tr("trust.state.then_free", n=n - s.series - k)
+        return [("trust.state.ask_watched", {"n": k}), ("trust.state.then_free", {"n": n - s.series - k})]
     if state == "watched" and left <= 0:                # enough watched actions already wait out their window
-        return tr("trust.state.watched_wait", hours=core.UNDO_WINDOW // 3600)
-    return tr(f"trust.state.{state}", n=left)
+        return [("trust.state.watched_wait", {"hours": core.UNDO_WINDOW // 3600})]
+    return [(f"trust.state.{state}", {"n": left})]
+
+
+def _state_text(core, cfg: dict, s: rule.TypeState, prefix: str, info: dict | None = None) -> str:
+    return " ".join(tr(key, **values) for key, values in _state_parts(core, cfg, s, prefix, info))
 
 
 def _trust_agent(core, st, model: str | None, session: str | None) -> str:
