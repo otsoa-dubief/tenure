@@ -1794,9 +1794,10 @@ def _undo_mv_cp(prog: str, args: list[str], cwd: str, home: str) -> list[str] | 
 
 
 def _undo_sed(args: list[str], cwd: str, home: str) -> list[str] | None:
-    """sed with one -i (GNU -i, -iSUFFIX, BSD -i '' or -i SUFFIX), at most one -e, one script that neither writes nor
-    executes under both readings, then the files."""
-    rest, suffix, script, in_place = list(args), None, None, False
+    """sed with one -i (GNU -i, -iSUFFIX, BSD -i '' or -i SUFFIX), its scripts (one, or several -e, which sed joins
+    with new lines: each and the whole are plain) that neither write nor execute under both readings, then the
+    files."""
+    rest, suffix, scripts, in_place = list(args), None, [], False
     while rest and rest[0].startswith("-"):
         a = rest.pop(0)
         if a == "-i" and not in_place:
@@ -1811,19 +1812,20 @@ def _undo_sed(args: list[str], cwd: str, home: str) -> list[str] | None:
             in_place, suffix = True, a[2:]
         elif a in ("-E", "-r"):
             continue                                     # extended regular expressions: same reading
-        elif a == "-e" and script is None and rest:
-            script = rest.pop(0)
+        elif a == "-e" and rest:
+            scripts.append(rest.pop(0))
         else:
             return None
     if not in_place:
         return None
-    if script is None:
+    if not scripts:
         if not rest:
             return None
-        script = rest.pop(0)
+        scripts.append(rest.pop(0))
     if not rest or any(r.startswith("-") for r in rest):
         return None
-    if not _sed_plain(script):
+    script = "\n".join(scripts)                          # how sed reads several -e
+    if not all(_sed_plain(x) for x in scripts + [script]):
         return None                                      # only substitutions and deletions: no r, R, w, e, y, a, i, c
     for brackets in (True, False):
         read = _sed_script(script, brackets)
