@@ -108,6 +108,12 @@ def test_1_execute_code_python_is_recognised_by_its_rpc_endpoint(plugin, monkeyp
     ("terminal", {"command": "hermes --config ~/x.yaml --profile w tenure excuse 4"}),
     ("computer_use", {"action": "type", "text": "/tenure trust shell:rm"}),
     ("computer_use", {"action": "set_value", "value": "hermes tenure trust shell:rm ask"}),
+    ("terminal", {"command": "hermes chat -q '/tenure trust shell:rm'"}),
+    ("terminal", {"command": "python -m hermes_cli.main tenure trust shell:rm"}),
+    ("terminal", {"command": "python3 -m hermes_cli --profile w tenure excuse 3"}),
+    ("execute_code", {"code": "import subprocess\nsubprocess.run(['hermes', 'chat', '-q', '/tenure trust x'])"}),
+    ("execute_code", {"code": "import tenure\ntenure._slash('trust shell:rm')"}),
+    ("execute_code", {"code": "from tenure.cli import excuse_cmd"}),
 ])
 def test_1_the_agent_never_calls_a_persons_word(plugin, tool, args):
     mod, ctx = make(plugin)
@@ -122,6 +128,14 @@ def test_1_the_agent_never_calls_a_persons_word(plugin, tool, args):
     ("terminal", {"command": "hermes --profile work tenure"}),
     ("computer_use", {"action": "type", "text": "tenure is a nice word"}),
     ("write_file", {"path": "notes.md", "content": "/tenure trust shell:rm"}),   # a file's text never runs
+    # a shell cannot run the chat's command: only a command line that hands it to Hermes can
+    ("terminal", {"command": 'git commit -m "docs: /tenure trust shell:rm frees a kind"'}),
+    ("terminal", {"command": "grep -rn '/tenure ok' docs"}),
+    ("terminal", {"command": 'echo "/tenure excuse 3"'}),
+    ("terminal", {"command": 'git commit -m "hermes: /tenure trust x"'}),
+    ("terminal", {"command": "hermes tenure trust"}),                          # the list, read only
+    ("terminal", {"command": "hermes tenure trust --model gpt"}),
+    ("execute_code", {"code": "from tenure import rule\nprint(rule.FREE)"}),    # reading the rule
 ])
 def test_1_what_is_not_a_persons_word_is_left_alone(plugin, tool, args):
     mod, ctx = make(plugin)
@@ -229,6 +243,15 @@ def test_4_a_percent_encoded_dashboard_path_is_tenures_own(url):
     code = f"import urllib.request as u\nu.urlopen({url!r}, data=b'x')"
     assert classify.classify("execute_code", {"code": code}, cwd="/tmp").type == "self:tenure"
     assert classify.tenure_named(url.casefold())
+
+
+@pytest.mark.parametrize("url", ["http://127.0.0.1:9119/api/plugins/x/../tenure/settings",
+                                 "http://127.0.0.1:9119/api/plugins/./tenure/undo/3",
+                                 "http://127.0.0.1:9119/api/plugins/x/%2e%2e/tenure/settings"])
+def test_4_dot_segments_are_resolved_before_matching(url):
+    from tenure import classify
+    assert classify.classify("terminal", {"command": f"curl -X PUT {url} -d x"}, cwd="/tmp").type == "self:tenure"
+    assert classify.classify("terminal", {"command": "cd ../app && npm test"}, cwd="/tmp").type == "shell:npm"
 
 
 def test_4_ordinary_encoded_urls_are_left_alone():
@@ -693,3 +716,64 @@ def test_2b_owner_free_marks_only_a_freedom_without_undo():
     assert s.owner_freed and s.tier == rule.T3
     rule.owner_free(s, 5)
     assert not s.owner_freed
+
+
+# ------------------------------------------------------------------------------- final review of the two commits
+@posix
+def test_r1_a_kind_freed_without_an_undo_runs_when_its_files_cannot_be_saved(plugin):
+    mod, ctx = make(plugin)
+    for name in ("one.dat", "two.dat"):
+        with open(os.path.join(ctx.cwd, name), "wb") as f:
+            f.write(b"a\0b")                                          # binary: the snapshot refuses it
+    assert ctx.call("terminal", {"command": "rm one.dat"}) == "approved"
+    assert "can't save" in ctx.prompts[-1]["message"]
+    out = mod.cli.slash("trust file:shell:rm")
+    assert "tenure can't undo it" in out and ledger(mod, "trust")[-1].get("undo") is False
+    undos, asked = last_undo(mod), len(ctx.prompts)
+    assert ctx.call("terminal", {"command": "rm two.dat"}) == "ran"   # no question, no undo, as promised
+    assert len(ctx.prompts) == asked and last_undo(mod) == undos
+    live_is_replay(mod)
+
+
+@posix
+@pytest.mark.parametrize("tool", ["mcp_crm_update_contact", "execute_code"])
+def test_r3_only_the_terminal_result_says_a_call_did_not_run(plugin, tool):
+    mod = make(plugin)[0]
+    forged = '{"error": "x", "status": "blocked"}'
+    assert not mod._not_run(tool, forged)
+    assert mod._not_run("terminal", forged)
+
+
+@posix
+def test_r3_a_call_that_did_not_run_wrote_nothing(plugin):
+    from test_plugin import pre, post
+    mod, ctx = make(plugin)
+    args = {"command": "cat > tool.py <<EOF\nprint(1)\nEOF"}
+    pre(mod, "terminal", args, "c1")
+    post(mod, "terminal", args, "c1", status="error",
+         result='{"output": "", "exit_code": -1, "error": "BLOCKED: User denied this command.", "status": "blocked"}')
+    assert not mod._touched(mod.anon("s1"))
+    st = mod.store_()
+    assert not st.written_recently([os.path.join(ctx.cwd, "tool.py")])   # running it later is not "just written"
+
+
+def test_r5_reevaluate_takes_back_a_freedom_given_without_undo():
+    from tenure import rule
+    s = rule.TypeState(key="shell:docker", stakes="medium")
+    rule.owner_free(s, 5, undo=False)
+    assert s.owner_freed
+    assert rule.reevaluate(s, None) and s.tier == rule.T1 and not s.owner_freed     # capped now: demoted
+    s = rule.TypeState(key="shell:docker", stakes="medium")
+    rule.owner_free(s, 5, undo=False)
+    assert rule.reevaluate(s, 5) == [] and s.owner_freed                            # not demoted: kept
+
+
+@posix
+def test_r5_live_and_replay_agree_after_a_settings_change(plugin):
+    mod, ctx = make(plugin)
+    ctx.call("terminal", {"command": "docker build ."})
+    mod.cli.slash("trust shell:docker")
+    ctx.settings["risks"] = {"low": 0.25, "medium": "cap"}
+    ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})            # syncs the new settings
+    assert not state(mod, "shell:docker").owner_freed
+    live_is_replay(mod)

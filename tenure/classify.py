@@ -210,10 +210,23 @@ def _unquoted(text: str) -> str:
     return text.casefold().replace("\\", "/")
 
 
+_PATH_WORDS = re.compile(r"[^\s'\"`(),;<>|&=]+")
+
+
 def tenure_named(text: str) -> bool:
-    """A command, a piece of code or a word names tenure's data or the dashboard's API, as written or once
-    percent-decoded (``api/plugins/%74enure/settings``)."""
-    return bool(TENURE_NAMES.search(text) or ("%" in text and TENURE_NAMES.search(_unquoted(text))))
+    """A command, a piece of code or a word names tenure's data or the dashboard's API, as written, percent-decoded
+    (``api/plugins/%74enure/settings``) or with its ``.`` and ``..`` segments resolved, word by word, as a server
+    reads a URL's path (``api/plugins/x/../tenure/settings``)."""
+    if TENURE_NAMES.search(text):
+        return True
+    decoded = _unquoted(text) if "%" in text else text
+    if decoded is not text and TENURE_NAMES.search(decoded):
+        return True
+    if "/." not in decoded and "./" not in decoded:
+        return False
+    import posixpath
+    return any(TENURE_NAMES.search(posixpath.normpath(w)) for w in _PATH_WORDS.findall(decoded)
+               if "/." in w or "./" in w)
 # What Hermes keeps at the top of each home level (a home, a root, and each profiles/<name> under them). Only these are
 # protected: a project or a workspace under a home (kanban/workspaces/..., workspace/, home/) is ordinary.
 HERMES_ENTRIES = frozenset({

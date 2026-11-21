@@ -1759,8 +1759,12 @@ BACKGROUND_KEYS = ("auto_backgrounded", "promoted_from_foreground")   # Hermes' 
 NOT_RUN = frozenset({"blocked", "pending_approval", "approval_required"})
 
 
-def _not_run(result) -> bool:
-    """The result of a call Hermes did not run: an error result whose ``status`` is in ``NOT_RUN``."""
+def _not_run(tool: str, result) -> bool:
+    """The result of a terminal call Hermes did not run: an error result whose ``status`` is in ``NOT_RUN``. Only
+    the terminal tool's result is read: another tool (an MCP server, the code execute_code runs) writes that field
+    itself."""
+    if tool != "terminal":
+        return False
     try:
         data = json.loads(result) if isinstance(result, (str, bytes)) else result
     except ValueError:
@@ -1924,14 +1928,22 @@ def pre_api_request(model="", provider="", session_id="", **kwargs):
 
 # A person's word, run or called: ``ok``, ``excuse`` or ``trust`` after Hermes' CLI (its options, long ones included,
 # before ``tenure``), ``python -m tenure`` or the slash command; the core and CLI functions that record it.
-_WORD_FUNCS = r"seen|excuse|_see|owner_trust|owner_free|owner_pin|trust_set|slash|execute"
+_WORD_FUNCS = r"seen|excuse|_see|owner_trust|owner_free|owner_pin|trust_set|slash|_slash|excuse_cmd|execute"
+# The word itself: ok or excuse (alone they list, and the CLI refuses them to the agent anyway), trust with a kind
+# (alone it lists, read only), after a command line that runs tenure or Hermes.
+_WORD = r"\s+['\"]?(?:ok|excuse|trust[ \t]+['\"]?(?!-)[^\s'\";&|])"
+_HERMES_CLI = r"(?:\bhermes\b|-m[ \t]+hermes_cli(?:\.main)?\b)"           # hermes, or python -m hermes_cli.main
 _PERSON_ONLY = re.compile(
-    r"(?:\bhermes\b(?:[ \t]+--?[^\s-]\S{0,40}(?:[ \t]+[^\s-]\S{0,80})?){0,6}[ \t]+['\"]?tenure['\"]?"
-    r"|-m[ \t]+tenure(?:\.cli)?|(?:^|\s|['\"])/tenure)"
-    r"\s+['\"]?(?:ok|excuse|trust)['\"]?(?:\s|$|;|&|\||['\"])"
+    rf"(?:{_HERMES_CLI}(?:[ \t]+--?[^\s-]\S{{0,40}}(?:[ \t]+[^\s-]\S{{0,80}})?){{0,6}}[ \t]+['\"]?tenure['\"]?"
+    rf"|-m[ \t]+tenure(?:\.cli)?){_WORD}"
     rf"|\btenure\.(?:cli\.|rule\.)?(?:{_WORD_FUNCS})\s*\("
     r"|\bcore\.(?:seen|excuse|_see|owner_trust)\s*\("
-    rf"|\bfrom[ \t]+tenure\b[^\n]{{0,80}}?\bimport\b[^\n]{{0,200}}?\b(?:{_WORD_FUNCS}|cli|rule)\b", re.I)
+    rf"|\bfrom[ \t]+tenure\b[^\n]{{0,80}}?\bimport\b[^\n]{{0,200}}?\b(?:{_WORD_FUNCS})\b", re.I)
+# The chat's slash command: typed into a chat (computer_use), or handed to Hermes by a command line that runs it
+# (``hermes chat -q "/tenure trust X"``). A shell alone cannot run it: a commit message or a grep naming it is left
+# alone.
+_SLASH_WORD = re.compile(rf"(?:^|\s|['\"])/tenure{_WORD}", re.I)
+_RUNS_HERMES = re.compile(r"(?:^|[\s;&|(`'\"])(?:hermes|-m[ \t]+hermes_cli(?:\.main)?)(?=[\s'\",)]|$)", re.I)
 # The same functions through a module name that is not tenure's (``cli.slash(``, ``rule.owner_free(``): only in a
 # text that names tenure somewhere, so another project's ``cli.execute(`` is left alone.
 _PERSON_ONLY_CALL = re.compile(rf"\b(?:core|cli|rule)\.(?:{_WORD_FUNCS})\s*\(")
@@ -1939,6 +1951,7 @@ _NAMES_TENURE = re.compile(r"tenure", re.I)
 # The arguments that run, or are typed: a terminal command, execute_code's code, the text computer_use types or sets
 # in a field (``type``, ``set_value``; tools/computer_use/schema.py). Never a file's text or a message.
 _RUNS = {"terminal": ("command",), "execute_code": ("code",), "computer_use": ("text", "value")}
+_TYPED = frozenset({"computer_use"})          # keys typed into a window, maybe the chat: the slash command counts
 
 
 def _person_only(tool: str, args: dict) -> bool:
@@ -1955,6 +1968,8 @@ def _person_only(tool: str, args: dict) -> bool:
             if not isinstance(text, str):
                 continue
             if _PERSON_ONLY.search(text) or (_PERSON_ONLY_CALL.search(text) and _NAMES_TENURE.search(text)):
+                return True
+            if _SLASH_WORD.search(text) and (tool in _TYPED or _RUNS_HERMES.search(text)):
                 return True
         return False
     except Exception:
@@ -2041,8 +2056,9 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             if watched:                                     # files saved: act then tell, with an undo; else run alone
                 listed = bool(classify.files_written(tool, args, cwd, wide=wide))
                 files = bool(snap) or listed
+                # files that could not be saved: ask (below), unless a person freed the kind without an undo
                 decision = (rule.NOTIFY if snap else rule.ASK if (suspended and not local_ok) or needs_undo
-                            else rule.NOTIFY if files else rule.ALLOW)    # files that could not be saved: ask (below)
+                            else rule.ALLOW if s.owner_freed and simple(cfg) else rule.NOTIFY if files else rule.ALLOW)
                 if needs_undo and not suspended:            # /tenure trust names a kind tenure cannot undo (display)
                     noundo = not snap
                     if noundo != bool(st.get_meta(NOUNDO + act.type)):
@@ -2208,8 +2224,8 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         _follow_cwd(tool, args, result, session_id, task_id)
         session = anon(session_id or task_id)
         wide = simple()
-        wrote = ([] if str(status or "").strip().lower() == "blocked"
-                 else classify.files_written(tool, args, cwd, wide=wide))
+        ran = str(status or "").strip().lower() != "blocked" and not _not_run(tool, result)
+        wrote = classify.files_written(tool, args, cwd, wide=wide) if ran else []   # a call that never ran wrote none
         _touch(session, wrote)                              # every call that ran, failed or not: its files are its own
         if wrote:                                           # running one of them later asks once (24 hours)
             try:
@@ -2255,7 +2271,7 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         p = rows[0]
         # Hermes' own refusal is in the result (a call its approval stopped never ran). Simple mode reads it as
         # blocked; study mode keeps the outcome it had (neutral, error: the ledger and its replay do not change).
-        not_run = _not_run(result)
+        not_run = not ran and str(status or "").strip().lower() != "blocked"
         blocked = str(status or "").strip().lower() == "blocked" or (wide and not_run)
         failed = not blocked and proofs.execution(tool, status, error_type, result) == "failed"
         untouched = False                   # a failed call that changed none of its saved files, or never ran: no undo

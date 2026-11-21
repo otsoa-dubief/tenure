@@ -429,6 +429,7 @@ def reevaluate(s: TypeState, n: int | None) -> list[dict]:
     if s.tier != T3 or (n is not None and s.series >= required(s, n)):
         return []
     s.tier = T2 if _middle(s) and s.wald <= params.wald_steps(s.stakes)[2] + TOL else T1
+    s.owner_freed = False              # a freedom given by hand goes with the tier it was given at
     counts = {} if n is None else {"required": required(s, n)}
     return [_move(s, "tier", T3, s.tier, "settings", **counts)]
 

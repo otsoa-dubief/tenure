@@ -127,7 +127,9 @@ def test_an_excused_fault_keeps_the_tier_and_the_score_but_restarts_the_series()
 
 @pytest.mark.parametrize("cmd,blocked", [
     ("hermes tenure ok 12 13", True), ("script -q /dev/null hermes tenure excuse 57", True),
-    ("hermes -p work tenure ok 3", True), ("python -m tenure ok 3", True), ("echo x; /tenure excuse 4", True),
+    ("hermes -p work tenure ok 3", True), ("python -m tenure ok 3", True),
+    ("echo x; /tenure excuse 4", False),                       # a shell cannot run the chat's command
+    ("echo x; hermes chat -q '/tenure excuse 4'", True),       # handed to Hermes, it can
     ("python -c 'import tenure; tenure.seen(s, [1])'", True),
     ("hermes tenure 'ok' 12", True),
     ("hermes tenure status", False), ("git commit -m 'tenure: excuse window'", False), ("npm test", False),
