@@ -66,7 +66,7 @@ def test_1_the_agents_own_processes_cannot_give_a_persons_word_even_through_slas
     mod, ctx = make(plugin)
     asking_npm(mod, ctx)
     watched_file_write(mod, ctx)
-    seq = mod.excusable(mod.store_())[0]["seq"]
+    seq = mod.excusable(mod.store_())[0]["n"]
     monkeypatch.setenv(marker, "1")
     assert mod.agent_process() == marker
     for line in ("trust shell:npm", "trust shell:npm ask", f"excuse {seq}", "excuse", "ok 1", "ok"):
@@ -493,13 +493,13 @@ def test_14_simple_words_in_prompts_and_study_words_unchanged(plugin):
 def test_14_a_first_undo_says_two_short_lines(plugin):
     mod, ctx = make(plugin)
     ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})
-    out = mod.cli.slash(f"undo {last_undo(mod)}")
+    n = last_undo(mod)
+    out = mod.cli.slash(f"undo {n}")
     lines = out.splitlines()
     assert len(lines) == 2
-    assert lines[0] == (f"Undone #{last_undo(mod)}: files restored (file:write). file:write is now watched; a second "
+    assert lines[0] == (f"Undone #{n}: files restored (file:write). file:write is now watched; a second "
                         "mistake and it asks first.")
-    assert lines[1].startswith("Undid or refused a correct action? /tenure excuse ") and lines[1].endswith(
-        "min and it won't count.")
+    assert lines[1] == f"Undid or refused a correct action? /tenure excuse {n} within 10 min and it won't count."
     lst = mod.cli.slash("undo")
     assert lst.startswith("Nothing to undo from the last 24 hours.")
 

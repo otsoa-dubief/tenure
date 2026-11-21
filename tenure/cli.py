@@ -639,17 +639,18 @@ def ok_list(session: str | None) -> str:
     return "\n".join([tr("cli.ok.title")] + ["  " + ln for ln in _table(head, cells)] + ["", tr("cli.ok.footer")])
 
 
-def excuse_cmd(seq: int | None) -> tuple[str, int]:
-    """``excuse`` alone: the faults of the last minutes that can still be excused; with a number, excuse that one."""
+def excuse_cmd(number: int | None) -> tuple[str, int]:
+    """``excuse`` alone: the faults of the last minutes that can still be excused; with a number, excuse that one:
+    the undo number of an undone action, or the number the notice gave after a refusal (``Store.number_fault``)."""
     core = _core()
     minutes = store.EXCUSE_WINDOW // 60
     plain = core.simple()
-    if seq is None:
+    if number is None:
         rows = core.excusable(core.store_())
         if not rows:
             return tr("simple.excuse.none" if plain else "cli.excuse.none", minutes=minutes), 0
         cause = {"refusal": tr("cli.excuse.source.refusal"), "undo": tr("cli.excuse.source.undo")}
-        cells = [[str(r["seq"]), time.strftime("%H:%M", time.localtime(r["at"])), r["type"], r["agent"],
+        cells = [[str(r["n"]), time.strftime("%H:%M", time.localtime(r["at"])), r["type"], r["agent"],
                   cause.get(r["source"], r["source"])] for r in rows]
         lines = [tr("simple.excuse.title" if plain else "cli.excuse.title", minutes=minutes)]
         head = [tr("cli.col.number"), tr("cli.col.time"), tr("simple.col.kind" if plain else "cli.col.type"),
@@ -658,7 +659,7 @@ def excuse_cmd(seq: int | None) -> tuple[str, int]:
         return "\n".join(lines + ["", tr("cli.excuse.footer")]), 0
     with core.txn() as st:
         try:
-            return core.excuse(st, seq), 0
+            return core.excuse(st, number), 0
         except ValueError as e:
             return str(e), 1
 
