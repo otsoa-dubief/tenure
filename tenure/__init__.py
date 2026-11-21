@@ -2107,9 +2107,11 @@ def _pre_tool_call(tool_name, args, session_id, tool_call_id, task_id):
             return None
         purged = _purge()
         uid = uuid.uuid4().hex
-        if act.stakes == classify.CAP:
+        if act.stakes == classify.CAP:                      # a key of its own each time: never "for this session"
+            key = (("simple.ask.net_code" if wide else "ask.net_code") if act.type == classify.NET_CODE[0]
+                   else "simple.ask.capped" if wide else "ask.capped")      # downloaded code is said plainly
             return {"action": "approve", "rule_key": f"{PREFIX}:cap:{act.type}:{uid}",
-                    "message": tr("simple.ask.capped" if wide else "ask.capped", summary=act.summary, type=act.type)}
+                    "message": tr(key, summary=act.summary, type=act.type)}
         call, sid = str(tool_call_id or ""), str(session_id or task_id or "")
         session, agent, nobody = anon(sid), agent_of(sid, deadline), nobody_answers()
         n = params.required_n(cfg["risks"], act.stakes)

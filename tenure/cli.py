@@ -1007,11 +1007,17 @@ def trust_set(kind: str, to: str, prefix: str = "/tenure", model: str | None = N
     without an undo (the ``trust`` event says ``undo: false``); any other kind keeps its undo where its files can be
     saved, and asks where they cannot. Refused for a kind simple mode never frees (what leaves the machine, high stakes, a capped
     kind), whatever its state; asking those to ask writes nothing (they always do). A kind held by its parent, or
-    doubted by a verifier, is explained. Raises CliError with the owner's message, nothing written, when refused."""
+    doubted by a verifier, is explained. Code downloaded from the internet and run at once is never freed, record or
+    not. Raises CliError with the owner's message, nothing written, when refused."""
     core = _core()
     cfg = core.settings()
     if not core.simple(cfg):
         raise CliError(tr("trust.study", command=f"{prefix} mode simple"))
+    net = core.classify.NET_CODE[0]
+    if kind in (net, net.split(":", 1)[1]):
+        if to == rule.FREE:
+            raise CliError(tr("trust.refused.net_code", type=net))
+        return tr("trust.always", type=net)
     with core.txn() as st:
         agent = _trust_agent(core, st, model, session)
         known = {s.key: s for _, s in st.states(agent)}

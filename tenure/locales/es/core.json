@@ -1,5 +1,6 @@
 {
   "ask.capped": "tenure — {summary}\n{type} está limitado: siempre se pregunta.",
+  "ask.net_code": "tenure — {summary}\n{type} ejecuta código descargado de internet: tenure siempre pregunta.",
   "ask.internal_error": "tenure: error interno ({error}); te pregunto en lugar de dejar pasar la acción.",
   "ask.prompt": "tenure — {summary}\n{why}\nRechaza si es incorrecto: cuenta como un fallo.",
   "ask.person_only": "tenure: solo usted puede marcar como vistas las acciones del agente, excusar sus faltas o liberar un tipo de acción, desde su propio terminal o con /tenure. Esta llamada no se ejecutó.",
@@ -512,6 +513,7 @@
   "trust.already_pinned": "{type} ya te pregunta antes. Para liberarlo: {command}",
   "trust.refused.out": "{type} sale de esta máquina: siempre pregunta y no se puede liberar a mano.",
   "trust.refused.high": "{type} es de alto riesgo: siempre pregunta y no se puede liberar a mano.",
+  "trust.refused.net_code": "{type} ejecuta código descargado de internet: tenure siempre pregunta y no se puede liberar a mano.",
   "trust.refused.capped": "{type} siempre pregunta según tus ajustes. Para cambiarlos: {command}",
   "trust.unknown": "No hay historial de {type} para {agent}. Lo que aún te pregunta o está vigilado: {types}",
   "trust.study": "Liberar un tipo a mano es cosa del modo simple ({command}); en el modo estudio, un tipo se gana su nivel.",
@@ -527,6 +529,7 @@
     "other": "→ libre tras {n} acciones más que conserves"
   },
   "simple.ask.capped": "tenure — {summary}\n{type} está protegido (el propio Hermes, secretos, archivos sensibles o tus propios ajustes): tenure siempre pregunta.",
+  "simple.ask.net_code": "tenure — {summary}\n{type} ejecuta código descargado de internet: tenure siempre pregunta.",
   "simple.ask.prompt": "tenure — {summary}\n{why}\nRecházalo si está mal: tenure vigilará entonces este tipo más de cerca.",
   "simple.ask.prompt_session": "tenure — {summary}\n{why}\nPermítelo para esta conversación y tenure deja de preguntar por esto hasta que termine; recházalo si está mal.",
   "simple.ask.always_button": "El \"Siempre\" de Hermes se ignora aquí: tenure decide cada vez.",
