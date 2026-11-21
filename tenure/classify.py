@@ -5886,8 +5886,8 @@ def _runs_remote(toks: list[str]) -> bool:
 
 
 def _upstream(segs: list, n: int) -> list:
-    """The commands whose output reaches command ``n`` through pipes, a group feeding the pipe whole (`{ curl …; }
-    | sh`, `(curl …; true) | sh`)."""
+    """The commands whose output reaches command ``n`` through pipes, a braced or parenthesised group feeding the
+    pipe as a whole."""
     out, k = [], n
     while k > 0 and segs[k].sep in PIPES:
         k -= 1
@@ -6090,10 +6090,9 @@ def _downloads(toks: list[str], raw: list[str], base: str, net: bool, fed: bool,
 
 
 def _downloaded_then_run(segs: list, bodies: dict, cwd, depth: int) -> str:
-    """A command of the line runs a file that an earlier command of the same line downloaded (`curl -o i.sh URL &&
-    bash i.sh`, `wget -O i.sh URL && chmod +x i.sh && ./i.sh`, `sh < i.sh`, `cat i.sh | bash`), a file of a folder it
-    cloned or unpacked (`git clone URL && ./x/install.sh`, `curl URL | tar xz && ./install.sh`), or a program it put in
-    an install folder, run by its name (`… mv ./kubectl ~/.local/bin/ && kubectl version`). The files a command runs
+    """A command of the line runs a file that an earlier command of the same line downloaded (as a script, a path,
+    or the standard input of a shell, redirected or piped from a reader of that file), a file of a folder it cloned or
+    unpacked, run itself, or a program it put in an install folder, run by its name. The files a command runs
     are read as ``scripts_run`` reads them: "net" (``NET_CODE``). A build or test tool in a fresh clone or an unpacked
     folder (`npm install`, `make`, `pip install -e .`) is "project" (``FETCHED_PROJECT``, the owner's decision,
     21/11); else ""."""
@@ -6115,7 +6114,7 @@ def _downloaded_then_run(segs: list, bodies: dict, cwd, depth: int) -> str:
             runs = scripts_run(" ".join(shlex.quote(t) for t in toks), base, wide=True)
             if _by_name(toks[0], got):
                 return "net"
-            if kind == "stdin":                              # sh < i.sh, cat i.sh | bash
+            if kind == "stdin":                              # a downloaded file as a shell's standard input
                 runs += [_at(base, raw[k + 1]) for k in range(len(raw) - 1) if raw[k] == "<" and raw[k + 1] != "<("]
                 for up in _upstream(segs, n):
                     up_raw = [str(t) for t in up.tokens]
@@ -6140,17 +6139,18 @@ CAT_STDIN = re.compile(r"\$\(\s*(?:cat(?:\s+-)?|<\s*/dev/stdin)\s*\)|`\s*cat(?:\
 
 
 def _net_code(command: str, cwd=None, depth: int = 0, project: list | None = None) -> bool:
-    """The line runs what it downloads (``NET_CODE``): a fetch piped into a command that reads its program from
-    standard input (`curl … | sh`, `{ curl …; } | bash`, `echo "$(curl …)" | sh`, `irm … | iex`, `curl … | bash -c
-    "$(cat)"`), a download given as the program (`bash <(curl …)`, `source <(curl …)`, `sh < <(curl …)`) or as the
-    code (`sh -c "$(curl …)"`, `eval "$(curl …)"`, `iex (irm …)`, `[scriptblock]::Create((irm …))`), a here-string
-    of a download read as the program (`bash <<< "$(curl …)"`), a file downloaded then run by the same line
-    (``_downloaded_then_run``), or a program run from a URL or a remote module (``_runs_remote``). The code of `sh -c`,
-    `eval`, `pwsh -EncodedCommand` and a heredoc a shell reads is read the same way. Names are compared case folded,
-    without .exe; a download given to a script as data (`python3 parse.py <(curl …)`, an argument after `python -c
-    CODE`) is not its code, nor a substitution between single quotes. Only the whole reading of the line counts: a
-    quoted text over several lines (a commit message) is text. ``project`` (a list) is told when the line runs a
-    build or test tool in a project it just downloaded (``FETCHED_PROJECT``)."""
+    """The line runs what it downloads (``NET_CODE``): a download piped, even from inside a group or through a
+    printed substitution, into a command that reads its program from standard input (a shell, an interpreter,
+    PowerShell's iex, a shell whose code is its own standard input); a download given as the program (a process
+    substitution in the script's place, or read on standard input) or as the code (the code option of a shell or an
+    interpreter, eval, iex, a PowerShell script block); a here-string of a download read as the program; a file
+    downloaded then run by the same line (``_downloaded_then_run``); or a program run from a URL or a remote module
+    (``_runs_remote``). The code of a shell's code option, of eval, of PowerShell's encoded command and of a heredoc a
+    shell reads is read the same way. Names are compared case folded, without .exe; a download given to a script as
+    data (a process substitution among its arguments, an argument after the code of an interpreter) is not its code,
+    nor a substitution between single quotes. Only the whole reading of the line counts: a quoted text over several
+    lines (a commit message) is text. ``project`` (a list) is told when the line runs a build or test tool in a
+    project it just downloaded (``FETCHED_PROJECT``)."""
     if depth > MAX_DEPTH:
         return False
     text = _strip_heredocs(command)
@@ -6174,7 +6174,7 @@ def _net_code(command: str, cwd=None, depth: int = 0, project: list | None = Non
                         and (_name(bare[0]) in PS_EXEC or re.search(r"\b(?:iex|invoke-expression)\b|scriptblock",
                                                                    code, re.I)))
                     or (code and _net_code(code, cwd, depth + 1))):
-                return True                                   # sh -c "$(curl …)", iex (irm …), or curl … | sh inside
+                return True                                   # a download as the code, or code that runs one
             if CAT_STDIN.search(code):
                 kind = "stdin"                                # bash -c "$(cat)": the code is its standard input
         if kind != "stdin":
@@ -6185,44 +6185,19 @@ def _net_code(command: str, cwd=None, depth: int = 0, project: list | None = Non
                 return True                                   # bash <<< "$(curl …)"
         body = bodies.get(id(seg), "")
         if body and (NET_SUB.search(body) or _net_code(body, cwd, depth + 1)):
-            return True                                       # sh <<EOF … curl … | sh … EOF
+            return True                                       # a heredoc a shell reads, which runs a download
         shell = _name(bare[0]) in _SHELLS | {"su", "source", "."} if bare else True
         for up in _upstream(segs, n):
             if _net_source(up, bodies, cwd, depth):
-                return True                                   # curl … | sh, curl … | tee log | sh
+                return True                                   # a download piped into a reader of code
             printed = _unwrap(up.tokens)
             if (shell and printed and _name(printed[0]) in ("echo", "printf")
                     and NET_SUB.search(_norm_sub(" ".join(str(t) for t in up.tokens)))):
-                return True                                   # echo '$(curl …)' | sh: printed text a shell runs
+                return True                                   # a printed substitution of a download, run by a shell
     found = _downloaded_then_run(segs, bodies, cwd, depth)
     if found == "project" and project is not None:
         project.append(True)
     return found == "net"
-    text = _strip_heredocs(command)
-    body = _strip_heredocs(command, bodies=True) if text != command else ""
-    for tokens in (_tokens_lines(text), _tokens_whole(text)):
-        segs = _build(tokens)
-        for n, seg in enumerate(segs):
-            toks, raw = _unwrap(seg.tokens), [str(t) for t in seg.tokens]
-            kind, code = _code_source(toks) if toks else (("stdin", "") if _sudo_shell(raw) else ("", ""))
-            if toks and (_script_from_net(raw, toks, kind) or _runs_remote(toks)):
-                return True
-            if kind == "arg":
-                written = _raw_code(raw, toks, code)
-                if (NET_SUB.search(_norm_sub(written)) or (_name(toks[0]) in PS_EXEC and PS_DOWNLOAD.search(written))
-                        or (code and _net_code(code, cwd, depth + 1))):
-                    return True                               # sh -c "$(curl …)", iex (irm …), or curl … | sh inside
-            if kind != "stdin":
-                continue
-            if "<<<" in raw and NET_SUB.search(_norm_sub(" ".join(raw[raw.index("<<<") + 1:]))):
-                return True                                   # bash <<< "$(curl …)"
-            if body and {"<<", "<<-"} & set(raw) and (NET_SUB.search(body) or _net_code(body, cwd, depth + 1)):
-                return True                                   # sh <<EOF … curl … | sh … EOF
-            if any(_net_source(up, body, cwd, depth) for up in _upstream(segs, n)):
-                return True                                   # curl … | sh, curl … | tee log | sh
-        if _downloaded_then_run(segs, cwd, body, depth):
-            return True
-    return False
 
 
 LOCAL_URL = re.compile(r"(?:https?://)?(?:localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(?::\d+)?(?:[/?#].*)?", re.I)
