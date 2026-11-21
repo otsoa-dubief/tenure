@@ -198,3 +198,46 @@ def test_f10_an_appending_output_format_names_its_file(plugin):
     assert mod.classify._tool_outputs(["curl", "-w", "%output{>>log.txt}", "https://example.com"]) == ["log.txt"]
     line = "curl -w '%output{>>~/.bashrc}%{http_code}' https://example.com"
     assert kind(mod, ctx, line)[1] == "cap" and kind(mod, ctx, line, wide=False)[1] == "cap"
+
+
+# --------------------------------------------------------------------- F4: an exit code a pipe or a ; hides
+import json  # noqa: E402
+
+from test_plugin import outcomes, state  # noqa: E402
+
+EXIT0 = json.dumps({"output": "ok", "exit_code": 0})
+
+
+@pytest.mark.parametrize("line,hides", [("npm test | tail -5", True), ("npm test; echo done", True),
+                                        ("npm test || true", True), ("npm test\nnpm run build", True),
+                                        ("npm test && npm run build", False), ("npm test", False),
+                                        ("grep -c 'a|b' notes.txt", False), ("cat > f <<'EOF'\nx\nEOF", False)])
+def test_f4_which_lines_may_hide_a_failure(line, hides):
+    from tenure import classify
+    assert classify.hides_failure(line) is hides
+
+
+def test_f4_study_mode_an_approved_line_whose_code_a_pipe_hides_is_neutral(plugin):
+    mod, ctx = plugin({"start": "probation"})
+    assert ctx.call("terminal", {"command": "npm test"}, result=EXIT0) == "approved"
+    assert ctx.call("terminal", {"command": "npm test | tail -5"}, result=EXIT0) == "approved"
+    assert ctx.call("terminal", {"command": "npm test; echo done"}, result=EXIT0) == "approved"
+    got = [(e["result"], e["source"]) for e in outcomes(mod, type="shell:npm")]
+    assert got == [("success", "approval"), ("neutral", "ambiguous"), ("neutral", "ambiguous")]
+
+
+def test_f4_simple_mode_credits_still_come_from_the_actions_kept(plugin):
+    mod, ctx = plugin(SIMPLE)
+    mod.ST.rng.values = []
+    touch(ctx, "f.txt", "a\n")
+    edit = SED_I + "'s/a/b/' f.txt"
+    assert ctx.call("terminal", {"command": edit}, result=EXIT0) == "ran"
+    last = mod.store_().db.execute("SELECT MAX(id) FROM undo").fetchone()[0]
+    mod.cli.slash(f"undo {last}")                                     # a mistake: the kind is watched now
+    assert state(mod, "file:shell").series == 0
+    assert ctx.call("terminal", {"command": edit + "; ls"}, result=EXIT0) == "ran"     # watched, its undo kept
+    assert mod.store_().db.execute("SELECT COUNT(*) FROM credits").fetchone()[0] == 1
+    cfg = mod.settings()
+    with mod.txn() as st:
+        mod._credit_due(st, cfg, now=__import__("time").time() + mod.UNDO_WINDOW + 1)
+    assert state(mod, "file:shell").series == 1                     # kept through its undo window: a credit

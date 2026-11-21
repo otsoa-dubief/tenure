@@ -2181,6 +2181,14 @@ def _glob_words(toks: list[str], seg_masked: str) -> list[bool] | None:
     return out
 
 
+def hides_failure(command: str) -> bool:
+    """A terminal line whose exit code may hide an earlier program's failure: a pipe (the code is the last
+    program's), ``;``, ``||``, or several lines that are not a heredoc's body."""
+    text = str(command or "").strip()
+    masked = _undo_mask(text) or text
+    return bool(re.search(r"[|;]", masked)) or ("\n" in text and "<<" not in text)
+
+
 def unknown_reason(command: str) -> str:
     """Why a command's files could not be identified (``file:unknown``): "glob" for a pattern the shell expands,
     "variable" for a variable or a substitution, else "path"."""
