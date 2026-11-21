@@ -496,6 +496,7 @@
     "other": "te pregunta antes · {n} aprobaciones seguidas más → libre"
   },
   "trust.state.pinned": "te pregunta antes, por tu decisión: {command} lo libera",
+  "trust.state.pinned_hidden": "te pregunta antes, por tu decisión: muestra los nombres reales para copiar el comando que lo libera",
   "trust.state.out": "siempre pregunta: sale de esta máquina",
   "trust.state.high": "siempre pregunta: riesgo alto",
   "trust.state.capped": "siempre pregunta: así lo dicen tus ajustes",
