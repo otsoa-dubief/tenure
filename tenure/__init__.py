@@ -727,12 +727,13 @@ def _taint_label(session: str) -> str:
 
 
 def _lifted(session: str, st: store.Store | None = None) -> bool:
-    """Simple mode: a person lifted this session's suspension (``_lift``)."""
+    """Simple mode: a person lifted this session's suspension (``_lift``). Never the empty session (calls outside any
+    session): nothing is lifted for the whole process."""
+    if not session:
+        return False
     with ST.mem:
         if session in ST.lifted:
             return True
-    if not session:
-        return False
     if st is not None:
         return st.lifted(session)
     with _locked():
@@ -743,12 +744,13 @@ def _lift(st: store.Store, session: str) -> None:
     """Simple mode: a person approved the question a suspension asked. The session works as before for the rest of
     its life: the next commands follow the simple rule, and a later outside read does not suspend it again (``_taint``).
     What 1.3 asks after outside content whatever the suspension stays (``_outside``): a file that runs code, written
-    after outside content, and a script written then run."""
+    after outside content, and a script written then run. Never the empty session."""
+    if not session:
+        return
     with ST.mem:
         ST.tainted.pop(session, None)
         _remember(ST.lifted, session, time.time())
-    if session:
-        st.lift(session)
+    st.lift(session)
 
 
 def _outside(st: store.Store, session: str, suspended: bool) -> bool:
@@ -762,7 +764,7 @@ def _taint(session: str) -> None:
     suspended as a whole: only in this process, for an hour. Simple mode: a session whose suspension a person lifted
     is not suspended again."""
     try:
-        if simple() and _lifted(session):
+        if session and simple() and _lifted(session):
             return
     except Exception:
         log.debug("tenure: could not read whether the suspension was lifted; suspending", exc_info=True)
@@ -884,12 +886,14 @@ class Watched:
         self.session, self.undo_id, self.label = session, undo_id, label
 
 
-def _label(tool: str, args: dict) -> str:
-    """A watched action in the end-of-turn line: a terminal command's first line (60 characters at most), else "" (the
-    files it changed are shown instead). Control and format characters become U+FFFD."""
+def _label(tool: str, args: dict, vocabulary=None) -> str:
+    """A watched action in the end-of-turn line: a terminal command's first line (60 characters at most), secrets
+    masked as in a prompt (``fields.mask_command``), else "" (the files it changed are shown instead). Control and
+    format characters become U+FFFD."""
     if tool != "terminal" or not isinstance(args.get("command"), str):
         return ""
-    text = args["command"].strip().splitlines()[0] if args["command"].strip() else ""
+    command = fields.mask_command(args["command"], vocabulary)
+    text = command.strip().splitlines()[0] if command.strip() else ""
     text = "".join("\ufffd" if unicodedata.category(c) in ("Cc", "Cf") else c for c in text)
     return text if len(text) <= LABEL_CAP else text[:LABEL_CAP - 1] + "\u2026"
 
@@ -1311,15 +1315,15 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
     if time.time() - entry["at"] > UNDO_WINDOW:
         return UndoMessage(tr("undo.expired", id=id, n=UNDO_WINDOW // 3600), False)
     if not entry["snap_id"]:
-        return UndoMessage(tr("undo.no_snapshot", id=id), False)
+        return _undo_failed(st, entry, tr("undo.no_snapshot", id=id))
     try:
         restored, failed = undo.restore(entry["snap_id"], data_dir(), keep=True, key=undo_key())
     except undo.Refused as e:
-        return UndoMessage(tr("undo.refused", id=id, reason=e), False)
+        return _undo_failed(st, entry, tr("undo.refused", id=id, reason=e))
     if failed:
-        return UndoMessage(tr("undo.partial", id=id, n=failed, restored=restored), False)
+        return _undo_failed(st, entry, tr("undo.partial", id=id, n=failed, restored=restored))
     if restored == 0:
-        return UndoMessage(tr("undo.gone", id=id), False)
+        return _undo_failed(st, entry, tr("undo.gone", id=id))
     agent, key = entry["agent"], entry["type"]
     st.mark_undone(id)
     st.flag_by_undo(id)                                   # undone: it cannot be flagged afterwards
@@ -1337,6 +1341,25 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
                        + _say(events, cfg["spot"], mode(cfg))   # e.g. "On probation" when it ends the trusted start
                        + _excuse_hint(st, events))
     return UndoMessage(text, True, entry["snap_id"])
+
+
+def _undo_failed(st: store.Store, entry: dict, text: str) -> UndoMessage:
+    """An undo a person asked for that put nothing back, or not all of it. Simple mode: asking to undo is the
+    person's judgment of the action, so it counts as a fault all the same, once (a retry counts no second one). Study
+    mode: nothing is recorded, as in 1.3."""
+    cfg = settings()
+    if not simple(cfg) or entry["fault"]:
+        return UndoMessage(text, False)
+    agent, key = entry["agent"], entry["type"]
+    recorded = st.recorded(agent, key)
+    stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
+    sync_settings(st, cfg)
+    events = record_outcome(st, cfg, agent=agent, type_key=key, stakes=stakes, reversible=reversible,
+                            result="fault", source="undo")
+    st.bump(agent, "faults")
+    st.mark_undo_fault(entry["id"])                       # a retry of the undo counts no second fault
+    return UndoMessage("\n\n".join([text, tr("simple.undo.fault_anyway", type=key)] + _say(events, cfg["spot"],
+                                                                                         mode(cfg))), False)
 
 
 def _bump(st: store.Store, agent: str, result: str, *, checked: bool = False, alone: bool = False) -> None:
@@ -1425,8 +1448,9 @@ def _due_key(agent: str, type_key: str) -> str:
     return f"spot_due:{agent}:{type_key}"
 
 
-def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody, rng):
-    """(recorded state, state at today's stakes, decision, suspended) for one call."""
+def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody, rng, local_ok: bool = False):
+    """(recorded state, state at today's stakes, decision, suspended) for one call. ``local_ok``: ``_local_ok`` for
+    the call."""
     recorded = st.recorded(agent, act.type)
     s = st.get_state(agent, act.type, act.stakes, act.reversible)
     suspended = _suspended(st, session)
@@ -1437,8 +1461,11 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
     # person answers one. Under cron or --yolo it is blocked (pre_tool_call); retrying never draws past it.
     if decision in (rule.ALLOW, rule.SPOT) and st.get_meta(_due_key(agent, act.type)):
         decision = rule.SPOT
-    if (decision == rule.ASK and not ST.copy_unchecked and trusted(cfg, s, n, act.stakes)
-            and (not suspended or (act.reversible and act.type.startswith("file:")) or _local_ok(cfg, act))):
+    free = trusted(cfg, s, n, act.stakes)
+    if free and simple(cfg) and s.distrusted and (recorded is None or recorded.stakes != act.stakes):
+        free = False                                    # freedom earned back counts at the stakes it was earned at
+    if (decision == rule.ASK and not ST.copy_unchecked and free
+            and (not suspended or (act.reversible and act.type.startswith("file:")) or local_ok)):
         # trusted start: run as Hermes would, with an undo if possible; after outside content, undoable file writes only
         decision = rule.WATCH
     if decision != rule.ASK and _held_by(st, agent, act.type):
@@ -1448,10 +1475,63 @@ def _decide(st: store.Store, agent: str, act, n, cfg: dict, session: str, nobody
     return recorded, s, decision, suspended
 
 
-def _local_ok(cfg: dict, act) -> bool:
-    """Simple mode: a local command that changes nothing outside the project and can be taken back (mkdir, git add,
-    git commit), allowed after outside content too."""
-    return simple(cfg) and act.type in params.SUSPENDED_LOCAL
+def _local_ok(cfg: dict, act, tool: str, args: dict, cwd: str) -> bool:
+    """Simple mode: a local command that changes nothing outside the project and can be taken back, allowed after
+    outside content too: every segment of the line is mkdir, git add, or git commit without -c in a repository with
+    no active hook (``_git_hooks``); no substitution, redirect or variable."""
+    if not simple(cfg) or act.type not in params.SUSPENDED_LOCAL or tool != "terminal":
+        return False
+    command = str(args.get("command", ""))
+    if any(c in command for c in "$`<>\n\r"):
+        return False
+    segments = classify._segments(command)
+    if not segments:
+        return False
+    for words in segments:
+        prog, sub = os.path.basename(words[0]), words[1:2]
+        if prog == "mkdir" or (prog == "git" and sub == ["add"]):
+            continue
+        if prog == "git" and sub == ["commit"] and "-c" not in words and not _git_hooks(cwd):
+            continue
+        return False
+    return True
+
+
+HOOK_FILES = (".husky", ".pre-commit-config.yaml", "lefthook.yml", ".lefthook.yml")
+
+
+def _git_hooks(cwd: str) -> bool:
+    """A commit here could run code: a hook in .git/hooks (anything but a .sample), a core.hooksPath in the
+    repository's or the user's git config, a hook manager's file at the root (.husky/, pre-commit, lefthook), or a
+    repository Tenure cannot read plainly (a .git file, no repository). Read only."""
+    d = os.path.abspath(cwd or ".")
+    while True:
+        git = os.path.join(d, ".git")
+        if os.path.lexists(git):
+            break
+        parent = os.path.dirname(d)
+        if parent == d:
+            return True
+        d = parent
+    if os.path.islink(git) or not os.path.isdir(git):
+        return True                                     # a worktree or a submodule: its hooks live elsewhere
+    try:
+        if any(not n.endswith(".sample") for n in os.listdir(os.path.join(git, "hooks"))):
+            return True
+    except FileNotFoundError:
+        pass
+    except OSError:
+        return True
+    for config in (os.path.join(git, "config"), os.path.join(os.path.expanduser("~"), ".gitconfig")):
+        try:
+            with open(config, encoding="utf-8", errors="replace") as f:
+                if "hookspath" in f.read(1_000_000).lower():
+                    return True
+        except FileNotFoundError:
+            continue
+        except OSError:
+            return True
+    return any(os.path.lexists(os.path.join(d, name)) for name in HOOK_FILES)
 
 
 def _marked(s: rule.TypeState | None) -> bool:
@@ -1741,6 +1821,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         wide = simple(cfg)                                  # simple mode: rm -r of a folder and rm globs can be saved
         act = classify.classify(tool, args, cwd=cwd, overrides=cfg["overrides"], vocabulary=cfg["vocabulary"],
                                 wide=wide)
+        local_ok = _local_ok(cfg, act, tool, args, cwd)
         if act.stakes == classify.FREE:
             return None
         _purge()
@@ -1764,7 +1845,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                     ST.broken.pop((session, call), None)
         if call:                                            # an undo is only wired through a call id
             with _locked(deadline):
-                preview = _decide(store_(), agent, act, n, cfg, session, nobody, _NoSpot)[2]
+                preview = _decide(store_(), agent, act, n, cfg, session, nobody, _NoSpot, local_ok)[2]
             if preview in (rule.NOTIFY, rule.WATCH):
                 paths = classify.files_written(tool, args, cwd, wide=wide)
                 taken = (undo.snapshot(paths, data_dir(), key=undo_key(deadline), cwd=cwd,
@@ -1774,7 +1855,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             posts += _say(sync_settings(st, cfg), cfg["spot"], mode(cfg))
             posts += _say(_expire(st, cfg), cfg["spot"], mode(cfg))
             posts += _say(_credit_due(st, cfg), cfg["spot"], mode(cfg))
-            recorded, s, decision, suspended = _decide(st, agent, act, n, cfg, session, nobody, ST.rng)
+            recorded, s, decision, suspended = _decide(st, agent, act, n, cfg, session, nobody, ST.rng, local_ok)
             fresh, exec_files = [], []                      # computed even when it asks anyway: never a session key
             if tool == "terminal":                              # a script the agent wrote, run now: asked once
                 fresh = st.written_recently(classify.scripts_run(str(args.get("command", "")), cwd))
@@ -1782,6 +1863,10 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             if outside:                                         # after outside content, writing code is code
                 exec_files = [x for x in classify.files_written(tool, args, cwd, wide=wide)
                               if classify.runs_on_execution(x)]
+                if wide and tool == "terminal":                 # git apply / git am: the files the patch names
+                    targets = classify.patch_targets(str(args.get("command", "")), cwd)
+                    exec_files += ([x for x in targets if classify.runs_on_execution(x)] if targets is not None
+                                   else [os.path.join(cwd, "(patch)")])     # a patch it cannot read: asked
             only_fresh = bool(fresh) and not exec_files and decision != rule.ASK   # it would not have asked otherwise
             if fresh or exec_files:
                 decision = rule.ASK
@@ -1795,7 +1880,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
             needs_undo = watched and simple(cfg) and not rule.trust_covers(act.type)
             if watched:                                     # files saved: act then tell, with an undo; else run alone
                 files = bool(snap) or bool(classify.files_written(tool, args, cwd, wide=wide))
-                decision = (rule.NOTIFY if snap else rule.ASK if (suspended and not _local_ok(cfg, act)) or needs_undo
+                decision = (rule.NOTIFY if snap else rule.ASK if (suspended and not local_ok) or needs_undo
                             else rule.NOTIFY if files else rule.ALLOW)    # files that could not be saved: ask (below)
             if decision != rule.NOTIFY:
                 snap = None                                 # the record changed since the preview: no undo needed
@@ -2013,7 +2098,8 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
             if p is not None:
                 posts += _say(sync_settings(st, cfg), cfg["spot"], mode(cfg))
                 posts += _settle(st, cfg, p, blocked=blocked, failed=failed, reason=reason, launched=launched,
-                                written=paths, cwd=cwd, unjudged=unjudged, label=_label(tool, args))
+                                written=paths, cwd=cwd, unjudged=unjudged,
+                                label=_label(tool, args, cfg["vocabulary"]))
         for text in posts:
             _announce(text)
         if p is not None and p.get("n") is not None:            # committed: remember what it did, in memory only
@@ -2083,6 +2169,8 @@ def subagent_stop(parent_session_id="", child_session_id="", **kwargs):
         if not tainted:
             with _locked():
                 tainted = store_().is_tainted(child)
+        if not tainted and simple():                    # a child that read outside content, even lifted since
+            tainted = _lifted(child)
         if tainted:
             _taint(parent)
     except LockTimeout:

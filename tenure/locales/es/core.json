@@ -456,5 +456,6 @@
   "simple.explain.always": "Siempre pregunta: lo que sale de tu máquina (push, deploy, publish, upload...), el riesgo alto, los tipos limitados, un script que el agente acaba de escribir, un paquete nuevo y un archivo que ejecuta código escrito tras contenido externo. Tras contenido externo, el siguiente comando pregunta una vez: aprobado, la sesión funciona como antes (mkdir, git add y git commit nunca preguntan).",
   "simple.explain.study": "Sin controles aleatorios ni garantía en este modo. Para la regla del estudio, su garantía y el pasaporte firmado: {command}",
   "simple.ask.suspended": "Esta sesión leyó contenido externo: permite esta acción y sus comandos se ejecutan como antes el resto de la sesión (siempre con la regla simple); recházala y siguen preguntando.",
-  "simple.ask.prompt_lift": "tenure — {summary}\n{why}\nRechazarla no cuenta ningún error: dudas del contenido, no del agente."
+  "simple.ask.prompt_lift": "tenure — {summary}\n{why}\nRechazarla no cuenta ningún error: dudas del contenido, no del agente.",
+  "simple.undo.fault_anyway": "Se cuenta igualmente como un error de {type}: pediste deshacerla."
 }

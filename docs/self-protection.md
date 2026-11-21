@@ -6,7 +6,9 @@ This is the reference behind the summary in the [README](../README.md#self-prote
 
 A session asks for everything until it ends (under the trusted start: everything but file writes, which keep
 their undo; `/new` starts a fresh session), after using one of these
-tools or commands:
+tools or commands. In simple mode, the next command asks once, and a person's yes lets the session work as before
+(mkdir, git add, and git commit without an active hook, never ask); what follows outside content whatever the
+suspension (a file that runs code, a script written then run, a new dependency) still asks:
 
 - the tools `web_search`, `web_extract`, every `browser_*` tool, `read_file` on a path outside the project, and
   `execute_code`;
@@ -199,6 +201,13 @@ spelling tenure does not know can slip through (see Limits). Every case found so
   check and the run. In a cron job, a fresh script follows Hermes' `cron_mode` (deny by default).
   If your agent must never be able to reach Hermes' files, keep code-running types at `cap`
   (`types: {"shell:npm*": cap, "shell:make*": cap, "code:execute": cap}`).
+- Limits of simple mode, stated plainly:
+  - `pytest`, `go run`, `deno run` and `bun run` run code that the "write then run" rule does not follow (only the
+    file named on the command line, or the manifest of a task runner, is).
+  - A GET request can carry data out of the machine in its URL: a read is never asked.
+  - `memory:write` stays free after a person lifts a suspension.
+  - The programs simple mode leaves free (git, make, prettier...) run without an undo: only the file commands Tenure
+    can read (`rm`, `mv`, `cp`, `sed -i`, `touch`, a redirect, `rm -r` of a folder, an `rm` glob) save their files.
 
 ## What an approval prompt shows, and what it hides
 

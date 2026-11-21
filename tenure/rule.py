@@ -466,6 +466,11 @@ def trusted(s: TypeState, n: int | None, start: str | None, mode: str = STUDY) -
     if mode == SIMPLE:
         return (simple_eligible(s, n) and not s.trial_left and not s.trial_wait
                 and (not s.distrusted or s.tier == T3))
+    return trusted_start(s, n, start)
+
+
+def trusted_start(s: TypeState, n: int | None, start: str | None) -> bool:
+    """``trusted`` in study mode: the trusted start covers the type."""
     return (start == "trusted" and not s.distrusted and n is not None and s.stakes in ("low", "medium")
             and not s.trial_left and not s.trial_wait and trust_covers(s.key))
 
@@ -562,9 +567,11 @@ def outcome(s: TypeState, n: int | None, result: str, source: str, *, session: s
 
 def carry_over_simple(old: TypeState, *, strict: bool) -> TypeState:
     """Simple mode, a model change: the new agent keeps the type as it stands (tier, score, series, the lost trusted
-    start), with counters of its own and no trial; in strict mode it starts over, still distrusted if it was."""
+    start, its faults), with other counters of its own and no trial; in strict mode it starts over, still distrusted
+    and with its faults if it had them."""
     new = TypeState(key=old.key, stakes=old.stakes, reversible=old.reversible, changed_at=time.time(),
                     distrusted=old.distrusted)
+    new.faults = old.faults            # the faults on the type stay on its record: they hold its categories (_marked)
     if not strict:
         new.tier, new.wald, new.series = old.tier, old.wald, old.series
     return new

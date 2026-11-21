@@ -375,8 +375,10 @@ def _passport(agent: str, profile: str | None, raw: bool) -> dict:
         hit = _PASSPORTS.get(key)
         if hit is not None:                           # the ledger has not moved: same passport, same verdict
             return hit
-        rows, chain_ok = _checked_ledger(st)
         cfg = _settings(core, st)
+        if core.simple(cfg):                          # simple mode keeps no passport: said at once, nothing replayed
+            raise HTTPException(409, core.tr("simple.passport", command="hermes tenure mode study"))
+        rows, chain_ok = _checked_ledger(st)
         doc = core.passport.build(st, agent, {"profile": p["name"], "risks": cfg["risks"], "spot": cfg["spot"],
                                               "strict": cfg["strict"]}, _data_dir(p), redact=not raw,
                                   create_key=False, rows=rows)
