@@ -197,7 +197,7 @@ def test_the_study_mode_reads_them_as_before(plugin):
     ("write-then-run", SED + "'s/ok/OK/' inventory/report.py && python3 inventory/report.py"),
     ("reader-file", "rm -rf tmp && python3 -m unittest 2>&1 | grep FAIL notes.bak"),
     ("reader-recursive", "rm -rf tmp && python3 -m unittest 2>&1 | grep -r FAIL"),
-    ("pipe-middle", "rm -rf tmp | tail -3 && python3 -m unittest"),
+    ("pipe-middle-program", "rm -rf tmp | sh && python3 -m unittest"),
 ])
 def test_a_chain_keeps_its_question_when_a_segment_is_not_free_or_a_target_cannot_be_saved(plugin, case, command):
     mod, ctx = make(plugin)
@@ -233,9 +233,9 @@ def test_what_a_chained_line_may_contain(command, ok):
 @pytest.mark.parametrize("reader,ok", [
     ("tail -40", True), ("tail -n 40", True), ("head -5", True), ("cat", True), ("grep -v DEBUG", True),
     ("grep -c ok", True), ("tail -f", False), ("tail -40 app.log", False), ("grep -r x", False),
-    ("grep -f pats", False), ("grep x file", False), ("sort", False), ("tee out", False), ("grep", False),
+    ("grep -f pats", False), ("grep x file", False), ("sort", True), ("tee out", False), ("grep", False),
 ])
-def test_a_last_pipe_goes_only_into_pure_readers(reader, ok):
+def test_a_pipe_goes_only_into_pure_readers(reader, ok):
     from tenure import classify
     assert classify._chain_reader(reader, reader) == ok
 
