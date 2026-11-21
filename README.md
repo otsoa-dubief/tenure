@@ -512,6 +512,14 @@ Nothing on the page frees a kind: it gives the command to type in the chat or a 
 only a person's word frees one. The chip counts the kinds watched or asking first, and a toast appears only for a
 watched action. No tier, guarantee or passport: one line points at study mode.
 
+<p align="center">
+  <img src="docs/images/dashboard-simple.png" width="820" alt="The Tenure dashboard tab in simple mode: four counters, then the changes you can still undo, newest first, each with an Undo button">
+  <br>
+  <img src="docs/images/dashboard-asks.png" width="820" alt="What still asks you, or is watched: deleting files (rm), watched after a mistake, free after 51 more actions you keep">
+  <br>
+  <sub>The dashboard tab in simple mode, on the real session shown at the top (Hermes with Claude Sonnet, Tenure 1.4).</sub>
+</p>
+
 **In study mode**, both keep their tabs: every agent and every action type of every profile on the machine
 (read-only), the map, your own benchmark, the community board, a switch preview before you change model, the
 passport, the undo list with Undo and Flag, and settings; ⌘K also shows the current model's passport or revokes it.
