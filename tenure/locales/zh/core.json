@@ -244,7 +244,7 @@
   "cli.undo.title": {
     "other": "过去 {n} 小时内自主执行的操作（撤销任一个都记为失误）："
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    card [--model M] [--no-redact]             将护照生成一张简短的文本卡片，可粘贴到聊天或帖子中\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    flag [N]                                   不带参数时列出最近的编号操作；带编号时将该操作报告为错误\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    start trusted|probation                    trusted：某类操作第一次失误前不提问；probation：研究起步\n    strict on|off                              严格模式：新模型从空记录开始\n    mode simple|study                          simple（默认）：自由，一次失误后受关注，第二次后先询问；study：研究规则\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n    share [--out FILE]                         写出一份签名的计数记录，用于社区基准（自愿参与，不会发送任何内容）\n    week [--model M]                           过去七天：操作、询问、过错、撤销、仍未结的事项\n    ok [N ...]                                 单独使用列出未结的“先执行后告知”操作；带编号则计入您核对过的操作\n    excuse [N]                                 单独使用列出过去 10 分钟的过错；带 N 则撤回该过错\n    flag --call ID --session ID [--doubt]      验证器：对某个操作报告过错（或用 --doubt 让下一次先询问）\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    card [--model M] [--no-redact]             将护照生成一张简短的文本卡片，可粘贴到聊天或帖子中\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    flag [N]                                   不带参数时列出最近的编号操作；带编号时将该操作报告为错误\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    start trusted|probation                    trusted：某类操作第一次失误前不提问；probation：研究起步\n    strict on|off                              严格模式：新模型从空记录开始\n    mode simple|study                          simple（默认）：自由，一次失误后受关注，第二次后先询问；study：研究规则\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n    share [--out FILE]                         写出一份签名的计数记录，用于社区基准（自愿参与，不会发送任何内容）\n    week [--model M]                           过去七天：操作、询问、过错、撤销、仍未结的事项\n    ok [N ...]                                 单独使用列出未结的“先执行后告知”操作；带编号则计入您核对过的操作\n    excuse [N]                                 单独使用列出过去 10 分钟的过错；带 N 则撤回该过错\n    flag --call ID --session ID [--doubt]      验证器：对某个操作报告过错（或用 --doubt 让下一次先询问）\n    flag N --doubt                             验证者对操作 N 的怀疑：该类型的下一个操作先询问\n",
   "cli.verify.after": {
     "other": "注意：此护照之后账本中有 {n} 个事件；级别没有变化。"
   },
@@ -370,8 +370,8 @@
     "other": "tenure · {type} 重新获得自由：连续 {n} 个操作没有失误。"
   },
   "simple.notice.now": "tenure · {type}，按你的新设置：{state}。",
-  "simple.ask.unsaved": "{type} 本可在可撤销的情况下执行，但无法先保存它的文件：因此询问。",
-  "simple.ask.always": "{type}（{stakes}风险）在简单模式下始终询问：离开你机器的操作和高风险操作从不放行。",
+  "simple.ask.unsaved": "tenure 无法撤销 {type}：它不知道该命令会改动哪些文件，所以询问。",
+  "simple.ask.always": "{type} 会触及本机之外，或做 tenure 无法撤销或读懂的事：它始终询问。",
   "simple.ask.mistakes": {
     "other": "{type} 失误后先询问：再连续批准 {n} 次，它就会重新执行，每个操作都会告知你。"
   },
@@ -379,7 +379,7 @@
     "other": "{type} 失误后先询问：再连续批准 {n} 次，它就会重新获得自由。"
   },
   "simple.turn": {
-    "other": "tenure · {n} 个待关注的操作：{actions} · {command}"
+    "other": "tenure · {n} 个受关注的操作，除非你撤销否则保留：{actions} · {command} <#>"
   },
   "simple.ok": "简单模式下不需要：你在 24 小时内没有撤销的操作会自动算作正确。",
   "simple.passport": "带保证的签名护照属于研究模式；此配置档处于简单模式。切换方式：{command}",
@@ -389,7 +389,7 @@
   "simple.status.header.here": "tenure：此配置档，简单模式，预设 {preset}",
   "simple.status.header.profile": "tenure：配置档 {profile}，简单模式，预设 {preset}",
   "simple.status.intro": "失误前自由；一次失误后，这类操作的每一次都会告知你并可撤销；第二次失误后，它会先询问（研究规则请用 {command}）。",
-  "simple.status.empty": "还没有任何操作类型的记录：一切都像只用 Hermes 时一样执行，离开你机器的操作和高风险操作除外。",
+  "simple.status.empty": "还没有任何操作类型有记录：一切都像只有 Hermes 时那样运行，触及本机之外的操作和高风险类型除外。",
   "simple.status.to_free": "距离自由：{k}/{n} 次无失误",
   "simple.status.to_watched": {
     "other": "距离受关注：{n} 次批准"
@@ -399,24 +399,24 @@
   "simple.explain.title": "简单模式下 tenure 如何决定，一次一类操作：",
   "simple.explain.free": "自由：文件、记忆、子智能体、常用开发工具，以及文件可以先保存的本地命令，都像只用 Hermes 时一样执行，文件变更时可撤销。",
   "simple.explain.watched": "一次失误后（一次撤销、一次标记、一次拒绝、一次自动检查失败），它继续执行，但这类操作的每一次都会在本轮结束时列出，可用 {command} 撤销。",
-  "simple.explain.ask": "第二次失误后，它会先询问你：低风险连续批准 {low} 次，中风险 {medium} 次，它就会重新受关注地执行。",
-  "simple.explain.free_again": "你在 {hours} 小时内没有撤销的受关注操作算作正确：低风险连续 {low} 次无失误，中风险 {medium} 次，它就重新获得自由。",
+  "simple.explain.ask": "第二次失误后，它会先询问你：低风险类型连续批准 {low} 次、中风险类型 {medium} 次后，它重新受关注。",
+  "simple.explain.free_again": "受关注的操作若你在 {hours} 小时内没有撤销，就算作正确：低风险类型连续 {low} 次无失误、中风险类型 {medium} 次后，它重新自由。",
   "simple.explain.free_again_capped": "你在 {hours} 小时内没有撤销的受关注操作算作正确；一段无失误的连续记录让它重新获得自由。",
-  "simple.explain.always": "始终询问：离开你机器的操作（push、deploy、publish、upload……）、高风险、已封顶的类型、智能体刚写的脚本、新的软件包，以及读取外部内容后写入的会执行代码的文件。读取外部内容后，下一条命令会询问一次：批准后，会话照常工作（mkdir、git add 和 git commit 从不询问）。",
+  "simple.explain.always": "始终询问：触及本机之外的操作（push、deploy、publish、upload……）、高风险类型、你的设置要求始终询问的类型、智能体刚写的脚本、新的软件包，以及读取外部内容后写入的会执行代码的文件。读取外部内容后，下一条命令会询问一次：批准后，对话照常进行（mkdir、git add 和 git commit 从不询问）。",
   "simple.explain.study": "此模式下没有随机抽查，也没有保证。研究规则、其保证和签名护照：{command}",
-  "simple.ask.suspended": "此会话读取了外部内容：允许此操作后，本会话余下的命令会像之前一样执行（仍遵循简单规则）；拒绝则它们会继续询问。",
-  "simple.ask.prompt_lift": "tenure — {summary}\n{why}\n拒绝不会记为失误：你怀疑的是内容，而不是智能体。",
-  "simple.undo.fault_anyway": "仍记为 {type} 的一次失误：你要求撤销它。",
+  "simple.ask.suspended": "此对话读取了外部内容，其中可能夹带指令。允许这一项，本对话余下的命令照常执行。拒绝，它们会继续询问。",
+  "simple.ask.prompt_lift": "tenure — {summary}\n{why}\n拒绝不算作失误：你怀疑的是内容，而不是智能体。",
+  "simple.undo.fault_anyway": "仍记为 {type} 的一次失误：是你要求撤销的。",
   "settle.acted_failed": "tenure：{type} 执行失败，停止前可能已修改文件{what} · {command} {id}",
   "undo.done_unchanged": "撤销 {id}：文件已恢复。该调用失败且未作任何修改：不记为 {type} 的失误。",
-  "cli.help": "  {prefix}                  智能体最近做了什么，以及哪些仍可撤销\n  {prefix} undo [N]         单独使用：仍可撤销的操作（24 小时）；带编号：恢复该操作\n  {prefix} trust [KIND]     尚未自由的操作类型；带类型：立即让它自由（KIND ask：始终先询问）\n更多：{prefix} advanced",
+  "cli.help": "  {prefix}                  智能体今天做了什么，以及你可以撤销什么\n  {prefix} undo [N]         列出你可以撤销的内容（24 小时）；带 N：恢复更改 N\n  {prefix} trust [KIND]     还有什么在询问你，以及原因；带 KIND：让它不再询问（KIND ask：始终询问）\n更多：{prefix} advanced",
   "cli.advanced.title": "其他所有命令，用法照旧（{command} <命令>）：",
-  "home.title": "tenure · 智能体最近做了什么",
+  "home.title": "tenure · 智能体今天做了什么，以及你可以撤销什么",
   "home.undo_title": {
-    "other": "仍可撤销（过去 {n} 小时），最新的在前："
+    "other": "仍可撤销的更改（{n} 小时内），最新的在前："
   },
   "home.undo_none": {
-    "other": "过去 {n} 小时内没有可撤销的操作。"
+    "other": "过去 {n} 小时内没有可撤销的内容。"
   },
   "home.undo_more": {
     "other": "还有 {n} 个：{command}"
@@ -424,40 +424,112 @@
   "home.today": {
     "other": "今天未经询问执行：{n} 个操作。"
   },
-  "home.watched": "失误后受关注（每个操作都会告知你，并可撤销）：{types}。",
+  "home.watched": "失误后受关注（每个操作在本轮结束时列出，可撤销）：{types}。",
   "home.asks": "先询问你：{types}。",
-  "trust.title": "{agent} 尚未自由的操作类型：",
+  "trust.title": "仍在询问你或受关注的项（{agent}）：",
   "trust.none": "{agent} 用过的所有操作类型都是自由的。",
-  "trust.footer": "立即让一个自由：{command} <类型> · 让一个始终先询问：{command} <类型> ask",
+  "trust.footer": "让某项不再询问：{command} <类型> · 让某项始终询问：{command} <类型> ask",
   "trust.state.watched": {
-    "other": "失误后受关注：再有 {n} 个你未撤销的操作即重新自由"
+    "other": "失误后受关注：再保留 {n} 个操作即自由"
   },
   "trust.state.ask": {
-    "other": "先询问你：再连续批准 {n} 次即重新自由"
+    "other": "先询问你 · 再连续批准 {n} 次 → 自由"
   },
   "trust.state.pinned": "先询问你（你的选择）：{command} 让它自由",
-  "trust.state.out": "始终询问：它会离开你的机器",
+  "trust.state.out": "始终询问：它会触及本机之外",
   "trust.state.high": "始终询问：高风险",
-  "trust.state.capped": "始终询问：已在你的设置中封顶",
+  "trust.state.capped": "始终询问：你的设置如此要求",
   "trust.state.study": {
     "other": "{tier}：再有 {n} 次已验证的成功即可自主执行"
   },
-  "trust.freed": "{type} 已按你的意思重新自由。再次失误会让它重新受关注。",
+  "trust.freed": "{type} 重新不经询问执行。要撤回：{command}。再失误一次它就受关注。",
   "trust.already_free": "{type} 已经是自由的。",
   "trust.pinned": "{type} 今后每次都会先询问你，直到你让它自由：{command}",
   "trust.already_pinned": "{type} 已经会先询问你。要让它自由：{command}",
-  "trust.refused.out": "{type} 会离开你的机器：它始终询问，不能手动让它自由。",
+  "trust.refused.out": "{type} 会触及本机之外：它始终询问，不能手动让它自由。",
   "trust.refused.high": "{type} 属于高风险：它始终询问，不能手动让它自由。",
-  "trust.refused.capped": "{type} 已被你的设置封顶：它始终询问。要更改设置：{command}",
-  "trust.unknown": "{agent} 没有 {type} 的记录。尚未自由的类型：{types}",
+  "trust.refused.capped": "按你的设置，{type} 始终询问。要更改设置：{command}",
+  "trust.unknown": "{agent} 没有 {type} 的记录。仍在询问你或受关注的项：{types}",
   "trust.study": "手动让某类操作自由属于简单模式（{command}）；在研究模式下，类型须自行赢得级别。",
   "trust.terminal": "让某类操作自由须由人决定：在对话中输入 {slash}，或在交互式终端中运行 {cli}。",
   "trust.nobody": "无人回答审批时（{why}）不可用：只有人可以让某类操作自由。",
   "trust.ask.pinned": "{type} 按你的选择先询问你：{command} 让它自由。",
   "trust.state.ask_watched": {
-    "other": "先询问你：再连续批准 {n} 次即重新受关注"
+    "other": "先询问你 · 再连续批准 {n} 次 → 受关注"
   },
   "trust.state.then_free": {
-    "other": "（之后再有 {n} 个你未撤销的操作即重新自由）"
-  }
+    "other": "→ 再保留 {n} 个操作即自由"
+  },
+  "simple.ask.capped": "tenure — {summary}\n{type} 受保护（Hermes 本身、密钥、敏感文件或你自己的设置）：tenure 始终询问。",
+  "simple.ask.prompt": "tenure — {summary}\n{why}\n如果它不对就拒绝：tenure 之后会更密切地关注这一类型。",
+  "simple.ask.prompt_session": "tenure — {summary}\n{why}\n在本对话中允许它，tenure 在对话结束前不再就此询问；如果它不对就拒绝。",
+  "simple.ask.always_button": "这里会忽略 Hermes 的“始终”：tenure 每次自行决定。",
+  "simple.ask.suspended_from": "（最近的外部内容：{source}。）",
+  "simple.ask.other_stakes": "这个 {type} 操作比它获准自由的那些操作风险更高：它会询问。",
+  "simple.ask.unsaved_files": "tenure 无法在执行前保存 {type} 要改动的内容，因此无法撤销：它会询问。",
+  "simple.ask.settings": "按你的设置，{type} 始终询问。",
+  "simple.settle.acted_fault": "tenure：{type} 留下了一个损坏的文件（{reason}）：记为一次失误{what} · {command} {id}",
+  "simple.settle.check_failed": "tenure：{type}{what} 留下了一个损坏的文件（{reason}）：记为一次失误。",
+  "simple.turn.lines": {
+    "other": "+{n} 行"
+  },
+  "simple.turn.files": "文件：{files}",
+  "simple.undo.title": {
+    "other": "仍可撤销的更改（{n} 小时内），最新的在前。撤销一项即标记为失误："
+  },
+  "simple.undo.none": {
+    "other": "过去 {n} 小时内没有可撤销的内容。"
+  },
+  "simple.undo.done": "已撤销 #{id}：文件已恢复（{type}）。",
+  "simple.undo.done_already_fault": "已撤销 #{id}：文件已恢复（{type}）。它此前已记为失误。",
+  "simple.undo.done_unchanged": "已撤销 #{id}：文件已恢复（{type}）。该调用失败时没有改动任何内容：不记为失误。",
+  "simple.undo.no_snapshot": "撤销 #{id}：此操作前没有保存任何内容，因此无法恢复。",
+  "simple.undo.refused": "撤销 #{id} 被拒绝：{reason}。没有恢复任何内容。",
+  "simple.undo.partial": {
+    "other": "撤销 #{id}：有 {n} 个文件无法恢复（已恢复 {restored} 个）。请排除原因（权限、文件被锁定）后重试。"
+  },
+  "simple.undo.gone": "撤销 #{id}：保存的副本已不在，没有恢复任何内容。",
+  "simple.undo.watched": "{type} 现在受关注；再失误一次，它就会先询问。",
+  "simple.undo.asks": "{type} 现在会先询问你。",
+  "simple.undo.second": "第二次失误：{type} 现在会先询问你。",
+  "simple.notice.excuse_hint": "撤销或拒绝了一个正确的操作？在 {minutes} 分钟内运行 /tenure excuse {n}，它就不计入。",
+  "simple.excuse.done": "失误 {n} 已收回（{type}）：不再计入。{type} 现在：{state}。",
+  "simple.excuse.nobody": "无人回应审批时不行（{why}）：只有人才能收回一次失误。",
+  "simple.excuse.limit": "失误 {n} 无法收回：该类型在过去 {days} 天内已收回 {limit} 次。它仍然计入。",
+  "simple.excuse.unknown": "过去 {minutes} 分钟内没有可收回的失误 {n}（已收回、太久，或并非由你造成）：没有任何改变。",
+  "simple.excuse.title": "过去 {minutes} 分钟内你可以收回的失误，最新的在前：",
+  "simple.excuse.none": "过去 {minutes} 分钟内没有可收回的失误。",
+  "simple.col.kind": "类型",
+  "simple.col.what": "内容",
+  "home.footer": "撤销一项：{prefix} undo N · 什么在询问你及原因：{prefix} trust",
+  "home.why.noundo": "tenure 无法撤销它",
+  "home.why.held": "等待 {held}",
+  "home.why.doubted": "一次检查对它存疑",
+  "kind.file_write": "项目内的文件编辑",
+  "kind.file_write_outside": "项目外的文件编辑",
+  "kind.file_shell": "命令造成的文件改动",
+  "kind.file_shell_rm": "删除文件（rm）",
+  "kind.memory_write": "记忆笔记",
+  "kind.delegate_task": "交给子智能体的工作",
+  "kind.shell_complex": "tenure 读不懂的命令",
+  "kind.shell_stdin_code": "通过管道交给程序的代码",
+  "kind.code_execute": "execute_code 运行的代码",
+  "kind.shell": "{prog} 命令",
+  "kind.shell_inline": "内联运行的 {prog} 代码",
+  "kind.shell_new_dependency": "{prog}：新软件包",
+  "kind.mcp": "{server}：{tool}",
+  "kind.fields": "{kind}，涉及 {fields} 字段",
+  "trust.state.watched_wait": "失误后受关注：若你保留其列出的操作，{hours} 小时内自由",
+  "trust.state.noundo": "询问：tenure 无法撤销它",
+  "trust.state.held": "在 {held} 弥补失误前会询问",
+  "trust.state.doubted": "询问一次：一次检查对它上一个操作存疑",
+  "trust.freed_asks": "{type} 重新不经询问执行。要撤回：{command}。再失误一次它就会先询问你。",
+  "trust.freed_noundo": "按你的意思，{type} 现在不经询问执行。tenure 无法撤销它。要撤回：{command}。一次失误它就重新询问。",
+  "trust.freed_unsaved": "当 tenure 不知道它会改动哪些文件时，它会在无法撤销的情况下执行。",
+  "trust.released": "不再等待：{types}。",
+  "trust.held": "在 {held} 弥补失误前，{type} 会等待：{command} 会让 {held} 自由，{type} 也随之自由。",
+  "trust.doubted": "一次检查对上一个 {type} 操作存疑：它的下一个操作会询问你一次，之后照常执行。",
+  "trust.always": "{type} 本来就始终询问：无需更改。",
+  "trust.for": "（针对 {agent}。）",
+  "trust.ambiguous": "{kind} 匹配多个类型：{types}。请指定一个：{command} <类型>"
 }

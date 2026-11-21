@@ -102,7 +102,7 @@ def replay(start: str, early_web: bool = False, answer: str = "once", after_faul
                 cmd = args.get("command") if tool == "terminal" else None
                 rows.append({"tool": tool, "what": cmd or args.get("path"), "tenure": len(ctx.prompts) > before,
                              "hermes": (detect(cmd) if cmd and detect else False if not cmd else None),
-                             "watched": any("to watch" in str(x) for x in ctx.posted[said:])})
+                             "watched": any("watched action" in str(x) for x in ctx.posted[said:])})
             return rows
         finally:
             if old is None:

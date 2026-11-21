@@ -124,14 +124,14 @@ def test_a_kind_the_trusted_start_left_out_runs_only_with_its_files_saved(plugin
     mod, ctx = make(plugin)
     os.makedirs(os.path.join(ctx.cwd, "build"))
     assert ctx.call("terminal", {"command": "rm -rf build"}) == "approved"         # a folder: nothing to save
-    assert "cannot be saved" in ctx.prompts[-1]["message"]
+    assert "can't save" in ctx.prompts[-1]["message"]
     # file:write as if the trusted start did not cover it: it runs when its file is saved, asks when it cannot be
     monkeypatch.setattr(mod.params, "TRUSTED_TYPES", tuple(t for t in mod.params.TRUSTED_TYPES if t != "file:write"))
     assert ctx.call("write_file", {"path": "src/new.py", "content": "x = 1\n"}) == "ran"
     with open(os.path.join(ctx.cwd, "blob.py"), "wb") as f:
         f.write(b"\x00binary")
     assert ctx.call("write_file", {"path": "blob.py", "content": "x = 2\n"}) == "approved"
-    assert "cannot be saved" in ctx.prompts[-1]["message"]
+    assert "can't save" in ctx.prompts[-1]["message"]
 
 
 # ----------------------------------------------------------------------------------- a fault, then a second
@@ -143,7 +143,7 @@ def test_a_first_fault_makes_a_reversible_kind_watched(plugin):
     assert s.tier == mod.rule.T2 and s.wald == mod.params.wald_steps("low")[2] and s.series == 0
     assert s.trial_left == s.trial_wait == 0 and not s.lengthened
     assert "watched" in out and "T2" not in out
-    assert any("listed for you at the end of the turn" in str(p) for p in [out])
+    assert "is now watched; a second mistake and it asks first" in out and len(out.splitlines()) <= 2
     assert ctx.call("write_file", {"path": "src/b.py", "content": "x = 2\n"}) == "ran"    # it keeps acting
     assert ctx.prompts == []
     assert mod.store_().db.execute("SELECT COUNT(*) FROM credits").fetchone()[0] == 1   # watched, undo kept
@@ -209,10 +209,10 @@ def test_silence_through_the_undo_window_frees_the_kind_after_n(plugin):
         assert ctx.call("write_file", {"path": f"src/f{i}.py", "content": "x = 1\n"}) == "ran"
         if i == 0:
             mod.post_llm_call(session_id="s1")                 # the turn of the last watched one ends
-            assert "4 actions to watch:" in ctx.posted[-1] and "src/w9.py" in ctx.posted[-1]
+            assert "4 watched actions, kept unless you undo them:" in ctx.posted[-1] and "src/w9.py" in ctx.posted[-1]
             ctx.posted.clear()
     mod.post_llm_call(session_id="s1")
-    assert ctx.prompts == [] and not any("to watch" in str(p) for p in ctx.posted)
+    assert ctx.prompts == [] and not any("watched action" in str(p) for p in ctx.posted)
     assert not mod.store_().get_meta(mod._due_key(A, "file:write"))
     # a later fault starts again at the first step
     mod.cli.slash(f"undo {last_undo(mod)}")
@@ -241,7 +241,8 @@ def test_one_line_at_the_end_of_the_turn_lists_the_watched_actions(plugin):
     assert ctx.call("terminal", {"command": "rm b.log"}) == "ran"
     assert ctx.posted == []                                    # nothing during the turn
     mod.post_llm_call(session_id="s1")
-    assert ctx.posted == ["tenure · 2 actions to watch: rm notes.txt, rm b.log · /tenure undo"]
+    assert ctx.posted == ["tenure · 2 watched actions, kept unless you undo them: #2 rm notes.txt, #3 rm b.log"
+                          " · /tenure undo <#>"]
     mod.post_llm_call(session_id="s1")
     assert len(ctx.posted) == 1                                # said once
     ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})      # free: not listed
@@ -273,7 +274,7 @@ def test_excuse_takes_the_fault_back(plugin):
     assert mod.trusted(mod.settings(), s, 4, "low")
     ctx.call("write_file", {"path": "src/b.py", "content": "x = 1\n"})
     mod.post_llm_call(session_id="s1")
-    assert not any("to watch" in str(p) for p in ctx.posted)
+    assert not any("watched action" in str(p) for p in ctx.posted)
 
 
 # -------------------------------------------------------------------------------------------- mode switch
@@ -423,7 +424,7 @@ def test_one_approval_lifts_the_suspension_for_the_session(plugin):
     assert ctx.posted == []                                    # no separate notice: the question says why
     assert ctx.call("terminal", {"command": "npm test"}, answer="once") == "approved"
     msg = ctx.prompts[-1]["message"]
-    assert "read outside content" in msg and "Suspended by: terminal" in msg
+    assert "read outside content" in msg and "Last outside content: terminal" in msg
     assert ":lift:" in ctx.prompts[-1]["rule_key"]
     st = mod.store_()
     assert not st.is_tainted(mod.anon("s1")) and st.lifted(mod.anon("s1"))
@@ -530,7 +531,7 @@ def test_rm_r_asks_when_the_folder_cannot_be_saved_whole(plugin, case):
     else:
         os.mkfifo(os.path.join(build, "pipe"))
     assert ctx.call("terminal", {"command": "rm -rf build"}) == "approved"
-    assert "cannot be saved" in ctx.prompts[-1]["message"]
+    assert "can't save" in ctx.prompts[-1]["message"]
 
 
 def test_an_rm_glob_is_read_now_and_saved(plugin):
@@ -563,7 +564,7 @@ def test_python_c_still_asks_and_a_capped_question_says_always(plugin):
     assert ctx.call("terminal", {"command": "python -c 'print(1)'"}) == "approved"
     assert ctx.call("terminal", {"command": "kubectl apply -f x.yaml"}) == "approved"
     for d in ctx.prompts:
-        assert "always asks in simple mode" in d["message"] and "verified successes" not in d["message"]
+        assert "it always asks" in d["message"] and "verified successes" not in d["message"]
 
 
 def test_the_friction_bench_web_page_fourth_in_simple_mode():
@@ -580,7 +581,7 @@ def test_refusing_the_lift_question_is_no_fault(plugin):
     ctx.call("terminal", {"command": "curl https://example.com/docs"})
     assert ctx.call("terminal", {"command": "npm test"}, answer="deny") == "refused"
     msg = ctx.prompts[-1]["message"]
-    assert "counts no fault" in msg and "counts as a fault" not in msg
+    assert "isn't counted as a mistake" in msg and "counts as a fault" not in msg
     s = state(mod, "shell:npm")
     assert s.faults == 0 and not s.distrusted and s.neutrals == 1
     assert [e["result"] for e in ledger(mod, "outcome")] == ["neutral"]
@@ -694,7 +695,7 @@ def test_9_an_undo_that_fails_still_counts_as_a_fault(plugin, monkeypatch, how):
     else:
         monkeypatch.setattr(mod.undo, "restore", lambda *a, **k: (1, 1) if how == "partial" else (0, 0))
     out = mod.cli.slash(f"undo {n}")
-    assert "fault of file:write all the same" in out
+    assert "mistake of file:write all the same" in out
     s = state(mod, "file:write")
     assert s.faults == 1 and s.tier == mod.rule.T2
     mod.cli.slash(f"undo {n}")                                       # a retry counts no second fault
@@ -793,20 +794,28 @@ def test_18_globignore_and_fignore_are_hijacks(var):
 @pytest.mark.parametrize("mode", ["simple", "study"])
 def test_3_a_failed_call_keeps_its_undo(plugin, mode):
     """An rm -r cut short by an error: its files were saved, so the undo is offered (both modes) and puts them back.
-    A failed call that changed nothing: the undo restores, and counts no fault."""
+    A failed call that changed nothing: simple mode keeps no undo for it (point 18); study mode offers one that
+    restores and counts no fault."""
+    from test_plugin import pre, post
     mod, ctx = plugin({"mode": mode, "start": "trusted", **FAST})
     key = "file:shell:rm" if mode == "simple" else "file:shell"
     touch(ctx, "c.txt", "c")
     ctx.call("terminal", {"command": "rm c.txt"}, status="error")      # failed, changed nothing
-    out = mod.cli.slash(f"undo {last_undo(mod)}")
-    assert "no fault" in out and open(os.path.join(ctx.cwd, "c.txt")).read() == "c"
+    if mode == "simple":
+        assert last_undo(mod) is None
+    else:
+        out = mod.cli.slash(f"undo {last_undo(mod)}")
+        assert "no fault" in out
+    assert open(os.path.join(ctx.cwd, "c.txt")).read() == "c"
     assert state(mod, key) is None or state(mod, key).faults == 0
     for name in ("build/a.txt", "build/sub/b.txt"):
         touch(ctx, name, name)
     cmd = "rm -rf build" if mode == "simple" else "rm build/a.txt build/sub/b.txt"
     ctx.posted.clear()
-    ctx.call("terminal", {"command": cmd}, status="error")
+    args = {"command": cmd}
+    assert pre(mod, "terminal", args, "cut") is None                  # runs, its files saved first
     os.remove(os.path.join(ctx.cwd, "build", "a.txt"))                # what it removed before it stopped
+    post(mod, "terminal", args, "cut", status="error", result='{"output": "", "exit_code": 1, "error": "cut"}')
     mod.post_llm_call(session_id="s1")
     n = last_undo(mod)
     assert any(f"/tenure undo" in str(p) for p in ctx.posted)

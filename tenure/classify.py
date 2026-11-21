@@ -195,6 +195,25 @@ SENSITIVE_FRAGMENTS = ("authorized_keys", "known_hosts", "id_ed25519", "id_ecdsa
 # them, wherever the Hermes home is, is self:tenure (capped; no override lowers it).
 TENURE_NAMES = re.compile(r"tenure\.db|plugin-data/tenure(?![\w.-])|passport-ed25519\.pem"
                              r"|api/plugins/tenure(?![\w.-])")      # the dashboard's settings, revoke and undo API
+UNQUOTE_ROUNDS = 8              # percent-decoding passes before a text is taken as stable (each one shortens it)
+
+
+def _unquoted(text: str) -> str:
+    """``text`` percent-decoded until it no longer changes (``%2574`` is ``%74`` is ``t``), then lower case with
+    forward slashes: a URL's path as the dashboard's server reads it, whatever the encoding."""
+    from urllib.parse import unquote
+    for _ in range(UNQUOTE_ROUNDS):
+        decoded = unquote(text)
+        if decoded == text:
+            break
+        text = decoded
+    return text.casefold().replace("\\", "/")
+
+
+def tenure_named(text: str) -> bool:
+    """A command, a piece of code or a word names tenure's data or the dashboard's API, as written or once
+    percent-decoded (``api/plugins/%74enure/settings``)."""
+    return bool(TENURE_NAMES.search(text) or ("%" in text and TENURE_NAMES.search(_unquoted(text))))
 # What Hermes keeps at the top of each home level (a home, a root, and each profiles/<name> under them). Only these are
 # protected: a project or a workspace under a home (kanban/workspaces/..., workspace/, home/) is ordinary.
 HERMES_ENTRIES = frozenset({
@@ -422,7 +441,7 @@ def _self_hit(text: str, anywhere: bool = False) -> bool:
 # beyond what is lexed): its CLI run or looked up, its modules, a home level, one of its entries, tenure's data.
 def _plain_hermes(text: str) -> tuple[str, str] | None:
     low = text.casefold().replace("\\", "/")
-    if TENURE_NAMES.search(low):
+    if tenure_named(low):
         return "self:tenure", CAP
     if HERMES_RUN.search(text) or HERMES_ALIAS.search(text) or HERMES_CODE.search(text):
         return SELF_HERMES
@@ -962,7 +981,7 @@ def _names_hermes(word: str, cwd, home: str) -> bool:
     for alt in _braces(word):
         e = _expand(alt, home)
         low = _norm(e).casefold()
-        if HERMES_PART.search(low) or _self_hit(low, anywhere=True) or TENURE_NAMES.search(low):
+        if HERMES_PART.search(low) or _self_hit(low, anywhere=True) or tenure_named(low):
             return True
         if not _unresolved(e) and not GLOB.search(e) and (cwd != UNKNOWN or os.path.isabs(e)):
             if _protected_dir(_abs(e, "/" if cwd == UNKNOWN else cwd, home)):
@@ -4451,7 +4470,7 @@ def _frag(word: str) -> bool:
 def _text_floor(text: str) -> str | None:
     """The protected type that a word or a piece of code names, or None: tenure's own data (self:tenure),
     else a sensitive file or a Hermes home (file:sensitive)."""
-    if TENURE_NAMES.search(text.casefold().replace("\\", "/")):
+    if tenure_named(text.casefold().replace("\\", "/")):
         return "self:tenure"
     return "file:sensitive" if _frag(text) else None
 
@@ -4714,7 +4733,7 @@ def _shell_read(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str,
         return "self:hermes", CAP, False
     if _complex_floor(command):
         low = command.casefold()          # quotes cannot be trusted here: look at the raw text
-        if TENURE_NAMES.search(low):
+        if tenure_named(low):
             return "self:tenure", CAP, False
         if (any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.casefold() in low for d in SENSITIVE_DIRS)
                 or _self_hit(low, anywhere=True)):
@@ -5024,7 +5043,7 @@ def _code(code: str, cwd=None, home: str | None = None) -> tuple[str, str, bool]
     if _runs_hermes_code(code):
         return "self:hermes", CAP, False
     low = code.casefold().replace("\\\\", "/").replace("\\", "/")
-    if TENURE_NAMES.search(low):
+    if tenure_named(low):
         return "self:tenure", CAP, False
     if (any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.casefold() in low for d in SENSITIVE_DIRS)
             or _self_hit(low) or CODE_PREFIX.search(code) or CODE_GIT_CONFIG.search(low)):
@@ -5305,7 +5324,7 @@ def _args_hit(args: dict, cwd, home: str, reading: bool = False, commands: bool 
         if s is None:
             deep = True
             continue
-        for variant in dict.fromkeys((s, unquote(s), unquote(unquote(s)))):
+        for variant in dict.fromkeys((s, unquote(s), unquote(unquote(s)), _unquoted(s))):
             low = _norm(variant).casefold()
             if TENURE_NAMES.search(low):
                 return "self:tenure", CAP
