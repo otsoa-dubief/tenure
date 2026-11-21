@@ -38,6 +38,7 @@
   "cli.report.call_unknown": "A verifier named an action by its session and tool call id; {call} is that id (cut at 40). Keep call id as a technical term.",
   "cli.report.doubt_done": "A verifier reported a doubt, not a fault: nothing counts against the agent, only the next action of this kind asks first.",
   "simple.turn": "Simple mode: one line at the end of a turn. {actions}: the commands (or files) of the watched actions of that turn, comma-separated; {command} is /tenure undo.",
+  "simple.turn.count": "Simple mode: after a chained command in the end-of-turn line and in /tenure, in brackets: how many files its one undo holds. Keep +{n}.",
   "simple.state.watched": "Simple mode: where a type stands after its first mistake. Shown after \"it is now at\" in undo and flag messages, and in the status table.",
   "simple.status.to_free": "Status table cell: {k} watched actions without a mistake so far, of the {n} that free the type again.",
   "cli.help": "The three commands /tenure shows. Keep {prefix} (/tenure or hermes tenure), undo [N], trust [KIND], KIND ask and advanced exactly as written, and the alignment with spaces; translate only the descriptions and the word More.",

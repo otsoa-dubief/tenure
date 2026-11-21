@@ -208,6 +208,10 @@ spelling tenure does not know can slip through (see Limits). Every case found so
   - `memory:write` stays free after a person lifts a suspension.
   - The programs simple mode leaves free (git, make, prettier...) run without an undo: only the file commands Tenure
     can read (`rm`, `mv`, `cp`, `sed -i`, `touch`, a redirect, `rm -r` of a folder, an `rm` glob) save their files.
+  - A chained line (`git rm -r build && rm -rf build && sed -i ...`, `rm -rf tmp && pytest 2>&1 | tail -40`) runs
+    with one undo only when every segment is free on its own or a file command whose targets can all be saved, and
+    its targets, like a glob's matches, are read before the line runs: a file an earlier segment creates and a later
+    one deletes is not saved.
 
 ## What an approval prompt shows, and what it hides
 

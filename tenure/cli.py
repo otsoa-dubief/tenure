@@ -752,20 +752,22 @@ def _kind_named(key: str, reason: str = "") -> str:
 
 def _undo_label(core, st, rows_by_undo: dict, uid: int, snap: str | None, key: str) -> str:
     """What an undoable action did, as the end-of-turn line shows it: the command's first line, secrets masked
-    (remembered in memory by this process only), else the files its undo restores, else nothing. Control and format
-    characters become U+FFFD, as in that line."""
+    (remembered in memory by this process only), else the files its undo restores, else nothing; a chained line adds
+    how many files its undo holds, "(+N files)". Control and format characters become U+FFFD, as in that line."""
     r = rows_by_undo.get(uid)
     what = core.summary_of(st.path, r["n"], r["at"]) if r else ""
     if what.startswith(key + ": "):
         what = what[len(key) + 2:]
     what = what.strip().splitlines()[0] if what.strip() else ""
+    count = st.get_meta(core.UNDO_FILES + str(uid)) if what else ""     # a chained line: the files of its one undo
     if not what and snap:
         d = undo.describe(snap, core.data_dir())
         if d:
             what = tr("cli.undo.more_files", file=d["file"], n=d["files"] - 1) if d["files"] > 1 else d["file"]
     what = _plain(what)
     cap = core.LABEL_CAP
-    return what if len(what) <= cap else what[:cap - 1] + "\u2026"
+    what = what if len(what) <= cap else what[:cap - 1] + "\u2026"
+    return f"{what} ({tr('simple.turn.count', n=int(count))})" if count and count.isdigit() else what
 
 
 def _fixed(cfg: dict, s: rule.TypeState) -> str | None:

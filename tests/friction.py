@@ -10,7 +10,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 from test_plugin import PKG, FakeCtx, Picks  # noqa: E402
 
 # The in-place edit as each system's sed spells it (BSD sed on macOS takes the suffix as the next word).
-SED = ("sed -i '' " if sys.platform == "darwin" else "sed -i ") + "'s/old/new/' src/app.py"
+SED_I = "sed -i '' " if sys.platform == "darwin" else "sed -i "
+SED = SED_I + "'s/old/new/' src/app.py"
 
 SESSION = [
     ("write_file", {"path": "src/app.py", "content": "old = 1\n"}),
@@ -46,6 +47,27 @@ SESSION = [
 ]
 
 
+# Chained lines as a real agent (Sonnet in Hermes) wrote them, on a project whose files exist, so each undo really
+# saves what the line deletes or moves (the bench runs no command: the files stay for the next line).
+CHAIN_FILES = {"build/out.txt": "built\n", "build/sub/more.txt": "more\n", "app.log": "app\n", "debug.log": "debug\n",
+               "tmp/scratch.txt": "scratch\n", "notes.bak": "notes\n", "inventory/__init__.py": "",
+               "inventory/textutil.py": "def shout(s):\n    return s.upper()\n",
+               "inventory/report.py": "from inventory.textutil import shout\n",
+               "tests/test_inventory.py": "def test_ok():\n    assert True\n", "cache.pyc": "x\n",
+               "dist/bundle.js": "x\n", "package.json": '{"scripts": {"build": "true"}}\n'}
+CHAINS = [
+    ("terminal", {"command": "git status && git diff --stat"}),
+    ("terminal", {"command": "git rm -rq build app.log debug.log && rm -rf build && git mv inventory/textutil.py "
+                             "inventory/text.py && " + SED_I + "'s/textutil/text/g' inventory/report.py"}),
+    ("terminal", {"command": "rm -rf tmp notes.bak && python3 -m unittest discover -s tests -v 2>&1 | tail -40"}),
+    ("terminal", {"command": "rm -f *.pyc && python -m pytest -q"}),
+    ("terminal", {"command": "rm -rf dist && npm run build"}),
+    ("terminal", {"command": 'git add -A && git commit -m "rename textutil to text"'}),
+    ("terminal", {"command": "rm notes.bak && git push origin main"}),
+    ("terminal", {"command": "rm -rf tmp && curl -s https://example.com/api"}),
+]
+
+
 def _hermes_detect():
     """Hermes' own dangerous-command check (installed Hermes, or its source in HERMES_AGENT_DIR); None if missing."""
     src = os.environ.get("HERMES_AGENT_DIR")
@@ -58,8 +80,11 @@ def _hermes_detect():
     return lambda cmd: bool(detect_dangerous_command(cmd)[0])
 
 
-def session(early_web: bool = False) -> list:
-    """The session; early_web moves the web page from the end to the fourth call."""
+def session(early_web: bool = False, chains: bool = False) -> list:
+    """The session; early_web moves the web page from the end to the fourth call (chains: a web page second)."""
+    if chains:
+        calls = list(CHAINS)
+        return calls[:1] + [("terminal", {"command": "curl https://example.com/docs"})] + calls[1:] if early_web else calls
     if not early_web:
         return list(SESSION)
     web = [c for c in SESSION if c[1].get("command", "").startswith("curl")]
@@ -68,12 +93,12 @@ def session(early_web: bool = False) -> list:
 
 
 def replay(start: str, early_web: bool = False, answer: str = "once", after_fault: str = "",
-           mode: str = "study") -> list[dict]:
+           mode: str = "study", chains: bool = False) -> list[dict]:
     """One row per call: the call, whether tenure asked, whether Hermes alone would ask (None: unknown), whether it
     was a watched action listed at the end of its turn (simple mode). answer: what the owner picks when tenure asks
     ("once", or "session" for "Allow for this session"). after_fault: before the session, one file write is undone
     ("undone": a fault on file:write), then excused ("excused"). mode: "study" (the start applies) or "simple" (every
-    call is its own turn)."""
+    call is its own turn). chains: the chained lines of a real run (``CHAINS``), on a project holding their files."""
     detect = _hermes_detect()
     old = os.environ.get("HERMES_HOME")
     with tempfile.TemporaryDirectory() as tmp:
@@ -83,6 +108,11 @@ def replay(start: str, early_web: bool = False, answer: str = "once", after_faul
             mod = importlib.reload(importlib.import_module(PKG))
             project = os.path.join(tmp, "project")
             os.makedirs(project)
+            for name, text in (CHAIN_FILES.items() if chains else ()):
+                path = os.path.join(project, name)
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(text)
             ctx = FakeCtx({"start": start, "mode": mode}, cwd=project)
             mod.register(ctx)
             mod.ST.rng = Picks()
@@ -94,15 +124,18 @@ def replay(start: str, early_web: bool = False, answer: str = "once", after_faul
                 if after_fault == "excused":
                     import re
                     mod.cli.slash("excuse " + re.search(r"excuse (\d+)", out).group(1))
-            rows = []
-            for tool, args in session(early_web):
+            rows, last_undo = [], None
+            for tool, args in session(early_web, chains):
                 before, said = len(ctx.prompts), len(ctx.posted)
                 ctx.call(tool, args, answer=answer)
                 mod.post_llm_call(session_id="s1")             # the turn ends: simple mode lists what it watched
                 cmd = args.get("command") if tool == "terminal" else None
+                undo = mod.store_().db.execute("SELECT MAX(id) FROM undo").fetchone()[0]
                 rows.append({"tool": tool, "what": cmd or args.get("path"), "tenure": len(ctx.prompts) > before,
+                             "undo": undo is not None and undo != last_undo,
                              "hermes": (detect(cmd) if cmd and detect else False if not cmd else None),
                              "watched": any("watched action" in str(x) for x in ctx.posted[said:])})
+                last_undo = undo
             return rows
         finally:
             if old is None:
