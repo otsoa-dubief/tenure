@@ -3527,6 +3527,7 @@ const TENURE_LOCALES = {
 
   var BASE = "/api/plugins/tenure";
   var POLL_MS = 2000;
+  var MODE_MS = 30000;      // study mode reads /simple (the mode) at load, then every 30 s and when the tab is shown again
   var WEEK = 7 * 86400;
   var PASSPORT_MS = 30000;  // a passport replays the ledger: fetched on open, after an action, else every 30 s
 
@@ -3724,8 +3725,10 @@ const TENURE_LOCALES = {
 
   /** Poll ``fn`` every POLL_MS while the page is visible; ``deps`` restart it. An answer is tagged with the deps it
    * was fetched for: when the deps change, the previous answer is never returned (no other agent's passport shows). */
-  function usePoll(fn, deps, enabled, every) {
-    var period = every || POLL_MS;
+  /** ``every``: the period in ms, or a function of the last answer that gives it; ``wake``: read again at once when the
+   *  page is shown again (for a slow poll). */
+  function usePoll(fn, deps, enabled, every, wake) {
+    function periodOf(data) { return typeof every === "function" ? every(data) : every || POLL_MS; }
     var key = JSON.stringify(deps);
     var state = useState({ data: null, error: null, at: 0, key: key });
     var set = state[1];
@@ -3734,22 +3737,30 @@ const TENURE_LOCALES = {
     useEffect(function () {
       alive.current = true;
       if (enabled === false) return function () { alive.current = false; };
-      var timer = null;
+      var timer = null, last = null;
       var my = ++tickRef.current;
       function run() {
-        if (document.hidden) { timer = setTimeout(run, period); return; }
+        timer = null;
+        if (document.hidden) { timer = setTimeout(run, periodOf(last)); return; }
         Promise.resolve().then(fn).then(function (data) {
+          last = data;
           if (alive.current && my === tickRef.current) set({ data: data, error: null, at: Date.now(), key: key });
         }, function (err) {
           if (alive.current && my === tickRef.current) {
             set(function (s) { return s.key === key ? { data: s.data, error: err, at: s.at, key: key } : { data: null, error: err, at: 0, key: key }; });
           }
         }).then(function () {
-          if (alive.current && my === tickRef.current) timer = setTimeout(run, period);
+          if (alive.current && my === tickRef.current) timer = setTimeout(run, periodOf(last));
         });
       }
+      function onShow() { if (!document.hidden && timer) { clearTimeout(timer); run(); } }
+      if (wake) document.addEventListener("visibilitychange", onShow);
       run();
-      return function () { alive.current = false; if (timer) clearTimeout(timer); };
+      return function () {
+        alive.current = false;
+        if (timer) clearTimeout(timer);
+        if (wake) document.removeEventListener("visibilitychange", onShow);
+      };
       // eslint-disable-next-line
     }, deps);
     return state[0].key === key ? state[0] : { data: null, error: null, at: 0, key: key };
@@ -6132,8 +6143,10 @@ const TENURE_LOCALES = {
     }, [raw, version]);
     var agentsRes = tick;
     // The mode comes from GET /simple, which answers even before the profile has a database: simple mode reads the
-    // whole page from it; study mode keeps the tabs below, unchanged.
-    var simpleRes = usePoll(function () { return apiGet("/simple", { raw: raw, lang: LANG }); }, [raw, version, LANG]);
+    // whole page from it, every 2 s; study mode keeps the tabs below, unchanged, and reads the mode only at load, every
+    // 30 s and when the tab is shown again.
+    var simpleRes = usePoll(function () { return apiGet("/simple", { raw: raw, lang: LANG }); }, [raw, LANG], true,
+      function (d) { return d && d.mode === "simple" ? POLL_MS : MODE_MS; }, true);
 
     var data = tick.data ? tick.data.agents : null;
     var profiles = data ? data.profiles : [];
@@ -6150,7 +6163,10 @@ const TENURE_LOCALES = {
     var current = profiles.filter(function (p) { return p.current; })[0];
     var simpleData = simpleRes.data && simpleRes.data.mode === "simple" ? simpleRes.data : null;
     var simpleMode = !!simpleData;
-    var modeKnown = !!(simpleRes.data || simpleRes.error);
+    // Before /simple answers, /agents gives the mode of a profile that has a database: study shows at once (no wait in
+    // study mode), simple waits for its page; with no answer yet, the tab loads as it always did.
+    var agentsMode = current && current.settings ? current.settings.mode : null;
+    var waitMode = !simpleRes.data && !simpleRes.error && agentsMode !== "study";
 
     // Every automatic tier change is announced: diff the effective tiers between two polls.
     useEffect(function () {
@@ -6252,8 +6268,8 @@ const TENURE_LOCALES = {
     var retry = h(Btn, { kind: "ghost", onClick: function () { setVersion(version + 1); } }, t("page.retry"));
     var body;
     if (simpleMode) body = h(SimpleView, { data: simpleData, raw: raw, onDone: done });
-    else if (!modeKnown && !err) body = h("div", { className: "tnr-dim tnr-pad" }, t("simple.loading"));
-    else if (!data && !err) body = h("div", { className: "tnr-dim tnr-pad" }, t("common.loading"));
+    else if (waitMode && agentsMode === "simple" && !err) body = h("div", { className: "tnr-dim tnr-pad" }, t("simple.loading"));
+    else if ((!data || waitMode) && !err) body = h("div", { className: "tnr-dim tnr-pad" }, t("common.loading"));
     else if (!data && err) body = h("div", { className: "tnr-error" }, t("page.error", { error: errText(err) }), " ", retry);
     else if (view === "map") {
       body = h(MapView, { profiles: profiles, rows: rows, settings: current && current.settings, focus: focus, onFocus: setFocus,

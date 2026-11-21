@@ -901,12 +901,16 @@ def home_text(prefix: str = "/tenure") -> str:
     return "\n".join(lines)
 
 
-def _state_parts(core, cfg: dict, s: rule.TypeState, prefix: str, info: dict | None = None) -> list[tuple[str, dict]]:
+def _state_parts(core, cfg: dict, s: rule.TypeState, prefix: str, info: dict | None = None,
+                 hidden: bool = False) -> list[tuple[str, dict]]:
     """What ``/tenure trust`` says of a kind, as (catalog key, values) pairs read one after the other: why it asks or
-    is watched, and what brings it back. The dashboard shows the same pairs, so the same numbers."""
+    is watched, and what brings it back. The dashboard shows the same pairs, so the same numbers; ``hidden``: it shows
+    the kind's name redacted, so a command naming it could not be typed (the page says how to see the name)."""
     info = info or _kind_info(core, cfg, s)
     state, left = info["state"], info["left"]
     if state == "pinned":
+        if hidden:
+            return [("trust.state.pinned_hidden", {})]
         return [("trust.state.pinned", {"command": f"{prefix} trust {s.key}"})]
     if state in ("out", "high", "capped", "noundo", "doubted"):
         return [(f"trust.state.{state}", {})]

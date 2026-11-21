@@ -222,3 +222,50 @@ def test_the_last_active_agent_comes_first(plugin):
     d = simple(client, raw=1)
     assert [a["agent"] for a in d["agents"]] == ["model-b@nous", A] and d["agent"] == "model-b@nous"
     assert json.dumps(d)                                           # plain JSON all through
+
+
+def test_a_redacted_name_says_to_show_raw_names_instead_of_a_command(plugin):
+    mod, ctx = make(plugin)
+    ctx.call("terminal", {"command": "git my-alias"})
+    ctx.call("terminal", {"command": "docker compose up"})
+    mod.cli.slash("trust shell:git:my-alias ask")
+    api, client = client_for()
+    shown = mod.passport.redact_type("shell:git:my-alias")
+    assert shown != "shell:git:my-alias"
+    hidden = kinds_of(simple(client))[shown]
+    assert hidden["steps"] == [{"key": "trust.state.pinned_hidden"}] and "/tenure trust" not in hidden["text"]
+    assert hidden["text"] == mod.i18n.tr("trust.state.pinned_hidden")
+    for lang in ("fr", "es", "zh", "ar"):                          # in every language, never the hashed command
+        text = kinds_of(simple(client, lang=lang))[shown]["text"]
+        assert text == mod.i18n.tr("trust.state.pinned_hidden", lang=lang) and shown not in text
+    raw = kinds_of(simple(client, raw=1))
+    assert raw["shell:git:my-alias"]["text"] in trust_line(mod, "shell:git:my-alias")     # raw: the real command
+    assert (raw["shell:docker"]["state"], raw["shell:docker"]["group"]) == ("noundo", "noundo")
+    assert raw["shell:docker"]["text"] in trust_line(mod, "shell:docker")
+
+
+def test_the_acted_event_says_which_actions_the_turn_line_lists(plugin, monkeypatch):
+    import types
+    sent = []
+    fake = types.ModuleType("hermes_cli.plugin_events")
+    fake.broadcast_plugin_event = lambda pid, ev, payload=None: sent.append(payload) if ev == "acted" else None
+    monkeypatch.setitem(sys.modules, "hermes_cli.plugin_events", fake)
+    mod, ctx = make(plugin)
+    ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})            # free: silent
+    assert sent[-1]["simple"] is True and sent[-1]["watched"] is False
+    mod.cli.slash(f"undo {last_undo(mod)}")                                       # a mistake: watched
+    ctx.call("write_file", {"path": "src/b.py", "content": "x = 1\n"})
+    mod.post_llm_call(session_id="s1")                                            # the turn ends: its line
+    assert sent[-1]["watched"] is True and "#%d" % sent[-1]["undo_id"] in "".join(ctx.posted)
+    assert "#%d " % sent[0]["undo_id"] not in "".join(ctx.posted)                 # the free one was not listed
+
+
+def test_the_acted_event_in_study_mode_is_never_watched(plugin, monkeypatch):
+    import types
+    sent = []
+    fake = types.ModuleType("hermes_cli.plugin_events")
+    fake.broadcast_plugin_event = lambda pid, ev, payload=None: sent.append(payload) if ev == "acted" else None
+    monkeypatch.setitem(sys.modules, "hermes_cli.plugin_events", fake)
+    mod, ctx = plugin({"mode": "study", "start": "trusted", **FAST})
+    ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})
+    assert sent and sent[-1]["simple"] is False and sent[-1]["watched"] is False

@@ -439,6 +439,7 @@
     "other": "先询问你 · 再连续批准 {n} 次 → 自由"
   },
   "trust.state.pinned": "先询问你（你的选择）：{command} 让它自由",
+  "trust.state.pinned_hidden": "先询问你（你的选择）：显示原始名称以复制让它自由的命令",
   "trust.state.out": "始终询问：它会触及本机之外",
   "trust.state.high": "始终询问：高风险",
   "trust.state.capped": "始终询问：你的设置如此要求",

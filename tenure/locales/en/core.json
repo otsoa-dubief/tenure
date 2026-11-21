@@ -494,6 +494,7 @@
     "other": "asks you first · {n} more approvals in a row → free"
   },
   "trust.state.pinned": "asks you first, your choice: {command} frees it",
+  "trust.state.pinned_hidden": "asks you first, your choice: show raw names to copy the command that frees it",
   "trust.state.out": "always asks: it reaches outside this machine",
   "trust.state.high": "always asks: high risk",
   "trust.state.capped": "always asks: your settings say so",

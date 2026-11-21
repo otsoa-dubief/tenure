@@ -302,12 +302,11 @@ def _simple_kinds(core, cli, cfg: dict, st, agent: str, raw: bool) -> dict:
             continue
         shown = _name(core, s.key, raw)
         steps = []
-        for key, values in cli._state_parts(core, cfg, s, "/tenure", info):
+        # A redacted name cannot be typed: a sentence that would give a command naming it says to show raw names.
+        for key, values in cli._state_parts(core, cfg, s, "/tenure", info, hidden=shown != s.key):
             values = dict(values)
             if "held" in values:
                 values["held"] = _name(core, values["held"], raw)
-            if "command" in values:
-                values["command"] = f"/tenure trust {shown}"
             steps.append({"key": key, **values})
         kinds.append({"type": shown, "label": cli.kind_label(shown), "stakes": s.stakes, "state": info["state"],
                       "group": SIMPLE_GROUPS.get(info["state"], "ask"), "left": info["left"], "n": info["n"],

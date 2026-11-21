@@ -3854,6 +3854,7 @@ function withNode(t, key, name, node) {
 // ------------------------------------------------------------------------------------------------ data
 let rest = null
 let storage = null
+let offAgents = null                                // the registration's /agents listener, removed on dispose
 const bus = new EventTarget()                       // live events and cross-surface requests (palette → page)
 const cache = { agents: null }                      // last /agents answer, for non-React readers (menu, palette)
 
@@ -3862,6 +3863,7 @@ const keyAgents = profile => ['tenure', profile, 'agents']
 async function fetchAgents() {
   const data = await rest('/agents')
   cache.agents = data
+  bus.dispatchEvent(new Event('agents'))             // the palette and the model menu follow the mode
   return data
 }
 
@@ -8261,6 +8263,7 @@ function TimelineSection({ agent, t, n }) {
 const SIMPLE_GROUPS = ['watched', 'ask', 'noundo', 'always']
 const SIMPLE_SHOWN = 10 // changes listed before "Show all", as /tenure lists ten
 const SIMPLE_SETTING = 'plugins.entries.tenure.settings.enabled'
+const MODE_MS = 30_000 // /simple is read at load, then every 30 s and when the window is shown again
 
 /** GET /simple for the current profile, in the page's language: the mode, and in simple mode the whole page. */
 function useSimple() {
@@ -8270,7 +8273,8 @@ function useSimple() {
   return useQuery({
     queryKey: ['tenure', profile, 'simple', raw, lang],
     queryFn: () => rest('/simple' + (lang ? '?lang=' + encodeURIComponent(lang) : '')),
-    refetchInterval: HEARTBEAT_MS
+    refetchInterval: MODE_MS,
+    refetchOnWindowFocus: true
   })
 }
 
@@ -8559,7 +8563,6 @@ function TenurePage() {
   // The mode comes from GET /simple: simple mode reads the whole page from it; study mode keeps the views below.
   const { data: simple, error: simpleError } = useSimple()
   const simpleMode = !!simple && simple.mode === 'simple'
-  const modeKnown = !!(simple || simpleError)
   const qc = useQueryClient()
   const [view, setViewNow] = useState('map')
   const back = useRef('map')                           // the view "?" or Esc returns to from Help
@@ -8588,6 +8591,10 @@ function TenurePage() {
   const start = startOf(here.settings, (here.agents || []).flatMap(a => a.types || []))
   const trustedStart = (start || DEFAULTS.start) === 'trusted'
   const unreadable = ((data && data.profiles) || []).filter(p => p.error).map(p => p.profile)
+  // Before /simple answers, /agents gives the mode of a profile that has a database: study shows at once (no wait
+  // in study mode), simple waits for its page; with no answer yet, the page loads as it always did.
+  const agentsMode = here.settings ? here.settings.mode : null
+  const waitMode = !simple && !simpleError && agentsMode !== 'study'
   const undoCount = ((activity && activity.undoable) || []).length
   const onKey = e => {
     if (e.metaKey || e.ctrlKey || e.altKey || typing(e)) return
@@ -8633,8 +8640,8 @@ function TenurePage() {
   }
   let body
   if (simpleMode) body = jsx(SimpleView, { d: simple, t })
-  else if (!modeKnown) body = jsx(PanelEmpty, { description: t('simple.loading'), icon: 'loading~spin' })
-  else if (isLoading && !data) body = jsx(PanelEmpty, { description: t('common.loading'), icon: 'loading~spin' })
+  else if (waitMode && agentsMode === 'simple') body = jsx(PanelEmpty, { description: t('simple.loading'), icon: 'loading~spin' })
+  else if ((isLoading && !data) || (waitMode && !error)) body = jsx(PanelEmpty, { description: t('common.loading'), icon: 'loading~spin' })
   else if (error && !data)
     body = jsx(ErrorState, {
       description: t('backend.desc', { error: error.message || String(error) }),
@@ -8777,6 +8784,8 @@ export default {
     document.head.append(onStyle)
     watchTheme()
     ctx.onDispose(() => {
+      if (offAgents) offAgents()
+      offAgents = null
       rest = null
       storage = null
       style.remove()
@@ -8807,11 +8816,13 @@ export default {
     ctx.onEvent('plugin.tenure.acted', ({ payload }) => {
       bus.dispatchEvent(new Event('changed'))
       if (!payload || payload.undo_id == null) return
+      // Simple mode: a toast only for a watched action (the ones the end-of-turn line lists); a free one stays silent.
+      const plain = payload.simple != null ? !!payload.simple : simpleAgents(cache.agents)
+      if (plain && !payload.watched) return
       const name = displayName(String(payload.agent || '').split('@')[0])
       const n = (acted.get(payload.type) || 0) + 1
       acted.set(payload.type, n)
       ctx.setTimeout(() => acted.delete(payload.type), 60_000)
-      const plain = simpleAgents(cache.agents)            // simple mode: a mistake, not a fault
       host.notify({
         id: 'tenure-acted-' + payload.type,
         kind: payload.fault ? 'warning' : 'info',
@@ -8832,12 +8843,15 @@ export default {
       })
     })
 
+    // Simple mode keeps no passport and no tiers to revoke: the palette offers only to open the page.
+    let paletteSimple = simpleAgents(cache.agents)
+    const studyOnly = entries => (paletteSimple ? [] : entries)
     const contributions = () => [
       { id: 'page', area: ROUTES_AREA, data: { path: ROUTE }, render: () => jsx(TenurePage, {}) },
       { id: 'nav', area: SIDEBAR_NAV_AREA, order: 60, data: { codicon: 'shield', label: tr('nav.label'), path: ROUTE } },
       { id: 'chip', area: STATUSBAR_AREAS.right, order: 85, render: () => jsx(Chip, {}) },
       { id: 'open', area: PALETTE_AREA, data: { id: 'tenure.open', label: tr('palette.open'), keywords: ['tenure', 'autonomy', 'tier', 'trust'], run: () => host.navigate(ROUTE) } },
-      {
+      ...studyOnly([{
         id: 'passport',
         area: PALETTE_AREA,
         data: {
@@ -8864,7 +8878,7 @@ export default {
             focus(a.key, true)
           }
         }
-      }
+      }])
     ]
     let dispose = ctx.registerMany(contributions())
     const badge = () =>
@@ -8881,19 +8895,27 @@ export default {
         }
       })
     let disposeBadge = badge()
-    let badgeTiers = ''
+    let badgeTiers = null
     const tiersKey = () => (simpleAgents(cache.agents) ? 'simple|' : '') + allAgents(cache.agents).map(a => a.key + ':' + bestTier(a)).join('|')
+    // Every /agents answer (the page's heartbeat, a live change, the warm-up): the model menu and the palette follow
+    // the tiers and the mode.
+    const onAgents = () => {
+      const now = tiersKey()
+      if (badgeTiers !== null && now !== badgeTiers) {
+        disposeBadge()
+        disposeBadge = badge()                     // decorate() reruns only when the registry changes
+      }
+      badgeTiers = now
+      if (simpleAgents(cache.agents) !== paletteSimple) {
+        paletteSimple = !paletteSimple
+        dispose()
+        dispose = ctx.registerMany(contributions())
+      }
+    }
+    bus.addEventListener('agents', onAgents)
+    offAgents = () => bus.removeEventListener('agents', onAgents)
     ctx.onEvent('plugin.tenure.changed', () => {
-      fetchAgents()
-        .then(() => {
-          const now = tiersKey()
-          if (now !== badgeTiers) {
-            badgeTiers = now
-            disposeBadge()
-            disposeBadge = badge()                 // decorate() reruns only when the registry changes
-          }
-        })
-        .catch(() => {})
+      fetchAgents().catch(() => {})
     })
     ctx.i18n.onLocaleChange(() => {
       dispose()
@@ -8903,10 +8925,6 @@ export default {
     })
 
     // Warm the cache for the model menu and the palette even before the page or the chip mounts.
-    fetchAgents()
-      .then(() => {
-        badgeTiers = tiersKey()
-      })
-      .catch(() => {})
+    fetchAgents().catch(() => {})
   }
 }
