@@ -589,7 +589,6 @@
   "trust.state.doubted": "demande une fois : une vérification a douté de sa dernière action",
   "trust.freed_asks": "{type} s'exécute de nouveau sans demander. Pour revenir en arrière : {command}. Encore une erreur et il vous demande d'abord.",
   "trust.freed_noundo": "{type} s'exécute maintenant sans demander, sur votre parole. tenure ne peut pas l'annuler. Pour revenir en arrière : {command}. Une erreur et il redemande.",
-  "trust.freed_unsaved": "Quand tenure ne sait pas quels fichiers il modifie, il s'exécute sans annulation possible.",
   "trust.released": "N'attendent plus : {types}.",
   "trust.held": "{type} attend tant que {held} a une erreur à rattraper : {command} libère {held}, et {type} avec.",
   "trust.doubted": "Une vérification a douté de la dernière action {type} : sa prochaine action vous demande une fois, puis il s'exécute comme avant.",

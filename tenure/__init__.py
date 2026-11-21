@@ -1295,7 +1295,7 @@ def seen(st: store.Store, undo_ids: list[int]) -> str:
     return "\n\n".join([tr("cli.ok.done", n=len(done), which=marked)] + _say(events, cfg["spot"], mode(cfg)))
 
 
-def owner_trust(st: store.Store, cfg: dict, agent: str, s: rule.TypeState, to: str) -> list[dict]:
+def owner_trust(st: store.Store, cfg: dict, agent: str, s: rule.TypeState, to: str, undo: bool = True) -> list[dict]:
     """A person's word on a kind, simple mode only (``/tenure trust``): ``rule.FREE`` gives it its freedom back now,
     ``rule.PIN`` makes it ask first until freed again. Logged as a ``trust`` input event, then the rule's derived
     events, so a replay gives the same record. The caller checks the kind may take it (``cli.trust_set``); this only
@@ -1311,10 +1311,11 @@ def owner_trust(st: store.Store, cfg: dict, agent: str, s: rule.TypeState, to: s
     sync_settings(st, cfg)
     s = st.recorded(agent, s.key) or s                  # the settings just synced may have re-evaluated it
     n = params.required_n(cfg["risks"], s.stakes)
-    events = rule.owner_free(s, n) if to == rule.FREE else rule.owner_pin(s)
+    undo = undo or to != rule.FREE                      # undo False: a kind tenure cannot undo, freed without one
+    events = rule.owner_free(s, n, undo=undo) if to == rule.FREE else rule.owner_pin(s)
     s.changed_at = time.time()
     st.put_state(agent, s)
-    st.log({"event": "trust", "agent": agent, "type": s.key, "to": to})
+    st.log({"event": "trust", "agent": agent, "type": s.key, "to": to, **({} if undo else {"undo": False})})
     for ev in events:
         st.log({**ev, "agent": agent})
     _push("changed", {"agent": agent, "type": s.key})
@@ -1800,8 +1801,8 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
     outcome is not known when the call returns. ``written`` (absolute paths) only names the files in the owner's
     messages: it is stored nowhere. An action that ran gets a number in ``recent`` (a fault is born flagged), handed
     on as ``p["n"]`` and ``p["n_at"]``; its undo entry, if any, as ``p["undo_id"]``. ``untouched``: a failed call whose
-    saved files are all as they were (simple mode): it keeps no undo and joins no end-of-turn line. Returns the
-    owner's messages."""
+    saved files are all as they were, or that Hermes did not run: it keeps no undo, no notice and no end-of-turn line
+    (its outcome is unchanged). Returns the owner's messages."""
     try:                                                    # display only: it never aborts a settlement
         home = os.path.expanduser("~")
         shown = [_show(x, cwd, home) for x in written or []]
@@ -2252,13 +2253,15 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         if not rows:
             return None
         p = rows[0]
-        # Simple mode also reads Hermes' own refusal in the result: a call its approval stopped never ran.
-        blocked = str(status or "").strip().lower() == "blocked" or (wide and _not_run(result))
+        # Hermes' own refusal is in the result (a call its approval stopped never ran). Simple mode reads it as
+        # blocked; study mode keeps the outcome it had (neutral, error: the ledger and its replay do not change).
+        not_run = _not_run(result)
+        blocked = str(status or "").strip().lower() == "blocked" or (wide and not_run)
         failed = not blocked and proofs.execution(tool, status, error_type, result) == "failed"
-        untouched = False                   # simple mode: a failed call that changed none of its saved files
-        if wide and failed and p.get("snap_id"):
+        untouched = False                   # a failed call that changed none of its saved files, or never ran: no undo
+        if failed and p.get("snap_id"):
             try:
-                untouched = undo.unchanged(p["snap_id"], data_dir(), key=undo_key())
+                untouched = not_run or undo.unchanged(p["snap_id"], data_dir(), key=undo_key())
             except Exception:               # a snapshot it cannot read: kept, the undo says why
                 untouched = False
         launched = not blocked and not failed and _background(tool, args, result)

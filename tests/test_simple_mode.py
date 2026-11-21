@@ -794,18 +794,13 @@ def test_18_globignore_and_fignore_are_hijacks(var):
 @pytest.mark.parametrize("mode", ["simple", "study"])
 def test_3_a_failed_call_keeps_its_undo(plugin, mode):
     """An rm -r cut short by an error: its files were saved, so the undo is offered (both modes) and puts them back.
-    A failed call that changed nothing: simple mode keeps no undo for it (point 18); study mode offers one that
-    restores and counts no fault."""
+    A failed call that changed nothing keeps no undo (both modes)."""
     from test_plugin import pre, post
     mod, ctx = plugin({"mode": mode, "start": "trusted", **FAST})
     key = "file:shell:rm" if mode == "simple" else "file:shell"
     touch(ctx, "c.txt", "c")
     ctx.call("terminal", {"command": "rm c.txt"}, status="error")      # failed, changed nothing
-    if mode == "simple":
-        assert last_undo(mod) is None
-    else:
-        out = mod.cli.slash(f"undo {last_undo(mod)}")
-        assert "no fault" in out
+    assert last_undo(mod) is None
     assert open(os.path.join(ctx.cwd, "c.txt")).read() == "c"
     assert state(mod, key) is None or state(mod, key).faults == 0
     for name in ("build/a.txt", "build/sub/b.txt"):

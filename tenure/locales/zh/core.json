@@ -525,7 +525,6 @@
   "trust.state.doubted": "询问一次：一次检查对它上一个操作存疑",
   "trust.freed_asks": "{type} 重新不经询问执行。要撤回：{command}。再失误一次它就会先询问你。",
   "trust.freed_noundo": "按你的意思，{type} 现在不经询问执行。tenure 无法撤销它。要撤回：{command}。一次失误它就重新询问。",
-  "trust.freed_unsaved": "当 tenure 不知道它会改动哪些文件时，它会在无法撤销的情况下执行。",
   "trust.released": "不再等待：{types}。",
   "trust.held": "在 {held} 弥补失误前，{type} 会等待：{command} 会让 {held} 自由，{type} 也随之自由。",
   "trust.doubted": "一次检查对上一个 {type} 操作存疑：它的下一个操作会询问你一次，之后照常执行。",

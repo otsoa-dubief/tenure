@@ -587,7 +587,6 @@
   "trust.state.doubted": "asks once: a check doubted its last action",
   "trust.freed_asks": "{type} runs without asking again. To undo this: {command}. One more mistake and it asks you first.",
   "trust.freed_noundo": "{type} now runs without asking, on your word. tenure can't undo it. To take this back: {command}. One mistake and it asks again.",
-  "trust.freed_unsaved": "When tenure can't tell which files it changes, it runs without an undo.",
   "trust.released": "No longer waiting for it: {types}.",
   "trust.held": "{type} waits while {held} has a mistake to make up for: {command} frees {held}, and {type} with it.",
   "trust.doubted": "A check doubted the last {type} action: its next action asks you once, then it runs as before.",
