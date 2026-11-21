@@ -175,19 +175,21 @@ def _settings(core, st, own: bool = False) -> dict:
     return {"preset": preset, "risks": risks,
             "spot": spot if isinstance(spot, (int, float)) and 0 < spot < 1 else params.DEFAULT_SPOT,
             "strict": bool(ev.get("strict")), "overrides": {}, "enabled": True, "pending": False,
-            "start": ev.get("start") if ev.get("start") in params.STARTS else "probation"}
+            "start": ev.get("start") if ev.get("start") in params.STARTS else "probation",
+            "mode": core.rule.mode_of(ev)}
 
 
 def _type_row(core, cfg: dict, s, raw: bool = False, held: str | None = None) -> dict:
     rule, params = core.rule, core.params
     n = params.required_n(cfg["risks"], s.stakes)
+    simple = core.simple(cfg)              # simple mode: free is free (an earned T3 too), and no guarantee
     return {"type": _name(core, s.key, raw), "stakes": s.stakes, "reversible": s.reversible,
             "tier": s.tier,
             # A copied profile that has not started yet will restart every type: nothing it shows is earned yet.
             "effective_tier": rule.T1 if cfg.get("copy_pending") else rule.effective_tier(s, n, s.stakes),
             # Trusted start: no fault yet, so it asks nothing Hermes would not (an earned T3 shows as T3).
             "trusted": (not cfg.get("copy_pending") and core.trusted(cfg, s, n, s.stakes)
-                        and rule.effective_tier(s, n, s.stakes) != rule.T3),
+                        and (simple or rule.effective_tier(s, n, s.stakes) != rule.T3)),
             "distrusted": s.distrusted,
             "capped": n is None, "required": None if n is None else rule.required(s, n),
             "series": s.series, "sessions": len(s.sessions), "wald": s.wald,
@@ -197,7 +199,7 @@ def _type_row(core, cfg: dict, s, raw: bool = False, held: str | None = None) ->
             # The linked type that holds a sensitive kind back (spec §4.6); the effective tier ignores it by design.
             "held": (None if held is None or cfg.get("copy_pending")
                      or rule.effective_tier(s, n, s.stakes) == rule.T1 else _name(core, held, raw)),
-            "guarantee": rule.guarantee(s, n, cfg["spot"])}
+            "guarantee": None if simple else rule.guarantee(s, n, cfg["spot"])}
 
 
 def _held(core, st, agent: str, s) -> str | None:
@@ -243,6 +245,7 @@ def _agents(raw: bool) -> dict:
                             "settings": {"preset": cfg["preset"], "risks": cfg["risks"], "spot": cfg["spot"],
                                          "strict": cfg["strict"], "pending": cfg["pending"],
                                          "start": cfg.get("start", "probation"),
+                                         "mode": cfg.get("mode", "study"),
                                          "enabled": cfg.get("enabled", True),
                                          "copy_pending": cfg["copy_pending"]},
                             "agents": _agent_rows(core, st, cfg, suspended, raw)})

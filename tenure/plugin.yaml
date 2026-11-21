@@ -47,6 +47,12 @@ config_schema:
     default: trusted
     description: "trusted: no question before a type's first mistake; probation: every type asks until it earns autonomy (the study's start)"
     required: false
+  mode:
+    type: str
+    choices: [simple, study]
+    default: simple
+    description: "simple: acts freely, each action of a kind shown to you with an undo after its first mistake, asks after a second; study: the preregistered study's rule, with spot checks, guarantee and signed passport"
+    required: false
   strict:
     type: bool
     default: false

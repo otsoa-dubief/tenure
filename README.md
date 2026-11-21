@@ -419,6 +419,7 @@ nightly reconciliation) names an action by Hermes' session and tool call id, or 
 | `hermes tenure anchor` | One line to publish: the ledger's head, date and length |
 | `hermes tenure export [PATH]` | Write the evidence ledger as hash-chained JSON lines |
 | `hermes tenure start trusted\|probation` | Trusted start (default: no question before a type's first mistake) or the study's start (every type on probation) |
+| `hermes tenure mode simple\|study` | Simple mode (default: free until a mistake, each action of that kind shown to you with an undo after one, asks after a second) or study mode (the rule below, with spot checks, the guarantee and the passport) |
 | `hermes tenure strict on\|off` | Strict mode: a new model starts with an empty record |
 | `hermes tenure cleanup` | List dead tenure keys in Hermes' permanent allowlist (prints, never edits) |
 | `hermes tenure share [--out FILE]` | Write a signed record of your counts for the community benchmark, to publish yourself (nothing is sent) |
@@ -429,7 +430,8 @@ Settings, in `config.yaml` under `plugins.entries.tenure.settings`:
 preset: balanced            # careful | balanced | fast
 risks: {low: 1/50, medium: 1%, high: cap}   # your own, over the preset
 spot_check: 0.1             # share of a cleared type's actions that still ask
-start: trusted              # trusted | probation (the study's start: every type asks until it earns autonomy)
+mode: simple                # simple | study (the study's rule: spot checks, guarantee, passport)
+start: trusted              # study mode: trusted | probation (the study's start: every type asks until it earns autonomy)
 strict: false
 types: {"mcp:notion:*": medium, "shell:git:push": cap}   # reclassify action types
 fields: {enable: [identity]}   # field categories, see "Field categories"

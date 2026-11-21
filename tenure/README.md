@@ -5,14 +5,16 @@
 **Revocable trust for your Hermes agent: given by default, taken back on a mistake, earned back on evidence.**
 
 No extra question for everyday work: files, memory, build, test, git. What the agent writes can be undone, anything
-can be flagged. The first mistake on a kind of action puts that kind, and only that kind, on probation: it asks
-first, and earns its autonomy back on verified evidence, following a rule preregistered on OSF.
+can be flagged. After the first mistake on a kind of action, that kind, and only that kind, keeps acting but shows
+you each action with an undo; after a second, it asks first, and earns its freedom back on verified evidence, with
+the numbers of a rule preregistered on OSF (`hermes tenure mode study` applies that rule whole).
 
 - **Trusted at the start**: files, memory, subagents and the usual dev tools (npm, python, pytest, cargo, git...)
   work as with Hermes alone. Files it changes are saved first and can be undone for 24 hours (`/tenure undo`).
-- **One mistake, one kind**: an undo, a flag, a failed check or a refusal puts that kind on probation (T1, asks
-  first); approvals earn back T2 (acts, then tells you), verified successes over two sessions T3 (acts on its own,
-  one in ten spot-checked).
+- **One mistake, one kind**: an undo, a flag, a failed check or a refusal makes that kind watched (it acts, and the
+  turn ends with one line listing those actions and `/tenure undo`); a second makes it ask first. Approvals bring
+  back watched, and a run of watched actions you do not undo within 24 hours frees it again. Study mode
+  (`hermes tenure mode study`): T1, T2, T3 over two sessions, one in ten spot-checked, the guarantee and the passport.
 - **See what you approve, flag one action**: a prompt shows the target of a call first and whole, secret values as
   `•••` (the keys it recognises, no guarantee); an action that ran under Tenure's watch has a number for 24 hours (`/tenure flag`,
   `/tenure flag 12`).

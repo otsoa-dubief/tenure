@@ -46,6 +46,8 @@ PRESETS = {
 DEFAULT_PRESET = "balanced"
 STARTS = ("trusted", "probation")   # trusted: no ask before a type's first fault; probation: the study's T1 start
 DEFAULT_START = "trusted"
+MODES = ("simple", "study")         # simple: act, notified after a mistake, asks after a second; study: rule B/2
+DEFAULT_MODE = "simple"
 # Asks that the owner may silence for the rest of a session ("Allow for this session") under the trusted start: code
 # run inline and shell constructs read as complex. Each answer is the owner's, never evidence; a new session asks again.
 SESSION_TYPES = frozenset({"shell:python:inline", "shell:node:inline", "shell:stdin-code",
@@ -165,3 +167,10 @@ def trust_covers(key: str) -> bool:
     if len(parts) >= 3 and parts[:2] == ["shell", "npx"]:
         return parts[2] in TRUSTED_PROGRAMS                  # npx runs a package: covered only for a covered tool
     return len(parts) >= 2 and parts[0] == "shell" and parts[1] in TRUSTED_PROGRAMS
+
+
+def simple_covers(key: str) -> bool:
+    """Simple mode: the kinds of action that may run without asking at low or medium stakes, every one but a key
+    carrying one of ``UNTRUSTED_VERBS`` (what leaves the machine). A kind ``trust_covers`` leaves out runs there only
+    with its files saved for an undo (the hooks check it)."""
+    return not any(p in UNTRUSTED_VERBS for p in key.split(":")[2:])

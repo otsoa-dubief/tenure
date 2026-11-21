@@ -1,4 +1,4 @@
-"""Print the friction bench (tests/friction.py): what tenure asks in one ordinary coding session, per start.
+"""Print the friction bench (tests/friction.py): what tenure asks in one ordinary coding session, per mode and start.
 Set HERMES_AGENT_DIR to Hermes' source to count Hermes' own questions too."""
 import logging
 import os
@@ -13,16 +13,24 @@ logging.disable(logging.CRITICAL)                        # the plugin logs what 
 def show(title, rows):
     added = [r for r in rows if r["tenure"] and not r["hermes"]]
     hermes = [r for r in rows if r["hermes"]]
-    print(f"\n{title}: {len(rows)} calls, tenure adds {len(added)} question(s); Hermes asks {len(hermes)} by itself")
+    watched = [r for r in rows if r.get("watched")]
+    print(f"\n{title}: {len(rows)} calls, tenure adds {len(added)} question(s); Hermes asks {len(hermes)} by itself"
+          + (f"; {len(watched)} action(s) listed to watch" if watched else ""))
     for r in rows:
-        mark = "TENURE" if r["tenure"] and not r["hermes"] else "hermes" if r["hermes"] else ""
+        mark = ("TENURE" if r["tenure"] and not r["hermes"] else "hermes" if r["hermes"] else
+                "watch" if r.get("watched") else "")
         print(f"  {mark:7} {r['tool']:10} {r['what']}")
 
 
 if not os.environ.get("HERMES_AGENT_DIR"):
     print("(HERMES_AGENT_DIR not set: Hermes' own questions cannot be told apart, so they count as tenure's)")
-show("trusted start", replay("trusted"))
-show("trusted start, web page 4th, each question allowed once", replay("trusted", early_web=True))
-show("trusted start, web page 4th, 'Allow for this session' when offered",
+show("simple mode (default)", replay("trusted", mode="simple"))
+show("simple mode, after a mistake (one file write undone before the session)",
+     replay("trusted", after_fault="undone", mode="simple"))
+show("simple mode, web page 4th, each question allowed once", replay("trusted", early_web=True, mode="simple"))
+show("study mode, trusted start", replay("trusted"))
+show("study mode, trusted start, web page 4th, each question allowed once", replay("trusted", early_web=True))
+show("study mode, trusted start, web page 4th, 'Allow for this session' when offered",
      replay("trusted", early_web=True, answer="session"))
-show("study start", replay("probation"))
+show("study mode, study start", replay("probation"))
+show("study mode, trusted start, after a mistake", replay("trusted", after_fault="undone"))

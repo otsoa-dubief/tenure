@@ -278,7 +278,7 @@
     "one": "Acciones hechas por su cuenta en la última hora (deshacer una cuenta como fallo):",
     "other": "Acciones hechas por su cuenta en las últimas {n} horas (deshacer una cuenta como fallo):"
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   lo que ha ganado cada agente, por tipo de acción\n    setup [careful|balanced|fast]              las tres recomendaciones; con un nombre, lo aplica\n    explain                                    cómo decide tenure y qué garantizan los números\n    models [--type T]                          el historial verificado de cada modelo en tu propio trabajo\n    undo [ID]                                  restaura los archivos de una acción que actuó y luego avisó (cuenta un fallo); sin ID, la lista\n    flag [N]                                   sin número, las últimas acciones numeradas; con un número, informa de esa acción como un error\n    flag TYPE [note] [--model M]               informa de un error que el agente cometió por su cuenta: se le revoca la autonomía\n    revoke TYPE|all [--model M | --all]        retira la autonomía ganada sin que haya error\n    passport [--agent A] [--out FILE]          escribe el pasaporte firmado de un agente (--no-redact conserva los nombres de tipo)\n    verify PASSPORT [LEDGER]                   comprueba un pasaporte; con el registro exportado, lo recalcula reproduciéndolo\n    anchor                                     una línea para publicar: el último hash, la fecha y la longitud del registro\n    export [PATH]                              escribe el registro de evidencia (líneas JSON encadenadas por hash)\n    start trusted|probation                    trusted: ninguna pregunta antes del primer error de un tipo; probation: el inicio del estudio\n    strict on|off                              modo estricto: un modelo nuevo empieza con un historial vacío\n    cleanup                                    lista las claves muertas de tenure en la lista de permitidos permanente de Hermes\n    share [--out FILE]                         escribe un registro firmado de recuentos para el benchmark comunitario (opcional, no se envía nada)\n    week [--model M]                           los últimos siete días: acciones, preguntas, faltas, deshechas, lo que sigue abierto\n    ok [N ...]                                 solo, las acciones «actúa y avisa» abiertas; con números, cuentan las que comprobó\n    excuse [N]                                 solo, las faltas de los últimos 10 minutos; con N, retirar esa\n    flag --call ID --session ID [--doubt]      un verificador: una falta (o, con --doubt, la siguiente pregunta) sobre una acción\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   lo que ha ganado cada agente, por tipo de acción\n    setup [careful|balanced|fast]              las tres recomendaciones; con un nombre, lo aplica\n    explain                                    cómo decide tenure y qué garantizan los números\n    models [--type T]                          el historial verificado de cada modelo en tu propio trabajo\n    undo [ID]                                  restaura los archivos de una acción que actuó y luego avisó (cuenta un fallo); sin ID, la lista\n    flag [N]                                   sin número, las últimas acciones numeradas; con un número, informa de esa acción como un error\n    flag TYPE [note] [--model M]               informa de un error que el agente cometió por su cuenta: se le revoca la autonomía\n    revoke TYPE|all [--model M | --all]        retira la autonomía ganada sin que haya error\n    passport [--agent A] [--out FILE]          escribe el pasaporte firmado de un agente (--no-redact conserva los nombres de tipo)\n    verify PASSPORT [LEDGER]                   comprueba un pasaporte; con el registro exportado, lo recalcula reproduciéndolo\n    anchor                                     una línea para publicar: el último hash, la fecha y la longitud del registro\n    export [PATH]                              escribe el registro de evidencia (líneas JSON encadenadas por hash)\n    start trusted|probation                    trusted: ninguna pregunta antes del primer error de un tipo; probation: el inicio del estudio\n    strict on|off                              modo estricto: un modelo nuevo empieza con un historial vacío\n    mode simple|study                          simple (por defecto): libre, vigilado tras un error, pregunta tras un segundo; study: la regla del estudio\n    cleanup                                    lista las claves muertas de tenure en la lista de permitidos permanente de Hermes\n    share [--out FILE]                         escribe un registro firmado de recuentos para el benchmark comunitario (opcional, no se envía nada)\n    week [--model M]                           los últimos siete días: acciones, preguntas, faltas, deshechas, lo que sigue abierto\n    ok [N ...]                                 solo, las acciones «actúa y avisa» abiertas; con números, cuentan las que comprobó\n    excuse [N]                                 solo, las faltas de los últimos 10 minutos; con N, retirar esa\n    flag --call ID --session ID [--doubt]      un verificador: una falta (o, con --doubt, la siguiente pregunta) sobre una acción\n",
   "cli.verify.after": {
     "one": "Nota: el registro tiene {n} evento posterior a este pasaporte; los niveles no cambian.",
     "other": "Nota: el registro tiene {n} eventos posteriores a este pasaporte; los niveles no cambian."
@@ -403,5 +403,56 @@
   "ask.why.suspended_more": {
     "one": "{source} (y {n} antes)",
     "other": "{source} (y {n} antes)"
-  }
+  },
+  "simple.state.free": "libre",
+  "simple.state.watched": "vigilado (cada acción se te muestra, con un deshacer)",
+  "simple.state.ask": "te pregunta antes",
+  "simple.state.always": "siempre pregunta",
+  "simple.notice.first_watched": "tenure · {type} cometió un error. Sigue trabajando, pero cada acción {type} se te lista ahora al final del turno, con /tenure undo. Al segundo error, pregunta antes.",
+  "simple.notice.first_ask": "tenure · {type} cometió un error. Este tipo de acción no se puede deshacer, así que ahora te pregunta antes.",
+  "simple.notice.second": "tenure · Segundo error en {type}: ahora te pregunta antes, solo para este tipo de acción.",
+  "simple.notice.watched_again": "tenure · {type} vuelve a actuar tras tus aprobaciones: cada acción se te lista al final del turno, con /tenure undo.",
+  "simple.notice.free_again": {
+    "one": "tenure · {type} vuelve a ser libre: {n} acción seguida sin errores.",
+    "other": "tenure · {type} vuelve a ser libre: {n} acciones seguidas sin errores."
+  },
+  "simple.notice.now": "tenure · {type}, con tus nuevos ajustes: {state}.",
+  "simple.ask.unsaved": "{type} se ejecutaría con un deshacer, pero sus archivos no se pueden guardar antes: pregunta.",
+  "simple.ask.always": "{type} (riesgo {stakes}) siempre pregunta en modo simple: lo que sale de tu máquina y el riesgo alto nunca quedan libres.",
+  "simple.ask.mistakes": {
+    "one": "{type} pregunta antes tras sus errores: {n} aprobación más y vuelve a actuar, mostrándote cada acción.",
+    "other": "{type} pregunta antes tras sus errores: {n} aprobaciones seguidas más y vuelve a actuar, mostrándote cada acción."
+  },
+  "simple.ask.mistake": {
+    "one": "{type} pregunta antes tras un error: {n} aprobación más y vuelve a ser libre.",
+    "other": "{type} pregunta antes tras un error: {n} aprobaciones seguidas más y vuelve a ser libre."
+  },
+  "simple.turn": {
+    "one": "tenure · {n} acción que vigilar: {actions} · {command}",
+    "other": "tenure · {n} acciones que vigilar: {actions} · {command}"
+  },
+  "simple.ok": "No hace falta en modo simple: una acción que no deshaces en 24 horas cuenta como correcta por sí sola.",
+  "simple.passport": "El pasaporte firmado, con su garantía, pertenece al modo estudio; este perfil está en modo simple. Para cambiar: {command}",
+  "simple.mode.simple": "Modo simple: el agente actúa libremente; tras un error en un tipo de acción, cada acción de ese tipo se te muestra con un deshacer; tras un segundo, pregunta antes. Todo el historial se ha recalculado desde el registro en este modo.",
+  "simple.mode.study": "Modo estudio: la regla prerregistrada, con sus controles aleatorios, su garantía y el pasaporte firmado. Todo el historial se ha recalculado desde el registro en este modo.",
+  "simple.mode.save_failed": "No se pudo guardar el modo ({error}). Define {setting}: {value}",
+  "simple.status.header.here": "tenure: este perfil, modo simple, preajuste {preset}",
+  "simple.status.header.profile": "tenure: perfil {profile}, modo simple, preajuste {preset}",
+  "simple.status.intro": "Libre hasta un error; tras uno, cada acción de ese tipo se te muestra con un deshacer; tras un segundo, pregunta antes ({command} para la regla del estudio).",
+  "simple.status.empty": "Ningún tipo de acción tiene historial todavía: todo se ejecuta como con Hermes solo, salvo lo que sale de tu máquina y el riesgo alto.",
+  "simple.status.to_free": "{k}/{n} sin errores antes de ser libre",
+  "simple.status.to_watched": {
+    "one": "{n} aprobación antes de vigilado",
+    "other": "{n} aprobaciones antes de vigilado"
+  },
+  "simple.col.state": "estado",
+  "simple.col.next": "siguiente",
+  "simple.explain.title": "Cómo decide tenure en modo simple, un tipo de acción a la vez:",
+  "simple.explain.free": "Libre: los archivos, la memoria, los subagentes, las herramientas de desarrollo habituales y los comandos locales cuyos archivos se pueden guardar antes se ejecutan como con Hermes solo, con un deshacer cuando cambian archivos.",
+  "simple.explain.watched": "Tras un error (un deshacer, un aviso, un rechazo, una comprobación automática fallida), sigue actuando, pero cada acción de ese tipo se lista al final del turno, con {command}.",
+  "simple.explain.ask": "Tras un segundo error, te pregunta antes: {low} aprobaciones seguidas con riesgo bajo, {medium} con riesgo medio, y vuelve a estar vigilado.",
+  "simple.explain.free_again": "Una acción vigilada que no deshaces en {hours} horas cuenta como correcta: {low} seguidas sin errores con riesgo bajo, {medium} con riesgo medio, y vuelve a ser libre.",
+  "simple.explain.free_again_capped": "Una acción vigilada que no deshaces en {hours} horas cuenta como correcta; una racha sin errores la vuelve a liberar.",
+  "simple.explain.always": "Siempre pregunta: lo que sale de tu máquina (push, deploy, publish, upload...), el riesgo alto, los tipos limitados, un script que el agente acaba de escribir, un paquete nuevo y, tras contenido externo, los comandos (las ediciones de archivos siguen, con su deshacer).",
+  "simple.explain.study": "Sin controles aleatorios ni garantía en este modo. Para la regla del estudio, su garantía y el pasaporte firmado: {command}"
 }

@@ -45,6 +45,14 @@ type by themselves: the next success does.
 
 Neutral outcomes (timeouts, cancellations, unverifiable results) change nothing but their counter.
 
+Simple mode (``SIMPLE_VERSION``, the default since 1.4) keeps the numbers and drops the rest. A type at low or medium
+stakes that carries no outbound verb runs freely until its first fault. That fault sends a reversible type to T2 with
+its score at the bar (ln B), any other to T1; a fault at T2 adds ``a`` to the score, which then decides between T2 and
+T1, and approvals bring it back to T2 as above. A series of ``n`` verified successes, an act-then-tell action left
+undone through its undo window counting as one (``unseen``), gives the type its freedom back (T3, which never draws a
+spot check there). No trial, wait, lengthening, session condition or guarantee; high stakes and outbound verbs always
+ask. ``outcome`` applies one outcome under either mode, for the hooks and the replay alike.
+
 The functions mutate the state and return the derived events to log, for display only: ``tier``, ``trial``,
 ``confirmed`` and ``revoked``. An event holds the type, its stakes, tiers, reasons and counts, nothing else.
 """
@@ -58,7 +66,9 @@ from dataclasses import asdict, dataclass, field
 from . import params
 
 VERSION = "study-rule-B/2"    # B/2 (1.3): sessions per stakes, no session over half the series, seen T2 successes
-VERSIONS = ("study-rule-B/1", VERSION)   # a B/1 ledger replays under B/2: its settings are read the same way
+SIMPLE_VERSION = "simple/1"   # simple mode (1.4): free until a fault, notified after one, asks after a second
+VERSIONS = ("study-rule-B/1", VERSION, SIMPLE_VERSION)   # a B/1 ledger replays under B/2: same settings reading
+SIMPLE, STUDY = "simple", "study"                         # modes
 T1, T2, T3 = "ask", "notify", "alone"                            # tiers
 ASK, NOTIFY, ALLOW, SPOT = "ask", "notify", "allow", "spot"      # decisions
 WATCH = "watch"        # trusted start: act like Hermes alone, with an undo when the files can be saved
@@ -233,10 +243,15 @@ def _confirm(s: TypeState) -> list[dict]:
     return [] if s.provisional else [_event(s, "confirmed")]
 
 
-def decide(s: TypeState, n: int | None, spot: float, *, suspended: bool, rng: random.Random) -> str:
-    """ASK, NOTIFY, ALLOW or SPOT for the next action of the type. Only T3 draws from ``rng``, once."""
+def decide(s: TypeState, n: int | None, spot: float, *, suspended: bool, rng: random.Random,
+           mode: str = STUDY) -> str:
+    """ASK, NOTIFY, ALLOW or SPOT for the next action of the type. Only T3 draws from ``rng``, once. In simple mode
+    nothing is drawn: a free type asks here and the hooks run it as Hermes would (``trusted``), and a type simple mode
+    never frees (high stakes, an outbound verb) asks."""
     if n is None or suspended or s.trial_left > 0 or s.trial_wait > 0:
         return ASK
+    if mode == SIMPLE:
+        return NOTIFY if s.tier == T2 and _middle(s) and simple_eligible(s, n) else ASK
     if s.tier == T3:
         return SPOT if rng.random() < spot else ALLOW
     if s.tier == T2 and _middle(s):
@@ -439,9 +454,18 @@ def revoke(s: TypeState) -> list[dict]:
     return [_move(s, "revoked", old, T1, "owner")]
 
 
-def trusted(s: TypeState, n: int | None, start: str | None) -> bool:
+def simple_eligible(s: TypeState, n: int | None) -> bool:
+    """Simple mode may free the type: low or medium stakes, not capped, no outbound verb in its key."""
+    return n is not None and s.stakes in ("low", "medium") and params.simple_covers(s.key)
+
+
+def trusted(s: TypeState, n: int | None, start: str | None, mode: str = STUDY) -> bool:
     """The trusted start covers the type: ``start`` is "trusted", no fault or revoke on it in the profile, low or
-    medium stakes, not capped, no trial. Such a type asks nothing Hermes alone would not ask."""
+    medium stakes, not capped, no trial. Such a type asks nothing Hermes alone would not ask. In simple mode: a type
+    simple mode may free that is free, never faulted or revoked, or back at T3."""
+    if mode == SIMPLE:
+        return (simple_eligible(s, n) and not s.trial_left and not s.trial_wait
+                and (not s.distrusted or s.tier == T3))
     return (start == "trusted" and not s.distrusted and n is not None and s.stakes in ("low", "medium")
             and not s.trial_left and not s.trial_wait and trust_covers(s.key))
 
@@ -457,3 +481,90 @@ def guarantee(s: TypeState, n: int | None, spot: float) -> dict:
         return {"capped": True}
     return {"aoql": params.aoql(n, spot)[0], "worst_case": params.worst_case(n, spot), "missed": params.missed(),
             "conditional": s.provisional > 0}
+
+
+# ------------------------------------------------------------------------------------------------- simple mode
+def mode_of(settings_event: dict | None) -> str:
+    """The mode a ``settings`` ledger event was recorded under: its rule version tells."""
+    return SIMPLE if (settings_event or {}).get("rule") == SIMPLE_VERSION else STUDY
+
+
+def _simple_success(s: TypeState, n: int | None, *, source: str) -> list[dict]:
+    """Simple mode, a verified success of a type that is not free: the series (no session condition) and the score.
+    A full series frees the type (T3); a score at the bar takes a T1 type to T2."""
+    s.successes += 1
+    if source == "spot":
+        s.spot_checks += 1
+    if not simple_eligible(s, n):
+        return []
+    s.series = min(s.series + 1, n)
+    if _middle(s):
+        a, step, ln_b = params.wald_steps(s.stakes)
+        s.wald = max(s.wald + step, ln_b - a)
+    old = s.tier
+    if s.series >= n:
+        s.tier = T3
+    elif s.tier == T1 and _middle(s) and s.wald <= params.wald_steps(s.stakes)[2] + TOL:
+        s.tier = T2
+    if s.tier == old:
+        return []
+    return [_move(s, "tier", old, s.tier, "series" if s.tier == T3 else "wald", required=n)]
+
+
+def _simple_fault(s: TypeState, n: int | None, *, source: str, free: bool) -> list[dict]:
+    """Simple mode, a verified fault. The series restarts. A free type (``free``: never faulted, or back at T3)
+    goes to T2 with its score at the bar when it is reversible at low or medium stakes, else to T1. A type already
+    held back takes the study's Wald step, and the score decides between T2 and T1. No trial, wait or lengthening."""
+    s.faults += 1
+    s.distrusted = True
+    if source == "spot":
+        s.spot_checks += 1
+    old, borrowed = s.tier, s.provisional > 0
+    s.series, s.sessions, s.provisional, s.session_runs = 0, [], 0, []
+    if free:
+        if _middle(s):
+            s.tier, s.wald = T2, params.wald_steps(s.stakes)[2]
+        else:
+            s.tier = T1
+        return [_move(s, "tier", "trusted" if old != T3 else T3, s.tier, "fault")]
+    if _middle(s):
+        a, _, ln_b = params.wald_steps(s.stakes)
+        s.wald = (max(s.wald, 0.0) if s.stakes in GRAVE or borrowed else s.wald) + a
+        s.tier = T2 if s.tier != T1 and s.wald <= ln_b + TOL else T1
+    else:
+        s.tier = T1
+    return [_move(s, "tier", old, s.tier, "fault")] if s.tier != old else []
+
+
+def outcome(s: TypeState, n: int | None, result: str, source: str, *, session: str, start: str | None,
+            mode: str = STUDY) -> list[dict]:
+    """One outcome on the type under the mode, the one dispatch of the hooks and of the replay: a success of a type
+    the trusted start (or simple mode) leaves free counts in the statistics only. In simple mode, an act-then-tell
+    action left undone through its undo window (``unseen``) is a success, and an excused fault is only neutral."""
+    if mode == SIMPLE:
+        if (result, source) == ("neutral", "unseen"):
+            result = "success"
+        free = trusted(s, n, start, mode)
+        if result == "success":
+            return on_trusted_success(s, source=source) if free else _simple_success(s, n, source=source)
+        if result == "fault":
+            return _simple_fault(s, n, source=source, free=free)
+        s.neutrals += 1
+        return []
+    if result == "success":
+        if trusted(s, n, start):
+            return on_trusted_success(s, source=source)
+        return on_success(s, n, session=session, source=source)
+    if result == "fault":
+        return on_fault(s, n, session=session, source=source)
+    return on_neutral(s, source)
+
+
+def carry_over_simple(old: TypeState, *, strict: bool) -> TypeState:
+    """Simple mode, a model change: the new agent keeps the type as it stands (tier, score, series, the lost trusted
+    start), with counters of its own and no trial; in strict mode it starts over, still distrusted if it was."""
+    new = TypeState(key=old.key, stakes=old.stakes, reversible=old.reversible, changed_at=time.time(),
+                    distrusted=old.distrusted)
+    if not strict:
+        new.tier, new.wald, new.series = old.tier, old.wald, old.series
+    return new

@@ -278,7 +278,7 @@
     "one": "Actions faites sans demander depuis {n} heure (en annuler une compte comme une faute) :",
     "other": "Actions faites sans demander ces {n} dernières heures (en annuler une compte comme une faute) :"
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   ce que chaque agent a gagné, par type d'action\n    setup [careful|balanced|fast]              les trois recommandations ; avec un nom, l'appliquer\n    explain                                    comment tenure décide, et ce que garantissent les chiffres\n    models [--type T]                          l'historique vérifié de chaque modèle sur votre propre travail\n    undo [ID]                                  remettre les fichiers d'une action qui a agi puis vous a prévenu (compte une faute) ; seul, la liste\n    flag [N]                                   seul, les dernières actions numérotées ; avec un numéro, signaler cette action comme une erreur\n    flag TYPE [note] [--model M]               signaler une erreur faite par l'agent seul : son autonomie est révoquée\n    revoke TYPE|all [--model M | --all]        retirer l'autonomie acquise sans erreur\n    passport [--agent A] [--out FILE]          écrire le passeport signé d'un agent (--no-redact garde les noms de types)\n    verify PASSPORT [LEDGER]                   vérifier un passeport ; avec le registre exporté, le recalculer en rejouant\n    anchor                                     une ligne à publier : la tête, la date et la longueur du registre\n    export [PATH]                              écrire le registre des preuves (lignes JSON chaînées par hachage)\n    start trusted|probation                    trusted : aucune question avant la première erreur d'un type ; probation : le départ de l'étude\n    strict on|off                              mode strict : un nouveau modèle démarre avec un historique vide\n    cleanup                                    lister les clés tenure mortes dans la liste d'autorisation permanente de Hermes\n    share [--out FILE]                         écrire un relevé signé de comptes pour le benchmark communautaire (facultatif, rien n'est envoyé)\n    week [--model M]                           les sept derniers jours : actions, questions, fautes, annulations, ce qui reste ouvert\n    ok [N ...]                                 seul, les actions « agit puis prévient » ouvertes ; avec des numéros, celles que vous avez vérifiées comptent\n    excuse [N]                                 seul, les fautes des 10 dernières minutes ; avec N, reprendre celle-là\n    flag --call ID --session ID [--doubt]      un vérificateur : une faute (ou, avec --doubt, la suivante demande) sur une action\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   ce que chaque agent a gagné, par type d'action\n    setup [careful|balanced|fast]              les trois recommandations ; avec un nom, l'appliquer\n    explain                                    comment tenure décide, et ce que garantissent les chiffres\n    models [--type T]                          l'historique vérifié de chaque modèle sur votre propre travail\n    undo [ID]                                  remettre les fichiers d'une action qui a agi puis vous a prévenu (compte une faute) ; seul, la liste\n    flag [N]                                   seul, les dernières actions numérotées ; avec un numéro, signaler cette action comme une erreur\n    flag TYPE [note] [--model M]               signaler une erreur faite par l'agent seul : son autonomie est révoquée\n    revoke TYPE|all [--model M | --all]        retirer l'autonomie acquise sans erreur\n    passport [--agent A] [--out FILE]          écrire le passeport signé d'un agent (--no-redact garde les noms de types)\n    verify PASSPORT [LEDGER]                   vérifier un passeport ; avec le registre exporté, le recalculer en rejouant\n    anchor                                     une ligne à publier : la tête, la date et la longueur du registre\n    export [PATH]                              écrire le registre des preuves (lignes JSON chaînées par hachage)\n    start trusted|probation                    trusted : aucune question avant la première erreur d'un type ; probation : le départ de l'étude\n    strict on|off                              mode strict : un nouveau modèle démarre avec un historique vide\n    mode simple|study                          simple (par défaut) : libre, surveillé après une faute, demande après une deuxième ; study : la règle de l'étude\n    cleanup                                    lister les clés tenure mortes dans la liste d'autorisation permanente de Hermes\n    share [--out FILE]                         écrire un relevé signé de comptes pour le benchmark communautaire (facultatif, rien n'est envoyé)\n    week [--model M]                           les sept derniers jours : actions, questions, fautes, annulations, ce qui reste ouvert\n    ok [N ...]                                 seul, les actions « agit puis prévient » ouvertes ; avec des numéros, celles que vous avez vérifiées comptent\n    excuse [N]                                 seul, les fautes des 10 dernières minutes ; avec N, reprendre celle-là\n    flag --call ID --session ID [--doubt]      un vérificateur : une faute (ou, avec --doubt, la suivante demande) sur une action\n",
   "cli.verify.after": {
     "one": "Remarque : le registre a {n} événement après ce passeport ; les niveaux sont inchangés.",
     "other": "Remarque : le registre a {n} événements après ce passeport ; les niveaux sont inchangés."
@@ -403,5 +403,56 @@
   "ask.why.suspended_more": {
     "one": "{source} (et {n} avant)",
     "other": "{source} (et {n} avant)"
-  }
+  },
+  "simple.state.free": "libre",
+  "simple.state.watched": "sous surveillance (chaque action vous est montrée, avec une annulation)",
+  "simple.state.ask": "vous demande d'abord",
+  "simple.state.always": "demande toujours",
+  "simple.notice.first_watched": "tenure · {type} a commis une faute. Il continue de travailler, mais chaque action {type} vous est désormais listée à la fin du tour, avec /tenure undo. À la deuxième faute, il demande d'abord.",
+  "simple.notice.first_ask": "tenure · {type} a commis une faute. Ce type d'action ne peut pas être annulé : il vous demande donc d'abord désormais.",
+  "simple.notice.second": "tenure · Deuxième faute sur {type} : il vous demande d'abord désormais, pour ce type d'action seulement.",
+  "simple.notice.watched_again": "tenure · {type} agit de nouveau après vos approbations : chaque action vous est listée à la fin du tour, avec /tenure undo.",
+  "simple.notice.free_again": {
+    "one": "tenure · {type} est de nouveau libre : {n} action d'affilée sans faute.",
+    "other": "tenure · {type} est de nouveau libre : {n} actions d'affilée sans faute."
+  },
+  "simple.notice.now": "tenure · {type}, avec vos nouveaux paramètres : {state}.",
+  "simple.ask.unsaved": "{type} s'exécuterait avec une annulation, mais ses fichiers ne peuvent pas être sauvegardés d'abord : il demande.",
+  "simple.ask.always": "{type} (enjeu {stakes}) demande toujours en mode simple : ce qui sort de votre machine et les enjeux élevés ne sont jamais laissés libres.",
+  "simple.ask.mistakes": {
+    "one": "{type} demande d'abord après ses fautes : encore {n} approbation et il agit de nouveau, chaque action vous étant montrée.",
+    "other": "{type} demande d'abord après ses fautes : encore {n} approbations d'affilée et il agit de nouveau, chaque action vous étant montrée."
+  },
+  "simple.ask.mistake": {
+    "one": "{type} demande d'abord après une faute : encore {n} approbation et il est de nouveau libre.",
+    "other": "{type} demande d'abord après une faute : encore {n} approbations d'affilée et il est de nouveau libre."
+  },
+  "simple.turn": {
+    "one": "tenure · {n} action à surveiller : {actions} · {command}",
+    "other": "tenure · {n} actions à surveiller : {actions} · {command}"
+  },
+  "simple.ok": "Inutile en mode simple : une action que vous n'annulez pas dans les 24 heures compte d'elle-même comme correcte.",
+  "simple.passport": "Le passeport signé, avec sa garantie, appartient au mode étude ; ce profil est en mode simple. Pour changer : {command}",
+  "simple.mode.simple": "Mode simple : l'agent agit librement ; après une faute sur un type d'action, chaque action de ce type vous est montrée avec une annulation ; après une deuxième, il demande d'abord. Tout l'historique a été recalculé depuis le registre dans ce mode.",
+  "simple.mode.study": "Mode étude : la règle préenregistrée, avec ses contrôles aléatoires, sa garantie et le passeport signé. Tout l'historique a été recalculé depuis le registre dans ce mode.",
+  "simple.mode.save_failed": "Impossible d'enregistrer le mode ({error}). Définissez {setting} : {value}",
+  "simple.status.header.here": "tenure : ce profil, mode simple, préréglage {preset}",
+  "simple.status.header.profile": "tenure : profil {profile}, mode simple, préréglage {preset}",
+  "simple.status.intro": "Libre jusqu'à une faute ; après une faute, chaque action de ce type vous est montrée avec une annulation ; après une deuxième, il demande d'abord ({command} pour la règle de l'étude).",
+  "simple.status.empty": "Aucun type d'action n'a encore d'historique : tout s'exécute comme avec Hermes seul, sauf ce qui sort de votre machine et les enjeux élevés.",
+  "simple.status.to_free": "{k}/{n} sans faute avant d'être libre",
+  "simple.status.to_watched": {
+    "one": "{n} approbation avant la surveillance",
+    "other": "{n} approbations avant la surveillance"
+  },
+  "simple.col.state": "état",
+  "simple.col.next": "ensuite",
+  "simple.explain.title": "Comment tenure décide en mode simple, un type d'action à la fois :",
+  "simple.explain.free": "Libre : les fichiers, la mémoire, les sous-agents, les outils de développement habituels et les commandes locales dont les fichiers peuvent être sauvegardés d'abord s'exécutent comme avec Hermes seul, avec une annulation quand des fichiers changent.",
+  "simple.explain.watched": "Après une faute (une annulation, un signalement, un refus, une vérification automatique échouée), il continue d'agir, mais chaque action de ce type est listée à la fin du tour, avec {command}.",
+  "simple.explain.ask": "Après une deuxième faute, il vous demande d'abord : {low} approbations d'affilée à enjeu faible, {medium} à enjeu moyen, et il repasse sous surveillance.",
+  "simple.explain.free_again": "Une action surveillée que vous n'annulez pas dans les {hours} heures compte comme correcte : {low} d'affilée sans faute à enjeu faible, {medium} à enjeu moyen, et il est de nouveau libre.",
+  "simple.explain.free_again_capped": "Une action surveillée que vous n'annulez pas dans les {hours} heures compte comme correcte ; une série sans faute le libère de nouveau.",
+  "simple.explain.always": "Demande toujours : ce qui sort de votre machine (push, deploy, publish, upload...), les enjeux élevés, les types plafonnés, un script que l'agent vient d'écrire, un nouveau paquet et, après du contenu extérieur, les commandes (les modifications de fichiers continuent, avec leur annulation).",
+  "simple.explain.study": "Ni contrôle aléatoire ni garantie dans ce mode. Pour la règle de l'étude, sa garantie et le passeport signé : {command}"
 }

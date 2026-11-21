@@ -276,7 +276,7 @@
     "one": "Actions taken alone in the last {n} hour (undoing one counts as a fault):",
     "other": "Actions taken alone in the last {n} hours (undoing one counts as a fault):"
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   what each agent has earned, per action type\n    setup [careful|balanced|fast]              the three recommendations; with a name, use it\n    explain                                    how tenure decides, and what the numbers guarantee\n    models [--type T]                          each model's verified record on your own work\n    undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list\n    flag [N]                                   alone, the last numbered actions; with a number, report that action as an error\n    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked\n    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error\n    passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)\n    verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay\n    anchor                                     one line to publish: the ledger's head, date and length\n    export [PATH]                              write the evidence ledger (hash-chained JSON lines)\n    start trusted|probation                    trusted: no question before a type's first mistake; probation: the study's start\n    strict on|off                              strict mode: a new model starts with an empty record\n    cleanup                                    list dead tenure keys in Hermes' permanent allowlist\n    share [--out FILE]                         write a signed record of counts for the community benchmark (opt-in, nothing is sent)\n    week [--model M]                           the last seven days: actions, questions, faults, undos, what is open\n    ok [N ...]                                 alone, the open act-then-tell actions; with numbers, the ones you checked count\n    excuse [N]                                 alone, the faults of the last 10 minutes; with N, take that one back\n    flag --call ID --session ID [--doubt]      a verifier: a fault (or, with --doubt, the next one asks) on one action\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   what each agent has earned, per action type\n    setup [careful|balanced|fast]              the three recommendations; with a name, use it\n    explain                                    how tenure decides, and what the numbers guarantee\n    models [--type T]                          each model's verified record on your own work\n    undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list\n    flag [N]                                   alone, the last numbered actions; with a number, report that action as an error\n    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked\n    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error\n    passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)\n    verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay\n    anchor                                     one line to publish: the ledger's head, date and length\n    export [PATH]                              write the evidence ledger (hash-chained JSON lines)\n    start trusted|probation                    trusted: no question before a type's first mistake; probation: the study's start\n    strict on|off                              strict mode: a new model starts with an empty record\n    mode simple|study                          simple (default): free, watched after a mistake, asks after a second; study: the study's rule\n    cleanup                                    list dead tenure keys in Hermes' permanent allowlist\n    share [--out FILE]                         write a signed record of counts for the community benchmark (opt-in, nothing is sent)\n    week [--model M]                           the last seven days: actions, questions, faults, undos, what is open\n    ok [N ...]                                 alone, the open act-then-tell actions; with numbers, the ones you checked count\n    excuse [N]                                 alone, the faults of the last 10 minutes; with N, take that one back\n    flag --call ID --session ID [--doubt]      a verifier: a fault (or, with --doubt, the next one asks) on one action\n",
   "cli.verify.after": {
     "one": "Note: the ledger has {n} event after this passport; the tiers are unchanged.",
     "other": "Note: the ledger has {n} events after this passport; the tiers are unchanged."
@@ -401,5 +401,56 @@
   "ask.why.suspended_more": {
     "other": "{source} (and {n} before)",
     "one": "{source} (and {n} before)"
-  }
+  },
+  "simple.state.free": "free",
+  "simple.state.watched": "watched (each action shown to you, with an undo)",
+  "simple.state.ask": "asks you first",
+  "simple.state.always": "always asks",
+  "simple.notice.first_watched": "tenure · {type} made a mistake. It keeps working, but each {type} action is now listed for you at the end of the turn, with /tenure undo. A second mistake and it asks first.",
+  "simple.notice.first_ask": "tenure · {type} made a mistake. This kind of action cannot be undone, so it now asks you first.",
+  "simple.notice.second": "tenure · A second mistake on {type}: it now asks you first, for this kind of action only.",
+  "simple.notice.watched_again": "tenure · {type} acts again after your approvals: each action is listed for you at the end of the turn, with /tenure undo.",
+  "simple.notice.free_again": {
+    "one": "tenure · {type} is free again: {n} action in a row without a mistake.",
+    "other": "tenure · {type} is free again: {n} actions in a row without a mistake."
+  },
+  "simple.notice.now": "tenure · {type}, under your new settings: {state}.",
+  "simple.ask.unsaved": "{type} would run with an undo, but its files cannot be saved first: it asks.",
+  "simple.ask.always": "{type} ({stakes} stakes) always asks in simple mode: what leaves your machine and high stakes are never left free.",
+  "simple.ask.mistakes": {
+    "one": "{type} asks first after its mistakes: {n} more approval and it acts again, each action shown to you.",
+    "other": "{type} asks first after its mistakes: {n} more approvals in a row and it acts again, each action shown to you."
+  },
+  "simple.ask.mistake": {
+    "one": "{type} asks first after a mistake: {n} more approval and it is free again.",
+    "other": "{type} asks first after a mistake: {n} more approvals in a row and it is free again."
+  },
+  "simple.turn": {
+    "one": "tenure · {n} action to watch: {actions} · {command}",
+    "other": "tenure · {n} actions to watch: {actions} · {command}"
+  },
+  "simple.ok": "Not needed in simple mode: an action you do not undo within 24 hours counts as fine by itself.",
+  "simple.passport": "The signed passport, with its guarantee, belongs to study mode; this profile is in simple mode. To switch: {command}",
+  "simple.mode.simple": "Simple mode: the agent acts freely; after a mistake on a kind of action, each such action is shown to you with an undo; after a second, it asks first. Every record was rebuilt from the ledger under this mode.",
+  "simple.mode.study": "Study mode: the preregistered rule, with its spot checks, its guarantee and the signed passport. Every record was rebuilt from the ledger under this mode.",
+  "simple.mode.save_failed": "Could not save the mode ({error}). Set {setting}: {value}",
+  "simple.status.header.here": "tenure: this profile, simple mode, preset {preset}",
+  "simple.status.header.profile": "tenure: profile {profile}, simple mode, preset {preset}",
+  "simple.status.intro": "Free until a mistake; after one, each action of that kind is shown to you with an undo; after a second, it asks first ({command} for the study's rule).",
+  "simple.status.empty": "No action type has a record yet: everything runs as with Hermes alone, except what leaves your machine and high stakes.",
+  "simple.status.to_free": "{k}/{n} without a mistake before free",
+  "simple.status.to_watched": {
+    "one": "{n} approval before watched",
+    "other": "{n} approvals before watched"
+  },
+  "simple.col.state": "state",
+  "simple.col.next": "next",
+  "simple.explain.title": "How tenure decides in simple mode, one kind of action at a time:",
+  "simple.explain.free": "Free: files, memory, subagents, the usual dev tools, and local commands whose files can be saved first run as with Hermes alone, with an undo where files change.",
+  "simple.explain.watched": "After a mistake (an undo, a flag, a refusal, a failed automatic check), it keeps acting, but each action of that kind is listed at the end of the turn, with {command}.",
+  "simple.explain.ask": "After a second mistake, it asks you first: {low} approvals in a row at low stakes, {medium} at medium, and it is watched again.",
+  "simple.explain.free_again": "A watched action you do not undo within {hours} hours counts as fine: {low} in a row without a mistake at low stakes, {medium} at medium, and it is free again.",
+  "simple.explain.free_again_capped": "A watched action you do not undo within {hours} hours counts as fine; a run without a mistake frees it again.",
+  "simple.explain.always": "Always asks: what leaves your machine (push, deploy, publish, upload...), high stakes, capped kinds, a script the agent just wrote, a new package, and, after outside content, commands (file edits continue, with their undo).",
+  "simple.explain.study": "No spot check and no guarantee in this mode. For the study's rule, its guarantee and the signed passport: {command}"
 }

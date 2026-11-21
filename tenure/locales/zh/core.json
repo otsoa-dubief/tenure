@@ -244,7 +244,7 @@
   "cli.undo.title": {
     "other": "过去 {n} 小时内自主执行的操作（撤销任一个都记为失误）："
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    undo [ID]                                  恢复一个先执行后告知的操作写入的文件（记为失误）；不带参数时列出清单\n    flag [N]                                   不带参数时列出最近的编号操作；带编号时将该操作报告为错误\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    start trusted|probation                    trusted：某类操作第一次失误前不提问；probation：研究起步\n    strict on|off                              严格模式：新模型从空记录开始\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n    share [--out FILE]                         写出一份签名的计数记录，用于社区基准（自愿参与，不会发送任何内容）\n    week [--model M]                           过去七天：操作、询问、过错、撤销、仍未结的事项\n    ok [N ...]                                 单独使用列出未结的“先执行后告知”操作；带编号则计入您核对过的操作\n    excuse [N]                                 单独使用列出过去 10 分钟的过错；带 N 则撤回该过错\n    flag --call ID --session ID [--doubt]      验证器：对某个操作报告过错（或用 --doubt 让下一次先询问）\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    undo [ID]                                  恢复一个先执行后告知的操作写入的文件（记为失误）；不带参数时列出清单\n    flag [N]                                   不带参数时列出最近的编号操作；带编号时将该操作报告为错误\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    start trusted|probation                    trusted：某类操作第一次失误前不提问；probation：研究起步\n    strict on|off                              严格模式：新模型从空记录开始\n    mode simple|study                          simple（默认）：自由，一次失误后受关注，第二次后先询问；study：研究规则\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n    share [--out FILE]                         写出一份签名的计数记录，用于社区基准（自愿参与，不会发送任何内容）\n    week [--model M]                           过去七天：操作、询问、过错、撤销、仍未结的事项\n    ok [N ...]                                 单独使用列出未结的“先执行后告知”操作；带编号则计入您核对过的操作\n    excuse [N]                                 单独使用列出过去 10 分钟的过错；带 N 则撤回该过错\n    flag --call ID --session ID [--doubt]      验证器：对某个操作报告过错（或用 --doubt 让下一次先询问）\n",
   "cli.verify.after": {
     "other": "注意：此护照之后账本中有 {n} 个事件；级别没有变化。"
   },
@@ -357,5 +357,51 @@
   "ask.why.suspended_from": "（导致暂停的调用：{source}。）",
   "ask.why.suspended_more": {
     "other": "{source}（之前还有 {n} 个）"
-  }
+  },
+  "simple.state.free": "自由",
+  "simple.state.watched": "受关注（每个操作都会告知你，并可撤销）",
+  "simple.state.ask": "先询问你",
+  "simple.state.always": "始终询问",
+  "simple.notice.first_watched": "tenure · {type} 出现了一次失误。它会继续工作，但每个 {type} 操作现在都会在本轮结束时列给你，可用 /tenure undo 撤销。再出现一次失误，它就会先询问。",
+  "simple.notice.first_ask": "tenure · {type} 出现了一次失误。这类操作无法撤销，所以从现在起它会先询问你。",
+  "simple.notice.second": "tenure · {type} 第二次失误：从现在起，仅对这类操作，它会先询问你。",
+  "simple.notice.watched_again": "tenure · 经你批准后，{type} 重新开始执行：每个操作都会在本轮结束时列给你，可用 /tenure undo 撤销。",
+  "simple.notice.free_again": {
+    "other": "tenure · {type} 重新获得自由：连续 {n} 个操作没有失误。"
+  },
+  "simple.notice.now": "tenure · {type}，按你的新设置：{state}。",
+  "simple.ask.unsaved": "{type} 本可在可撤销的情况下执行，但无法先保存它的文件：因此询问。",
+  "simple.ask.always": "{type}（{stakes}风险）在简单模式下始终询问：离开你机器的操作和高风险操作从不放行。",
+  "simple.ask.mistakes": {
+    "other": "{type} 失误后先询问：再连续批准 {n} 次，它就会重新执行，每个操作都会告知你。"
+  },
+  "simple.ask.mistake": {
+    "other": "{type} 失误后先询问：再连续批准 {n} 次，它就会重新获得自由。"
+  },
+  "simple.turn": {
+    "other": "tenure · {n} 个待关注的操作：{actions} · {command}"
+  },
+  "simple.ok": "简单模式下不需要：你在 24 小时内没有撤销的操作会自动算作正确。",
+  "simple.passport": "带保证的签名护照属于研究模式；此配置档处于简单模式。切换方式：{command}",
+  "simple.mode.simple": "简单模式：智能体自由执行；某类操作出现一次失误后，这类操作的每一次都会告知你并可撤销；第二次失误后，它会先询问。所有记录已按此模式从账本重新计算。",
+  "simple.mode.study": "研究模式：预注册的规则，包含随机抽查、保证和签名护照。所有记录已按此模式从账本重新计算。",
+  "simple.mode.save_failed": "无法保存模式（{error}）。请设置 {setting}：{value}",
+  "simple.status.header.here": "tenure：此配置档，简单模式，预设 {preset}",
+  "simple.status.header.profile": "tenure：配置档 {profile}，简单模式，预设 {preset}",
+  "simple.status.intro": "失误前自由；一次失误后，这类操作的每一次都会告知你并可撤销；第二次失误后，它会先询问（研究规则请用 {command}）。",
+  "simple.status.empty": "还没有任何操作类型的记录：一切都像只用 Hermes 时一样执行，离开你机器的操作和高风险操作除外。",
+  "simple.status.to_free": "距离自由：{k}/{n} 次无失误",
+  "simple.status.to_watched": {
+    "other": "距离受关注：{n} 次批准"
+  },
+  "simple.col.state": "状态",
+  "simple.col.next": "下一步",
+  "simple.explain.title": "简单模式下 tenure 如何决定，一次一类操作：",
+  "simple.explain.free": "自由：文件、记忆、子智能体、常用开发工具，以及文件可以先保存的本地命令，都像只用 Hermes 时一样执行，文件变更时可撤销。",
+  "simple.explain.watched": "一次失误后（一次撤销、一次标记、一次拒绝、一次自动检查失败），它继续执行，但这类操作的每一次都会在本轮结束时列出，可用 {command} 撤销。",
+  "simple.explain.ask": "第二次失误后，它会先询问你：低风险连续批准 {low} 次，中风险 {medium} 次，它就会重新受关注地执行。",
+  "simple.explain.free_again": "你在 {hours} 小时内没有撤销的受关注操作算作正确：低风险连续 {low} 次无失误，中风险 {medium} 次，它就重新获得自由。",
+  "simple.explain.free_again_capped": "你在 {hours} 小时内没有撤销的受关注操作算作正确；一段无失误的连续记录让它重新获得自由。",
+  "simple.explain.always": "始终询问：离开你机器的操作（push、deploy、publish、upload……）、高风险、已封顶的类型、智能体刚写的脚本、新的软件包，以及读取外部内容后的命令（文件编辑照常进行，可撤销）。",
+  "simple.explain.study": "此模式下没有随机抽查，也没有保证。研究规则、其保证和签名护照：{command}"
 }
