@@ -4154,18 +4154,39 @@ STDIN_CODE = ("shell:stdin-code", HIGH)
 # A program named by a path in the system's own folders is that program; any other path is a file someone wrote.
 SYSTEM_PROGRAM = re.compile(r"^/(?:usr/(?:local/)?)?s?bin/[^/]+$|^/opt/homebrew/bin/[^/]+$|^/opt/local/bin/[^/]+$")
 VERSION_FLAGS = {"--version", "-V", "-v", "--help", "-h", "-version"}
+STDIN_FILES = ("/dev/stdin", "/dev/fd/0", "/proc/self/fd/0")
 
 
-def _stdin_code(args: list[str], script: str) -> bool:
+# Options of a shell or an interpreter that take the next word as their value (not a script).
+STDIN_VALUE_OPTS = {"-o", "+o", "-O", "+O", "--rcfile", "--init-file", "-W", "-X", "-r", "--require", "--import",
+                    "--loader", "--experimental-loader"}
+
+
+def _stdin_code(args: list[str], shell: bool = True) -> bool:
     """A shell or interpreter that reads its program from standard input (`| sh`, `| python3`, `bash -s`, `sh -`):
-    what runs is whatever came down the pipe (audit 10/11). A version or help query is not."""
+    what runs is whatever came down the pipe (audit 10/11). Only its own options count, up to `--` or the first
+    word that is not one (its script, whose arguments are the script's); `-s` means standard input for a shell only
+    (python's `-s` is about site packages). A version or help query is not."""
     if args and set(args) <= VERSION_FLAGS:
         return False
-    if "-" in args or any(re.fullmatch(r"-[A-Za-z]*s[A-Za-z]*", a) for a in args if not a.startswith("--")):
-        return True
-    if script in ("/dev/stdin", "/dev/fd/0", "/proc/self/fd/0"):
-        return True
-    return not script
+    skip = False
+    for n, a in enumerate(args):
+        if skip:
+            skip = False
+            continue
+        if a == "--":
+            rest = args[n + 1:]
+            return not rest or rest[0] in STDIN_FILES + ("-",)
+        if a == "-":
+            return True
+        if not a.startswith(("-", "+")) or a == "+":
+            return a in STDIN_FILES
+        if shell and not a.startswith("--") and re.fullmatch(r"-[A-Za-z]*s[A-Za-z]*", a):
+            return True
+        if a == "-m":
+            return False                                     # a module
+        skip = a in STDIN_VALUE_OPTS
+    return True
 
 
 # Programs whose arguments are files, never a command to run: a file named `hermes` given to them is a file.
@@ -4348,7 +4369,7 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
             t, st, _ = _shell(inner, cwd, home, depth + 1)
             return t, st
         script = next((a for a in args if not a.startswith("-")), "")
-        if _stdin_code(args, script):
+        if _stdin_code(args):
             return STDIN_CODE
         return (f"shell:{prog}:{os.path.basename(script)}" if script else f"shell:{prog}"), MEDIUM
     if prog == "xargs":
@@ -4370,7 +4391,7 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
                 return SELF_HERMES
             return f"shell:{prog}:-m:{mod}", MEDIUM
         script = next((a for a in args if not a.startswith("-")), "")
-        if _stdin_code(args, script):
+        if _stdin_code(args, shell=False):
             return STDIN_CODE
         if (os.path.basename(script) in HERMES_PROGS or "hermes_cli" in script
                 or (script and "/" in script and _hermes_program(script, cwd, home))):
@@ -5519,7 +5540,8 @@ def _shell_read(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str,
         return floor, CAP, False
     if _hermes_floor(command):
         return "self:hermes", CAP, False
-    if _net_code(command, start):
+    fetched: list = []
+    if _net_code(command, start, project=fetched):
         return NET_CODE[0], NET_CODE[1], False      # code downloaded and run at once: always asked
     if _complex_floor(command):
         low = command.casefold()          # quotes cannot be trusted here: look at the raw text
@@ -5529,6 +5551,8 @@ def _shell_read(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str,
                 or _self_hit(low, anywhere=True)):
             return "file:sensitive", CAP, False
         return "shell:complex", HIGH, False
+    if fetched and RANK[best[1]] <= RANK[HIGH]:
+        return FETCHED_PROJECT[0], FETCHED_PROJECT[1], False   # a fresh clone's build or tests: a normal question
     return best[0], best[1], False                  # a command is never reversible by Tenure
 
 
@@ -5542,7 +5566,10 @@ GIT_EXTERNAL = frozenset({"clone", "pull", "fetch"})
 # both modes, never for the rest of a session, never freed by a series under any preset nor by /tenure trust. A local
 # file piped into a shell (`cat script.sh | sh`) stays shell:stdin-code.
 NET_CODE = ("shell:net-code", CAP)
-STDIN_FILES = ("/dev/stdin", "/dev/fd/0", "/proc/self/fd/0")
+# A build or test tool run by the same line in a project it just cloned or unpacked (`git clone … && cd x && npm
+# install`, `make`, `pip install -e .`): a normal question at high stakes, which "Allow for this session" may cover
+# (the owner's decision, 21/11). A file of that project run itself (`./x/install.sh`) is NET_CODE.
+FETCHED_PROJECT = ("shell:fetched-project", HIGH)
 # Programs that download, named in any case and without .exe: those that bring in outside content, wget2, and
 # PowerShell's own (irm, iwr). A server on this machine counts too: what it serves may come from anywhere.
 NET_FETCHERS = frozenset(EXTERNAL_PROGRAMS | {"wget2", "irm", "iwr", "invoke-webrequest", "invoke-restmethod"})
@@ -5577,15 +5604,56 @@ def _interp(name: str) -> bool:
     return name in _INTERPS or re.sub(r"\d+(\.\d+)*$", "", name) in _INTERPS
 
 
+PS_ENCODED = re.compile(r"-e(?:n(?:c(?:o(?:d(?:e(?:d(?:c(?:o(?:m(?:m(?:a(?:n(?:d)?)?)?)?)?)?)?)?)?)?)?)?)?|-ec", re.I)
+# What takes the next word as its value, for the first word that is not an option: deno, go, uv.
+RUN_VALUE_OPTS = {
+    "deno": {"--location", "--import-map", "--config", "-c", "--cert", "--lock", "--seed", "--log-level", "-L",
+             "--ext", "--inspect", "--inspect-brk", "--inspect-wait", "--v8-flags", "--env-file", "--watch-exclude"},
+    "go": {"-tags", "-ldflags", "-gcflags", "-asmflags", "-mod", "-modfile", "-p", "-exec", "-overlay", "-pgo",
+           "-toolexec", "-C", "-o", "-pkgdir", "-installsuffix", "-buildmode", "-compiler", "-gccgoflags"},
+    "uv": {"--with", "--with-editable", "--with-requirements", "--python", "-p", "--project", "--directory",
+           "--env-file", "--extra", "--group", "--package", "--index", "--default-index", "--from", "--only-group",
+           "--no-group", "--config-file", "--cache-dir", "-w"},
+    "npx": {"-p", "--package", "-c", "--call", "-w", "--workspace", "--userconfig", "--cache"},
+    "pipx": {"--spec", "--python", "--index-url", "--pip-args"},
+}
+RUN_VALUE_OPTS["uvx"] = RUN_VALUE_OPTS["uv"]
+for _p in ("bunx", "pnpx", "npm", "pnpm", "yarn", "bun"):
+    RUN_VALUE_OPTS[_p] = RUN_VALUE_OPTS["npx"]
+# Build and test tools that read a project's manifest: run in a fresh clone or an unpacked folder, they are a normal
+# question (the owner's decision, 21/11); a file of that folder run itself is downloaded code.
+MANIFEST_RUNNERS = {"npm", "pnpm", "yarn", "bun", "make", "gmake", "just", "pip", "pip3", "uv", "poetry", "cargo",
+                    "go", "mvn", "gradle", "composer", "bundle", "rake"}
+INSTALL_PATH_DIRS = ("~/.local/bin", "~/bin", "~/go/bin", "~/.cargo/bin", "~/.bun/bin", "~/.deno/bin",
+                     "/usr/local/bin", "/opt/homebrew/bin", "/usr/bin", "/bin")
+
+
 def _code_flag(name: str, a: str) -> bool:
-    """``a`` is the option that gives ``name`` its code as the next word (`sh -c`, `python -c`, `su -c`)."""
+    """``a`` is the option that gives ``name`` its code as the next word (`sh -c`, `python -c`, `su -c`,
+    `pwsh -Command`, `pwsh -EncodedCommand`)."""
     if name in _SHELLS:
         return bool(re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*", a))
     if name == "su":
         return a in ("-c", "--command")
     if name in ("pwsh", "powershell"):
-        return a.casefold() in ("-c", "-command", "--command", "-commandwithargs", "-cwa")
+        return a.casefold() in ("-c", "-command", "--command", "-commandwithargs", "-cwa") or bool(PS_ENCODED.fullmatch(a))
     return a in INLINE_FLAGS or _inline_cluster([a])
+
+
+def _code_index(name: str, args: list[str]) -> int | None:
+    """Where the code option is among the command's own options: before `--` and before the first word that is not an
+    option (its script, whose arguments belong to the script)."""
+    skip = False
+    for n, a in enumerate(args):
+        if skip:
+            skip = False
+            continue
+        if a == "--" or not a.startswith(("-", "+")) or a in ("-", "+"):
+            return None
+        if _code_flag(name, a):
+            return n
+        skip = a in STDIN_VALUE_OPTS
+    return None
 
 
 def _xargs_repl(args: list[str]) -> str:
@@ -5604,11 +5672,20 @@ def _xargs_repl(args: list[str]) -> str:
     return ""
 
 
+def _ps_decode(text: str) -> str:
+    """PowerShell's -EncodedCommand: base64 of UTF-16LE text."""
+    import base64
+    try:
+        return base64.b64decode(text + "=" * (-len(text) % 4), validate=False).decode("utf-16-le", "replace")
+    except (ValueError, TypeError):
+        return ""
+
+
 def _code_source(toks: list[str]) -> tuple[str, str]:
     """Where a command takes the code it runs: ("stdin", "") for one reading its program from standard input (`sh`,
-    `bash -s`, `python -`, `su`, `source` alone or `source /dev/stdin`, `iex` alone, `xargs sh -c`, `xargs -I{} sh -c
-    '{}'`), ("arg", code) for code given as an argument (`sh -c CODE`, `python -c CODE`, `su -c CODE`, `eval ARGS`,
-    `iex ARGS`), else ("", "")."""
+    `bash -s`, `python -`, `su`, `source` alone or `source /dev/stdin`, `iex` alone, `pwsh -Command -`, `xargs sh -c`,
+    `xargs -I{} sh -c '{}'`), ("arg", code) for code given as an argument (`sh -c CODE`, `python -c CODE`, `su -c
+    CODE`, `eval ARGS`, `iex ARGS`, `pwsh -EncodedCommand B64`, decoded), else ("", "")."""
     if not toks:
         return "", ""
     name, args = _name(toks[0]), toks[1:]
@@ -5626,17 +5703,20 @@ def _code_source(toks: list[str]) -> tuple[str, str]:
     shell = name in _SHELLS or name == "su"
     if not shell and not _interp(name):
         return "", ""
-    flag = next((n for n, a in enumerate(args) if _code_flag(name, a)), None)
+    flag = _code_index(name, args)
     if flag is not None:
         if shell and flag + 1 >= len(args):
             return "stdin", ""                               # `xargs sh -c`: the input is the code
-        return "arg", args[flag + 1] if flag + 1 < len(args) else ""
+        code = args[flag + 1] if flag + 1 < len(args) else ""
+        if name in ("pwsh", "powershell"):
+            if code == "-":
+                return "stdin", ""                           # pwsh -Command -: the script comes on standard input
+            if PS_ENCODED.fullmatch(args[flag]):
+                code = _ps_decode(code)
+        return "arg", code
     if name == "su":
         return "stdin", ""                                   # su, su -, su root: a shell reading standard input
-    if not shell and "-m" in args:
-        return "", ""
-    script = next((a for a in args if not a.startswith("-")), "")
-    return ("stdin", "") if _stdin_code(args, script) else ("", "")
+    return ("stdin", "") if _stdin_code(args, shell=shell) else ("", "")
 
 
 def _sudo_shell(raw: list[str]) -> bool:
@@ -5652,19 +5732,62 @@ def _norm_sub(text: str) -> str:
     return re.sub(r"\$\s*\(", "$(", text)                    # `$ ( curl` as lexed apart, back to `$(curl`
 
 
-def _raw_code(raw: list[str], toks: list[str], code: str) -> str:
-    """The code of an "arg" command as written, a substitution included (`sh -c $(curl …)` is lexed apart)."""
+def _masked(t) -> str:
+    """A word as the shell expands it: what was between single quotes is masked (``Tok.masked``)."""
+    return getattr(t, "masked", str(t))
+
+
+def _outer_sub(words) -> bool:
+    """A substitution of a download that the shell running the line expands (never one between single quotes)."""
+    return bool(NET_SUB.search(_norm_sub(" ".join(_masked(t) for t in words))))
+
+
+def _without_procsubs(tokens: list) -> list:
+    """The words without their process substitutions (`<( … )`, `>( … )`) nor the `<` that reads one."""
+    out, depth = [], 0
+    for n, t in enumerate(tokens):
+        if depth:
+            depth += t in ("(", "<(", ">(")
+            depth -= t == ")"
+            continue
+        if t in ("<(", ">("):
+            depth = 1
+            if out and out[-1] == "<":
+                out.pop()
+            continue
+        out.append(t)
+    return out
+
+
+def _procsub_at(raw: list[str], j: int) -> list[str]:
+    """The words of the process substitution opened at ``raw[j]``."""
+    inner, depth = [], 1
+    for t in raw[j + 1:]:
+        depth += t in ("(", "<(", ">(")
+        depth -= t == ")"
+        if depth <= 0:
+            break
+        inner.append(t)
+    return inner
+
+
+def _fetches(words: list[str]) -> bool:
+    return any(_name(t) in NET_FETCHERS for t in words) or _seg_reads_external(words, 0)
+
+
+def _raw_code(raw: list, toks: list[str], code: str) -> list:
+    """The words of an "arg" command's code as written, a substitution included (`sh -c $(curl …)` is lexed apart)."""
     name = _name(toks[0])
-    i = next((n for n, t in enumerate(raw) if t == toks[0]), None)
+    i = next((n for n, t in enumerate(raw) if str(t) == toks[0]), None)
     if i is None:
-        return code
+        return [code]
     rest = raw[i + 1:]
-    if name in ("eval",) or name in PS_EXEC:
-        return " ".join(rest)
-    j = next((n for n, a in enumerate(rest) if _code_flag(name, a)), None)
+    if name == "eval" or name in PS_EXEC:
+        return rest
+    j = _code_index(name, [str(t) for t in rest])
     if j is None or j + 1 >= len(rest):
-        return code
-    first = rest[j + 1]
+        return [code]
+    first = str(rest[j + 1])
     if first == "$" and j + 2 < len(rest) and rest[j + 2] == "(":
         depth, out = 0, []
         for t in rest[j + 1:]:
@@ -5673,25 +5796,28 @@ def _raw_code(raw: list[str], toks: list[str], code: str) -> str:
             depth -= t == ")"
             if t == ")" and depth <= 0:
                 break
-        return " ".join(out)
+        return out
     if first.startswith("`") and not (len(first) > 1 and first.endswith("`")):
-        out = [first]
+        out = [rest[j + 1]]
         for t in rest[j + 2:]:
             out.append(t)
-            if t.endswith("`"):
+            if str(t).endswith("`"):
                 break
-        return " ".join(out)
-    return first
+        return out
+    return [rest[j + 1]]
 
 
 def _script_from_net(raw: list[str], toks: list[str], kind: str) -> bool:
     """A download given as the program itself: a process substitution of a fetch as the first word that is not an
-    option of a shell, an interpreter, or source (`bash <(curl …)`, `python <(curl …)`, `source <(curl …)`), or as
-    the standard input of one that reads its program there (`sh < <(curl …)`). An argument of a script is data:
-    `python3 parse.py <(curl …)` is not."""
+    option of a shell, an interpreter, or source (`bash <(curl …)`, `python <(curl …)`, `source <(curl …)`), or read
+    by `<` anywhere by one that reads its program on standard input (`sh < <(curl …)`, `bash -s stable < <(curl …)`).
+    An argument of a script is data: `python3 parse.py <(curl …)` is not."""
     name = _name(toks[0])
     if not (kind or name in _SHELLS or _interp(name) or name in ("source", ".") or name in PS_EXEC):
         return False
+    if kind == "stdin" and any(raw[k] == "<" and raw[k + 1] == "<(" and _fetches(_procsub_at(raw, k + 1))
+                               for k in range(len(raw) - 1)):
+        return True
     i = next((n for n, t in enumerate(raw) if t == toks[0]), None)
     if i is None:
         return False
@@ -5699,47 +5825,63 @@ def _script_from_net(raw: list[str], toks: list[str], kind: str) -> bool:
     j = 0
     while j < len(rest) and rest[j].startswith("-") and rest[j] != "-":
         j += 1
-    if j + 1 < len(rest) and rest[j] == "<" and rest[j + 1] == "<(":
-        j += 1                                               # sh < <(curl …): its standard input is the download
-    if j >= len(rest) or rest[j] != "<(":
-        return False
-    inner, depth = [], 1
-    for t in rest[j + 1:]:
-        depth += t in ("(", "<(", ">(")
-        depth -= t == ")"
-        if depth <= 0:
-            break
-        inner.append(t)
-    return any(_name(t) in NET_FETCHERS for t in inner) or _seg_reads_external(inner, 0)
+    return j < len(rest) and rest[j] == "<(" and _fetches(_procsub_at(rest, j))
+
+
+def _first_positional(args: list[str], value_opts: set) -> tuple[int, str]:
+    """The first word that is neither an option nor an option's value, and its index (-1, "" when none)."""
+    skip = False
+    for n, a in enumerate(args):
+        if skip:
+            skip = False
+        elif a == "--":
+            return (n + 1, args[n + 1]) if n + 1 < len(args) else (-1, "")
+        elif a.startswith("-") and a != "-":
+            skip = "=" not in a and a in value_opts
+        else:
+            return n, a
+    return -1, ""
 
 
 def _runs_remote(toks: list[str]) -> bool:
     """A program run straight from where it is downloaded, not from an installed copy: `deno run https://…`, `uv run
     https://…/x.py`, `go run mod@version`, `npx github:…` or a URL (also bunx, pnpm dlx, yarn dlx, npm exec, uvx,
-    pipx run). A package named only by its registry name is not read here."""
+    pipx run). A package named only by its registry name is not read here. Options are read up to the program run:
+    what follows is that program's own (`npx tsc -p packages/core`)."""
     name, args = _name(toks[0]), toks[1:]
-    pos = [a for a in args if not a.startswith("-")]
+    opts = RUN_VALUE_OPTS.get(name, set())
+    k, first = _first_positional(args, opts)
     if name == "deno":
-        script = pos[1] if pos[:1] == ["run"] and len(pos) > 1 else pos[0] if pos and URL.match(pos[0]) else ""
-        return bool(URL.match(script))
+        if first == "run":
+            first = _first_positional(args[k + 1:], opts)[1]
+        return bool(URL.match(first))
     if name == "go":
-        return pos[:1] == ["run"] and any("@" in a and not a.startswith((".", "/")) and not a.endswith(".go")
-                                          for a in pos[1:2])
-    if name in ("uv", "pipx") and pos[:1] == ["run"] or name == "uvx" or name == "uv" and pos[:2] == ["tool", "run"]:
-        specs = pos[(0 if name == "uvx" else 2 if pos[:2] == ["tool", "run"] else 1):][:1]
-        specs += [v for k, v in zip(args, args[1:]) if k in ("--from", "--spec", "--with")]
-        specs += [a.split("=", 1)[1] for a in args if a.startswith(("--from=", "--spec=", "--with="))]
-        return any(REMOTE_SPEC.match(s) for s in specs)
-    runner = (name in ("npx", "bunx", "pnpx") or (name in ("pnpm", "yarn") and pos[:1] == ["dlx"])
-              or (name == "npm" and pos[:1] in (["exec"], ["x"])) or (name == "bun" and pos[:1] == ["x"]))
-    if not runner:
+        if first != "run":
+            return False
+        target = _first_positional(args[k + 1:], opts)[1]
+        return "@" in target and not target.startswith((".", "/")) and not target.endswith(".go")
+    sub = {"uv": ("run", "tool"), "pipx": ("run",), "pnpm": ("dlx",), "yarn": ("dlx",), "npm": ("exec", "x"),
+           "bun": ("x",)}
+    lead = args
+    if name in sub:
+        if first not in sub[name]:
+            return False
+        lead = args[k + 1:]
+        if name == "uv" and first == "tool":
+            j, word = _first_positional(lead, opts)
+            if word != "run":
+                return False
+            lead = lead[j + 1:]
+    elif name not in ("uvx", "npx", "bunx", "pnpx"):
         return False
-    specs = [v for k, v in zip(args, args[1:]) if k in ("-p", "--package")]
-    specs += [a.split("=", 1)[1] for a in args if a.startswith("--package=")]
-    first = pos[1:2] if name in ("pnpm", "yarn", "npm", "bun") else pos[:1]
-    for s in specs + first:
-        if REMOTE_SPEC.match(s) or (re.fullmatch(r"[\w.-]+/[\w.-]+(?:#\S*)?", s) and not s.startswith(".")):
-            return True                                      # github:user/repo, a URL, or npm's user/repo shorthand
+    j, spec = _first_positional(lead, opts)
+    before = lead[:j] if j >= 0 else lead
+    specs = [spec] + [v for o, v in zip(before, before[1:]) if o in ("-p", "--package", "--from", "--spec", "--with")]
+    specs += [a.split("=", 1)[1] for a in before if a.startswith(("--package=", "--from=", "--spec=", "--with="))]
+    for s in specs:
+        if REMOTE_SPEC.match(s) or (name in ("npx", "bunx", "pnpx", "npm", "pnpm", "yarn", "bun")
+                                    and re.fullmatch(r"[\w.-]+/[\w.-]+(?:#\S*)?", s) and not s.startswith(".")):
+            return True                                      # github:user/repo, a URL, git+, npm's user/repo shorthand
     return False
 
 
@@ -5759,19 +5901,48 @@ def _upstream(segs: list, n: int) -> list:
     return out
 
 
-def _net_source(seg, body: str, cwd, depth: int) -> bool:
+def _heredoc_list(command: str) -> list[str]:
+    """The body of each simple heredoc, in the order of their `<<` markers."""
+    bodies: list[list[str]] = []
+    pending: list = []
+    for line in command.split("\n"):
+        if pending:
+            strip, delim, k = pending[0]
+            if (line.lstrip("\t") if strip else line).rstrip("\r") == delim:
+                pending.pop(0)
+            else:
+                bodies[k].append(line)
+            continue
+        for m in HEREDOC.finditer(line.replace("<<<", "   ")):
+            bodies.append([])
+            pending.append((m.group(1) == "-", m.group(3), len(bodies) - 1))
+    return ["\n".join(b) for b in bodies]
+
+
+def _seg_bodies(segs: list, bodies: list[str]) -> dict:
+    """Each command's own heredoc bodies (by ``id`` of its segment), matched to its `<<` markers in order."""
+    out, k = {}, 0
+    for seg in segs:
+        marks = sum(str(t) in ("<<", "<<-") for t in seg.tokens)
+        if marks:
+            out[id(seg)] = "\n".join(bodies[k:k + marks])
+            k += marks
+    return out
+
+
+def _net_source(seg, bodies: dict, cwd, depth: int) -> bool:
     """A command whose output may come from another host: a fetch (a server on this machine included), anything
     ``_seg_reads_external`` sees (`$(curl …)`, `<(curl …)`, `gh api`), `gh gist view`, a program named by a variable
-    (prudence), or a heredoc whose body downloads."""
-    toks, raw = _unwrap(seg.tokens), [str(t) for t in seg.tokens]
+    (prudence), or its own heredoc whose body downloads."""
+    toks = _unwrap(seg.tokens)
     if toks and (toks[0].startswith("$") or _name(toks[0]) in NET_FETCHERS):
         return True
     if toks and _name(toks[0]) == "gh" and _strip(toks[1:], GH_VALUE_OPTS)[:2] == ["gist", "view"]:
         return True
-    if _seg_reads_external(seg.tokens, depth) or any(NET_SUB.search(_norm_sub(t)) for t in raw):
+    if _seg_reads_external(seg.tokens, depth) or _outer_sub(seg.tokens):
         return True
-    return bool(body) and bool({"<<", "<<-"} & set(raw)) and bool(NET_SUB.search(body)
-                                                                    or _net_code(body, cwd, depth + 1))
+    body = bodies.get(id(seg), "")
+    return bool(body) and bool(NET_SUB.search(body) or _net_code(body, cwd, depth + 1))
 
 
 def _at(base: str, path: str) -> str:
@@ -5783,51 +5954,108 @@ def _url_name(args: list[str]) -> list[str]:
     out = []
     for a in args:
         if not a.startswith("-") and ("://" in a or re.match(r"^[\w.-]+\.[a-z]{2,}(?:/|$)", a, re.I)):
-            path = urllib.parse.urlsplit(a if "://" in a else "http://" + a).path
+            try:
+                path = urllib.parse.urlsplit(a if "://" in a else "http://" + a).path
+            except ValueError:                               # a curl glob in the host: [1-3]
+                path = a.split("?", 1)[0]
             out.append(path.rstrip("/").rsplit("/", 1)[-1] or "index.html")
     return out
 
 
-def _downloads(toks: list[str], raw: list[str], base: str, net: bool, fed: bool, files: set,
-               dirs: set) -> tuple[set, set]:
-    """The files and folders one command fills with downloaded content: what a fetch saves (its output options, the
-    name taken from the URL, a redirect), what a pipe from the network writes (`| tee f`, `> f`, `| tar x`), a `git
-    clone`, an archive or a file already downloaded unpacked, copied or moved."""
+SHELL_BUILTINS = {"source", ".", "export", "set", "unset", "alias", "unalias", "cd", "pushd", "popd", "dirs", "eval",
+                  "exec", "exit", "return", "true", "false", "test", "[", "echo", "printf", "read", "shift", "trap",
+                  "wait", "type", "hash", "command", "builtin", "local", "declare", "typeset", "ulimit", "umask",
+                  "jobs", "fg", "bg", "kill", "let", "times", "getopts", "shopt", "enable", "help", "history"}
+
+
+def _by_name(word: str, got) -> bool:
+    """A program named alone that an earlier command of the line put in an install folder: a downloaded file moved,
+    copied, installed or saved there, or a name found nowhere yet in a folder an archive was unpacked into."""
+    if "/" in word or "\\" in word or word.startswith("$") or word in SHELL_BUILTINS:
+        return False
+    cands = [os.path.join(d, word) for d in _path_dirs()]
+    if any(c in got.files for c in cands):
+        return True
+    import shutil
+    return shutil.which(word) is None and any(got.has(c) for c in cands)
+
+
+def _path_dirs() -> list[str]:
+    """The folders a program named alone is looked up in: PATH, and the usual install folders."""
+    dirs = [d for d in os.environ.get("PATH", "").split(os.pathsep) if d] + list(INSTALL_PATH_DIRS)
+    return list(dict.fromkeys(os.path.normpath(os.path.expanduser(d)) for d in dirs))
+
+
+class _Downloaded:
+    """What earlier commands of the line filled with downloaded content: files (any run of one counts), and folders,
+    a clone or an unpacked archive (a file of it run itself counts, a build or test tool reading its manifest does
+    not; of an unpacked archive, only a path absent from the disk now can be the archive's)."""
+
+    def __init__(self):
+        self.files: set = set()
+        self.dirs: dict = {}
+
+    def __bool__(self):
+        return bool(self.files or self.dirs)
+
+    def has(self, path: str, direct: bool = True) -> bool:
+        if path in self.files:
+            return True
+        for d, kind in self.dirs.items():
+            if (path == d or path.startswith(d + os.sep)) and direct and not (
+                    kind == "unpacked" and path != d and os.path.lexists(path)):
+                return True
+        return False
+
+
+def _positionals_after(args: list[str], value_opts: set) -> list[str]:
+    out, skip = [], False
+    for a in args:
+        if skip:
+            skip = False
+        elif a.startswith("-") and a != "-":
+            skip = a in value_opts
+        else:
+            out.append(a)
+    return out
+
+
+def _downloads(toks: list[str], raw: list[str], base: str, net: bool, fed: bool, code: str, got: _Downloaded) -> None:
+    """Add what one command fills with downloaded content: what a fetch saves (its output options, the name taken
+    from the URL, a redirect), what a pipe from the network writes (`| tee f`, `> f`), the files inline code that
+    names a URL quotes (`php -r "copy('https://…','x.php')"`), a `git clone`, an archive fed by the network or
+    already downloaded unpacked, a downloaded file or folder copied, moved or installed elsewhere."""
     name, args = _name(toks[0]), toks[1:]
-    got, into = set(), set()
     if net or fed:
-        got |= {_at(base, t) for t in _redirects(raw)}
+        got.files |= {_at(base, t) for t in _redirects(raw)}
+    if code and re.search(r"(?:https?|ftp)://", code):
+        got.files |= {_at(base, q) for _quote, q in re.findall(r"""(['"])([^'"\s]+?)\1""", code)
+                      if "://" not in q and re.search(r"[./]", q) and not q.startswith(("-", "$"))}
     if name in NET_FETCHERS:
         pairs = _tool_output_pairs(["wget" if name == "wget2" else toks[0]] + args)
         outdir = next((f for o, f in pairs if o == "--output-dir"), "")
-        got |= {_at(base, os.path.join(outdir, f) if o in ("-o", "--output") else f) for o, f in pairs
-                if f not in _NO_FILE and f != "-" and o != "--output-dir"}
+        got.files |= {_at(base, os.path.join(outdir, f) if o in ("-o", "--output") else f) for o, f in pairs
+                      if f not in _NO_FILE and f != "-" and o != "--output-dir"}
         if name == "curl" and any(re.fullmatch(r"-[A-Za-z]*O[A-Za-z]*", a) or a.startswith("--remote-name")
                                   for a in args):
-            got |= {_at(base, os.path.join(outdir, f)) for f in _url_name(args)}
+            got.files |= {_at(base, os.path.join(outdir, f)) for f in _url_name(args)}
         if name in ("wget", "wget2") and not any(o in ("-O", "--output-document", "-P", "--directory-prefix")
                                                  for o, _f in pairs):
-            got |= {_at(base, f) for f in _url_name(args)}
+            got.files |= {_at(base, f) for f in _url_name(args)}
         low = [a.casefold() for a in args]
-        got |= {_at(base, args[k + 1]) for k, a in enumerate(low) if a == "-outfile" and k + 1 < len(args)}
+        got.files |= {_at(base, args[k + 1]) for k, a in enumerate(low) if a == "-outfile" and k + 1 < len(args)}
     if name == "tee" and fed:
-        got |= {_at(base, a) for a in args if not a.startswith("-")}
+        got.files |= {_at(base, a) for a in args if not a.startswith("-")}
     if name == "git":
         plain = _strip(args, GIT_VALUE_OPTS)
         if plain[:1] == ["clone"]:
-            rest, skip = [], False
-            for a in plain[1:]:
-                if skip:
-                    skip = False
-                elif a in ("-b", "--branch", "-o", "--origin", "--depth", "-c", "--config", "--template",
-                           "--reference", "--separate-git-dir", "-j", "--jobs", "--filter", "-u", "--upload-pack",
-                           "--shallow-since", "--shallow-exclude", "--server-option"):
-                    skip = True
-                elif not a.startswith("-"):
-                    rest.append(a)
+            rest = _positionals_after(plain[1:], {"-b", "--branch", "-o", "--origin", "--depth", "-c", "--config",
+                                                  "--template", "--reference", "--separate-git-dir", "-j", "--jobs",
+                                                  "--filter", "-u", "--upload-pack", "--shallow-since",
+                                                  "--shallow-exclude", "--server-option"})
             if rest:
-                into.add(_at(base, rest[1] if len(rest) > 1 else
-                              re.sub(r"\.git$", "", rest[0].rstrip("/").rsplit("/", 1)[-1].rsplit(":", 1)[-1])))
+                got.dirs[_at(base, rest[1] if len(rest) > 1 else
+                             re.sub(r"\.git$", "", rest[0].rstrip("/").rsplit("/", 1)[-1].rsplit(":", 1)[-1]))] = "clone"
     if name in ("tar", "gtar", "bsdtar"):
         first = args[0] if args else ""
         extract = (any(a in ("--extract", "--get") for a in args) or re.fullmatch(r"-?[A-Za-z]*x[A-Za-z]*", first)
@@ -5836,70 +6064,140 @@ def _downloads(toks: list[str], raw: list[str], base: str, net: bool, fed: bool,
         archive += [a.split("=", 1)[1] for a in args if a.startswith("--file=")]
         if re.fullmatch(r"[A-Za-z]*f[A-Za-z]*", first) and not first.startswith("-") and len(args) > 1:
             archive.append(args[1])
-        source = fed or any(a == "-" for a in archive) and fed or any(_at(base, a) in files for a in archive)
-        if extract and source:
+        if extract and (fed or any(got.has(_at(base, a)) for a in archive if a != "-")):
             target = next((args[k + 1] for k, a in enumerate(args[:-1]) if a in ("-C", "--directory")), "")
             target = target or next((a.split("=", 1)[1] for a in args if a.startswith("--directory=")), "")
-            into.add(_at(base, target or "."))
-    if name == "unzip" and any(_at(base, a) in files for a in args if not a.startswith("-")):
+            got.dirs.setdefault(_at(base, target or "."), "unpacked")
+    if name == "unzip" and any(got.has(_at(base, a)) for a in args if not a.startswith("-")):
         target = next((args[k + 1] for k, a in enumerate(args[:-1]) if a == "-d"), "")
-        into.add(_at(base, target or "."))
-    if name in ("cp", "mv") and len([a for a in args if not a.startswith("-")]) >= 2:
-        pos = [a for a in args if not a.startswith("-")]
-        srcs, dest = [_at(base, a) for a in pos[:-1]], _at(base, pos[-1])
-        for src in srcs:
-            if src in files:
-                got |= {dest, os.path.join(dest, os.path.basename(src))}
-            if src in dirs or any(src.startswith(d + os.sep) for d in dirs):
-                into.add(dest)
-    return got, into
+        got.dirs.setdefault(_at(base, target or "."), "unpacked")
+    if name in ("cp", "mv", "install"):
+        pos = _positionals_after(args, {"-m", "--mode", "-o", "--owner", "-g", "--group", "-S", "--suffix", "-t",
+                                        "--target-directory"})
+        target = next((args[k + 1] for k, a in enumerate(args[:-1]) if a in ("-t", "--target-directory")), "")
+        srcs, dest = (pos, target) if target else (pos[:-1], pos[-1] if len(pos) > 1 else "")
+        if dest:
+            dest = _at(base, dest)
+            for src in (_at(base, a) for a in srcs):
+                kind = got.dirs.get(src)
+                if kind:                                     # the whole folder: still a clone or an archive
+                    got.dirs.setdefault(os.path.join(dest, os.path.basename(src)), kind)
+                    if not os.path.isdir(dest):
+                        got.dirs.setdefault(dest, kind)
+                elif got.has(src):                           # one file: only its new name
+                    got.files |= {os.path.join(dest, os.path.basename(src))} | (set() if os.path.isdir(dest)
+                                                                                 or raw[-1].endswith("/") else {dest})
 
 
-def _downloaded_then_run(segs: list, cwd, body: str, depth: int) -> bool:
-    """A command of the line runs a file, or a file of a folder, that an earlier command of the same line filled with
-    downloaded content (`curl -o i.sh URL && bash i.sh`, `wget -O i.sh URL && chmod +x i.sh && ./i.sh`, `curl URL |
-    tar xz && ./install.sh`, `git clone URL && ./x/install.sh`): the files a command runs are read as
-    ``scripts_run`` reads them."""
+def _downloaded_then_run(segs: list, bodies: dict, cwd, depth: int) -> str:
+    """A command of the line runs a file that an earlier command of the same line downloaded (`curl -o i.sh URL &&
+    bash i.sh`, `wget -O i.sh URL && chmod +x i.sh && ./i.sh`, `sh < i.sh`, `cat i.sh | bash`), a file of a folder it
+    cloned or unpacked (`git clone URL && ./x/install.sh`, `curl URL | tar xz && ./install.sh`), or a program it put in
+    an install folder, run by its name (`… mv ./kubectl ~/.local/bin/ && kubectl version`). The files a command runs
+    are read as ``scripts_run`` reads them: "net" (``NET_CODE``). A build or test tool in a fresh clone or an unpacked
+    folder (`npm install`, `make`, `pip install -e .`) is "project" (``FETCHED_PROJECT``, the owner's decision,
+    21/11); else ""."""
     base = cwd or os.getcwd()
-    files: set = set()
-    dirs: set = set()
+    got = _Downloaded()
+    project = False
     for n, seg in enumerate(segs):
-        toks, raw = _unwrap(seg.tokens), [str(t) for t in seg.tokens]
+        raw = [str(t) for t in seg.tokens]
+        toks = _unwrap(seg.tokens)
         if not toks:
             continue
         name = _name(toks[0])
         if name in ("cd", "pushd"):
             base = _at(base, toks[1]) if len(toks) > 1 else base
             continue
-        if files or dirs:
+        kind, code = _code_source(_unwrap(_without_procsubs(seg.tokens)))
+        if got:
+            direct = name not in MANIFEST_RUNNERS
             runs = scripts_run(" ".join(shlex.quote(t) for t in toks), base, wide=True)
-            if any(p in files or any(p == d or p.startswith(d + os.sep) for d in dirs) for p in runs):
-                return True
-        fed = seg.sep in PIPES and any(_net_source(up, body, cwd, depth) for up in _upstream(segs, n))
-        net = (name in NET_FETCHERS or _seg_reads_external(seg.tokens, depth)
-               or any(NET_SUB.search(_norm_sub(t)) for t in raw))
-        got, into = _downloads(toks, raw, base, net, fed, files, dirs)
-        files |= got
-        dirs |= into
-    return False
+            if _by_name(toks[0], got):
+                return "net"
+            if kind == "stdin":                              # sh < i.sh, cat i.sh | bash
+                runs += [_at(base, raw[k + 1]) for k in range(len(raw) - 1) if raw[k] == "<" and raw[k + 1] != "<("]
+                for up in _upstream(segs, n):
+                    up_raw = [str(t) for t in up.tokens]
+                    runs += [_at(base, a) for a in _unwrap(up.tokens)[1:] if not a.startswith("-")]
+                    runs += [_at(base, up_raw[k + 1]) for k in range(len(up_raw) - 1) if up_raw[k] == "<"]
+            if any(got.has(p, direct) for p in runs):
+                return "net"
+            project = project or (not direct and any(got.has(p) for p in runs))
+        fed = seg.sep in PIPES and any(_net_source(up, bodies, cwd, depth) for up in _upstream(segs, n))
+        net = name in NET_FETCHERS or _seg_reads_external(seg.tokens, depth) or _outer_sub(seg.tokens)
+        _downloads(toks, raw, base, net, fed, code if kind == "arg" else "", got)
+    return "project" if project else ""
 
 
 def _net_raw(command: str) -> bool:
-    """A line too long to be lexed runs a download, as far as its raw text shows."""
-    return bool(NET_SUB.search(_norm_sub(command)) or NET_PIPE_RAW.search(command) or NET_PROC_RAW.search(command))
+    """A line too long to be lexed runs a download, as far as its raw text shows (heredoc bodies are data)."""
+    text = _strip_heredocs(command)
+    return bool(NET_SUB.search(_norm_sub(text)) or NET_PIPE_RAW.search(text) or NET_PROC_RAW.search(text))
 
 
-def _net_code(command: str, cwd=None, depth: int = 0) -> bool:
+CAT_STDIN = re.compile(r"\$\(\s*(?:cat(?:\s+-)?|<\s*/dev/stdin)\s*\)|`\s*cat(?:\s+-)?\s*`")
+
+
+def _net_code(command: str, cwd=None, depth: int = 0, project: list | None = None) -> bool:
     """The line runs what it downloads (``NET_CODE``): a fetch piped into a command that reads its program from
-    standard input (`curl … | sh`, `{ curl …; } | bash`, `echo "$(curl …)" | sh`, `irm … | iex`), a download given as
-    the program (`bash <(curl …)`, `source <(curl …)`, `sh < <(curl …)`) or as the code (`sh -c "$(curl …)"`, `eval
-    "$(curl …)"`, `iex (irm …)`), a here-string of a download read as the program (`bash <<< "$(curl …)"`), a file or
-    folder downloaded then run by the same line (``_downloaded_then_run``), or a program run from a URL or a remote
-    module (``_runs_remote``). The code of `sh -c`, `eval` and a heredoc a shell reads is read the same way. Names
-    are compared case folded, without .exe; names in names (`python3 parse.py <(curl …)`, an argument of `python -c
-    CODE`) are data. Both readings of the line count."""
+    standard input (`curl … | sh`, `{ curl …; } | bash`, `echo "$(curl …)" | sh`, `irm … | iex`, `curl … | bash -c
+    "$(cat)"`), a download given as the program (`bash <(curl …)`, `source <(curl …)`, `sh < <(curl …)`) or as the
+    code (`sh -c "$(curl …)"`, `eval "$(curl …)"`, `iex (irm …)`, `[scriptblock]::Create((irm …))`), a here-string
+    of a download read as the program (`bash <<< "$(curl …)"`), a file downloaded then run by the same line
+    (``_downloaded_then_run``), or a program run from a URL or a remote module (``_runs_remote``). The code of `sh -c`,
+    `eval`, `pwsh -EncodedCommand` and a heredoc a shell reads is read the same way. Names are compared case folded,
+    without .exe; a download given to a script as data (`python3 parse.py <(curl …)`, an argument after `python -c
+    CODE`) is not its code, nor a substitution between single quotes. Only the whole reading of the line counts: a
+    quoted text over several lines (a commit message) is text. ``project`` (a list) is told when the line runs a
+    build or test tool in a project it just downloaded (``FETCHED_PROJECT``)."""
     if depth > MAX_DEPTH:
         return False
+    text = _strip_heredocs(command)
+    segs = _build(_tokens_whole(text))
+    bodies = _seg_bodies(segs, _heredoc_list(command)) if text != command else {}
+    for n, seg in enumerate(segs):
+        raw = [str(t) for t in seg.tokens]
+        toks = _unwrap(seg.tokens)
+        bare = _unwrap(_without_procsubs(seg.tokens))
+        kind, code = _code_source(bare) if bare else (("stdin", "") if _sudo_shell(raw) else ("", ""))
+        if toks and (_script_from_net(raw, toks, kind) or _runs_remote(toks)):
+            return True
+        joined = " ".join(raw)
+        if "[scriptblock]::create" in joined.casefold() and PS_DOWNLOAD.search(joined):
+            return True                                       # & ([scriptblock]::Create((irm …)))
+        if kind == "arg":
+            written = _raw_code(list(seg.tokens), bare, code)
+            inner = _name(bare[0]) in _SHELLS | {"eval", "su"}   # its code is shell code, expanded when it runs
+            if (_outer_sub(written) or (inner and NET_SUB.search(_norm_sub(code)))
+                    or (_name(bare[0]) in PS_EXEC | {"pwsh", "powershell"} and PS_DOWNLOAD.search(code)
+                        and (_name(bare[0]) in PS_EXEC or re.search(r"\b(?:iex|invoke-expression)\b|scriptblock",
+                                                                   code, re.I)))
+                    or (code and _net_code(code, cwd, depth + 1))):
+                return True                                   # sh -c "$(curl …)", iex (irm …), or curl … | sh inside
+            if CAT_STDIN.search(code):
+                kind = "stdin"                                # bash -c "$(cat)": the code is its standard input
+        if kind != "stdin":
+            continue
+        if "<<<" in raw:
+            target = list(seg.tokens)[raw.index("<<<") + 1:raw.index("<<<") + 2]
+            if _outer_sub(target) or (target and _name(bare[0]) in _SHELLS and NET_SUB.search(str(target[0]))):
+                return True                                   # bash <<< "$(curl …)"
+        body = bodies.get(id(seg), "")
+        if body and (NET_SUB.search(body) or _net_code(body, cwd, depth + 1)):
+            return True                                       # sh <<EOF … curl … | sh … EOF
+        shell = _name(bare[0]) in _SHELLS | {"su", "source", "."} if bare else True
+        for up in _upstream(segs, n):
+            if _net_source(up, bodies, cwd, depth):
+                return True                                   # curl … | sh, curl … | tee log | sh
+            printed = _unwrap(up.tokens)
+            if (shell and printed and _name(printed[0]) in ("echo", "printf")
+                    and NET_SUB.search(_norm_sub(" ".join(str(t) for t in up.tokens)))):
+                return True                                   # echo '$(curl …)' | sh: printed text a shell runs
+    found = _downloaded_then_run(segs, bodies, cwd, depth)
+    if found == "project" and project is not None:
+        project.append(True)
+    return found == "net"
     text = _strip_heredocs(command)
     body = _strip_heredocs(command, bodies=True) if text != command else ""
     for tokens in (_tokens_lines(text), _tokens_whole(text)):
