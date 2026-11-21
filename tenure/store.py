@@ -36,6 +36,7 @@ EXCUSE_WINDOW = 10 * 60        # seconds the owner has to excuse a fault (protoc
 EXCUSE_LIMIT = 3              # excuses per type ...
 EXCUSE_PERIOD = 7 * 86400     # ... over this many seconds: past it, a fault of that type stays a fault
 EXCUSE_NUMBERS = "excuse_numbers"   # meta key: the number a person excuses each recent fault by (number_fault)
+NUMBERS_ALIGNED = "numbers_aligned"  # meta key: the undo counter was raised above recent's once (_align_numbers)
 EXCUSABLE = frozenset({"refusal", "undo"})   # faults a person caused: never a check, a spot check or a flag
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS types (agent TEXT NOT NULL, key TEXT NOT NULL, state TEXT NOT NULL,
@@ -410,6 +411,8 @@ class Store:
         """An action that can be undone. ``fault``: its outcome already counted as a fault (a failed automatic check),
         so undoing it must not count a second one."""
         self._write()
+        if not self.numbers_aligned:
+            self._align_numbers()                         # before the first number this store takes
         cur = self.db.execute("INSERT INTO undo (agent, type, snap_id, at, fault) VALUES (?, ?, ?, ?, ?)",
                               (agent, type, snap_id, time.time() if at is None else at, int(bool(fault))))
         return int(cur.lastrowid)
@@ -482,6 +485,29 @@ class Store:
             if not self.has_call:
                 self.db.execute("ALTER TABLE recent ADD COLUMN call TEXT")
                 self.has_call = True
+        if not self.numbers_aligned:
+            self._align_numbers()
+
+    numbers_aligned = False                               # per store: _align_numbers ran (or found its meta key)
+
+    def _align_numbers(self) -> None:
+        """Once per database (meta ``NUMBERS_ALIGNED``): the undo counter goes above every number ``recent`` ever
+        gave, so that a number taken from it (an undo, a refusal, an action, ``new_number``) never meets an action
+        an older tenure numbered with recent's own counter; those keep their numbers. sqlite_sequence has no key, so
+        the undo row is added only when missing, then raised."""
+        if self.get_meta(NUMBERS_ALIGNED):
+            self.numbers_aligned = True
+            return
+        top = self.db.execute("SELECT COALESCE(MAX(seq), 0) FROM sqlite_sequence WHERE name = 'recent'").fetchone()[0]
+        if self._recent_exists():
+            top = max(top, self.db.execute("SELECT COALESCE(MAX(n), 0) FROM recent").fetchone()[0])
+        if self.db.execute("SELECT 1 FROM sqlite_sequence WHERE name = 'undo'").fetchone() is None:
+            self.db.execute("INSERT INTO sqlite_sequence (name, seq) VALUES ('undo', ?)",
+                            (max(top, self.db.execute("SELECT COALESCE(MAX(id), 0) FROM undo").fetchone()[0]),))
+        else:
+            self.db.execute("UPDATE sqlite_sequence SET seq = MAX(seq, ?) WHERE name = 'undo'", (top,))
+        self.set_meta(NUMBERS_ALIGNED, "1")
+        self.numbers_aligned = True
 
     @staticmethod
     def _recent(row) -> dict:
@@ -494,9 +520,10 @@ class Store:
         """Number one settled action and purge the rows older than 24 hours, in the same write. Its number is the
         one a person already saw for it: its undo number, else a new one of the same counter (``new_number``), so
         ``flag``, ``undo``, ``ok`` and ``excuse`` read one numbering, where a number never names two actions. Numbers
-        are never reused. A number a row of an older tenure still holds (its own counter, 24 hours at most) is passed
-        over. ``call`` is the call id as stored (hashed, like a session): with the session it lets a verifier name
-        the action (#6)."""
+        are never reused. The undo counter was raised once above recent's own (``_align_numbers``), so the numbers
+        an older tenure gave keep naming their actions; an undo number taken before that and already held by such a
+        row (an action still settling across the update) gets a new one. ``call`` is the call id as stored (hashed,
+        like a session): with the session it lets a verifier name the action (#6)."""
         self._recent_write()
         self.db.execute("DELETE FROM recent WHERE at < ?", (at - RECENT_WINDOW,))
         n = undo_id

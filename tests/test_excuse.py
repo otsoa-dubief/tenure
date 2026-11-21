@@ -295,3 +295,20 @@ def test_e3_flag_undo_and_excuse_read_one_numbering(plugin):
         assert st.add_undo(A, "file:write", None) > other                    # and no later undo gets it
     assert f"action {u} flagged" in mod.cli.slash(f"flag {u}") and state(mod, "file:write").faults == 1
     assert f"Action {u} already counted" in mod.cli.slash(f"flag {u}")
+
+
+def test_n1_an_older_numbering_is_passed_over_once_and_keeps_its_numbers(plugin):
+    mod, ctx = plugin(TRUST)
+    with mod.txn() as st:                                                   # as an older tenure left it
+        st._recent_write()
+        st.db.execute("DELETE FROM meta WHERE key = ?", (mod.store.NUMBERS_ALIGNED,))
+        for _ in range(40):
+            st.db.execute("INSERT INTO recent (session, agent, type, at, flagged) VALUES ('s', ?, 'file:write', ?, 0)",
+                          (A, __import__("time").time()))
+    mod.ST.store = None                                                     # a new process opens it
+    ctx.call("write_file", write("a"))                                       # acts, with an undo
+    u = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    st = mod.store_()
+    assert u > 40 and st.recent(u)["undo_id"] == u                          # above every older number
+    assert st.recent(7) is not None and st.recent(7)["undo_id"] is None    # an older number still names its action
+    assert st.get_meta(mod.store.NUMBERS_ALIGNED) == "1"
