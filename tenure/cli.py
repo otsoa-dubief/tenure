@@ -2,11 +2,18 @@
 # SPDX-License-Identifier: Apache-2.0
 """``hermes tenure`` (owner's terminal) and ``/tenure`` (inside a conversation).
 
+Three commands are shown (``help_text``):
+
+    (nothing)                                  what the agent did lately and what can still be undone (study: status)
+    undo [N]                                   alone, what can still be undone; with a number, put that action back
+    trust [KIND [ask]]                         kinds that are not free; with a kind, free it now, or make it ask first
+
+Every other command keeps its name and works as before, listed by ``advanced``:
+
     status [--profile P] [--model M] [--all]   what each agent has earned, per action type
     setup [careful|balanced|fast]              the three recommendations; with a name, use it
     explain                                    how tenure decides, and what the numbers guarantee
     models [--type T]                          each model's verified record on your own work
-    undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list
     flag [N]                                   alone, the last numbered actions; with a number, report that action as an error
     flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked
     flag --call ID --session ID [--doubt]      a verifier: a fault (or, with --doubt, the next one asks) on one action
@@ -210,7 +217,9 @@ def _simple_cells(st, agent: str, s: rule.TypeState, cfg: dict) -> list[str]:
     """Simple mode, one type: where it stands and what brings it back, in plain words."""
     core = _core()
     n = params.required_n(cfg["risks"], s.stakes)
-    if not rule.simple_eligible(s, n):
+    if s.pinned:
+        state, next_ = tr("simple.state.ask"), tr("trust.state.pinned", command=f"/tenure trust {s.key}")
+    elif not rule.simple_eligible(s, n):
         state, next_ = tr("simple.state.always"), "-"
     elif core.trusted(cfg, s, n, s.stakes):
         state, next_ = tr("simple.state.free"), "-"
@@ -683,6 +692,175 @@ def undo_action(entry_id: int) -> str:
     return msg
 
 
+# ------------------------------------------------------------------------------------------------ home, trust
+HOME_UNDO = 10                                   # undoable actions /tenure shows, newest first
+
+
+def _undo_label(core, st, rows_by_undo: dict, uid: int, snap: str | None, key: str) -> str:
+    """What an undoable action did, as the end-of-turn line shows it: the command's first line, secrets masked
+    (remembered in memory by this process only), else the files its undo restores, else nothing."""
+    r = rows_by_undo.get(uid)
+    what = core.summary_of(st.path, r["n"], r["at"]) if r else ""
+    if what.startswith(key + ": "):
+        what = what[len(key) + 2:]
+    what = what.strip().splitlines()[0] if what.strip() else ""
+    if not what and snap:
+        d = undo.describe(snap, core.data_dir())
+        if d:
+            what = tr("cli.undo.more_files", file=d["file"], n=d["files"] - 1) if d["files"] > 1 else d["file"]
+    cap = core.LABEL_CAP
+    return what if len(what) <= cap else what[:cap - 1] + "\u2026"
+
+
+def _kind_state(core, cfg: dict, s: rule.TypeState) -> tuple[str, int]:
+    """Where a kind stands, for /tenure and /tenure trust: (free | pinned | out | high | capped | watched | ask,
+    how many more approvals or actions left undone bring it back to free). Study mode: free, capped, watched or ask,
+    with the successes still needed toward acting alone."""
+    n = params.required_n(cfg["risks"], s.stakes)
+    if not core.simple(cfg):
+        eff = effective_tier(s, n)
+        if n is None:
+            return "capped", 0
+        if eff == rule.T3 or core.trusted(cfg, s, n, s.stakes):
+            return "free", 0
+        return ("watched" if eff == rule.T2 else "ask"), max(rule.required(s, n) - s.series, 1)
+    if core.trusted(cfg, s, n, s.stakes):
+        return "free", 0
+    if s.pinned:
+        return "pinned", 0
+    if not params.simple_covers(s.key):
+        return "out", 0
+    if s.stakes == "high":
+        return "high", 0
+    if n is None:
+        return "capped", 0
+    left = max(n - s.series, 1)
+    if rule.decide(s, n, cfg["spot"], suspended=False, rng=_core()._NoSpot, mode=rule.SIMPLE) == rule.NOTIFY:
+        return "watched", left
+    return "ask", left
+
+
+def home_text(prefix: str = "/tenure") -> str:
+    """``/tenure`` alone, simple mode: what the agent did lately in plain words. The actions that can still be undone
+    (newest first, at most ten), how many ran without asking today, which kinds are watched or ask first, and the
+    two commands. Study mode keeps ``status``. Reads only."""
+    core = _core()
+    cfg = core.settings()
+    if not core.simple(cfg):
+        return status_text()
+    st = core.store_()
+    now = time.time()
+    hours = core.UNDO_WINDOW // 3600
+    since = now - core.UNDO_WINDOW
+    rows = st.db.execute("SELECT id, type, at, snap_id FROM undo WHERE undone = 0 AND snap_id IS NOT NULL "
+                         "AND at > ? ORDER BY id DESC LIMIT ?", (since, HOME_UNDO)).fetchall()
+    total = st.db.execute("SELECT COUNT(*) FROM undo WHERE undone = 0 AND snap_id IS NOT NULL AND at > ?",
+                          (since,)).fetchone()[0]
+    lines = [tr("home.title")]
+    why = core.nobody_answers()
+    if why:
+        lines.append(tr("cli.status.paused", why=why))
+    if not cfg["enabled"]:
+        lines.append(tr("cli.status.disabled", setting=f"{SETTINGS}.enabled"))
+    if rows:
+        by_undo = {r["undo_id"]: r for r in st.recent_rows(None, limit=500) if r["undo_id"] is not None}
+        cells = [[str(uid), key, _undo_label(core, st, by_undo, uid, snap, key), _ago(now - at)]
+                 for uid, key, at, snap in rows]
+        lines.append(tr("home.undo_title", n=hours))
+        lines += ["  " + ln for ln in _table([tr("cli.col.number"), tr("cli.col.type"), tr("cli.col.target"),
+                                               tr("cli.col.when")], cells)]
+        if total > len(rows):
+            lines.append("  " + tr("home.undo_more", n=total - len(rows), command=f"{prefix} undo"))
+    else:
+        lines.append(tr("home.undo_none", n=hours))
+    lines.append(tr("home.today", n=st.totals(None, now)["alone"]))
+    watched, asks = [], []
+    for _, s in st.states(_agent(core, None)):
+        state, _left = _kind_state(core, cfg, s)
+        if state == "watched":
+            watched.append(s.key)
+        elif state in ("ask", "pinned"):
+            asks.append(s.key)
+    if watched:
+        lines.append(tr("home.watched", types=_join(watched)))
+    if asks:
+        lines.append(tr("home.asks", types=_join(asks)))
+    lines += ["", f"{prefix} undo N \u00b7 {prefix} trust"]
+    return "\n".join(lines)
+
+
+def _state_text(core, cfg: dict, s: rule.TypeState, prefix: str) -> str:
+    state, left = _kind_state(core, cfg, s)
+    if state == "pinned":
+        return tr("trust.state.pinned", command=f"{prefix} trust {s.key}")
+    if state in ("out", "high", "capped"):
+        return tr(f"trust.state.{state}")
+    if not core.simple(cfg):
+        return tr("trust.state.study", tier=tier_name(effective_tier(s, params.required_n(cfg["risks"], s.stakes))),
+                  n=left)
+    return tr(f"trust.state.{state}", n=left)
+
+
+def trust_list(prefix: str = "/tenure", model: str | None = None) -> str:
+    """``/tenure trust`` alone: the kinds of action that are not free, in plain words, with what brings each back.
+    Reads only."""
+    core = _core()
+    cfg = core.settings()
+    st = core.store_()
+    agent = _targets(core, st, model=model)[0]
+    cells = [[s.key, _state_text(core, cfg, s, prefix)] for _, s in st.states(agent)
+             if _kind_state(core, cfg, s)[0] != "free"]
+    if not cells:
+        return tr("trust.none", agent=agent)
+    lines = [tr("trust.title", agent=agent)] + ["  " + ln for ln in _table([tr("cli.col.type"),
+                                                                             tr("simple.col.state")], cells)]
+    if core.simple(cfg):
+        lines += ["", tr("trust.footer", command=f"{prefix} trust")]
+    else:
+        lines += ["", tr("trust.study", command=f"{prefix} mode simple")]
+    return "\n".join(lines)
+
+
+def trust_set(kind: str, to: str, prefix: str = "/tenure", model: str | None = None) -> str:
+    """``/tenure trust KIND`` (free it now) or ``/tenure trust KIND ask`` (it asks first until freed again): a
+    person's word, simple mode only. Refused for a kind simple mode never frees (what leaves the machine, high
+    stakes, a capped kind). Raises CliError with the owner's message, nothing written, when refused."""
+    core = _core()
+    cfg = core.settings()
+    if not core.simple(cfg):
+        raise CliError(tr("trust.study", command=f"{prefix} mode simple"))
+    with core.txn() as st:
+        agent = _targets(core, st, model=model)[0]
+        known = {s.key: s for _, s in st.states(agent)}
+        if kind not in known:
+            others = [k for k, x in known.items() if _kind_state(core, cfg, x)[0] != "free"]
+            raise CliError(tr("trust.unknown", type=kind, agent=agent, types=_join(sorted(others)) or "-"))
+        s = known[kind]
+        state, _left = _kind_state(core, cfg, s)
+        if to == rule.FREE:
+            if state in ("out", "high", "capped"):
+                raise CliError(tr(f"trust.refused.{state}", type=kind, command=f"{prefix} setup"))
+            if state == "free":
+                return tr("trust.already_free", type=kind)
+        elif state == "pinned":
+            return tr("trust.already_pinned", type=kind, command=f"{prefix} trust {kind}")
+        try:
+            core.owner_trust(st, cfg, agent, s, to)
+        except ValueError as e:
+            raise CliError(str(e))
+    if to == rule.FREE:
+        return tr("trust.freed", type=kind)
+    return tr("trust.pinned", type=kind, command=f"{prefix} trust {kind}")
+
+
+def help_text(prefix: str = "/tenure") -> str:
+    return tr("cli.help", prefix=prefix)
+
+
+def advanced_text(prefix: str = "/tenure") -> str:
+    return tr("cli.advanced.title", command=prefix) + "\n" + tr("cli.usage").rstrip("\n")
+
+
 # ------------------------------------------------------------------------------------------------ passport
 def passport_cmd(agent: str | None = None, out: str = "", redact: bool = True) -> str:
     core = _core()
@@ -924,7 +1102,16 @@ class _Parser(argparse.ArgumentParser):
 
 
 def _add_subcommands(subparser) -> None:
-    subs = subparser.add_subparsers(dest="tenure_command")
+    """Every command keeps its name; the help shows three (``help_text``), ``advanced`` lists the others."""
+    subs = subparser.add_subparsers(dest="tenure_command", help=argparse.SUPPRESS)
+    p = subs.add_parser("undo", help="Alone, what can still be undone; with a number, put that action back")
+    p.add_argument("id", type=int, nargs="?", help="the number from the notice; without it, the list")
+    p = subs.add_parser("trust", help="Kinds of action that are not free; with a kind, free it now (ask: it always "
+                                      "asks first)")
+    p.add_argument("kind", nargs="?", help="an action type, e.g. file:write; without it, the list")
+    p.add_argument("level", nargs="?", choices=(rule.PIN,), help="ask: the kind asks first until you free it")
+    p.add_argument("--model", help="Start of an agent string (default: the last active agent)")
+    subs.add_parser("advanced", help="Every other command, one line each")
     p = subs.add_parser("status", help="What each agent has earned, per action type")
     p.add_argument("--profile", help="Another Hermes profile (read only)")
     p.add_argument("--model", help="Start of an agent string, e.g. gpt-5")
@@ -942,8 +1129,6 @@ def _add_subcommands(subparser) -> None:
     p = subs.add_parser("ok", help="Seen and fine: the act-then-tell actions you name count now; alone, the open ones")
     p.add_argument("ids", type=int, nargs="*", help="the undo numbers of the actions you saw; without them, the list")
     p = subs.add_parser("excuse", help="Take back a fault of the last 10 minutes that was not the agent's mistake")
-    p.add_argument("id", type=int, nargs="?", help="the number from the notice; without it, the list")
-    p = subs.add_parser("undo", help="Restore the files of an action that acted, then told you")
     p.add_argument("id", type=int, nargs="?", help="the number from the notice; without it, the list")
     p = subs.add_parser("flag", help="Report an error the agent made on its own: counts as a fault, the type drops at "
                                      "least one tier; alone, the last numbered actions")
@@ -983,15 +1168,36 @@ def _add_subcommands(subparser) -> None:
 
 
 def _usage() -> str:
-    return tr("cli.usage")
+    """A command line that does not parse: every command, the hidden ones included."""
+    return advanced_text("hermes tenure")
 
 
 def execute(ns) -> tuple[str, int]:
     """(text, exit code) for a parsed command line."""
     def g(name, default=None):
         return getattr(ns, name, default)
-    cmd = g("tenure_command") or "status"
+    cmd = g("tenure_command") or "home"
+    prefix = "/tenure" if g("tenure_slash") else "hermes tenure"
     try:
+        if cmd == "home":
+            return home_text(prefix), 0
+        if cmd == "advanced":
+            return advanced_text(prefix), 0
+        if cmd == "trust":
+            if not g("kind"):
+                if g("level"):
+                    return help_text(prefix), 1
+                return trust_list(prefix, model=g("model")), 0
+            if not g("tenure_slash") and os.environ.get("TENURE_AGENT_CHILD"):
+                raise CliError(tr("ask.person_only"))        # run by one of the agent's own tools: never
+            if not g("tenure_slash") and not sys.stdin.isatty():
+                words = " ".join(x for x in (g("kind"), g("level")) if x)
+                raise CliError(tr("trust.terminal", slash=f"/tenure trust {words}",
+                                  cli=f"hermes tenure trust {words}"))       # a script or the agent's own terminal
+            why = _core().nobody_answers()
+            if why:
+                raise CliError(tr("trust.nobody", why=why))
+            return trust_set(g("kind"), rule.PIN if g("level") else rule.FREE, prefix, model=g("model")), 0
         if cmd == "status":
             return status_text(profile=g("profile"), model=g("model"), every=bool(g("all"))), 0
         if cmd == "card":
@@ -1075,7 +1281,7 @@ def execute(ns) -> tuple[str, int]:
             return share(g("out", "") or "")
     except CliError as e:
         return str(e), 1
-    return _usage(), 1
+    return help_text(prefix), 1
 
 
 def slash(raw_args="", **kwargs):
@@ -1083,12 +1289,12 @@ def slash(raw_args="", **kwargs):
         parser = _Parser(prog="/tenure", add_help=False)
         _add_subcommands(parser)
         if (raw_args or "").strip() in ("help", "-h", "--help"):
-            return _usage()
+            return help_text("/tenure")
         try:
             raw = raw_args or ""
             ns = parser.parse_args(shlex.split(raw.replace("\\", "/") if os.name == "nt" else raw))
         except _Usage as e:
-            return (f"tenure: {e}\n" if str(e) else "") + _usage()
+            return (f"tenure: {e}\n" if str(e) else "") + help_text("/tenure")
         # `flag` alone lists the current session (none: the profile); Hermes hands the session id in
         ns.tenure_session = _core().anon(kwargs.get("session_id") or kwargs.get("session_key")) or None
         ns.tenure_command_name = "/tenure flag"
@@ -1099,7 +1305,14 @@ def slash(raw_args="", **kwargs):
 
 
 def setup(subparser):
+    """``hermes tenure --help`` shows the three commands and where the others are, nothing else."""
     _add_subcommands(subparser)
+    try:
+        subparser.formatter_class = argparse.RawDescriptionHelpFormatter
+        subparser.usage = "hermes tenure [undo [N] | trust [KIND [ask]]]"
+        subparser.description = help_text("hermes tenure")
+    except Exception:
+        pass
     subparser.set_defaults(func=run)
 
 

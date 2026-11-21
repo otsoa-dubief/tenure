@@ -18,7 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 EN = ROOT / "tenure" / "locales" / "en" / "core.json"
 CODE = [ROOT / "tenure" / f for f in ("__init__.py", "cli.py", "benchmarks.py", "undo.py", "passport.py",
                                       "personal.py", "i18n.py")]
-PREFIXES = ("approval", "ask", "benchmarks", "carry", "cli", "notice", "settle", "simple", "stakes", "tier", "undo")
+PREFIXES = ("approval", "ask", "benchmarks", "carry", "cli", "home", "notice", "settle", "simple", "stakes", "tier",
+            "trust", "undo")
 KEY = re.compile(r"""["']((?:%s)\.[a-z0-9_.]+)["']""" % "|".join(PREFIXES))
 VAR = re.compile(r"\{([^{}]*)\}")
 # Keys the code builds from a prefix: (literal prefix in the code, the suffixes it can take).
@@ -28,6 +29,8 @@ DYNAMIC = {
     "tier.long.": ("ask", "notify", "alone"),
     "stakes.": ("low", "medium", "high"),
     "notice.tier.": ("fault", "settings"),
+    "trust.state.": ("out", "high", "capped", "watched", "ask"),
+    "trust.refused.": ("out", "high", "capped"),
     "cli.col.": ("type", "stakes", "tier_now", "series", "sessions", "record", "guarantee", "model", "provider",
                  "fault_rate", "note", "number", "restores", "when", "agent", "time", "target", "undo"),
 }

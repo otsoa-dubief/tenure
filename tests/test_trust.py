@@ -351,7 +351,9 @@ def test_help_prints_the_usage_without_an_error(plugin):
     mod, ctx = plugin(TRUST)
     for arg in ("help", "-h", "--help"):
         out = mod.cli.slash(arg)
-        assert "invalid choice" not in out and "status" in out and "start trusted|probation" in out
+        assert "invalid choice" not in out and "/tenure undo [N]" in out and "More: /tenure advanced" in out
+    out = mod.cli.slash("advanced")
+    assert "invalid choice" not in out and "status" in out and "start trusted|probation" in out
 
 
 def test_a_never_faulted_uncovered_type_is_not_called_probation(plugin):

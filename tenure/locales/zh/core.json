@@ -2,7 +2,7 @@
   "ask.capped": "tenure — {summary}\n{type} 受限：始终询问。",
   "ask.internal_error": "tenure：内部错误（{error}）；改为询问你，而不是直接放行该操作。",
   "ask.prompt": "tenure — {summary}\n{why}\n如果有误就拒绝：这会计为一次失误。",
-  "ask.person_only": "tenure：只有你可以将智能体的操作标记为已查看或豁免其过错，需在你自己的终端或通过 /tenure 进行。此调用未执行。",
+  "ask.person_only": "tenure：只有你可以将智能体的操作标记为已查看、豁免其过错或让某类操作自由，需在你自己的终端或通过 /tenure 进行。此调用未执行。",
   "ask.spot_nobody": "tenure：{type} 的抽查已到期，而现在无人能回应（{why}）：此操作未执行，在有人回应该抽查之前，不会执行任何 {type} 操作。",
   "notice.spot_due": "tenure：{type} 的抽查在无人能回应时到来（{why}）。其操作将等待您的回应：在与您的对话中，下一个 {type} 操作会向您询问。",
   "ask.prompt_session": "tenure — {summary}\n{why}\n选择“本会话允许”后，本会话结束前 tenure 不再就此询问；如果有误就拒绝（计为一次失误）。",
@@ -244,7 +244,7 @@
   "cli.undo.title": {
     "other": "过去 {n} 小时内自主执行的操作（撤销任一个都记为失误）："
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    undo [ID]                                  恢复一个先执行后告知的操作写入的文件（记为失误）；不带参数时列出清单\n    flag [N]                                   不带参数时列出最近的编号操作；带编号时将该操作报告为错误\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    start trusted|probation                    trusted：某类操作第一次失误前不提问；probation：研究起步\n    strict on|off                              严格模式：新模型从空记录开始\n    mode simple|study                          simple（默认）：自由，一次失误后受关注，第二次后先询问；study：研究规则\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n    share [--out FILE]                         写出一份签名的计数记录，用于社区基准（自愿参与，不会发送任何内容）\n    week [--model M]                           过去七天：操作、询问、过错、撤销、仍未结的事项\n    ok [N ...]                                 单独使用列出未结的“先执行后告知”操作；带编号则计入您核对过的操作\n    excuse [N]                                 单独使用列出过去 10 分钟的过错；带 N 则撤回该过错\n    flag --call ID --session ID [--doubt]      验证器：对某个操作报告过错（或用 --doubt 让下一次先询问）\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   每个智能体按操作类型已赢得的级别\n    card [--model M] [--no-redact]             将护照生成一张简短的文本卡片，可粘贴到聊天或帖子中\n    setup [careful|balanced|fast]              三种推荐方案；带名称时使用该方案\n    explain                                    tenure 如何决定，以及这些数字保证什么\n    models [--type T]                          每个模型在你自己工作上的已验证记录\n    flag [N]                                   不带参数时列出最近的编号操作；带编号时将该操作报告为错误\n    flag TYPE [note] [--model M]               报告智能体自主犯下的错误：收回它的自主权\n    revoke TYPE|all [--model M | --all]        在没有错误的情况下收回已赢得的自主权\n    passport [--agent A] [--out FILE]          写出智能体的已签名护照（--no-redact 保留类型名）\n    verify PASSPORT [LEDGER]                   验证护照；提供导出的账本时，通过重放重新计算\n    anchor                                     一行可公开发布的内容：账本的头部、日期和长度\n    export [PATH]                              写出证据账本（哈希链 JSON 行）\n    start trusted|probation                    trusted：某类操作第一次失误前不提问；probation：研究起步\n    strict on|off                              严格模式：新模型从空记录开始\n    mode simple|study                          simple（默认）：自由，一次失误后受关注，第二次后先询问；study：研究规则\n    cleanup                                    列出 Hermes 永久允许列表中失效的 tenure 键\n    share [--out FILE]                         写出一份签名的计数记录，用于社区基准（自愿参与，不会发送任何内容）\n    week [--model M]                           过去七天：操作、询问、过错、撤销、仍未结的事项\n    ok [N ...]                                 单独使用列出未结的“先执行后告知”操作；带编号则计入您核对过的操作\n    excuse [N]                                 单独使用列出过去 10 分钟的过错；带 N 则撤回该过错\n    flag --call ID --session ID [--doubt]      验证器：对某个操作报告过错（或用 --doubt 让下一次先询问）\n",
   "cli.verify.after": {
     "other": "注意：此护照之后账本中有 {n} 个事件；级别没有变化。"
   },
@@ -408,5 +408,50 @@
   "simple.ask.prompt_lift": "tenure — {summary}\n{why}\n拒绝不会记为失误：你怀疑的是内容，而不是智能体。",
   "simple.undo.fault_anyway": "仍记为 {type} 的一次失误：你要求撤销它。",
   "settle.acted_failed": "tenure：{type} 执行失败，停止前可能已修改文件{what} · {command} {id}",
-  "undo.done_unchanged": "撤销 {id}：文件已恢复。该调用失败且未作任何修改：不记为 {type} 的失误。"
+  "undo.done_unchanged": "撤销 {id}：文件已恢复。该调用失败且未作任何修改：不记为 {type} 的失误。",
+  "cli.help": "  {prefix}                  智能体最近做了什么，以及哪些仍可撤销\n  {prefix} undo [N]         单独使用：仍可撤销的操作（24 小时）；带编号：恢复该操作\n  {prefix} trust [KIND]     尚未自由的操作类型；带类型：立即让它自由（KIND ask：始终先询问）\n更多：{prefix} advanced",
+  "cli.advanced.title": "其他所有命令，用法照旧（{command} <命令>）：",
+  "home.title": "tenure · 智能体最近做了什么",
+  "home.undo_title": {
+    "other": "仍可撤销（过去 {n} 小时），最新的在前："
+  },
+  "home.undo_none": {
+    "other": "过去 {n} 小时内没有可撤销的操作。"
+  },
+  "home.undo_more": {
+    "other": "还有 {n} 个：{command}"
+  },
+  "home.today": {
+    "other": "今天未经询问执行：{n} 个操作。"
+  },
+  "home.watched": "失误后受关注（每个操作都会告知你，并可撤销）：{types}。",
+  "home.asks": "先询问你：{types}。",
+  "trust.title": "{agent} 尚未自由的操作类型：",
+  "trust.none": "{agent} 用过的所有操作类型都是自由的。",
+  "trust.footer": "立即让一个自由：{command} <类型> · 让一个始终先询问：{command} <类型> ask",
+  "trust.state.watched": {
+    "other": "失误后受关注：再有 {n} 个你未撤销的操作即重新自由"
+  },
+  "trust.state.ask": {
+    "other": "先询问你：再连续批准 {n} 次即重新自由"
+  },
+  "trust.state.pinned": "先询问你（你的选择）：{command} 让它自由",
+  "trust.state.out": "始终询问：它会离开你的机器",
+  "trust.state.high": "始终询问：高风险",
+  "trust.state.capped": "始终询问：已在你的设置中封顶",
+  "trust.state.study": {
+    "other": "{tier}：再有 {n} 次已验证的成功即可自主执行"
+  },
+  "trust.freed": "{type} 已按你的意思重新自由。再次失误会让它重新受关注。",
+  "trust.already_free": "{type} 已经是自由的。",
+  "trust.pinned": "{type} 今后每次都会先询问你，直到你让它自由：{command}",
+  "trust.already_pinned": "{type} 已经会先询问你。要让它自由：{command}",
+  "trust.refused.out": "{type} 会离开你的机器：它始终询问，不能手动让它自由。",
+  "trust.refused.high": "{type} 属于高风险：它始终询问，不能手动让它自由。",
+  "trust.refused.capped": "{type} 已被你的设置封顶：它始终询问。要更改设置：{command}",
+  "trust.unknown": "{agent} 没有 {type} 的记录。尚未自由的类型：{types}",
+  "trust.study": "手动让某类操作自由属于简单模式（{command}）；在研究模式下，类型须自行赢得级别。",
+  "trust.terminal": "让某类操作自由须由人决定：在对话中输入 {slash}，或在交互式终端中运行 {cli}。",
+  "trust.nobody": "无人回答审批时（{why}）不可用：只有人可以让某类操作自由。",
+  "trust.ask.pinned": "{type} 按你的选择先询问你：{command} 让它自由。"
 }

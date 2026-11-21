@@ -22,7 +22,7 @@
   "cli.presets.line": "{name} is a preset name the owner types (careful, balanced, fast): do not translate it. {levels} is the list of cli.presets.level items.",
   "cli.presets.line_default": "Same as cli.presets.line, for the default preset.",
   "cli.status.notes": "Table cell: the guarantee, then notes in brackets.",
-  "cli.usage": "Usage block of /tenure. Keep every left-column command and option exactly as written and the alignment with spaces; translate only the right-column descriptions.",
+  "cli.usage": "Usage block of /tenure advanced: every command but the three of cli.help. Keep every left-column command and option exactly as written and the alignment with spaces; translate only the right-column descriptions.",
   "notice.count.sessions": "Count phrase inserted into notice.tier.series.",
   "notice.count.successes_in_a_row": "Count phrase inserted into notice.tier.series.",
   "stakes.high": "Stakes level as shown in sentences and tables ('high stakes'). The config value stays 'high'.",
@@ -39,5 +39,8 @@
   "cli.report.doubt_done": "A verifier reported a doubt, not a fault: nothing counts against the agent, only the next action of this kind asks first.",
   "simple.turn": "Simple mode: one line at the end of a turn. {actions}: the commands (or files) of the watched actions of that turn, comma-separated; {command} is /tenure undo.",
   "simple.state.watched": "Simple mode: where a type stands after its first mistake. Shown after \"it is now at\" in undo and flag messages, and in the status table.",
-  "simple.status.to_free": "Status table cell: {k} watched actions without a mistake so far, of the {n} that free the type again."
+  "simple.status.to_free": "Status table cell: {k} watched actions without a mistake so far, of the {n} that free the type again.",
+  "cli.help": "The three commands /tenure shows. Keep {prefix} (/tenure or hermes tenure), undo [N], trust [KIND], KIND ask and advanced exactly as written, and the alignment with spaces; translate only the descriptions and the word More.",
+  "home.today": "Actions the agent ran without asking a question today (free, or watched with an undo).",
+  "trust.footer": "Keep {command}, <kind> (translatable) and the final word ask (a literal argument)."
 }

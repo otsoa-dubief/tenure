@@ -2,7 +2,7 @@
   "ask.capped": "tenure — {summary}\n{type} is capped: always asked.",
   "ask.internal_error": "tenure: internal error ({error}); asking you instead of letting the action through.",
   "ask.prompt": "tenure — {summary}\n{why}\nDeny it if it is wrong: that counts as a fault.",
-  "ask.person_only": "tenure: only you can mark the agent's actions as seen or excuse its faults, from your own terminal or with /tenure. This call was not run.",
+  "ask.person_only": "tenure: only you can mark the agent's actions as seen, excuse its faults or free a kind of action, from your own terminal or with /tenure. This call was not run.",
   "ask.spot_nobody": "tenure: a spot check of {type} is due, and nobody can answer one now ({why}): this action was not run, and no {type} action will run until a person answers that check.",
   "notice.spot_due": "tenure: a spot check of {type} came up while nobody could answer ({why}). Its actions wait until you answer it: the next {type} action in a conversation with you asks.",
   "ask.prompt_session": "tenure — {summary}\n{why}\nAllow it for this session and tenure stops asking about this until the session ends; deny it if it is wrong (a fault).",
@@ -276,7 +276,7 @@
     "one": "Actions taken alone in the last {n} hour (undoing one counts as a fault):",
     "other": "Actions taken alone in the last {n} hours (undoing one counts as a fault):"
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   what each agent has earned, per action type\n    setup [careful|balanced|fast]              the three recommendations; with a name, use it\n    explain                                    how tenure decides, and what the numbers guarantee\n    models [--type T]                          each model's verified record on your own work\n    undo [ID]                                  put back the files of an action that acted, then told you (counts a fault); alone, the list\n    flag [N]                                   alone, the last numbered actions; with a number, report that action as an error\n    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked\n    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error\n    passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)\n    verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay\n    anchor                                     one line to publish: the ledger's head, date and length\n    export [PATH]                              write the evidence ledger (hash-chained JSON lines)\n    start trusted|probation                    trusted: no question before a type's first mistake; probation: the study's start\n    strict on|off                              strict mode: a new model starts with an empty record\n    mode simple|study                          simple (default): free, watched after a mistake, asks after a second; study: the study's rule\n    cleanup                                    list dead tenure keys in Hermes' permanent allowlist\n    share [--out FILE]                         write a signed record of counts for the community benchmark (opt-in, nothing is sent)\n    week [--model M]                           the last seven days: actions, questions, faults, undos, what is open\n    ok [N ...]                                 alone, the open act-then-tell actions; with numbers, the ones you checked count\n    excuse [N]                                 alone, the faults of the last 10 minutes; with N, take that one back\n    flag --call ID --session ID [--doubt]      a verifier: a fault (or, with --doubt, the next one asks) on one action\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   what each agent has earned, per action type\n    card [--model M] [--no-redact]             the passport as a short text card to paste in a chat or a post\n    setup [careful|balanced|fast]              the three recommendations; with a name, use it\n    explain                                    how tenure decides, and what the numbers guarantee\n    models [--type T]                          each model's verified record on your own work\n    flag [N]                                   alone, the last numbered actions; with a number, report that action as an error\n    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked\n    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error\n    passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)\n    verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay\n    anchor                                     one line to publish: the ledger's head, date and length\n    export [PATH]                              write the evidence ledger (hash-chained JSON lines)\n    start trusted|probation                    trusted: no question before a type's first mistake; probation: the study's start\n    strict on|off                              strict mode: a new model starts with an empty record\n    mode simple|study                          simple (default): free, watched after a mistake, asks after a second; study: the study's rule\n    cleanup                                    list dead tenure keys in Hermes' permanent allowlist\n    share [--out FILE]                         write a signed record of counts for the community benchmark (opt-in, nothing is sent)\n    week [--model M]                           the last seven days: actions, questions, faults, undos, what is open\n    ok [N ...]                                 alone, the open act-then-tell actions; with numbers, the ones you checked count\n    excuse [N]                                 alone, the faults of the last 10 minutes; with N, take that one back\n    flag --call ID --session ID [--doubt]      a verifier: a fault (or, with --doubt, the next one asks) on one action\n",
   "cli.verify.after": {
     "one": "Note: the ledger has {n} event after this passport; the tiers are unchanged.",
     "other": "Note: the ledger has {n} events after this passport; the tiers are unchanged."
@@ -457,5 +457,57 @@
   "simple.ask.prompt_lift": "tenure — {summary}\n{why}\nDenying it counts no fault: it is the content you doubt, not the agent.",
   "simple.undo.fault_anyway": "Counted as a fault of {type} all the same: you asked to undo it.",
   "settle.acted_failed": "tenure: {type} failed, and may have changed files before it stopped{what} · {command} {id}",
-  "undo.done_unchanged": "Undo {id}: files restored. The call had failed without changing anything: no fault of {type} is counted."
+  "undo.done_unchanged": "Undo {id}: files restored. The call had failed without changing anything: no fault of {type} is counted.",
+  "cli.help": "  {prefix}                  what the agent did lately, and what can still be undone\n  {prefix} undo [N]         alone, what can still be undone (24 h); with a number, put that action back\n  {prefix} trust [KIND]     kinds of action that are not free; with a kind, free it now (KIND ask: it always asks first)\nMore: {prefix} advanced",
+  "cli.advanced.title": "Every other command, still working as before ({command} <command>):",
+  "home.title": "tenure · what the agent did lately",
+  "home.undo_title": {
+    "one": "Can still be undone (the last {n} hour), newest first:",
+    "other": "Can still be undone (the last {n} hours), newest first:"
+  },
+  "home.undo_none": {
+    "one": "Nothing left to undo from the last {n} hour.",
+    "other": "Nothing left to undo from the last {n} hours."
+  },
+  "home.undo_more": {
+    "one": "and {n} more: {command}",
+    "other": "and {n} more: {command}"
+  },
+  "home.today": {
+    "one": "Ran without asking today: {n} action.",
+    "other": "Ran without asking today: {n} actions."
+  },
+  "home.watched": "Watched after a mistake (each action shown to you, with an undo): {types}.",
+  "home.asks": "Asks you first: {types}.",
+  "trust.title": "Kinds of action that are not free, for {agent}:",
+  "trust.none": "Every kind of action {agent} used is free.",
+  "trust.footer": "Free one now: {command} <kind> · make one always ask first: {command} <kind> ask",
+  "trust.state.watched": {
+    "one": "watched after a mistake: free again after {n} more action you do not undo",
+    "other": "watched after a mistake: free again after {n} more actions you do not undo"
+  },
+  "trust.state.ask": {
+    "one": "asks you first: free again after {n} more approval",
+    "other": "asks you first: free again after {n} more approvals in a row"
+  },
+  "trust.state.pinned": "asks you first, your choice: {command} frees it",
+  "trust.state.out": "always asks: it leaves your machine",
+  "trust.state.high": "always asks: high stakes",
+  "trust.state.capped": "always asks: capped in your settings",
+  "trust.state.study": {
+    "one": "{tier}: {n} more verified success before acting alone",
+    "other": "{tier}: {n} more verified successes before acting alone"
+  },
+  "trust.freed": "{type} is free again, on your word. A new mistake makes it watched again.",
+  "trust.already_free": "{type} is already free.",
+  "trust.pinned": "{type} now asks you first, every time, until you free it: {command}",
+  "trust.already_pinned": "{type} already asks you first. To free it: {command}",
+  "trust.refused.out": "{type} leaves your machine: it always asks, and cannot be freed by hand.",
+  "trust.refused.high": "{type} is at high stakes: it always asks, and cannot be freed by hand.",
+  "trust.refused.capped": "{type} is capped by your settings: it always asks. To change the settings: {command}",
+  "trust.unknown": "No record of {type} for {agent}. Kinds that are not free: {types}",
+  "trust.study": "Freeing a kind by hand belongs to simple mode ({command}); in study mode a kind earns its tier.",
+  "trust.terminal": "Freeing a kind is a person's word: {slash} in the chat, or {cli} in an interactive terminal.",
+  "trust.nobody": "Not while nobody answers approvals ({why}): only a person can free a kind.",
+  "trust.ask.pinned": "{type} asks you first, as you chose: {command} frees it."
 }

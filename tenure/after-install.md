@@ -2,13 +2,15 @@
 
 By **Otsoa Dubief** · https://github.com/otsoa-dubief/tenure
 
-1. Restart a running gateway: `hermes gateway restart`
-2. Pick your risk: `hermes tenure setup` (default: balanced)
-3. Work as usual: no extra question. What the agent changes can be undone (`/tenure undo`); after its first mistake
-   on a kind of action, each action of that kind is listed for you at the end of the turn, with an undo; after a
-   second, that kind asks first until it earns its freedom back (`hermes tenure mode study` for the study's rule).
-   `hermes tenure` shows where each type stands; the dashboard has a Tenure tab.
-4. In Hermes Desktop, turn the page on once: **Capabilities → Plugins → Tenure**. The Tenure page then appears in
-   the sidebar (agents, benchmark, settings, help, passport), with a status-bar chip.
+Restart a running gateway: `hermes gateway restart`. Then work as usual.
 
-Learns in `approvals.mode` `smart` (the default) or `manual`; not with `off`, `--yolo` or cron. How it decides: `hermes tenure explain`.
+The agent acts freely, and what it changes can be undone for 24 hours. A mistake on a kind of action (an undo, a
+flag, a refusal, a failed check) makes that kind watched: each such action is listed at the end of the turn, with an
+undo. A second mistake and it asks you first. What leaves your machine always asks.
+
+- `/tenure`: what the agent did lately, and what can still be undone
+- `/tenure undo N`: put action N back
+- `/tenure trust`: the kinds that are not free; `/tenure trust KIND` frees one now
+
+Study mode (the preregistered rule, spot checks, guarantee, signed passport): `/tenure mode study`. Everything else:
+`/tenure advanced`. In Hermes Desktop, turn the page on once: **Capabilities → Plugins → Tenure**.

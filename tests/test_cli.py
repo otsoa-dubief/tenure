@@ -375,7 +375,9 @@ def test_cleanup_without_hermes_config(plugin, monkeypatch):
 # --------------------------------------------------------------------------------------------- entry points
 def test_unknown_command_shows_the_usage_and_run_sets_the_exit_code(plugin, capsys):
     mod, ctx = plugin()
-    assert "verify PASSPORT [LEDGER]" in mod.cli.slash("frobnicate")
+    out = mod.cli.slash("frobnicate")
+    assert "More: /tenure advanced" in out and "verify PASSPORT" not in out     # the short help
+    assert "verify PASSPORT [LEDGER]" in mod.cli.slash("advanced")
     setup_fn, handler = ctx.cli["tenure"]
     import argparse
     parser = argparse.ArgumentParser()
