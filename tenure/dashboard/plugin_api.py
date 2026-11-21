@@ -290,13 +290,31 @@ def _cli(core):
     return importlib.import_module(core.__name__ + ".cli")
 
 
+def _simple_info(core, cli, cfg: dict, s, st, agent: str) -> dict:
+    """``cli._kind_info`` with the store; when what the record alone does not say (a linked kind holding it, a doubt, a
+    pending credit) cannot be read, the record alone, as ``_held`` keeps /agents answering."""
+    try:
+        return cli._kind_info(core, cfg, s, st, agent)
+    except Exception:
+        return cli._kind_info(core, cfg, s, None, agent)
+
+
+def _own_profile(core) -> dict:
+    """This process's own profile; when its Hermes home is not ``<root>`` nor ``<root>/profiles/<name>`` (a custom
+    HERMES_HOME), that home under its own name, instead of a 404."""
+    try:
+        return _profile(None, core)
+    except HTTPException:
+        return {"name": _current(core), "home": Path(core._hermes_home())}
+
+
 def _simple_kinds(core, cli, cfg: dict, st, agent: str, raw: bool) -> dict:
     """One agent's kinds in simple mode: ``/tenure trust --model`` as data. Each kind not free comes with its state
     (``cli._kind_info``) and what that list says of it (``cli._state_parts``: the same catalog keys, the same
     numbers), shown name and plain label side by side."""
     kinds, free = [], 0
     for _, s in st.states(agent):
-        info = cli._kind_info(core, cfg, s, st, agent)
+        info = _simple_info(core, cli, cfg, s, st, agent)
         if info["state"] == "free":
             free += 1
             continue
@@ -308,8 +326,9 @@ def _simple_kinds(core, cli, cfg: dict, st, agent: str, raw: bool) -> dict:
             if "held" in values:
                 values["held"] = _name(core, values["held"], raw)
             steps.append({"key": key, **values})
-        kinds.append({"type": shown, "label": cli.kind_label(shown), "stakes": s.stakes, "state": info["state"],
-                      "group": SIMPLE_GROUPS.get(info["state"], "ask"), "left": info["left"], "n": info["n"],
+        kinds.append({"type": shown, "hidden": shown != s.key, "label": cli.kind_label(shown), "stakes": s.stakes,
+                      "state": info["state"], "group": SIMPLE_GROUPS.get(info["state"], "ask"),
+                      "left": max(0, info["left"]), "n": info["n"],
                       "held": None if info["held"] is None else _name(core, info["held"], raw),
                       "steps": steps,
                       "text": " ".join(core.i18n.tr(x["key"], **{k: v for k, v in x.items() if k != "key"})
@@ -326,7 +345,7 @@ def _simple(lang: str | None, raw: bool) -> dict:
     tiers. Reads only, like every GET."""
     core = _core()
     cli = _cli(core)
-    p = _profile(None, core)
+    p = _own_profile(core)
     now = time.time()
     with core.i18n.speaking(lang), _open(core, p) as st:
         cfg = core.settings() if st is None else _settings(core, st, own=True)
@@ -350,7 +369,8 @@ def _simple(lang: str | None, raw: bool) -> dict:
         undoable = []
         for uid, agent, key, at, fault, snap in rows:
             shown = _name(core, key, raw)
-            undoable.append({"id": uid, "agent": agent, "type": shown, "label": cli.kind_label(shown),
+            undoable.append({"id": uid, "agent": agent, "type": shown, "hidden": shown != key,
+                             "label": cli.kind_label(shown),
                              "what": cli._undo_label(core, st, by_undo, uid, snap, key), "age": round(now - at, 1),
                              "counts_as_fault": not fault, **_snap_files(p, snap)})
         last = cli._agent(core, None, st)
@@ -544,7 +564,8 @@ async def activity(since: float | None = Query(None, description="epoch seconds;
 
 
 @router.get("/simple")
-async def simple(lang: str | None = Query(None, description="language of the texts (default: the owner's)"),
+async def simple(lang: str | None = Query(None, max_length=16, pattern=r"^[A-Za-z]{2,3}([-_][A-Za-z0-9]{1,8})*$",
+                                         description="language of the texts, as zh-hant (default: the owner's)"),
                  raw: bool = _RAW):
     return await asyncio.to_thread(_get, _simple, lang, raw)
 

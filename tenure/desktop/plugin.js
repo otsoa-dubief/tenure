@@ -563,6 +563,8 @@ const TENURE_LOCALES = {
     "settings.use": "Use",
     "simple.col_kind": "kind",
     "simple.col_what": "what",
+    "simple.error": "Could not read tenure: {error}",
+    "simple.error_title": "Tenure can't be read right now",
     "simple.eyebrow": "{profile} · simple mode",
     "simple.group_always": "Always asks",
     "simple.group_always_help": "What reaches outside this machine (push, deploy, publish, upload, messages), high-risk kinds, and kinds your settings make always ask: no record frees them.",
@@ -578,23 +580,26 @@ const TENURE_LOCALES = {
       "one": "{n} other kind runs without asking.",
       "other": "{n} other kinds run without asking."
     },
+    "simple.kinds_hidden": "Hidden names can't be typed: show names (r) to copy the command.",
     "simple.kinds_none": "Every kind of action {agent} used is free.",
     "simple.kinds_title": "What still asks you, or is watched",
-    "simple.kinds_word": "Freeing a kind is a person's word, typed in the chat or in a terminal: this page never frees one.",
+    "simple.kinds_word": "Only you can stop a kind asking: type the command in the chat or a terminal. This page never does.",
     "simple.loading": "Loading…",
-    "simple.off": "tenure is off for this profile ({setting}: false): the agent runs as with Hermes alone.",
-    "simple.study": "Study mode: spot checks, a guarantee and a signed passport — {command}",
+    "simple.names_hide": "Hide names",
+    "simple.names_show": "Show names",
+    "simple.off": "tenure is off for this profile ({setting}: false): the agent runs as with Hermes alone. To turn it back on: {command}",
+    "simple.study": "Tiers, guarantee, signed passport: {command}",
     "simple.subtitle": "What the agent did today, and what you can undo",
     "simple.tile_asks": "kinds that ask you first",
     "simple.tile_today": "ran without asking today",
     "simple.tile_undo": "changes you can still undo",
     "simple.tile_watched": "kinds watched after a mistake",
     "simple.tiles_aria": "What the agent did today, and what still asks you",
-    "simple.title": "Today",
+    "simple.title": "Last 24 hours",
     "simple.undo_effect": "Puts the files back · counts as a mistake of this kind: watched after one, asks first after a second",
     "simple.undo_effect_already": "Puts the files back · already counted as a mistake (a check failed)",
     "simple.undo_effect_none": "Nothing was saved to put back · would still count as a mistake",
-    "simple.undo_no_files": "no file named",
+    "simple.undo_no_files": "no file recorded",
     "simple.undo_none": {
       "one": "Nothing to undo from the last {n} hour.",
       "other": "Nothing to undo from the last {n} hours."
@@ -1407,6 +1412,8 @@ const TENURE_LOCALES = {
     "settings.use": "استخدام",
     "simple.col_kind": "النوع",
     "simple.col_what": "ماذا",
+    "simple.error": "تعذّرت قراءة tenure: {error}",
+    "simple.error_title": "يتعذّر قراءة Tenure الآن",
     "simple.eyebrow": "{profile} · الوضع البسيط",
     "simple.group_always": "يسأل دائمًا",
     "simple.group_always_help": "ما يصل إلى خارج هذا الجهاز (push وdeploy وpublish وupload والرسائل)، والأنواع عالية المخاطرة، والأنواع التي تجعلها إعداداتك تسأل دائمًا: لا سجلّ يجعلها حرّة.",
@@ -1426,23 +1433,26 @@ const TENURE_LOCALES = {
       "many": "{n} نوعًا آخر يعمل دون سؤال.",
       "other": "{n} نوع آخر يعمل دون سؤال."
     },
+    "simple.kinds_hidden": "لا يمكن كتابة اسم محجوب: اعرض الأسماء (r) لنسخ الأمر.",
     "simple.kinds_none": "كل أنواع الإجراءات التي استخدمها {agent} حرّة.",
     "simple.kinds_title": "ما زال يسألك، أو تحت المراقبة",
-    "simple.kinds_word": "جعل نوع حرًّا كلمة إنسان، تُكتب في المحادثة أو في طرفية: هذه الصفحة لا تجعل أي نوع حرًّا.",
+    "simple.kinds_word": "أنت وحدك من يجعل نوعًا يتوقف عن السؤال: اكتب الأمر في المحادثة أو في طرفية. هذه الصفحة لا تفعل ذلك أبدًا.",
     "simple.loading": "جارٍ التحميل…",
-    "simple.off": "tenure متوقف في هذا الملف الشخصي ({setting}: false): يعمل الوكيل كما مع Hermes وحده.",
-    "simple.study": "وضع الدراسة: فحوص عشوائية وضمان وجواز موقَّع — {command}",
+    "simple.names_hide": "إخفاء الأسماء",
+    "simple.names_show": "إظهار الأسماء",
+    "simple.off": "tenure متوقف في هذا الملف الشخصي ({setting}: false): يعمل الوكيل كما مع Hermes وحده. لإعادة تشغيله: {command}",
+    "simple.study": "المستويات والضمان والجواز الموقَّع: {command}",
     "simple.subtitle": "ما فعله الوكيل اليوم، وما يمكنك التراجع عنه",
     "simple.tile_asks": "أنواع تسألك أولًا",
     "simple.tile_today": "نُفّذ دون سؤال اليوم",
     "simple.tile_undo": "تغييرات ما زال بإمكانك التراجع عنها",
     "simple.tile_watched": "أنواع تحت المراقبة بعد خطأ",
     "simple.tiles_aria": "ما فعله الوكيل اليوم، وما زال يسألك",
-    "simple.title": "اليوم",
+    "simple.title": "آخر 24 ساعة",
     "simple.undo_effect": "يعيد الملفات · يُعدّ خطأً لهذا النوع: تحت المراقبة بعد خطأ، ويسأل أولًا بعد خطأ ثانٍ",
     "simple.undo_effect_already": "يعيد الملفات · عُدّ خطأً من قبل (فشل فحص آلي)",
     "simple.undo_effect_none": "لم يُحفظ شيء لإعادته · سيُعدّ خطأً مع ذلك",
-    "simple.undo_no_files": "لا ملف مسمّى",
+    "simple.undo_no_files": "لم يُسجَّل أي ملف",
     "simple.undo_none": {
       "zero": "لا شيء للتراجع عنه خلال آخر {n} ساعة.",
       "one": "لا شيء للتراجع عنه خلال آخر {n} ساعة.",
@@ -2187,6 +2197,8 @@ const TENURE_LOCALES = {
     "settings.use": "Usar",
     "simple.col_kind": "tipo",
     "simple.col_what": "qué",
+    "simple.error": "No se pudo leer tenure: {error}",
+    "simple.error_title": "Tenure no se puede leer ahora",
     "simple.eyebrow": "{profile} · modo simple",
     "simple.group_always": "Siempre pregunta",
     "simple.group_always_help": "Lo que sale de esta máquina (push, deploy, publish, upload, mensajes), los tipos de alto riesgo y los tipos que tus ajustes hacen preguntar siempre: ningún historial los libera.",
@@ -2202,23 +2214,26 @@ const TENURE_LOCALES = {
       "one": "{n} tipo más se ejecuta sin preguntar.",
       "other": "{n} tipos más se ejecutan sin preguntar."
     },
+    "simple.kinds_hidden": "Un nombre oculto no se puede escribir: muestra los nombres (r) para copiar el comando.",
     "simple.kinds_none": "Todos los tipos de acción que usó {agent} son libres.",
     "simple.kinds_title": "Lo que aún te pregunta, o está vigilado",
-    "simple.kinds_word": "Liberar un tipo lo dice una persona, en el chat o en un terminal: esta página nunca libera ninguno.",
+    "simple.kinds_word": "Solo tú puedes hacer que un tipo deje de preguntar: escribe el comando en el chat o en un terminal. Esta página nunca lo hace.",
     "simple.loading": "Cargando…",
-    "simple.off": "tenure está desactivado en este perfil ({setting}: false): el agente funciona como con Hermes solo.",
-    "simple.study": "Modo estudio: controles aleatorios, una garantía y un pasaporte firmado — {command}",
+    "simple.names_hide": "Ocultar nombres",
+    "simple.names_show": "Mostrar nombres",
+    "simple.off": "tenure está desactivado en este perfil ({setting}: false): el agente funciona como con Hermes solo. Para reactivarlo: {command}",
+    "simple.study": "Niveles, garantía, pasaporte firmado: {command}",
     "simple.subtitle": "Lo que el agente hizo hoy, y lo que puedes deshacer",
     "simple.tile_asks": "tipos que te preguntan antes",
     "simple.tile_today": "acciones hechas sin preguntar hoy",
     "simple.tile_undo": "cambios que aún puedes deshacer",
     "simple.tile_watched": "tipos vigilados tras un error",
     "simple.tiles_aria": "Lo que el agente hizo hoy, y lo que aún te pregunta",
-    "simple.title": "Hoy",
+    "simple.title": "Últimas 24 horas",
     "simple.undo_effect": "Restaura los archivos · cuenta como un error de este tipo: vigilado tras uno, pregunta antes tras un segundo",
     "simple.undo_effect_already": "Restaura los archivos · ya contó como error (falló una comprobación)",
     "simple.undo_effect_none": "No se guardó nada que restaurar · contaría igualmente como error",
-    "simple.undo_no_files": "ningún archivo nombrado",
+    "simple.undo_no_files": "ningún archivo registrado",
     "simple.undo_none": {
       "one": "Nada que deshacer de la última {n} hora.",
       "other": "Nada que deshacer de las últimas {n} horas."
@@ -2899,6 +2914,8 @@ const TENURE_LOCALES = {
     "settings.use": "Choisir",
     "simple.col_kind": "type",
     "simple.col_what": "quoi",
+    "simple.error": "Impossible de lire tenure : {error}",
+    "simple.error_title": "Tenure est illisible pour l'instant",
     "simple.eyebrow": "{profile} · mode simple",
     "simple.group_always": "Demande toujours",
     "simple.group_always_help": "Ce qui sort de cette machine (push, deploy, publish, upload, messages), les types à haut risque et les types que vos réglages font toujours demander : aucun historique ne les libère.",
@@ -2914,23 +2931,26 @@ const TENURE_LOCALES = {
       "one": "{n} autre type s'exécute sans demander.",
       "other": "{n} autres types s'exécutent sans demander."
     },
+    "simple.kinds_hidden": "Un nom masqué ne peut pas être tapé : affichez les noms (r) pour copier la commande.",
     "simple.kinds_none": "Tous les types d'action utilisés par {agent} sont libres.",
     "simple.kinds_title": "Ce qui vous demande encore, ou est surveillé",
-    "simple.kinds_word": "Libérer un type se dit à la main, dans la conversation ou dans un terminal : cette page n'en libère jamais.",
+    "simple.kinds_word": "Vous seul pouvez faire qu'un type ne demande plus : tapez la commande dans la conversation ou un terminal. Cette page ne le fait jamais.",
     "simple.loading": "Chargement…",
-    "simple.off": "tenure est désactivé pour ce profil ({setting} : false) : l'agent fonctionne comme avec Hermes seul.",
-    "simple.study": "Mode étude : contrôles aléatoires, une garantie et un passeport signé — {command}",
+    "simple.names_hide": "Masquer les noms",
+    "simple.names_show": "Afficher les noms",
+    "simple.off": "tenure est désactivé pour ce profil ({setting} : false) : l'agent fonctionne comme avec Hermes seul. Pour le réactiver : {command}",
+    "simple.study": "Niveaux, garantie, passeport signé : {command}",
     "simple.subtitle": "Ce que l'agent a fait aujourd'hui, et ce que vous pouvez annuler",
     "simple.tile_asks": "types qui vous demandent d'abord",
     "simple.tile_today": "actions faites sans demander aujourd'hui",
     "simple.tile_undo": "changements encore annulables",
     "simple.tile_watched": "types surveillés après une erreur",
     "simple.tiles_aria": "Ce que l'agent a fait aujourd'hui, et ce qui vous demande encore",
-    "simple.title": "Aujourd'hui",
+    "simple.title": "Dernières 24 heures",
     "simple.undo_effect": "Remet les fichiers en place · compte comme une erreur de ce type : surveillé après une, il demande d'abord après une deuxième",
     "simple.undo_effect_already": "Remet les fichiers en place · déjà compté comme une erreur (une vérification a échoué)",
     "simple.undo_effect_none": "Rien n'a été enregistré à remettre · compterait quand même comme une erreur",
-    "simple.undo_no_files": "aucun fichier nommé",
+    "simple.undo_no_files": "aucun fichier enregistré",
     "simple.undo_none": {
       "one": "Rien à annuler sur la dernière {n} heure.",
       "other": "Rien à annuler sur les {n} dernières heures."
@@ -3573,6 +3593,8 @@ const TENURE_LOCALES = {
     "settings.use": "使用",
     "simple.col_kind": "类型",
     "simple.col_what": "内容",
+    "simple.error": "无法读取 tenure：{error}",
+    "simple.error_title": "暂时无法读取 Tenure",
     "simple.eyebrow": "{profile} · 简单模式",
     "simple.group_always": "始终询问",
     "simple.group_always_help": "触及本机之外的操作（push、deploy、publish、upload、消息）、高风险类型，以及你的设置要求始终询问的类型：任何记录都不会让它们自由。",
@@ -3587,23 +3609,26 @@ const TENURE_LOCALES = {
     "simple.kinds_free": {
       "other": "另有 {n} 个类型无需询问即可执行。"
     },
+    "simple.kinds_hidden": "隐藏的名称无法输入：显示名称（r）以复制命令。",
     "simple.kinds_none": "{agent} 用过的所有操作类型都是自由的。",
     "simple.kinds_title": "仍在询问你或受关注的项",
-    "simple.kinds_word": "让某类操作自由须由人决定，在对话或终端中输入：本页面从不让任何类型自由。",
+    "simple.kinds_word": "只有你能让某类操作不再询问：在对话或终端中输入命令。本页面从不这样做。",
     "simple.loading": "加载中…",
-    "simple.off": "此配置文件已关闭 tenure（{setting}: false）：智能体照 Hermes 本身运行。",
-    "simple.study": "研究模式：随机抽查、保证和签名护照 — {command}",
+    "simple.names_hide": "隐藏名称",
+    "simple.names_show": "显示名称",
+    "simple.off": "此配置文件已关闭 tenure（{setting}: false）：智能体照 Hermes 本身运行。要重新开启：{command}",
+    "simple.study": "级别、保证、签名护照：{command}",
     "simple.subtitle": "智能体今天做了什么，以及你可以撤销什么",
     "simple.tile_asks": "先询问你的类型",
     "simple.tile_today": "今天未经询问执行",
     "simple.tile_undo": "仍可撤销的更改",
     "simple.tile_watched": "失误后受关注的类型",
     "simple.tiles_aria": "智能体今天做了什么，以及仍在询问你的项",
-    "simple.title": "今天",
+    "simple.title": "过去 24 小时",
     "simple.undo_effect": "恢复文件 · 计为该类型的一次失误：一次后受关注，第二次后先询问",
     "simple.undo_effect_already": "恢复文件 · 已计为失误（自动检查失败）",
     "simple.undo_effect_none": "没有保存可恢复的内容 · 仍会计为失误",
-    "simple.undo_no_files": "未指明文件",
+    "simple.undo_no_files": "未记录文件",
     "simple.undo_none": {
       "other": "过去 {n} 小时内没有可撤销的内容。"
     },
@@ -3854,7 +3879,7 @@ function withNode(t, key, name, node) {
 // ------------------------------------------------------------------------------------------------ data
 let rest = null
 let storage = null
-let offAgents = null                                // the registration's /agents listener, removed on dispose
+let offAgents = null                                // the registration's /agents and /simple listener, removed on dispose
 const bus = new EventTarget()                       // live events and cross-surface requests (palette → page)
 const cache = { agents: null }                      // last /agents answer, for non-React readers (menu, palette)
 
@@ -7163,12 +7188,13 @@ function useRaw() {
 }
 
 /** /activity over the last 7 days, every profile: the header totals and the undoable actions (24 h). */
-function useActivity() {
+function useActivity(enabled = true) {
   const profile = useValue(host.state.profile)
   return useQuery({
     queryKey: ['tenure', profile, 'activity'],
     queryFn: () => rest('/activity?since=' + Math.floor(Date.now() / 1000 - WEEK)),
-    refetchInterval: HEARTBEAT_MS
+    refetchInterval: HEARTBEAT_MS,
+    enabled
   })
 }
 
@@ -8263,27 +8289,40 @@ function TimelineSection({ agent, t, n }) {
 const SIMPLE_GROUPS = ['watched', 'ask', 'noundo', 'always']
 const SIMPLE_SHOWN = 10 // changes listed before "Show all", as /tenure lists ten
 const SIMPLE_SETTING = 'plugins.entries.tenure.settings.enabled'
-const MODE_MS = 30_000 // /simple is read at load, then every 30 s and when the window is shown again
+const MODE_MS = 30_000 // study mode reads /simple (the mode) at load, then every 30 s and when the window is shown again
+const RETRY_MS = 5_000 // the mode not known yet (a first read that failed): read again soon
 
-/** GET /simple for the current profile, in the page's language: the mode, and in simple mode the whole page. */
+let lastMode = null // the mode /simple last gave, kept while it reads again (raw names, language) and for the palette
+
+/** GET /simple for the current profile, in the page's language: the mode, and in simple mode the whole page (kept
+ *  live by the agent half's events; read again every 30 s in study mode, every minute in simple mode). */
 function useSimple() {
   const profile = useValue(host.state.profile)
   const raw = useRaw()
   const lang = (typeof document !== 'undefined' && document.documentElement.lang) || ''
   return useQuery({
     queryKey: ['tenure', profile, 'simple', raw, lang],
-    queryFn: () => rest('/simple' + (lang ? '?lang=' + encodeURIComponent(lang) : '')),
-    refetchInterval: MODE_MS,
+    queryFn: async () => {
+      const d = await rest('/simple' + (lang ? '?lang=' + encodeURIComponent(lang) : ''))
+      if (d && d.mode && d.mode !== lastMode) {
+        lastMode = d.mode
+        bus.dispatchEvent(new Event('mode'))
+      }
+      return d
+    },
+    refetchInterval: lastMode === 'study' ? MODE_MS : lastMode === 'simple' ? HEARTBEAT_MS : RETRY_MS,
     refetchOnWindowFocus: true
   })
 }
 
-/** Simple mode on the current profile, as /agents reports its settings: what the chip, the model menu and the toast
- *  read (the page reads the mode from /simple, which answers before the profile has a database). */
-const simpleAgents = data => {
+/** The mode /agents gives for the current profile (it has a database), else null. */
+const agentsMode = data => {
   const here = ((data && data.profiles) || []).find(p => p.current)
-  return !!(here && here.settings && here.settings.mode === 'simple')
+  return here && here.settings ? here.settings.mode || null : null
 }
+/** Simple mode in force, for the page while /simple reads, the chip, the model menu, the palette and the toast: the
+ *  mode /simple last gave, else the one /agents gives, else simple (the default, a fresh install). */
+const simpleNow = data => (lastMode || agentsMode(data) || 'simple') === 'simple'
 
 const simpleKinds = d => ((d && d.agents) || []).flatMap(a => a.kinds || [])
 const groupTitle = (g, t) => (g === 'watched' ? t('simple.group_watched') : g === 'ask' ? t('simple.group_ask') : g === 'noundo' ? t('simple.group_noundo') : t('simple.group_always'))
@@ -8404,7 +8443,7 @@ function SimpleUndo({ d, t }) {
           })
         : null,
       rows.length > SIMPLE_SHOWN
-        ? jsx('div', { children: jsx(Button, { onClick: () => setAll(!all), size: 'xs', variant: 'outline', children: all ? t('recent.show_fewer') : t('recent.show_all', { n: d.undo.total }) }) })
+        ? jsx('div', { children: jsx(Button, { onClick: () => setAll(!all), size: 'xs', variant: 'outline', children: all ? t('recent.show_fewer') : t('recent.show_all', { n: rows.length }) }) })
         : null,
       jsx(SimpleUndoDialog, { onClose: () => setTarget(null), profile: d.profile, t, target })
     ]
@@ -8429,7 +8468,7 @@ function SimpleAgent({ a, t }) {
                   jsxs('div', { className: 'tn-simple-group-head', children: [jsx('b', { children: groupTitle(g, t) }), jsx('span', { className: 'tn-hint', children: groupHelp(g, t) })] }),
                   jsx('table', {
                     className: 'tn-table tn-simple-kinds',
-                    children: jsx('tbody', { children: ks.map(k => jsxs('tr', { children: [jsx('td', { children: jsx(SimpleKind, { k }) }), jsx('td', { children: k.text })] }, k.type)) })
+                    children: jsx('tbody', { children: ks.map((k, i) => jsxs('tr', { children: [jsx('td', { children: jsx(SimpleKind, { k }) }), jsx('td', { children: k.text })] }, k.type + '|' + i)) })
                   })
                 ]
               },
@@ -8455,7 +8494,9 @@ function SimpleView({ d, t }) {
             jsx('div', { className: 'tn-eyebrow', children: '#' + t('simple.eyebrow', { profile: d.profile }) }),
             jsx('h3', { className: 'tn-name', children: t('simple.title') }),
             jsx('p', { className: 'tn-intro-body', style: { margin: '0.35rem 0 0' }, children: t('simple.subtitle') }),
-            d.enabled === false ? jsx('p', { className: 'tn-note', style: { marginBlockStart: '0.5rem' }, children: t('simple.off', { setting: SIMPLE_SETTING }) }) : null
+            d.enabled === false
+              ? jsx('p', { className: 'tn-note', style: { marginBlockStart: '0.5rem' }, children: t('simple.off', { setting: SIMPLE_SETTING, command: `hermes config set ${SIMPLE_SETTING} true` }) })
+              : null
           ]
         }),
         jsx(SimpleTiles, { d, t }),
@@ -8466,6 +8507,7 @@ function SimpleView({ d, t }) {
             jsx(Eyebrow, { n: 2, children: t('simple.kinds_title') }),
             d.agents.length ? d.agents.map(a => jsx(SimpleAgent, { a, t }, a.agent)) : jsx('p', { className: 'tn-hint', children: t('simple.kinds_empty') }),
             jsx('p', { className: 'tn-intro-body', style: { margin: 0 }, children: t('simple.kinds_footer', { command: '/tenure trust' }) }),
+            simpleKinds(d).some(k => k.hidden) ? jsx('p', { className: 'tn-intro-body', style: { margin: 0 }, children: t('simple.kinds_hidden') }) : null,
             jsx('p', { className: 'tn-hint', children: t('simple.kinds_word') })
           ]
         }),
@@ -8531,7 +8573,7 @@ function AnimationsToggle({ t }) {
   return reduced ? jsx(Tip, { label: t('page.animations_reduced'), children: jsx('span', { tabIndex: 0, children: label }) }) : label
 }
 
-function RawToggle({ t }) {
+function RawToggle({ t, simple = false }) {
   const on = useRaw()
   const qc = useQueryClient()
   return jsx(Tip, {
@@ -8544,7 +8586,8 @@ function RawToggle({ t }) {
         qc.resetQueries({ queryKey: ['tenure'] })
       },
       type: 'button',
-      children: [jsx('i', { 'aria-hidden': true, 'data-on': on ? 'true' : 'false' }), t(on ? 'page.raw_on' : 'page.raw_off')]
+      // Simple mode says what a press does: show the names, or hide them.
+      children: [jsx('i', { 'aria-hidden': true, 'data-on': on ? 'true' : 'false' }), simple ? (on ? t('simple.names_hide') : t('simple.names_show')) : t(on ? 'page.raw_on' : 'page.raw_off')]
     })
   })
 }
@@ -8559,10 +8602,12 @@ const typing = e => {
 function TenurePage() {
   const t = usePluginI18n(ID)
   const { data, error, isLoading, refetch, dataUpdatedAt } = useAgents()
-  const { data: activity } = useActivity()
-  // The mode comes from GET /simple: simple mode reads the whole page from it; study mode keeps the views below.
-  const { data: simple, error: simpleError } = useSimple()
-  const simpleMode = !!simple && simple.mode === 'simple'
+  // The mode comes from GET /simple: simple mode reads the whole page from it; study mode keeps the views below. Until
+  // it answers (a first visit, raw names or the language changed): the mode it last gave, else /agents', else simple;
+  // a simple page waiting shows "Loading…", never older data, and an error stays an error.
+  const { data: simple, error: simpleError, refetch: refetchSimple } = useSimple()
+  const simpleMode = (simple ? simple.mode : lastMode || agentsMode(data) || 'simple') === 'simple'
+  const { data: activity } = useActivity(!simpleMode)
   const qc = useQueryClient()
   const [view, setViewNow] = useState('map')
   const back = useRef('map')                           // the view "?" or Esc returns to from Help
@@ -8591,10 +8636,6 @@ function TenurePage() {
   const start = startOf(here.settings, (here.agents || []).flatMap(a => a.types || []))
   const trustedStart = (start || DEFAULTS.start) === 'trusted'
   const unreadable = ((data && data.profiles) || []).filter(p => p.error).map(p => p.profile)
-  // Before /simple answers, /agents gives the mode of a profile that has a database: study shows at once (no wait
-  // in study mode), simple waits for its page; with no answer yet, the page loads as it always did.
-  const agentsMode = here.settings ? here.settings.mode : null
-  const waitMode = !simple && !simpleError && agentsMode !== 'study'
   const undoCount = ((activity && activity.undoable) || []).length
   const onKey = e => {
     if (e.metaKey || e.ctrlKey || e.altKey || typing(e)) return
@@ -8639,9 +8680,15 @@ function TenurePage() {
     setView('agents')
   }
   let body
-  if (simpleMode) body = jsx(SimpleView, { d: simple, t })
-  else if (waitMode && agentsMode === 'simple') body = jsx(PanelEmpty, { description: t('simple.loading'), icon: 'loading~spin' })
-  else if ((isLoading && !data) || (waitMode && !error)) body = jsx(PanelEmpty, { description: t('common.loading'), icon: 'loading~spin' })
+  if (simpleMode && simple) body = jsx(SimpleView, { d: simple, t })
+  else if (simpleMode && simpleError)
+    body = jsx(ErrorState, {
+      description: t('simple.error', { error: simpleError.message || String(simpleError) }),
+      title: t('simple.error_title'),
+      children: jsx(Button, { onClick: () => refetchSimple(), size: 'sm', children: t('common.retry') })
+    })
+  else if (simpleMode) body = jsx(PanelEmpty, { description: t('simple.loading'), icon: 'loading~spin' })
+  else if (isLoading && !data) body = jsx(PanelEmpty, { description: t('common.loading'), icon: 'loading~spin' })
   else if (error && !data)
     body = jsx(ErrorState, {
       description: t('backend.desc', { error: error.message || String(error) }),
@@ -8682,7 +8729,11 @@ function TenurePage() {
               agents.length && !simpleMode
                 ? jsx('span', { className: 'rounded-full bg-(--ui-bg-quaternary) px-1.5 py-px text-[0.625rem] tabular-nums text-(--ui-text-tertiary)', children: String(agents.length) })
                 : null,
-              data || simpleMode ? jsxs('div', { className: 'tn-head-tog', children: [jsx(RawToggle, { t }), jsx(AnimationsToggle, { t })] }) : null
+              simpleMode
+                ? jsx('div', { className: 'tn-head-tog', children: jsx(RawToggle, { t, simple: true }) })
+                : data
+                  ? jsxs('div', { className: 'tn-head-tog', children: [jsx(RawToggle, { t }), jsx(AnimationsToggle, { t })] })
+                  : null
             ]
           }),
           data && !simpleMode
@@ -8698,8 +8749,8 @@ function TenurePage() {
             : null
         ]
       }),
-      unreadable.length ? jsx('p', { className: 'tn-note', style: { margin: '0 1rem 0.75rem' }, children: t('page.unreadable', { profiles: unreadable.join(', ') }) }) : null,
-      error && data
+      unreadable.length && !simpleMode ? jsx('p', { className: 'tn-note', style: { margin: '0 1rem 0.75rem' }, children: t('page.unreadable', { profiles: unreadable.join(', ') }) }) : null,
+      error && data && !simpleMode
         ? jsx('p', { className: 'tn-note', role: 'status', style: { margin: '0 1rem 0.75rem' }, children: t('page.stale', { error: error.message || String(error), time: dataUpdatedAt ? hms(dataUpdatedAt) : '—' }) })
         : null,
       agents.length && !simpleMode && (view === 'map' || view === 'agents' || view === 'benchmark') ? jsx(Intro, { t, spot: (here.settings || {}).spot, start }) : null,
@@ -8715,7 +8766,7 @@ function Chip() {
   const model = useValue(host.state.model)
   const a = agentForModel(data, model)
   if (!a) return null
-  if (simpleAgents(data)) return jsx(SimpleChip, { a, t })
+  if (simpleNow(data)) return jsx(SimpleChip, { a, t })
   const total = (a.types || []).filter(x => !x.capped).length
   const n = earned(a)
   const tip = t('chip.tip', { name: displayName(a.model), earned: n, n: total })
@@ -8786,6 +8837,7 @@ export default {
     ctx.onDispose(() => {
       if (offAgents) offAgents()
       offAgents = null
+      lastMode = null
       rest = null
       storage = null
       style.remove()
@@ -8817,16 +8869,17 @@ export default {
       bus.dispatchEvent(new Event('changed'))
       if (!payload || payload.undo_id == null) return
       // Simple mode: a toast only for a watched action (the ones the end-of-turn line lists); a free one stays silent.
-      const plain = payload.simple != null ? !!payload.simple : simpleAgents(cache.agents)
+      const plain = payload.simple != null ? !!payload.simple : simpleNow(cache.agents)
       if (plain && !payload.watched) return
       const name = displayName(String(payload.agent || '').split('@')[0])
+      const kind = rawPref ? payload.type : payload.shown || payload.type     // names hidden unless raw names are on
       const n = (acted.get(payload.type) || 0) + 1
       acted.set(payload.type, n)
       ctx.setTimeout(() => acted.delete(payload.type), 60_000)
       host.notify({
         id: 'tenure-acted-' + payload.type,
         kind: payload.fault ? 'warning' : 'info',
-        message: tr('toast.acted', { type: payload.type, n, name }),
+        message: tr('toast.acted', { type: kind, n, name }),
         detail: tr(plain ? 'toast.acted_detail_simple' : 'toast.acted_detail'),
         action: {
           label: tr('recent.undo'),
@@ -8843,15 +8896,16 @@ export default {
       })
     })
 
-    // Simple mode keeps no passport and no tiers to revoke: the palette offers only to open the page.
-    let paletteSimple = simpleAgents(cache.agents)
-    const studyOnly = entries => (paletteSimple ? [] : entries)
     const contributions = () => [
       { id: 'page', area: ROUTES_AREA, data: { path: ROUTE }, render: () => jsx(TenurePage, {}) },
       { id: 'nav', area: SIDEBAR_NAV_AREA, order: 60, data: { codicon: 'shield', label: tr('nav.label'), path: ROUTE } },
       { id: 'chip', area: STATUSBAR_AREAS.right, order: 85, render: () => jsx(Chip, {}) },
-      { id: 'open', area: PALETTE_AREA, data: { id: 'tenure.open', label: tr('palette.open'), keywords: ['tenure', 'autonomy', 'tier', 'trust'], run: () => host.navigate(ROUTE) } },
-      ...studyOnly([{
+      { id: 'open', area: PALETTE_AREA, data: { id: 'tenure.open', label: tr('palette.open'), keywords: ['tenure', 'autonomy', 'tier', 'trust'], run: () => host.navigate(ROUTE) } }
+    ]
+    // Study mode only: simple mode keeps no passport and no tiers to revoke. Registered apart, so that a change of
+    // mode adds or removes these two and leaves the page, the sidebar entry and the chip alone.
+    const studyEntries = () => [
+      {
         id: 'passport',
         area: PALETTE_AREA,
         data: {
@@ -8878,9 +8932,12 @@ export default {
             focus(a.key, true)
           }
         }
-      }])
+      }
     ]
     let dispose = ctx.registerMany(contributions())
+    let paletteSimple = simpleNow(cache.agents)
+    const registerStudy = () => (paletteSimple ? () => {} : ctx.registerMany(studyEntries()))
+    let disposeStudy = registerStudy()
     const badge = () =>
       ctx.register({
         id: 'model-badge',
@@ -8888,7 +8945,7 @@ export default {
         data: {
           decorate: ({ model }) => {
             const a = agentForModel(cache.agents, model)
-            if (!a || simpleAgents(cache.agents)) return null      // simple mode has no tiers to badge
+            if (!a || simpleNow(cache.agents)) return null      // simple mode has no tiers to badge
             const tier = bestTier(a)
             return tier === 'ask' || tier === 'cap' || tier === 'trusted' ? null : { badge: tr('model_menu.badge', { tier: TIER_SHORT[tier] }) }
           }
@@ -8896,9 +8953,9 @@ export default {
       })
     let disposeBadge = badge()
     let badgeTiers = null
-    const tiersKey = () => (simpleAgents(cache.agents) ? 'simple|' : '') + allAgents(cache.agents).map(a => a.key + ':' + bestTier(a)).join('|')
-    // Every /agents answer (the page's heartbeat, a live change, the warm-up): the model menu and the palette follow
-    // the tiers and the mode.
+    const tiersKey = () => (simpleNow(cache.agents) ? 'simple|' : '') + allAgents(cache.agents).map(a => a.key + ':' + bestTier(a)).join('|')
+    // Every /agents or /simple answer (the page's heartbeat, a live change, the warm-up): the model menu and the
+    // palette follow the tiers and the mode.
     const onAgents = () => {
       const now = tiersKey()
       if (badgeTiers !== null && now !== badgeTiers) {
@@ -8906,20 +8963,26 @@ export default {
         disposeBadge = badge()                     // decorate() reruns only when the registry changes
       }
       badgeTiers = now
-      if (simpleAgents(cache.agents) !== paletteSimple) {
+      if (simpleNow(cache.agents) !== paletteSimple) {
         paletteSimple = !paletteSimple
-        dispose()
-        dispose = ctx.registerMany(contributions())
+        disposeStudy()
+        disposeStudy = registerStudy()
       }
     }
     bus.addEventListener('agents', onAgents)
-    offAgents = () => bus.removeEventListener('agents', onAgents)
+    bus.addEventListener('mode', onAgents)
+    offAgents = () => {
+      bus.removeEventListener('agents', onAgents)
+      bus.removeEventListener('mode', onAgents)
+    }
     ctx.onEvent('plugin.tenure.changed', () => {
       fetchAgents().catch(() => {})
     })
     ctx.i18n.onLocaleChange(() => {
       dispose()
       dispose = ctx.registerMany(contributions())
+      disposeStudy()
+      disposeStudy = registerStudy()
       disposeBadge()
       disposeBadge = badge()
     })

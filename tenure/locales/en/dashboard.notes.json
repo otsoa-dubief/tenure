@@ -51,7 +51,7 @@
   "settings.series": "Live series beside the risk buttons, e.g. \"52 verified successes in a row\". Plural follows n.",
   "simple.counter.today": "Simple mode. Short label under a large number in the header counters (the number of actions the agent ran without asking today). Max ~30 chars.",
   "simple.kinds.footer": "Simple mode. {command} is the chat command /tenure trust, never translated; <kind> is what the person types in its place: translate it as core.json trust.footer does.",
-  "simple.study": "Simple mode. {command} is the chat command /tenure mode study, never translated. Keep the three study terms as the glossary has them (spot check, guarantee, passport).",
+  "simple.study": "Simple mode. {command} is the chat command /tenure mode study, never translated. The three study terms as the glossary has them (tier, guarantee, passport).",
   "stale.message": "{time} is HH:MM:SS.",
   "switch.count.carried": "Count badge in the switch preview summary; plural follows {n}.",
   "switch.delta": "Signed difference in public score, after 'old -> new'. Keep the leading space.",

@@ -428,6 +428,7 @@
   "simple.counter.today": "今天未经询问执行",
   "simple.counter.undo": "仍可撤销的更改",
   "simple.counter.watched": "失误后受关注的类型",
+  "simple.eyebrow": "{profile} · 简单模式",
   "simple.group.always": "始终询问",
   "simple.group.always_help": "触及本机之外的操作（push、deploy、publish、upload、消息）、高风险类型，以及你的设置要求始终询问的类型：任何记录都不会让它们自由。",
   "simple.group.ask": "先询问你",
@@ -441,17 +442,20 @@
   "simple.kinds.free": {
     "other": "另有 {n} 个类型无需询问即可执行。"
   },
+  "simple.kinds.hidden": "隐藏的名称无法输入：显示名称（r）以复制命令。",
   "simple.kinds.none": "{agent} 用过的所有操作类型都是自由的。",
   "simple.kinds.title": "仍在询问你或受关注的项",
-  "simple.kinds.word": "让某类操作自由须由人决定，在对话或终端中输入：本页面从不让任何类型自由。",
+  "simple.kinds.word": "只有你能让某类操作不再询问：在对话或终端中输入命令。本页面从不这样做。",
   "simple.loading": "加载中…",
-  "simple.off": "此配置文件已关闭 tenure（{setting}: false）：智能体照 Hermes 本身运行。",
-  "simple.study": "研究模式：随机抽查、保证和签名护照 — {command}",
+  "simple.names_hide": "隐藏名称",
+  "simple.names_show": "显示名称",
+  "simple.off": "此配置文件已关闭 tenure（{setting}: false）：智能体照 Hermes 本身运行。要重新开启：{command}",
+  "simple.study": "级别、保证、签名护照：{command}",
   "simple.subtitle": "智能体今天做了什么，以及你可以撤销什么",
   "simple.undo.effect": "恢复文件 · 计为该类型的一次失误：一次后受关注，第二次后先询问",
   "simple.undo.effect_already": "恢复文件 · 已计为失误（自动检查失败）",
   "simple.undo.effect_none": "没有保存可恢复的内容 · 仍会计为失误",
-  "simple.undo.no_files": "未指明文件",
+  "simple.undo.no_files": "未记录文件",
   "simple.undo.none": {
     "other": "过去 {n} 小时内没有可撤销的内容。"
   },

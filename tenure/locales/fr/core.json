@@ -496,7 +496,7 @@
     "other": "vous demande d'abord · encore {n} approbations d'affilée → libre"
   },
   "trust.state.pinned": "vous demande d'abord, à votre demande : {command} le libère",
-  "trust.state.pinned_hidden": "vous demande d'abord, à votre demande : affichez les noms bruts pour copier la commande qui le libère",
+  "trust.state.pinned_hidden": "vous demande d'abord, à votre demande : affichez les noms (r) pour copier la commande qui le libère",
   "trust.state.out": "demande toujours : il sort de cette machine",
   "trust.state.high": "demande toujours : risque élevé",
   "trust.state.capped": "demande toujours : vos réglages le veulent",

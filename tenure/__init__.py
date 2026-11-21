@@ -1936,9 +1936,9 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         if deferred:
             st.add_credit(undo_id, st.root_of(p["session"]), p["stakes"], p["reversible"])
         # ``watched``: simple mode lists it in the line at the end of the turn (a free action says nothing there, and
-        # the desktop half shows no toast for it either).
-        _push("acted", {"agent": agent, "type": key, "undo_id": undo_id, "fault": bool(reason),
-                        "profile": _profile_name(), "simple": simple(cfg),
+        # the desktop half shows no toast for it either). ``shown``: the type as the pages show it with names hidden.
+        _push("acted", {"agent": agent, "type": key, "shown": passport.redact_type(key), "undo_id": undo_id,
+                        "fault": bool(reason), "profile": _profile_name(), "simple": simple(cfg),
                         "watched": bool(simple(cfg) and not reason and (deferred or broke))})
         if reason:
             posts.append(tr("simple.settle.acted_fault" if simple(cfg) else "settle.acted_fault", type=blamed,

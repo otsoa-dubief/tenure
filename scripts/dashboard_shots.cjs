@@ -29,7 +29,7 @@ function fail(msg) {
   process.exitCode = 1;
 }
 
-const STUDY_LINE = "Study mode: spot checks, a guarantee and a signed passport";
+const STUDY_LINE = "Tiers, guarantee, signed passport: /tenure mode study";
 const STUDY_WORDS = /\b(?:T[123]|trusted|probation|spot checks?|spot-check\w*|guarantee|tiers?)\b/i;
 
 // The dashboard scrolls inside its own container, so a full-length capture grows the viewport to the content first.
@@ -65,6 +65,8 @@ async function simplePage(page, prefix, mobile) {
   const rest = text.split(STUDY_LINE).join("");
   if (STUDY_WORDS.test(rest)) fail(`${prefix}: study words on the simple page: ${rest.match(STUDY_WORDS)[0]}`);
   if (await page.locator(".tnr-tab").count()) fail(`${prefix}: study tabs on the simple page`);
+  if (!(await page.locator(".tnr").getByRole("button", { name: /^(Show|Hide) names$/ }).count())) fail(`${prefix}: no names switch`);
+  if (await page.locator(".tnr").getByRole("button", { name: /motion/i }).count()) fail(`${prefix}: a motion switch on the simple page`);
   if (await page.locator(".tnr").getByRole("button", { name: /trust|free/i }).count()) fail(`${prefix}: a control that frees a kind`);
   await page.mouse.move(0, 0);
   await shot(page, `${prefix}-simple.png`, mobile);

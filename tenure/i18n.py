@@ -100,11 +100,14 @@ def chain(lang) -> list[str]:
 
 
 def catalog(lang: str) -> dict:
-    """``locales/<lang>/core.json``, read once; {} when missing or unreadable."""
+    """``locales/<lang>/core.json``, read once; {} when missing or unreadable. Only a language that has its folder is
+    kept in memory: a language asked for by a request (the dashboard's ``lang``) cannot grow the cache."""
     key = (LOCALES_DIR, lang)
     with _lock:
         if key in _cache:
             return _cache[key]
+    if not os.path.isdir(os.path.join(LOCALES_DIR, lang)):
+        return {}
     try:
         with open(os.path.join(LOCALES_DIR, lang, f"{SURFACE}.json"), encoding="utf-8") as f:
             data = json.load(f)
