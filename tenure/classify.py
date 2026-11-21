@@ -27,6 +27,7 @@ import shlex
 import stat as _stat
 import sys
 import threading
+import time
 import unicodedata
 from dataclasses import dataclass
 
@@ -1472,7 +1473,8 @@ def undoable_shell(command: str, cwd: str | None, home: str, *, wide: bool = Fal
 
     ``wide`` (simple mode) also reads ``rm -r`` of a project folder (``_undo_rm``) and an unquoted glob given to a
     bare ``rm`` (``_undo_glob``). Read once per hook call (``one_reading``)."""
-    found = _scoped(("undo", str(command or ""), cwd, home, wide), lambda: _undoable_shell(command, cwd, home, wide))
+    found = _scoped(("undo", str(command or "").strip(), cwd, home, wide),
+                    lambda: _undoable_shell(command, cwd, home, wide))
     return list(found) if found is not None else None
 
 
@@ -1481,7 +1483,7 @@ def _undoable_shell(command: str, cwd: str | None, home: str, wide: bool) -> lis
     if not text or not cwd or getattr(os, "name", "") == "nt":
         return None                                      # POSIX shells only: on Windows a file command keeps asking
     if "\n" in text:
-        return _undo_checked(_undo_heredoc(text, cwd, home), cwd, home)
+        return _undo_checked(_undo_heredoc(text, cwd, home), cwd, home, wide=wide)
     if any(_undo_odd(c) for c in text):
         return None                                      # a control character or an unusual space: read differently
     masked = _undo_mask(text)
@@ -1496,10 +1498,11 @@ def _undoable_shell(command: str, cwd: str | None, home: str, wide: bool) -> lis
         found = [undoable_shell(part, cwd, home, wide=wide) for part in parts]
         if any(f is None for f in found):
             return None
-        return _undo_checked([p for f in found for p in f], cwd, home, WIDE_MAX_FILES if wide else UNDOABLE_MAX_FILES)
+        return _undo_checked([p for f in found for p in f], cwd, home, WIDE_MAX_FILES if wide else UNDOABLE_MAX_FILES,
+                             wide=wide)
     if (wide and masked is not None and masked == text and _GLOB & set(masked)
             and not (set(masked) - _GLOB) & _UNDOABLE_BAD and ">" not in masked):
-        return _undo_checked(_undo_glob(text, cwd, home), cwd, home, WIDE_MAX_FILES)
+        return _undo_checked(_undo_glob(text, cwd, home), cwd, home, WIDE_MAX_FILES, wide=True)
     if masked is None or any(c in _UNDOABLE_BAD for c in masked.replace(">", "")):
         return None
     redirect = None
@@ -1533,7 +1536,7 @@ def _undoable_shell(command: str, cwd: str | None, home: str, wide: bool) -> lis
         out = _undo_touch(args, cwd, home)
     else:
         out = None
-    return _undo_checked(out, cwd, home, WIDE_MAX_FILES if wide else UNDOABLE_MAX_FILES)
+    return _undo_checked(out, cwd, home, WIDE_MAX_FILES if wide else UNDOABLE_MAX_FILES, wide=wide)
 
 
 def _undo_odd(c: str) -> bool:
@@ -1541,17 +1544,14 @@ def _undo_odd(c: str) -> bool:
 
 
 def _undo_checked(out: list[str] | None, cwd: str, home: str,
-                  max_files: int = UNDOABLE_MAX_FILES) -> list[str] | None:
+                  max_files: int = UNDOABLE_MAX_FILES, *, wide: bool = False) -> list[str] | None:
     """The files, once each, when every one is a target ``_undo_target_ok`` accepts and all can be saved; else None."""
     if not out or len(out) > max_files:
         return None
-    seen: list[str] = []
-    for p in out:
-        if p not in seen:
-            seen.append(p)
+    seen = list(dict.fromkeys(out))
     size = 0
     for p in seen:
-        if not _undo_target_ok(p, cwd, home):
+        if not _undo_target_ok(p, cwd, home, wide=wide):
             return None
         if os.path.lexists(p):
             size += os.path.getsize(p)
@@ -1630,8 +1630,9 @@ def _undo_path(p: str, cwd: str, home: str) -> str:
     return _abs(p, cwd, home)
 
 
-def _undo_target_ok(p: str, cwd: str, home: str) -> bool:
-    """A file the command changes: not a link, not a folder, not under .git, its folder exists, low stakes."""
+def _undo_target_ok(p: str, cwd: str, home: str, *, wide: bool = False) -> bool:
+    """A file the command changes: not a link, not a folder, not under .git, its folder exists, low stakes. ``wide``
+    (simple mode): not under .git once its folders' links are followed either (``g -> .git``)."""
     if os.path.islink(p) or os.path.isdir(p) or not os.path.isdir(os.path.dirname(p)):
         return False
     try:
@@ -1641,6 +1642,8 @@ def _undo_target_ok(p: str, cwd: str, home: str) -> bool:
         return False
     if {".git", ".hermes"} & set(_norm(p).casefold().split("/")):
         return False                                     # git's own data, a project's Hermes settings: keep asking
+    if wide and {".git", ".hermes"} & set(_real(_norm(p)).casefold().split("/")):
+        return False                                     # the same, reached through a link to a folder
     return _file(p, cwd, home)[1] == LOW
 
 
@@ -1654,13 +1657,14 @@ def _undo_rm(args: list[str], cwd: str, home: str, *, wide: bool = False) -> lis
     """The files rm removes. ``wide`` (simple mode): with -r (or -R), a folder operand gives every file under it
     (``_undo_tree``)."""
     got = _undo_opts(args, "fvrR" if wide else "fv")
-    if not got or not got[0]:
-        return None
+    if not got or not got[0] or (wide and any(a.startswith("=") for a in got[0])):
+        return None                                      # simple mode: zsh expands =word to a program's path
     paths = [_undo_path(a, cwd, home) for a in got[0]]
     if wide and got[1] & {"r", "R"}:
         out: list[str] = []
-        for p in paths:
-            found = _undo_tree(p) if os.path.isdir(p) and not os.path.islink(p) else (
+        budget = _Budget()                               # shared by every operand; an operand given twice once
+        for p in dict.fromkeys(paths):
+            found = _undo_tree(p, budget) if os.path.isdir(p) and not os.path.islink(p) else (
                 [p] if os.path.isfile(p) and not os.path.islink(p) else None)
             if found is None:
                 return None
@@ -1669,16 +1673,24 @@ def _undo_rm(args: list[str], cwd: str, home: str, *, wide: bool = False) -> lis
     return paths if all(os.path.isfile(p) and not os.path.islink(p) for p in paths) else None
 
 
-def _undo_tree(folder: str) -> list[str] | None:
+def _undo_tree(folder: str, budget: "_Budget | None" = None) -> list[str] | None:
     """Every file under a folder rm -r would remove, when the tree holds only regular files and folders that each hold
     something (an undo writes the files back and their folders with them: an empty folder would not come back); no
     link anywhere, followed or not, no special file. At most WIDE_MAX_FILES files, else None (the size cap is
     ``_undo_checked``'s). Files created in the folder after this read and before the command runs are removed without
-    being saved: the snapshot is taken in the same hook, just before the command runs."""
+    being saved: the snapshot is taken in the same hook, just before the command runs. With a ``budget`` (one line),
+    the files and bytes of every operand count together, the walk stops as soon as a limit or the deadline is passed,
+    and a folder already walked gives nothing more."""
+    if budget is not None:
+        if folder in budget.walked:
+            return []
+        budget.walked.add(folder)
     out: list[str] = []
     for root, dirs, files in os.walk(folder, followlinks=False):
         if not dirs and not files:
             return None                                  # an empty folder: the undo could not bring it back
+        if budget is not None and budget.late():
+            return None
         for name in dirs:
             if os.path.islink(os.path.join(root, name)):
                 return None
@@ -1687,9 +1699,9 @@ def _undo_tree(folder: str) -> list[str] | None:
             if os.path.islink(p) or not os.path.isfile(p):
                 return None
             out.append(p)
-            if len(out) > WIDE_MAX_FILES:
+            if len(out) > WIDE_MAX_FILES or (budget is not None and not budget.take(p)):
                 return None
-    return out or None
+    return out or (None if budget is None else [])
 
 
 _SIMPLE_CLASS = re.compile(r"\[[A-Za-z0-9._]+\]")
@@ -1718,15 +1730,15 @@ def _undo_glob(text: str, cwd: str, home: str) -> list[str] | None:
     if len(toks) < 2 or toks[0] != "rm":
         return None
     got = _undo_opts(toks[1:], "fv")
-    if not got or not got[0]:
+    if not got or not got[0] or any(a.startswith("=") for a in got[0]):
         return None
     out: list[str] = []
     for a in got[0]:
         if _GLOB & set(a):
             if not _plain_glob(a):
                 return None                              # read differently by Python and the shell: keep asking
-            matches = sorted(_globmod.glob(_undo_path(a, cwd, home)))
-            if not matches:
+            matches = sorted(itertools.islice(_globmod.iglob(_undo_path(a, cwd, home)), WIDE_MAX_FILES + 1))
+            if not matches or len(matches) > WIDE_MAX_FILES:
                 return None
             out += matches
         else:
@@ -1869,6 +1881,9 @@ class Chain:
     rm: bool
     runs: bool
     git: tuple = ()      # the files of its git rm and git mv segments: their index entries are put back by an undo
+    git_specs: tuple = ()  # the paths those segments give git (a folder of git rm -r among them)
+    writes: tuple = ()   # the files its writing segments (sed -i, mv, cp, touch, a redirect) change: a broken one is
+    free: tuple = ()     # theirs (file:shell); free: (type, stakes) of each program that runs, checked by the hooks
 
 
 def chain_parts(command: str) -> list[tuple[str, str, str]] | None:
@@ -1918,7 +1933,7 @@ def undo_chain(command: str, cwd: str | None, home: str | None = None) -> Chain 
     if not parts or not cwd or cwd == UNKNOWN or getattr(os, "name", "") == "nt":
         return None
     home = home or os.path.expanduser("~")
-    return _scoped(("chain", str(command), cwd, home), lambda: _read_chain(command, parts, cwd, home))
+    return _scoped(("chain", str(command).strip(), cwd, home), lambda: _read_chain(command, parts, cwd, home))
 
 
 def _read_chain(command: str, parts: list, cwd: str, home: str) -> Chain | None:
@@ -1939,31 +1954,94 @@ def _undo_chain(command: str, parts: list, cwd: str, home: str) -> Chain | None:
         return None
     if not any(_chain_may_save(seg, seg_masked) for seg, seg_masked, _op in parts[:piped]):
         return None                                      # no file command: nothing to read, the line is as today
-    plans = []
+    plans, ran_free = [], False
     for seg, seg_masked, _op in parts[:piped]:           # every segment read first: a refused one walks nothing
         plan = _chain_segment(seg, seg_masked, cwd, home)
         if plan is None:
             return None
+        kind = plan[0]
+        if kind in ("save", "save-git") and ran_free:
+            return None                                  # a program run before it may change what its paths name
+        ran_free = ran_free or kind == "free"
         plans.append((seg, *plan))
-    if not any(targets for _seg, _kind, targets in plans):
+    if not any(kind in ("save", "save-git") for _seg, kind, _t, _x in plans):
         return None                                      # nothing to save: the line is read as it is today
+    budget = _Budget()
     paths: list[str] = []
     git: list[str] = []
-    for seg, kind, targets in plans:
-        found = targets() if targets else []
-        if targets and not found:
-            return None                                  # a target that cannot be saved
+    specs: list[str] = []
+    writes: list[str] = []
+    for seg, kind, targets, extra in plans:
+        if kind not in ("save", "save-git"):
+            continue
+        found = targets(budget)
+        if found is None:
+            return None                                  # a target that cannot be saved, or too many
         paths += found
-        git += found if kind == "save-git" else []
-    out = _undo_checked(paths, cwd, home, WIDE_MAX_FILES)
-    if out is None:
+        if kind == "save-git":
+            git += found
+            specs += extra
+        elif not _chain_deletes(seg):
+            writes += found                              # files it writes: a broken one is that segment's fault
+    out = _undo_checked(paths, cwd, home, WIDE_MAX_FILES, wide=True)
+    if not out:
         return None
-    ran = {os.path.realpath(p) for p in scripts_run(command, cwd)}
-    names = {os.path.basename(p).casefold() for p in ran}
-    if any(os.path.basename(p).casefold() in names and os.path.realpath(p) in ran for p in out):
+    ran = scripts_run(command, cwd, wide=True)
+    if ran and any(_same_path(p, r) for p in out for r in _named_alike(p, ran)):
         return None                                      # a file the line changes, then runs: write then run
-    return Chain(paths=tuple(out), rm=any(t and _chain_deletes(seg) for seg, _k, t in plans),
-                 runs=any(k in ("free", "save-git") for _s, k, _t in plans), git=tuple(dict.fromkeys(git)))
+    return Chain(paths=tuple(out),
+                 rm=any(k in ("save", "save-git") and _chain_deletes(seg) for seg, k, _t, _x in plans),
+                 runs=any(k in ("free", "save-git") for _s, k, _t, _x in plans), git=tuple(dict.fromkeys(git)),
+                 git_specs=tuple(dict.fromkeys(specs)), writes=tuple(dict.fromkeys(writes)),
+                 free=tuple(x for _s, k, _t, x in plans if k == "free"))
+
+
+def _nfc(path: str) -> str:
+    return unicodedata.normalize("NFC", path).casefold()
+
+
+def _named_alike(path: str, ran: list[str]) -> list[str]:
+    """The scripts of ``ran`` whose name, or whose resolved name, is ``path``'s, read as a case-insensitive file system
+    reads it (NFC, case folded): only those can be the same file (a target is never a hard link)."""
+    name = _nfc(os.path.basename(path))
+    return [r for r in ran if name in (_nfc(os.path.basename(r)), _nfc(os.path.basename(os.path.realpath(r))))]
+
+
+def _same_path(a: str, b: str) -> bool:
+    """One file under two spellings: the same inode when both exist, else the same resolved path, NFC, case folded."""
+    try:
+        if os.path.exists(a) and os.path.exists(b):
+            return os.path.samefile(a, b)
+    except OSError:
+        pass
+    return _nfc(os.path.realpath(a)) == _nfc(os.path.realpath(b))
+
+
+CHAIN_SECONDS = 2.0                                      # reading a line's targets: beyond, no undo, it asks
+_GIT_MAGIC = set("*?[\\")                                # what git reads as a pathspec pattern
+
+
+class _Budget:
+    """What one line's targets may reach, shared by every operand and segment: WIDE_MAX_FILES files, 5 MB, and
+    CHAIN_SECONDS of reading. A folder already walked is not walked again."""
+    def __init__(self, seconds: float | None = None):
+        self.seen: set = set()
+        self.walked: set = set()
+        self.bytes = 0
+        self.deadline = time.monotonic() + (CHAIN_SECONDS if seconds is None else seconds)
+
+    def late(self) -> bool:
+        return time.monotonic() > self.deadline
+
+    def take(self, path: str) -> bool:
+        """Count one file once; False as soon as a limit is passed."""
+        if path not in self.seen:
+            self.seen.add(path)
+            try:
+                self.bytes += os.lstat(path).st_size
+            except OSError:
+                pass
+        return len(self.seen) <= WIDE_MAX_FILES and self.bytes <= UNDOABLE_MAX_BYTES and not self.late()
 
 
 def _chain_paths(text: str, cwd: str, home: str) -> list[str] | None:
@@ -1988,14 +2066,30 @@ def _chain_deletes(seg: str) -> bool:
     return bool(toks) and (toks[0] == "rm" or (os.path.basename(toks[0]) == "git" and toks[1:2] == ["rm"]))
 
 
-def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple[str, object] | None:
-    """(kind, targets): ("save", files) for a file command whose files may be saved, ("save-git", files) for
-    ``git rm`` or ``git mv``, ("read", None) for a free read, ("free", None) for a covered program free on its own;
-    None otherwise. ``files`` is a function: the folders are walked only once every segment has been read."""
+def _set_ok(args: list[str]) -> bool:
+    """``set -e``, ``-u``, ``-x``, ``-o pipefail`` and their clusters (``set -euo pipefail``): nothing else."""
+    it = iter(args)
+    for a in it:
+        if not re.fullmatch(r"-[eux]*o?", a) or a == "-":
+            return False
+        if a.endswith("o") and next(it, None) != "pipefail":
+            return False
+    return bool(args)
+
+
+def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple | None:
+    """(kind, targets, extra): ("save", files, None) for a file command whose files may be saved, ("save-git", files,
+    the paths git is given) for ``git rm`` or ``git mv``, ("read", None, None) for a free read, ("free", None, (type,
+    stakes)) for a covered program free on its own; None otherwise. ``files`` takes the line's ``_Budget``: the
+    folders are walked only once every segment has been read."""
     try:
         toks = shlex.split(seg)
     except ValueError:
         return None
+    if any(t.startswith("=") for t in toks):
+        return None                                      # zsh expands =word to a program's path
+    if toks and toks[0] == "set" and _set_ok(toks[1:]):
+        return "read", None, None                        # errexit, nounset, xtrace, pipefail: nothing changes paths
     if not toks or ENV_ASSIGN.match(toks[0]) or os.path.basename(toks[0]) in CHAIN_STATE:
         return None                                      # it changes the shell for the segments after it
     if os.path.basename(toks[0]) in EXTERNAL_PROGRAMS | set(OUTSIDE) or _cmd_reads_external(seg, 0):
@@ -2003,6 +2097,10 @@ def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple[str,
     if _GLOB & set(seg) and seg_masked != seg:
         return None                                      # a glob next to quotes: which words expand is unsure
     prog, globbed = toks[0], bool(_GLOB & set(seg_masked))
+    if os.path.basename(prog) == "git" and toks[1:2] in (["rm"], ["mv"]) and "--cached" not in toks:
+        from . import undo as _undo
+        if globbed or any(_GIT_MAGIC & set(a) or a.startswith(":") for a in toks[2:]) or not _undo.git_top(cwd):
+            return None                                  # a pathspec git would expand, or an index it cannot read
     reading = _shell(seg, cwd, home)
     if reading[1] == CAP:
         return None
@@ -2012,60 +2110,69 @@ def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple[str,
             return None                                  # its files are checked with the others (_undo_chain)
         if toks[1] == "rm":
             got = _undo_opts(toks[2:], "rqf")
-            return ("save-git", lambda: _chain_targets(got[0], "r" in got[1], cwd, home)) if got and got[0] else None
+            if not got or not got[0]:
+                return None
+            return ("save-git", lambda b: _chain_targets(got[0], "r" in got[1], cwd, home, b),
+                    [_undo_path(a, cwd, home) for a in got[0]])
         got = _undo_opts(toks[2:], "kvn")                # git mv, never -f
-        return ("save-git", lambda: _undo_mv_cp("mv", ["--"] + got[0], cwd, home)) if got and len(got[0]) >= 2 else None
+        if not got or len(got[0]) < 2:
+            return None
+        return ("save-git", lambda b: _undo_mv_cp("mv", ["--"] + got[0], cwd, home),
+                [_undo_path(a, cwd, home) for a in got[0]])
     if prog == "rm":
         got = _undo_opts(toks[1:], "fvrR")
         if not saver_ok or not got or not got[0]:
             return None
-        return "save", lambda: _chain_targets(got[0], bool(got[1] & {"r", "R"}), cwd, home)
+        return "save", lambda b: _chain_targets(got[0], bool(got[1] & {"r", "R"}), cwd, home, b), None
     if ">" in seg_masked or prog in ("mv", "cp", "sed", "touch"):
         found = undoable_shell(seg, cwd, home, wide=True) if saver_ok and not globbed else None
         if found:
-            return "save", lambda: found
+            return "save", lambda b: found, None
         if ">" in seg_masked:
             return None                                  # a redirect into a file it cannot save
     if globbed:
         return None
     if reading[1] == FREE:
-        return "read", None
+        return "read", None, None
     if (reading[1] in (LOW, MEDIUM) and params.trust_covers(same_program(reading[0]))
             and params.simple_covers(reading[0]) and not adds_dependency(seg)):
-        return "free", None
+        return "free", None, (reading[0], reading[1])
     return None
 
 
-def _chain_targets(operands: list[str], recursive: bool, cwd: str, home: str) -> list[str] | None:
+def _chain_targets(operands: list[str], recursive: bool, cwd: str, home: str, budget: _Budget) -> list[str] | None:
     """The files a deletion of these operands removes, read now: a plain glob is expanded as the shell would (it must
-    match), a folder needs ``recursive`` and gives every file under it (``_undo_tree``); every target exists, is a
-    regular file or folder, and is no link."""
+    match, at most WIDE_MAX_FILES matches read), a folder needs ``recursive`` and gives every file under it
+    (``_undo_tree``); every target exists, is a regular file or folder, and is no link; the line's ``budget`` holds
+    for all of them. An operand given twice is read once."""
     import glob as _globmod
     out: list[str] = []
-    for a in operands:
+    for a in dict.fromkeys(operands):
         if a.startswith(":"):
             return None                                  # a git pathspec with magic
         if _GLOB & set(a):
             if not _plain_glob(a):
                 return None
-            found = sorted(_globmod.glob(_undo_path(a, cwd, home)))
-            if not found:
+            found = sorted(itertools.islice(_globmod.iglob(_undo_path(a, cwd, home)), WIDE_MAX_FILES + 1))
+            if not found or len(found) > WIDE_MAX_FILES:
                 return None
         else:
             found = [_undo_path(a, cwd, home)]
         for p in found:
-            if os.path.islink(p):
+            if os.path.islink(p) or budget.late():
                 return None
             if os.path.isdir(p):
-                tree = _undo_tree(p) if recursive else None
+                tree = _undo_tree(p, budget) if recursive else None
                 if tree is None:
                     return None
                 out += tree
             elif os.path.isfile(p):
+                if not budget.take(p):
+                    return None
                 out.append(p)
             else:
                 return None                              # missing (nothing to save), or a special file
-    return out or None
+    return out
 
 
 def _chain_reader(seg: str, seg_masked: str) -> bool:
@@ -2234,6 +2341,11 @@ def _git_discards(sub: str, args: list[str]) -> bool:
             return True
         if sub in ("rm", "mv") and any(a in ("-f", "--force") or (a.startswith("-") and not a.startswith("--")
                                                                  and "f" in a[1:]) for a in rest):
+            return True
+        if sub == "checkout-index" and any(a in ("-f", "--force") or (a.startswith("-") and not a.startswith("--")
+                                                                     and "f" in a[1:]) for a in rest):
+            return True                                  # writes the index over the working tree
+        if sub == "read-tree" and "-u" in rest and "--reset" in rest:
             return True
     if sub == "checkout":
         return "--" in rest or "." in rest
@@ -5460,6 +5572,20 @@ def _key_name(key: str) -> str:
     return key if len(key) <= _SUMMARY_KEY else key[:_SUMMARY_KEY - 1] + "\u2026"
 
 
+SUMMARY_COMMAND = 200    # characters of a terminal command an approval prompt shows
+
+
+def hidden_segments(command: str, shown: int = SUMMARY_COMMAND) -> int:
+    """Simple mode, a chained line longer than a prompt shows: how many of its segments end past the cut (0 when it
+    is shown whole or is not a chained line)."""
+    text = str(command or "").strip()
+    if len(text) <= shown or not chain_parts(text):
+        return 0
+    masked = _undo_mask(text) or text
+    ends = [m.start() for m in CHAIN_OPS.finditer(masked)] + [len(text)]
+    return sum(1 for e in ends if e > shown)
+
+
 def _summary(tool: str, args: dict, t: str, vocabulary: fields.Vocabulary | None = None) -> str:
     """The line an approval prompt shows: the target of the call first and whole, secrets masked (spec 4.1). The
     owner's own `secret` entries (``vocabulary``) are masked too."""
@@ -5467,7 +5593,7 @@ def _summary(tool: str, args: dict, t: str, vocabulary: fields.Vocabulary | None
         args = {}
     if tool == "terminal":
         what = _clean(fields.mask_command(str(args.get("command", "")), vocabulary))
-        return f"{t}: {what[:200]}"
+        return f"{t}: {what[:SUMMARY_COMMAND]}"
     if tool in ("write_file", "patch") and "path" in args:
         what = _clean(str(args.get("path")))
         return f"{t}: {what[:200]}"
@@ -5932,10 +6058,12 @@ def adds_dependency(command: str) -> str | None:
     return None
 
 
-def scripts_run(command: str, cwd: str | None) -> list[str]:
+def scripts_run(command: str, cwd: str | None, wide: bool = False) -> list[str]:
     """Absolute paths of the files a command runs as code: the script an interpreter or a shell is given
     (``python cleanup.py``, ``bash x.sh``), a path run directly (``./run.sh``), and the file a task runner reads
-    (``package.json`` for ``npm test`` or ``npm run``, a ``Makefile`` for ``make``)."""
+    (``package.json`` for ``npm test`` or ``npm run``, a ``Makefile`` for ``make``). ``wide`` (simple mode): a program
+    named by a path is run as written, even an interpreter's name (``./bin/python3 x.py``, ``./node``), and ``make``
+    reads ``GNUmakefile`` and ``makefile`` too."""
     base = cwd or os.getcwd()
     out = []
 
@@ -5953,6 +6081,8 @@ def scripts_run(command: str, cwd: str | None) -> list[str]:
         elif "/" in words[0] and prog not in SHELLS and prog not in INTERPRETERS:
             add(words[0])                                        # ./run.sh, scripts/x.py
         elif prog in SHELLS or prog in INTERPRETERS or re.fullmatch(r"python\d(\.\d+)?", prog):
+            if wide and "/" in words[0] and not SYSTEM_PROGRAM.match(words[0]):
+                add(words[0])                                    # ./bin/python3: a program of the project itself
             inline = {"-c"} if prog in SHELLS else INLINE_FLAGS  # `sh -e x.sh`: -e is errexit for a shell
             it = iter(rest)
             for a in it:
@@ -5997,7 +6127,8 @@ def scripts_run(command: str, cwd: str | None) -> list[str]:
             elif "-C" in rest and rest.index("-C") + 1 < len(rest):
                 add(os.path.join(rest[rest.index("-C") + 1], "Makefile"))
             else:
-                add("Makefile")
+                for name in (("GNUmakefile", "makefile", "Makefile") if wide else ("Makefile",)):
+                    add(name)
         elif prog == "just":
             add("justfile")
     return out

@@ -61,7 +61,7 @@ def _git(top: str, *args: str, data: bytes | None = None) -> subprocess.Complete
                           check=False)
 
 
-def _git_top(cwd: str | None) -> str | None:
+def git_top(cwd: str | None) -> str | None:
     """The repository holding ``cwd`` when git keeps it plainly there (a ``.git`` folder, not a link or a file)."""
     d = os.path.realpath(cwd or ".")
     while True:
@@ -74,36 +74,86 @@ def _git_top(cwd: str | None) -> str | None:
         d = parent
 
 
-def _git_index(paths: list[str], cwd: str | None) -> dict:
-    """The index entries of ``paths`` before a ``git rm`` or ``git mv`` changes them: {"top", "paths" (from the top),
-    "index" (``git ls-files -s`` records)}; "top" is None when they cannot be read, and the undo then says so."""
-    top = _git_top(cwd)
+LS_BATCH = 400                    # paths per `git ls-files` call: never a command line too long for the system
+_ITA, _SKIP, _VALID = 0x20000000, 0x40000000, 0x8000     # intent-to-add, skip-worktree, assume-unchanged
+
+
+def _ls_records(out: bytes) -> list[str] | None:
+    """The ``mode object stage<TAB>path`` records of ``git ls-files -s -t -v -z --debug``, or None when one cannot be
+    put back as it was: skip-worktree, assume-unchanged, intent-to-add, a conflict, a name with a new line."""
+    chunks = out.decode("utf-8", "surrogateescape").split("\0")
+    records, cur = [], None
+    for i, chunk in enumerate(chunks):
+        if i == 0:
+            debug, head = [], chunk
+            if "\n" in head:
+                return None
+        else:                                        # the previous record's debug lines, then the next record
+            lines = chunk.split("\n")
+            debug, head = lines[:-1], lines[-1]
+            flags = [ln.rsplit("flags:", 1)[1].strip() for ln in debug if "flags:" in ln]
+            if cur is None or len(flags) != 1:
+                return None
+            try:
+                if int(flags[0], 16) & (_ITA | _SKIP | _VALID):
+                    return None
+            except ValueError:
+                return None
+            records.append(cur)
+            cur = None
+        if head:
+            tag, sp, rest = head.partition(" ")
+            meta, tab, _path = rest.partition("\t")
+            if tag != "H" or not sp or not tab or meta.split(" ")[-1] != "0":
+                return None
+            cur = rest
+    return records if cur is None else None
+
+
+def _git_index(paths: list[str], specs: list[str], cwd: str | None) -> dict | None:
+    """The index entries a ``git rm`` or ``git mv`` changes, read before it runs: those of its files and of the paths
+    it gives git (a folder's entries without a file on disk included): {"top", "paths" (from the top), "index"}.
+    None when they cannot be read or put back as they are (a worktree or a submodule, a flag, an intent-to-add)."""
+    top = git_top(cwd)
     if not top:
-        return {"top": None, "paths": [], "index": []}
-    rels = []
-    for p in paths:
-        rel = os.path.relpath(os.path.realpath(p), top)
-        if rel == ".." or rel.startswith(".." + os.sep) or os.path.isabs(rel):
-            return {"top": None, "paths": [], "index": []}
-        rels.append(rel.replace(os.sep, "/"))
+        return None
+
+    def rel(p: str) -> str | None:
+        r = os.path.relpath(os.path.realpath(p), top)
+        if r == ".." or r.startswith(".." + os.sep) or os.path.isabs(r) or any(ord(c) < 32 for c in r):
+            return None
+        return r.replace(os.sep, "/")
+
+    rels, asked = [rel(p) for p in paths], [rel(p) for p in specs]
+    if None in rels or None in asked:
+        return None
+    asked = list(dict.fromkeys(asked + rels))
+    records: list[str] = []
     try:
-        r = _git(top, "--no-optional-locks", "ls-files", "-s", "-z", "--", *rels)
+        for i in range(0, len(asked), LS_BATCH):
+            r = _git(top, "--no-optional-locks", "ls-files", "-s", "-t", "-v", "-z", "--debug", "--",
+                     *asked[i:i + LS_BATCH])
+            got = _ls_records(r.stdout) if r.returncode == 0 else None
+            if got is None:
+                return None
+            records += got
     except (OSError, subprocess.SubprocessError):
-        return {"top": None, "paths": rels, "index": []}
-    if r.returncode != 0:
-        return {"top": None, "paths": rels, "index": []}
-    records = [x.decode("utf-8", "surrogateescape") for x in r.stdout.split(b"\0") if x]
-    return {"top": top, "paths": rels, "index": records}
+        return None
+    return {"top": top, "paths": rels, "index": list(dict.fromkeys(records))}
 
 
 def snapshot(paths: list[str], root: str, max_bytes: int = 5_000_000, *, key: bytes | None, cwd: str | None = None,
-             home: str | None = None, git: list[str] | None = None) -> str | None:
+             home: str | None = None, git: list[str] | None = None, git_specs: list[str] | None = None) -> str | None:
     """Save paths; return the snapshot id, or None if it cannot be done safely (no ``key`` included: a snapshot
     without its MAC could never be restored). ``cwd`` and ``home``: the session's working directory and user home,
     signed with the manifest, so a restore judges its targets as classify judged the write. ``git``: the paths a
-    ``git rm`` or ``git mv`` of the call changes in git's index; their entries are signed with the manifest too, so
-    ``restore_index`` can put them back."""
+    ``git rm`` or ``git mv`` of the call changes in git's index (``git_specs``: the paths it gives git); their entries
+    are signed with the manifest too, so ``restore_index`` can put them back. No snapshot when they cannot be read:
+    an undo that would leave the index changed is never promised."""
     if not key:
+        return None
+    index = _git_index(git, list(git_specs or []), cwd) if git else None
+    if git and index is None:
         return None
     entries = []
     blobs: list[bytes | None] = []
@@ -148,7 +198,7 @@ def snapshot(paths: list[str], root: str, max_bytes: int = 5_000_000, *, key: by
         for i, data in enumerate(blobs):
             if data is not None:
                 _write_private(os.path.join(d, str(i)), data)
-        extra = {"git": _git_index(git, cwd)} if git else {}
+        extra = {"git": index} if index else {}
         manifest = json.dumps({"files": entries, "cwd": cwd, "home": home, **extra}).encode("utf-8")
         _write_private(os.path.join(d, "manifest.json"), manifest)
         _write_private(os.path.join(d, MAC_FILE), _mac(key, snap_id, manifest).encode("ascii"))
@@ -282,7 +332,7 @@ def restore_index(snap_id: str, root: str, *, key: bytes | None) -> str | None:
         top, rels, records = rec.get("top"), list(rec.get("paths") or []), list(rec.get("index") or [])
     except (ValueError, TypeError, AttributeError):
         return "unreadable"
-    if not top or _git_top(top) != top:
+    if not top or git_top(top) != top:
         return "not a plain git repository"
     known, lines = set(), []
     for r in records:
@@ -332,19 +382,21 @@ def unchanged(snap_id: str, root: str, *, key: bytes | None) -> bool:
 
 def describe(snap_id: str | None, root: str) -> dict:
     """What an undo would restore, said for the owner of this machine: the first file, relative to the folder the
-    agent worked in, and how many files in all. Read from the snapshot's manifest; {} when it is unreadable."""
+    agent worked in, how many files in all, and how many of them existed before the call. Read from the snapshot's
+    manifest; {} when it is unreadable."""
     try:
         if not snap_id or not snap_id.isalnum():
             return {}
         with open(os.path.join(_undo_dir(root), snap_id, "manifest.json"), encoding="utf-8") as fh:
             m = json.load(fh)
         files = [f["path"] for f in m.get("files", []) if isinstance(f, dict) and isinstance(f.get("path"), str)]
+        existed = sum(1 for f in m.get("files", []) if isinstance(f, dict) and f.get("existed"))
         if not files:
             return {}
         cwd = m.get("cwd") or ""
         f0, base = files[0].replace("\\", "/"), cwd.replace("\\", "/").rstrip("/")
         first = (f0[len(base) + 1:] if base and f0.startswith(base + "/") else f0.rsplit("/", 1)[-1])
-        return {"file": first, "files": len(files)}
+        return {"file": first, "files": len(files), "existed": existed}
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return {}
 
