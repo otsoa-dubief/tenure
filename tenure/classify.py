@@ -1639,6 +1639,8 @@ def _undo_target_ok(p: str, cwd: str, home: str, *, wide: bool = False) -> bool:
     (simple mode): not under .git once its folders' links are followed either (``g -> .git``)."""
     if os.path.islink(p) or os.path.isdir(p) or not os.path.isdir(os.path.dirname(p)):
         return False
+    if os.path.basename(p).startswith("-"):
+        return False                                     # `-n`, `--file=x.sed`: read as an option where it is named
     try:
         if os.path.lexists(p) and os.stat(p).st_nlink > 1:
             return False                                 # a hard link: the other names would keep the change
@@ -1748,11 +1750,12 @@ def _glob_superset(path: str) -> set[str] | None:
 def _glob_matches(word: str, cwd: str, home: str) -> list[str] | None:
     """The paths an unquoted glob names now, as the shell expands it in ``cwd``: [] when it matches nothing (the shell
     passes it as it is, so nothing is named). None when Python and the shell may read it differently (not a
-    ``_plain_glob``, or names a user's glob options would add: ``_glob_superset``), for more than WIDE_MAX_FILES
-    matches, or for none but a file of that very name (bash then names that file)."""
+    ``_plain_glob``, a ``~`` or a ``$``, or names a user's glob options would add: ``_glob_superset``), for more than
+    WIDE_MAX_FILES matches, for none but a file of that very name (bash then names that file), or for a match whose
+    name starts with ``-`` (the program would read it as an option)."""
     import glob as _globmod
-    if not _plain_glob(word) or not cwd or cwd == UNKNOWN:
-        return None
+    if not _plain_glob(word) or not cwd or cwd == UNKNOWN or word.startswith("~") or "$" in word:
+        return None                                      # a home or a variable: the shell expands it first
     path = _undo_path(word, cwd, home)
     try:
         found = sorted(itertools.islice(_globmod.iglob(path), WIDE_MAX_FILES + 1))
@@ -1762,6 +1765,8 @@ def _glob_matches(word: str, cwd: str, home: str) -> list[str] | None:
         return None                                      # none, but a file of that name: bash names it
     if _glob_superset(path) != set(found):
         return None                                      # a hidden name, another case: the user's options may take it
+    if any(os.path.basename(f).startswith("-") for f in found):
+        return None                                      # `--file=x.sed`, `-rf`: the program reads it as an option
     return found
 
 
@@ -1823,6 +1828,8 @@ def _undo_sed(args: list[str], cwd: str, home: str, expands: list[bool] | None =
             if sys.platform == "darwin":                 # BSD sed: the next word is always the suffix
                 if not rest or not (rest[0] == "" or re.fullmatch(r"\.[\w.-]+", rest[0])):
                     return None                          # `-i -e`, `-i p`: it would write f-e or fp, unsaved
+                if rest[0] and os.path.lexists(_undo_path(rest[0], cwd, home)):
+                    return None                          # a GNU sed first in PATH edits a file of that name, unsaved
                 suffix = rest.pop(0) or None
             elif rest and rest[0] == "":
                 return None                              # GNU reads '' as the script: not what was meant
@@ -2401,8 +2408,11 @@ def _chain_reader(seg: str, seg_masked: str) -> bool:
                 continue
             return False
         return True
-    pattern, it = False, iter(args)
+    pattern, bare, it = False, False, iter(args)
     for a in it:
+        if bare and (a in ("-e", "--regexp") or a.startswith("--regexp=")
+                     or (re.fullmatch(r"-[A-Za-z]*e", a) and not a.startswith("--"))):
+            return False                                 # `grep x -e y`: x would be read as a file
         if a in _GREP_VALUES:
             value = next(it, None)
             if value is None or (a not in ("-e", "--regexp") and not value.isdigit()):
@@ -2424,7 +2434,7 @@ def _chain_reader(seg: str, seg_masked: str) -> bool:
             elif not all(c in _GREP_FLAGS for c in body):
                 return False
         elif not pattern:
-            pattern = True                               # the pattern: one word, then no file
+            pattern = bare = True                        # the pattern: one word, then no file
         else:
             return False
     return pattern
