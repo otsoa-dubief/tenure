@@ -1,18 +1,21 @@
-# tenure
+# Tenure
 
-**Your Hermes agent works without asking. When it gets a change wrong, you undo it, and that kind of action gets
-watched.**
+**Your Hermes agent works without asking. When it gets a change wrong, you undo it, and from then on that kind of
+action is listed for you after each turn, with an undo.**
 
 - **It runs without asking**: file edits, memory, subagents, the usual dev tools (npm, pytest, cargo, go, make,
   git...), and plain `rm`, `mv`, `cp`, `sed -i` or `echo > file` on project files. Reads never ask.
-- **File changes are saved first**: `/tenure undo N` puts a file edit or deletion back, for 24 hours. Other commands
-  (a test run, a build, a commit) can't be undone.
+- **File changes are saved first**: edits through Hermes' file tools and plain file commands on project files (`rm`,
+  `mv`, `cp`, `sed -i`, `touch`, `> file`, alone or chained) are saved before they run: `/tenure undo N` puts them back
+  for 24 hours. Everything else runs as with Hermes alone and can't be undone: a test run, a build, a commit, files
+  changed by another program (a formatter, a script). An undo puts the files back exactly as they were before that
+  change: later edits to the same files are overwritten.
 - **One mistake, one kind**: an undo, a refusal, a flag or a file that no longer parses makes that kind of action
-  watched: it keeps working, and the turn ends with one line listing those actions and `/tenure undo`. A kind tenure
+  watched: it keeps working, and the turn ends with one line listing those actions and `/tenure undo`. A kind Tenure
   can't undo asks first instead. A second mistake, and it asks first. A run of actions you keep frees it again (52 in
   a row for a low-risk kind with the default preset); `/tenure trust KIND` frees it now, on your word.
 - **Some things ask you**: pushes, publishing, deploys, uploads, messages to people, payments and new packages always
-  ask; programs whose changes tenure can't save (docker, database CLIs, unknown tools, MCP tools that write) ask until
+  ask; programs whose changes Tenure can't save (docker, database CLIs, unknown tools, MCP tools that write) ask until
   you free them. After the agent reads outside content (web, mail, downloads), its next command asks once, and your
   yes lets the conversation work as before.
 - **Three commands**: `/tenure` (what the agent did today, what you can undo), `/tenure undo N`, `/tenure trust`
@@ -26,8 +29,8 @@ watched.**
 - **Study mode** (opt-in, `hermes tenure mode study`): the rule of a study preregistered on OSF, with tiers earned on
   verified evidence, random spot checks, a guarantee you choose and a signed, hash-chained, replayable autonomy
   passport (`hermes tenure verify`).
-- **Also**: a per-model benchmark of your own work, a switch preview before changing model, a Desktop page and a
-  dashboard tab, five languages.
+- **Also**: a per-model benchmark of your own work, a Desktop page and a dashboard tab (what ran, what you can undo,
+  what still asks and why), five languages; in study mode, a switch preview before changing model.
 - **Local**: no network call, no LLM call. Linux, macOS and Windows (on Windows, plain shell file commands ask
   instead of running with an undo).
 
@@ -38,7 +41,7 @@ hermes plugins install otsoa-dubief/tenure/tenure
 hermes gateway restart        # if a gateway is running
 ```
 
-In Hermes Desktop, turn the page on once: **Capabilities → Plugins → Tenure**.
+In Hermes Desktop, enable Tenure's page once: **Capabilities → Plugins → Tenure**.
 
 ## Study mode, in pictures (1.3)
 
