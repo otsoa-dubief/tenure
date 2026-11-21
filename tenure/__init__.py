@@ -263,7 +263,7 @@ def _check_copied(st: store.Store) -> None:
             st.db.execute("UPDATE undo SET undone = 1 WHERE undone = 0")
             st.db.execute("DELETE FROM pending")
             st.clear_recent()
-            st.db.execute("DELETE FROM meta WHERE key = ?", (UNDO_KEY,))
+            st.db.execute("DELETE FROM meta WHERE key IN (?, ?)", (UNDO_KEY, store.EXCUSE_NUMBERS))
             st.set_meta(COPIED_META, str(time.time()))
             _drop_copied_files()                         # before the commit: a failure rolls everything back
         if copied or not sid:
@@ -1379,16 +1379,17 @@ def _excuse_hint(st: store.Store, events: list[dict]) -> list[str]:
     take it back if the error was the owner's. Said neutrally, and only then: never an invitation after every no.
     It names the fault by the number the owner excuses it by: the undo number they just typed, after an undo."""
     seq = getattr(st, "last_outcome_seq", None)
-    costly = any(ev.get("event") in ("tier", "trial") for ev in events)
-    row = next((r for r in excusable(st) if r["seq"] == seq), None) if seq and costly else None
-    if row is None:
+    if not seq or not any(ev.get("event") in ("tier", "trial") for ev in events):
         return []
     key = next((ev.get("type") for ev in events if ev.get("type")), "")
     day = time.strftime("%Y-%m-%d")                 # once a day per type: a reminder, never a reflex after every no
     if st.get_meta("excuse_hint:" + key) == day:
+        return []                                   # first: the hook's transaction reads no ledger for nothing
+    n = st.fault_numbers().get(seq)
+    if n is None or not any(r["seq"] == seq for r in excusable(st)):   # the ledger only for the weekly limit
         return []
     st.set_meta("excuse_hint:" + key, day)
-    return [tr("simple.notice.excuse_hint" if simple() else "notice.excuse.hint", n=row["n"],
+    return [tr("simple.notice.excuse_hint" if simple() else "notice.excuse.hint", n=n,
                minutes=store.EXCUSE_WINDOW // 60)]
 
 

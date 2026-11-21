@@ -439,11 +439,16 @@ class Store:
         self._write()
         at = time.time() if at is None else at
         if number is None:
-            number = self.add_undo("", "", None, at)
-            self.db.execute("DELETE FROM undo WHERE id = ?", (number,))
+            number = self.new_number(at)
         kept = [x for x in self._fault_numbers() if at - x[2] <= EXCUSE_WINDOW and number != x[0] and seq != x[1]]
         self.set_meta(EXCUSE_NUMBERS, json.dumps([list(x) for x in kept] + [[int(number), int(seq), at]]))
         return int(number)
+
+    def new_number(self, at: float | None = None) -> int:
+        """A number of the undo counter that no undo entry will ever have: an entry made and deleted at once."""
+        number = self.add_undo("", "", None, at)
+        self.db.execute("DELETE FROM undo WHERE id = ?", (number,))
+        return number
 
     def fault_numbers(self) -> dict:
         """Ledger row -> the number a person excuses it by, for the faults numbered in the last EXCUSE_WINDOW."""
@@ -486,14 +491,24 @@ class Store:
 
     def add_recent(self, session: str, agent: str, type_key: str, at: float, *, flagged: bool,
                    undo_id: int | None, call: str = "") -> int:
-        """Number one settled action and purge the rows older than 24 hours, in the same write. Numbers are never
-        reused (AUTOINCREMENT), even after every row is purged. ``call`` is the call id as stored (hashed, like a
-        session): with the session it lets a verifier name the action (#6)."""
+        """Number one settled action and purge the rows older than 24 hours, in the same write. Its number is the
+        one a person already saw for it: its undo number, else a new one of the same counter (``new_number``), so
+        ``flag``, ``undo``, ``ok`` and ``excuse`` read one numbering, where a number never names two actions. Numbers
+        are never reused. A number a row of an older tenure still holds (its own counter, 24 hours at most) is passed
+        over. ``call`` is the call id as stored (hashed, like a session): with the session it lets a verifier name
+        the action (#6)."""
         self._recent_write()
         self.db.execute("DELETE FROM recent WHERE at < ?", (at - RECENT_WINDOW,))
-        cur = self.db.execute("INSERT INTO recent (session, agent, type, at, flagged, undo_id, call) "
-                              "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                              (session, agent, type_key, at, int(bool(flagged)), undo_id, call or None))
+        n = undo_id
+        for _ in range(64):
+            if n is not None and not self.db.execute("SELECT 1 FROM recent WHERE n = ?", (n,)).fetchone():
+                break
+            n = self.new_number(at)
+        else:
+            n = None                                           # never in practice: SQLite numbers the row itself
+        cur = self.db.execute("INSERT INTO recent (n, session, agent, type, at, flagged, undo_id, call) "
+                              "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                              (n, session, agent, type_key, at, int(bool(flagged)), undo_id, call or None))
         return int(cur.lastrowid)
 
     def recent_by_call(self, session: str, call: str) -> list[dict]:
