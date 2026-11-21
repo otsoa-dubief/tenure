@@ -526,14 +526,14 @@ class Store:
         self._write()
         if field not in STAT_FIELDS:
             raise ValueError(f"unknown stat {field!r}")
-        day = time.strftime("%Y-%m-%d", time.gmtime(time.time() if at is None else at))
+        day = time.strftime("%Y-%m-%d", time.localtime(time.time() if at is None else at))   # the owner's own day
         self.db.execute(f"INSERT INTO stats (agent, day, {field}) VALUES (?, ?, ?) "
                         f"ON CONFLICT(agent, day) DO UPDATE SET {field} = {field} + excluded.{field}",
                         (agent, day, n))
 
     def totals(self, agent: str | None = None, since: float = 0) -> dict:
-        """Sums over days from the UTC day of ``since`` (a timestamp) on."""
-        day = time.strftime("%Y-%m-%d", time.gmtime(since))
+        """Sums over days from the local day of ``since`` (a timestamp) on: "today" is the owner's day."""
+        day = time.strftime("%Y-%m-%d", time.localtime(since))
         cols = ", ".join(f"COALESCE(SUM({f}), 0)" for f in STAT_FIELDS)
         q = f"SELECT {cols} FROM stats WHERE day >= ?" + (" AND agent = ?" if agent else "")
         row = self.db.execute(q, (day, agent) if agent else (day,)).fetchone()

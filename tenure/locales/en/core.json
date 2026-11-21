@@ -276,7 +276,7 @@
     "one": "Actions taken alone in the last {n} hour (undoing one counts as a fault):",
     "other": "Actions taken alone in the last {n} hours (undoing one counts as a fault):"
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   what each agent has earned, per action type\n    card [--model M] [--no-redact]             the passport as a short text card to paste in a chat or a post\n    setup [careful|balanced|fast]              the three recommendations; with a name, use it\n    explain                                    how tenure decides, and what the numbers guarantee\n    models [--type T]                          each model's verified record on your own work\n    flag [N]                                   alone, the last numbered actions; with a number, report that action as an error\n    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked\n    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error\n    passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)\n    verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay\n    anchor                                     one line to publish: the ledger's head, date and length\n    export [PATH]                              write the evidence ledger (hash-chained JSON lines)\n    start trusted|probation                    trusted: no question before a type's first mistake; probation: the study's start\n    strict on|off                              strict mode: a new model starts with an empty record\n    mode simple|study                          simple (default): free, watched after a mistake, asks after a second; study: the study's rule\n    cleanup                                    list dead tenure keys in Hermes' permanent allowlist\n    share [--out FILE]                         write a signed record of counts for the community benchmark (opt-in, nothing is sent)\n    week [--model M]                           the last seven days: actions, questions, faults, undos, what is open\n    ok [N ...]                                 alone, the open act-then-tell actions; with numbers, the ones you checked count\n    excuse [N]                                 alone, the faults of the last 10 minutes; with N, take that one back\n    flag --call ID --session ID [--doubt]      a verifier: a fault (or, with --doubt, the next one asks) on one action\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   what each agent has earned, per action type\n    card [--model M] [--no-redact]             the passport as a short text card to paste in a chat or a post\n    setup [careful|balanced|fast]              the three recommendations; with a name, use it\n    explain                                    how tenure decides, and what the numbers guarantee\n    models [--type T]                          each model's verified record on your own work\n    flag [N]                                   alone, the last numbered actions; with a number, report that action as an error\n    flag TYPE [note] [--model M]               report an error the agent made on its own: its tenure is revoked\n    revoke TYPE|all [--model M | --all]        take earned autonomy back without an error\n    passport [--agent A] [--out FILE]          write the signed passport of an agent (--no-redact keeps type names)\n    verify PASSPORT [LEDGER]                   check a passport; with the exported ledger, recompute it by replay\n    anchor                                     one line to publish: the ledger's head, date and length\n    export [PATH]                              write the evidence ledger (hash-chained JSON lines)\n    start trusted|probation                    trusted: no question before a type's first mistake; probation: the study's start\n    strict on|off                              strict mode: a new model starts with an empty record\n    mode simple|study                          simple (default): free, watched after a mistake, asks after a second; study: the study's rule\n    cleanup                                    list dead tenure keys in Hermes' permanent allowlist\n    share [--out FILE]                         write a signed record of counts for the community benchmark (opt-in, nothing is sent)\n    week [--model M]                           the last seven days: actions, questions, faults, undos, what is open\n    ok [N ...]                                 alone, the open act-then-tell actions; with numbers, the ones you checked count\n    excuse [N]                                 alone, the faults of the last 10 minutes; with N, take that one back\n    flag --call ID --session ID [--doubt]      a verifier: a fault (or, with --doubt, the next one asks) on one action\n    flag N --doubt                             a verifier's doubt on action N: the next action of its kind asks first\n",
   "cli.verify.after": {
     "one": "Note: the ledger has {n} event after this passport; the tiers are unchanged.",
     "other": "Note: the ledger has {n} events after this passport; the tiers are unchanged."
@@ -415,8 +415,8 @@
     "other": "tenure · {type} is free again: {n} actions in a row without a mistake."
   },
   "simple.notice.now": "tenure · {type}, under your new settings: {state}.",
-  "simple.ask.unsaved": "{type} would run with an undo, but its files cannot be saved first: it asks.",
-  "simple.ask.always": "{type} ({stakes} stakes) always asks in simple mode: what leaves your machine and high stakes are never left free.",
+  "simple.ask.unsaved": "tenure can't undo {type}: it can't tell which files it changes, so it asks.",
+  "simple.ask.always": "{type} reaches outside this machine, or does something tenure can't undo or read: it always asks.",
   "simple.ask.mistakes": {
     "one": "{type} asks first after its mistakes: {n} more approval and it acts again, each action shown to you.",
     "other": "{type} asks first after its mistakes: {n} more approvals in a row and it acts again, each action shown to you."
@@ -426,8 +426,8 @@
     "other": "{type} asks first after a mistake: {n} more approvals in a row and it is free again."
   },
   "simple.turn": {
-    "one": "tenure · {n} action to watch: {actions} · {command}",
-    "other": "tenure · {n} actions to watch: {actions} · {command}"
+    "one": "tenure · {n} watched action, kept unless you undo it: {actions} · {command} <#>",
+    "other": "tenure · {n} watched actions, kept unless you undo them: {actions} · {command} <#>"
   },
   "simple.ok": "Not needed in simple mode: an action you do not undo within 24 hours counts as fine by itself.",
   "simple.passport": "The signed passport, with its guarantee, belongs to study mode; this profile is in simple mode. To switch: {command}",
@@ -437,7 +437,7 @@
   "simple.status.header.here": "tenure: this profile, simple mode, preset {preset}",
   "simple.status.header.profile": "tenure: profile {profile}, simple mode, preset {preset}",
   "simple.status.intro": "Free until a mistake; after one, each action of that kind is shown to you with an undo; after a second, it asks first ({command} for the study's rule).",
-  "simple.status.empty": "No action type has a record yet: everything runs as with Hermes alone, except what leaves your machine and high stakes.",
+  "simple.status.empty": "No kind of action has a record yet: everything runs as with Hermes alone, except what reaches outside this machine and high-risk kinds.",
   "simple.status.to_free": "{k}/{n} without a mistake before free",
   "simple.status.to_watched": {
     "one": "{n} approval before watched",
@@ -448,26 +448,26 @@
   "simple.explain.title": "How tenure decides in simple mode, one kind of action at a time:",
   "simple.explain.free": "Free: files, memory, subagents, the usual dev tools, and local commands whose files can be saved first run as with Hermes alone, with an undo where files change.",
   "simple.explain.watched": "After a mistake (an undo, a flag, a refusal, a failed automatic check), it keeps acting, but each action of that kind is listed at the end of the turn, with {command}.",
-  "simple.explain.ask": "After a second mistake, it asks you first: {low} approvals in a row at low stakes, {medium} at medium, and it is watched again.",
-  "simple.explain.free_again": "A watched action you do not undo within {hours} hours counts as fine: {low} in a row without a mistake at low stakes, {medium} at medium, and it is free again.",
+  "simple.explain.ask": "After a second mistake, it asks you first: {low} approvals in a row for a low-risk kind, {medium} for a medium-risk one, and it is watched again.",
+  "simple.explain.free_again": "A watched action you do not undo within {hours} hours counts as fine: {low} in a row without a mistake for a low-risk kind, {medium} for a medium-risk one, and it is free again.",
   "simple.explain.free_again_capped": "A watched action you do not undo within {hours} hours counts as fine; a run without a mistake frees it again.",
-  "simple.explain.always": "Always asks: what leaves your machine (push, deploy, publish, upload...), high stakes, capped kinds, a script the agent just wrote, a new package, and a file that runs code written after outside content. After outside content, the next command asks once: approved, the session works as before (mkdir, git add and git commit never ask).",
+  "simple.explain.always": "Always asks: what reaches outside this machine (push, deploy, publish, upload...), high-risk kinds, kinds your settings make always ask, a script the agent just wrote, a new package, and a file that runs code written after outside content. After outside content, the next command asks once: approved, the conversation works as before (mkdir, git add and git commit never ask).",
   "simple.explain.study": "No spot check and no guarantee in this mode. For the study's rule, its guarantee and the signed passport: {command}",
-  "simple.ask.suspended": "This session read outside content: allow this action and its commands run as before for the rest of the session (each still under the simple rule); deny it and they keep asking.",
-  "simple.ask.prompt_lift": "tenure — {summary}\n{why}\nDenying it counts no fault: it is the content you doubt, not the agent.",
-  "simple.undo.fault_anyway": "Counted as a fault of {type} all the same: you asked to undo it.",
+  "simple.ask.suspended": "This conversation read outside content, which can carry instructions. Allow this, and commands run as usual for the rest of the conversation. Deny, and they keep asking.",
+  "simple.ask.prompt_lift": "tenure — {summary}\n{why}\nDenying it isn't counted as a mistake: it's the content you doubt, not the agent.",
+  "simple.undo.fault_anyway": "Counted as a mistake of {type} all the same: you asked to undo it.",
   "settle.acted_failed": "tenure: {type} failed, and may have changed files before it stopped{what} · {command} {id}",
   "undo.done_unchanged": "Undo {id}: files restored. The call had failed without changing anything: no fault of {type} is counted.",
-  "cli.help": "  {prefix}                  what the agent did lately, and what can still be undone\n  {prefix} undo [N]         alone, what can still be undone (24 h); with a number, put that action back\n  {prefix} trust [KIND]     kinds of action that are not free; with a kind, free it now (KIND ask: it always asks first)\nMore: {prefix} advanced",
+  "cli.help": "  {prefix}                  what the agent did today, and what you can undo\n  {prefix} undo [N]         list what you can undo (24 h); with N, put change N back\n  {prefix} trust [KIND]     what still asks you, and why; with KIND, stop it asking (KIND ask: always ask)\nMore: {prefix} advanced",
   "cli.advanced.title": "Every other command, still working as before ({command} <command>):",
-  "home.title": "tenure · what the agent did lately",
+  "home.title": "tenure · what the agent did today, and what you can undo",
   "home.undo_title": {
-    "one": "Can still be undone (the last {n} hour), newest first:",
-    "other": "Can still be undone (the last {n} hours), newest first:"
+    "one": "Changes you can still undo ({n} h), newest first:",
+    "other": "Changes you can still undo ({n} h), newest first:"
   },
   "home.undo_none": {
-    "one": "Nothing left to undo from the last {n} hour.",
-    "other": "Nothing left to undo from the last {n} hours."
+    "one": "Nothing to undo from the last {n} hour.",
+    "other": "Nothing to undo from the last {n} hours."
   },
   "home.undo_more": {
     "one": "and {n} more: {command}",
@@ -477,45 +477,121 @@
     "one": "Ran without asking today: {n} action.",
     "other": "Ran without asking today: {n} actions."
   },
-  "home.watched": "Watched after a mistake (each action shown to you, with an undo): {types}.",
+  "home.watched": "Watched after a mistake (each action listed at the end of the turn, with an undo): {types}.",
   "home.asks": "Asks you first: {types}.",
-  "trust.title": "Kinds of action that are not free, for {agent}:",
+  "trust.title": "What still asks you, or is watched ({agent}):",
   "trust.none": "Every kind of action {agent} used is free.",
-  "trust.footer": "Free one now: {command} <kind> · make one always ask first: {command} <kind> ask",
+  "trust.footer": "Stop one asking: {command} <kind> · make one always ask: {command} <kind> ask",
   "trust.state.watched": {
-    "one": "watched after a mistake: free again after {n} more action you do not undo",
-    "other": "watched after a mistake: free again after {n} more actions you do not undo"
+    "one": "watched after a mistake: free after {n} more action you keep",
+    "other": "watched after a mistake: free after {n} more actions you keep"
   },
   "trust.state.ask": {
-    "one": "asks you first: free again after {n} more approval",
-    "other": "asks you first: free again after {n} more approvals in a row"
+    "one": "asks you first · {n} more approval → free",
+    "other": "asks you first · {n} more approvals in a row → free"
   },
   "trust.state.pinned": "asks you first, your choice: {command} frees it",
-  "trust.state.out": "always asks: it leaves your machine",
-  "trust.state.high": "always asks: high stakes",
-  "trust.state.capped": "always asks: capped in your settings",
+  "trust.state.out": "always asks: it reaches outside this machine",
+  "trust.state.high": "always asks: high risk",
+  "trust.state.capped": "always asks: your settings say so",
   "trust.state.study": {
     "one": "{tier}: {n} more verified success before acting alone",
     "other": "{tier}: {n} more verified successes before acting alone"
   },
-  "trust.freed": "{type} is free again, on your word. A new mistake makes it watched again.",
+  "trust.freed": "{type} runs without asking again. To undo this: {command}. One more mistake and it's watched.",
   "trust.already_free": "{type} is already free.",
   "trust.pinned": "{type} now asks you first, every time, until you free it: {command}",
   "trust.already_pinned": "{type} already asks you first. To free it: {command}",
-  "trust.refused.out": "{type} leaves your machine: it always asks, and cannot be freed by hand.",
-  "trust.refused.high": "{type} is at high stakes: it always asks, and cannot be freed by hand.",
-  "trust.refused.capped": "{type} is capped by your settings: it always asks. To change the settings: {command}",
-  "trust.unknown": "No record of {type} for {agent}. Kinds that are not free: {types}",
+  "trust.refused.out": "{type} reaches outside this machine: it always asks, and can't be freed by hand.",
+  "trust.refused.high": "{type} is high-risk: it always asks, and can't be freed by hand.",
+  "trust.refused.capped": "{type} always asks under your settings. To change them: {command}",
+  "trust.unknown": "No record of {type} for {agent}. What still asks you or is watched: {types}",
   "trust.study": "Freeing a kind by hand belongs to simple mode ({command}); in study mode a kind earns its tier.",
   "trust.terminal": "Freeing a kind is a person's word: {slash} in the chat, or {cli} in an interactive terminal.",
   "trust.nobody": "Not while nobody answers approvals ({why}): only a person can free a kind.",
   "trust.ask.pinned": "{type} asks you first, as you chose: {command} frees it.",
   "trust.state.ask_watched": {
-    "one": "asks you first: watched again after {n} more approval",
-    "other": "asks you first: watched again after {n} more approvals in a row"
+    "one": "asks you first · {n} more approval → watched",
+    "other": "asks you first · {n} more approvals in a row → watched"
   },
   "trust.state.then_free": {
-    "one": "(then free after {n} more action you do not undo)",
-    "other": "(then free after {n} more actions you do not undo)"
-  }
+    "one": "→ free after {n} more action you keep",
+    "other": "→ free after {n} more actions you keep"
+  },
+  "simple.ask.capped": "tenure — {summary}\n{type} is protected (Hermes itself, secrets, sensitive files or your own settings): tenure always asks.",
+  "simple.ask.prompt": "tenure — {summary}\n{why}\nDeny it if it's wrong: tenure will then watch this kind more closely.",
+  "simple.ask.prompt_session": "tenure — {summary}\n{why}\nAllow it for this conversation and tenure stops asking about this until it ends; deny it if it's wrong.",
+  "simple.ask.always_button": "Hermes' \"Always\" is ignored here: tenure decides each time.",
+  "simple.ask.suspended_from": "(Last outside content: {source}.)",
+  "simple.ask.other_stakes": "This {type} action is riskier than the ones it was freed for: it asks.",
+  "simple.ask.unsaved_files": "tenure can't save what {type} changes before it runs, so it can't undo it: it asks.",
+  "simple.ask.settings": "{type} always asks under your settings.",
+  "simple.settle.acted_fault": "tenure: {type} left a broken file ({reason}): counted as a mistake{what} · {command} {id}",
+  "simple.settle.check_failed": "tenure: {type}{what} left a broken file ({reason}): counted as a mistake.",
+  "simple.turn.lines": {
+    "one": "+{n} line",
+    "other": "+{n} lines"
+  },
+  "simple.turn.files": "files: {files}",
+  "simple.undo.title": {
+    "one": "Changes you can still undo ({n} h), newest first. Undoing one marks it as a mistake:",
+    "other": "Changes you can still undo ({n} h), newest first. Undoing one marks it as a mistake:"
+  },
+  "simple.undo.none": {
+    "one": "Nothing to undo from the last {n} hour.",
+    "other": "Nothing to undo from the last {n} hours."
+  },
+  "simple.undo.done": "Undone #{id}: files restored ({type}).",
+  "simple.undo.done_already_fault": "Undone #{id}: files restored ({type}). It already counted as a mistake.",
+  "simple.undo.done_unchanged": "Undone #{id}: files restored ({type}). The call had failed without changing anything: not counted as a mistake.",
+  "simple.undo.no_snapshot": "Undo #{id}: nothing was saved before this action, so nothing can be put back.",
+  "simple.undo.refused": "Undo #{id} refused: {reason}. Nothing was put back.",
+  "simple.undo.partial": {
+    "one": "Undo #{id}: {n} file could not be put back ({restored} were). Fix the cause (permissions, a locked file) and try again.",
+    "other": "Undo #{id}: {n} files could not be put back ({restored} were). Fix the cause (permissions, a locked file) and try again."
+  },
+  "simple.undo.gone": "Undo #{id}: the saved copy is gone, nothing was put back.",
+  "simple.undo.watched": "{type} is now watched; a second mistake and it asks first.",
+  "simple.undo.asks": "{type} now asks you first.",
+  "simple.undo.second": "A second mistake: {type} now asks you first.",
+  "simple.notice.excuse_hint": "Undid or refused a correct action? /tenure excuse {n} within {minutes} min and it won't count.",
+  "simple.excuse.done": "Mistake {n} taken back ({type}): it no longer counts. {type} now: {state}.",
+  "simple.excuse.nobody": "Not while nobody answers approvals ({why}): only a person can take back a mistake.",
+  "simple.excuse.limit": "Mistake {n} can't be taken back: its kind already had {limit} taken back in the last {days} days. It still counts.",
+  "simple.excuse.unknown": "No mistake {n} to take back from the last {minutes} minutes (already taken back, too old, or not one you caused): nothing changed.",
+  "simple.excuse.title": "Mistakes of the last {minutes} minutes you can take back, newest first:",
+  "simple.excuse.none": "No mistake to take back from the last {minutes} minutes.",
+  "simple.col.kind": "kind",
+  "simple.col.what": "what",
+  "home.footer": "Undo one: {prefix} undo N · What asks you, and why: {prefix} trust",
+  "home.why.noundo": "tenure can't undo it",
+  "home.why.held": "waits for {held}",
+  "home.why.doubted": "a check doubted it",
+  "kind.file_write": "file edits in the project",
+  "kind.file_write_outside": "file edits outside the project",
+  "kind.file_shell": "file changes made by commands",
+  "kind.file_shell_rm": "deleting files (rm)",
+  "kind.memory_write": "memory notes",
+  "kind.delegate_task": "work handed to a subagent",
+  "kind.shell_complex": "commands tenure can't read",
+  "kind.shell_stdin_code": "code piped into a program",
+  "kind.code_execute": "code run by execute_code",
+  "kind.shell": "{prog} commands",
+  "kind.shell_inline": "{prog} code run inline",
+  "kind.shell_new_dependency": "{prog}: new packages",
+  "kind.mcp": "{server}: {tool}",
+  "kind.fields": "{kind} touching {fields} fields",
+  "trust.state.watched_wait": "watched after a mistake: free within {hours} hours if you keep its listed actions",
+  "trust.state.noundo": "asks: tenure can't undo it",
+  "trust.state.held": "asks while {held} has a mistake to make up for",
+  "trust.state.doubted": "asks once: a check doubted its last action",
+  "trust.freed_asks": "{type} runs without asking again. To undo this: {command}. One more mistake and it asks you first.",
+  "trust.freed_noundo": "{type} now runs without asking, on your word. tenure can't undo it. To take this back: {command}. One mistake and it asks again.",
+  "trust.freed_unsaved": "When tenure can't tell which files it changes, it runs without an undo.",
+  "trust.released": "No longer waiting for it: {types}.",
+  "trust.held": "{type} waits while {held} has a mistake to make up for: {command} frees {held}, and {type} with it.",
+  "trust.doubted": "A check doubted the last {type} action: its next action asks you once, then it runs as before.",
+  "trust.always": "{type} already always asks: nothing to change.",
+  "trust.for": "(For {agent}.)",
+  "trust.ambiguous": "{kind} matches several kinds: {types}. Name one: {command} <kind>"
 }

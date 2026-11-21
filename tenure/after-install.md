@@ -2,15 +2,18 @@
 
 By **Otsoa Dubief** · https://github.com/otsoa-dubief/tenure
 
-Restart a running gateway: `hermes gateway restart`. Then work as usual.
+Your agent keeps working without asking. File edits and deletions are saved first: you can undo them for 24 hours.
+Other commands can't be undone.
 
-The agent acts freely, and what it changes can be undone for 24 hours. A mistake on a kind of action (an undo, a
-flag, a refusal, a failed check) makes that kind watched: each such action is listed at the end of the turn, with an
-undo. A second mistake and it asks you first. What leaves your machine always asks.
+- `/tenure`: what the agent did today, and what you can undo
+- `/tenure undo N`: put change N back (this tells tenure it was a mistake)
+- `/tenure trust`: what still asks you, and why; `/tenure trust KIND` stops it asking
 
-- `/tenure`: what the agent did lately, and what can still be undone
-- `/tenure undo N`: put action N back
-- `/tenure trust`: the kinds that are not free; `/tenure trust KIND` frees one now
+One mistake on a kind of action (you undo or refuse it), and that kind is watched: its actions are listed at the end
+of the turn, with an undo. A second mistake and it asks you first. Pushes, publishing, uploads and messages to others
+always ask. After the agent reads a web page or other outside content, its next command asks once.
 
-Study mode (the preregistered rule, spot checks, guarantee, signed passport): `/tenure mode study`. Everything else:
-`/tenure advanced`. In Hermes Desktop, turn the page on once: **Capabilities → Plugins → Tenure**.
+Restart a running gateway: `hermes gateway restart`. Hermes Desktop: turn the page on once in
+**Capabilities → Plugins → Tenure**.
+
+More commands: `/tenure advanced`. The research rule (spot checks, a signed record): `/tenure mode study`.

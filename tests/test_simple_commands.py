@@ -57,15 +57,16 @@ def test_home_lists_what_can_be_undone_newest_first(plugin):
     ctx.call("terminal", {"command": "rm notes.txt"})
     ctx.call("terminal", {"command": "echo token=ghp_abcdefghijklmnopqrstuvwxyz0123456789 > out.txt"})
     out = mod.cli.slash("")
-    assert out.startswith("tenure · what the agent did lately")
+    assert out.startswith("tenure · what the agent did today, and what you can undo")
+    assert out.splitlines()[2].split() == ["#", "kind", "what", "when"]
     rows = [ln for ln in out.splitlines() if ln.startswith("  ") and ln.strip()[:1].isdigit()]
     ids = [int(ln.split()[0]) for ln in rows]
     assert ids == sorted(ids, reverse=True) and len(ids) >= 2
     assert "src/a.py" in out and "rm notes.txt" in out
     assert "ghp_abcdef" not in out                                         # masked as in the end-of-turn line
     assert "Ran without asking today: " in out
-    assert out.splitlines()[-1] == "/tenure undo N · /tenure trust"
-    assert "watched" not in out.lower().split("today")[1] and "Asks you first" not in out   # nothing held back
+    assert out.splitlines()[-1] == "Undo one: /tenure undo N · What asks you, and why: /tenure trust"
+    assert "Watched" not in out                                            # nothing watched
 
 
 def test_home_shows_at_most_ten_and_says_how_many_more(plugin):
@@ -82,15 +83,17 @@ def test_home_names_the_kinds_watched_or_asking(plugin):
     mod, ctx = make(plugin)
     watched_and_asking(mod, ctx)
     out = mod.cli.slash("")
-    assert "Watched after a mistake (each action shown to you, with an undo): file:write." in out
-    assert "Asks you first: shell:npm." in out
-    assert "file:write" in out.split("Watched")[0] or "Nothing left to undo" in out
+    assert ("Watched after a mistake (each action listed at the end of the turn, with an undo): "
+            "file:write (file edits in the project).") in out
+    assert "Asks you first: shell:npm (npm commands)." in out
+    assert "file:write" in out.split("Watched")[0] or "Nothing to undo" in out
 
 
 def test_home_from_the_terminal_says_hermes_tenure(plugin):
     mod, ctx = make(plugin)
     out, code = run_line(mod, "")
-    assert code == 0 and out.splitlines()[-1] == "hermes tenure undo N · hermes tenure trust"
+    assert code == 0 and out.splitlines()[-1] == ("Undo one: hermes tenure undo N · What asks you, and why: "
+                                                  "hermes tenure trust")
 
 
 def test_home_in_study_mode_keeps_the_status(plugin):
@@ -119,9 +122,12 @@ def test_trust_lists_what_is_not_free_and_what_brings_it_back(plugin):
     ctx.call("terminal", {"command": "pip install requests"})
     out = mod.cli.slash("trust")
     lines = {ln.split()[0]: ln for ln in out.splitlines() if ln.startswith("  ")}
-    assert "watched after a mistake: free again after 4 more actions you do not undo" in lines["file:write"]
-    assert "asks you first: free again after 5 more approvals in a row" in lines["shell:npm"]   # medium
-    assert "always asks: it leaves your machine" in lines["shell:git:push"]
+    assert "file:write (file edits in the project)" in lines["file:write"]
+    assert "watched after a mistake: free after 4 more actions you keep" in lines["file:write"]
+    assert "asks you first · 5 more approvals in a row → free" in lines["shell:npm"]   # medium
+    assert "always asks: it reaches outside this machine" in lines["shell:git:push"]
+    assert out.splitlines()[0] == f"What still asks you, or is watched ({A}):"
+    assert out.splitlines()[1].split() == ["kind", "state"]
     assert "file:write" in out and "/tenure trust <kind>" in out and "<kind> ask" in out
     assert not any(k.startswith("file:") and k != "file:write" for k in lines)   # free kinds are not listed
 
@@ -130,7 +136,8 @@ def test_trust_kind_frees_it_now_and_a_new_mistake_watches_it_again(plugin):
     mod, ctx = make(plugin)
     watched_and_asking(mod, ctx)
     out = mod.cli.slash("trust shell:npm")
-    assert out == "shell:npm is free again, on your word. A new mistake makes it watched again."
+    assert out == ("shell:npm runs without asking again. To undo this: /tenure trust shell:npm ask. One more mistake "
+                   "and it asks you first.")                              # no middle tier: a mistake asks
     s = state(mod, "shell:npm")
     assert s.tier == mod.rule.T3 and mod.trusted(mod.settings(), s, 5, "medium") and s.faults == 1
     assert ctx.call("terminal", {"command": "npm test"}) == "ran"
@@ -154,7 +161,7 @@ def test_trust_kind_ask_pins_it_until_freed(plugin):
     s = state(mod, "file:write")
     assert s.pinned and s.tier == mod.rule.T1 and s.series == 0 and s.successes >= 6
     assert "asks you first, your choice" in mod.cli.slash("trust")
-    assert "Asks you first: file:write." in mod.cli.slash("")
+    assert "Asks you first: file:write (file edits in the project)." in mod.cli.slash("")
     assert "already asks you first" in mod.cli.slash("trust file:write ask")
     live_is_replay(mod)
     mod.cli.slash("trust file:write")
@@ -163,15 +170,15 @@ def test_trust_kind_ask_pins_it_until_freed(plugin):
     live_is_replay(mod)
 
 
-@pytest.mark.parametrize("command,why", [("git push origin main", "leaves your machine"),
-                                         ("pip install requests", "leaves your machine")])
+@pytest.mark.parametrize("command,why", [("git push origin main", "reaches outside this machine"),
+                                         ("pip install requests", "reaches outside this machine")])
 def test_trust_refuses_what_leaves_the_machine(plugin, command, why):
     mod, ctx = make(plugin)
     ctx.call("terminal", {"command": command})
     key = next(s.key for _, s in mod.store_().states(A))
     before = len(mod.store_().ledger())
     out = mod.cli.slash(f"trust {key}")
-    assert why in out and "cannot be freed by hand" in out
+    assert why in out and "can't be freed by hand" in out
     assert len(mod.store_().ledger()) == before
 
 
@@ -179,11 +186,11 @@ def test_trust_refuses_high_stakes_and_capped_kinds(plugin):
     mod, ctx = make(plugin, {"types": {"file:write": "high"}})
     ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})
     out = mod.cli.slash("trust file:write")
-    assert "high stakes" in out and "cannot be freed by hand" in out
+    assert "high-risk" in out and "can't be freed by hand" in out
     mod, ctx = make(plugin, {"risks": {"low": "cap", "medium": 0.2}})
     ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})
     out = mod.cli.slash("trust file:write")
-    assert "capped by your settings" in out and "/tenure setup" in out
+    assert "always asks under your settings" in out and "/tenure setup" in out
     assert not ledger(mod, "trust")
 
 
@@ -214,7 +221,7 @@ def test_trust_refuses_a_script(plugin, monkeypatch):
     assert code != 0 and "a person's word" in out and "/tenure trust shell:npm" in out
     monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
     out, code = run_line(mod, "trust shell:npm")
-    assert code == 0 and "free again" in out
+    assert code == 0 and "runs without asking again" in out
 
 
 def test_the_list_is_read_only_and_open_to_scripts(plugin, monkeypatch):
@@ -398,7 +405,7 @@ def trust_line(mod, key):
 
 def numbers(line):
     import re
-    return [int(x) for x in re.findall(r"after (\d+) more", line)]
+    return [int(x) for x in re.findall(r"(\d+) more", line)]
 
 
 def is_free(mod, key):
@@ -412,7 +419,7 @@ def test_trust_ask_line_of_a_reversible_kind_gives_the_real_next_steps(plugin):
         ctx.call("write_file", {"path": "src/a.py", "content": f"x = {i}\n"})
         mod.cli.slash(f"undo {last_undo(mod)}")
     line = trust_line(mod, "file:write")
-    assert "asks you first: watched again after" in line and "(then free after" in line
+    assert "asks you first · " in line and "→ watched → free after" in line
     n_approvals, m_unseen = numbers(line)
     assert n_approvals == mod._to_t2(state(mod, "file:write")) and n_approvals + m_unseen == 52
     for i in range(n_approvals - 1):
@@ -421,7 +428,7 @@ def test_trust_ask_line_of_a_reversible_kind_gives_the_real_next_steps(plugin):
     assert ctx.call("write_file", {"path": "src/b.py", "content": "x = 1\n"}) == "approved"
     s = state(mod, "file:write")
     assert mod.rule.decide(s, 52, 0.1, suspended=False, rng=None, mode="simple") == mod.rule.NOTIFY
-    assert "watched after a mistake: free again after %d more actions" % m_unseen in trust_line(mod, "file:write")
+    assert "watched after a mistake: free after %d more actions" % m_unseen in trust_line(mod, "file:write")
     before = len(ctx.prompts)
     for i in range(m_unseen - 1):
         assert ctx.call("write_file", {"path": f"src/w{i}.py", "content": "x = 1\n"}) == "ran"
@@ -452,7 +459,7 @@ def test_trust_ask_line_of_an_irreversible_kind_counts_approvals_to_free(plugin)
     ctx.call("terminal", {"command": "npm test"})
     mod.cli.slash("flag shell:npm")                                               # no undo: it asks, never watched
     line = trust_line(mod, "shell:npm")
-    assert "asks you first: free again after" in line and "watched" not in line
+    assert "asks you first · " in line and "→ free" in line and "watched" not in line
     (n_approvals,) = numbers(line)
     assert n_approvals == 5                                                       # medium stakes, FAST
     for _ in range(n_approvals - 1):

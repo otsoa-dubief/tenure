@@ -43,6 +43,7 @@ import re
 import shlex
 import sys
 import time
+import unicodedata
 
 from . import community, fields, i18n, params, passport, personal, rule, store, undo
 from .i18n import ljust, tr, width
@@ -640,15 +641,17 @@ def excuse_cmd(seq: int | None) -> tuple[str, int]:
     """``excuse`` alone: the faults of the last minutes that can still be excused; with a number, excuse that one."""
     core = _core()
     minutes = store.EXCUSE_WINDOW // 60
+    plain = core.simple()
     if seq is None:
         rows = core.excusable(core.store_())
         if not rows:
-            return tr("cli.excuse.none", minutes=minutes), 0
+            return tr("simple.excuse.none" if plain else "cli.excuse.none", minutes=minutes), 0
         cause = {"refusal": tr("cli.excuse.source.refusal"), "undo": tr("cli.excuse.source.undo")}
         cells = [[str(r["seq"]), time.strftime("%H:%M", time.localtime(r["at"])), r["type"], r["agent"],
                   cause.get(r["source"], r["source"])] for r in rows]
-        lines = [tr("cli.excuse.title", minutes=minutes)]
-        head = [tr("cli.col.number"), tr("cli.col.time"), tr("cli.col.type"), tr("cli.col.agent"), tr("cli.col.cause")]
+        lines = [tr("simple.excuse.title" if plain else "cli.excuse.title", minutes=minutes)]
+        head = [tr("cli.col.number"), tr("cli.col.time"), tr("simple.col.kind" if plain else "cli.col.type"),
+                tr("cli.col.agent"), tr("cli.col.cause")]
         lines += ["  " + ln for ln in _table(head, cells)]
         return "\n".join(lines + ["", tr("cli.excuse.footer")]), 0
     with core.txn() as st:
@@ -663,10 +666,11 @@ def undo_list() -> str:
     core = _core()
     st = core.store_()
     now = time.time()
+    plain = core.simple()                             # simple mode: changes you can undo, a mistake when undone
     rows = st.db.execute("SELECT id, agent, type, at, snap_id FROM undo WHERE undone = 0 AND snap_id IS NOT NULL "
                          "AND at > ? ORDER BY id DESC LIMIT 20", (now - core.UNDO_WINDOW,)).fetchall()
     if not rows:
-        return tr("cli.undo.none", n=core.UNDO_WINDOW // 3600)
+        return tr("simple.undo.none" if plain else "cli.undo.none", n=core.UNDO_WINDOW // 3600)
     total = st.db.execute("SELECT COUNT(*) FROM undo WHERE undone = 0 AND snap_id IS NOT NULL AND at > ?",
                           (now - core.UNDO_WINDOW,)).fetchone()[0]
     cells = []
@@ -674,9 +678,11 @@ def undo_list() -> str:
         d = undo.describe(snap, core.data_dir())
         what = ((tr("cli.undo.more_files", file=d["file"], n=d["files"] - 1) if d["files"] > 1 else d["file"])
                 if d else tr("cli.undo.no_snapshot"))
-        cells.append([str(uid), key, what, _ago(now - at), agent])
-    lines = [tr("cli.undo.title", n=core.UNDO_WINDOW // 3600)]
-    lines += ["  " + ln for ln in _table(_cols("number", "type", "restores", "when", "agent"), cells)]
+        cells.append([str(uid), key, _plain(what), _ago(now - at), agent])
+    lines = [tr("simple.undo.title" if plain else "cli.undo.title", n=core.UNDO_WINDOW // 3600)]
+    head = ([tr("cli.col.number"), tr("simple.col.kind"), tr("simple.col.what"), tr("cli.col.when"),
+             tr("cli.col.agent")] if plain else _cols("number", "type", "restores", "when", "agent"))
+    lines += ["  " + ln for ln in _table(head, cells)]
     footer = (tr("cli.undo.footer_more", shown=len(rows), total=total, command="hermes tenure undo")
               if total > len(rows) else tr("cli.undo.footer", command="hermes tenure undo"))
     return "\n".join(lines + ["", footer])
@@ -694,11 +700,60 @@ def undo_action(entry_id: int) -> str:
 
 # ------------------------------------------------------------------------------------------------ home, trust
 HOME_UNDO = 10                                   # undoable actions /tenure shows, newest first
+_SAID = {"file:write": "kind.file_write", "file:write-outside": "kind.file_write_outside",
+         "file:shell": "kind.file_shell", "file:shell:rm": "kind.file_shell_rm", "memory:write": "kind.memory_write",
+         "delegate:task": "kind.delegate_task", "shell:complex": "kind.shell_complex",
+         "shell:stdin-code": "kind.shell_stdin_code", "code:execute": "kind.code_execute"}   # kinds with a label of their own
+
+
+def _plain(text: str) -> str:
+    """Control and format characters (a newline, a bidi override) as U+FFFD, as the end-of-turn line shows them."""
+    return "".join("\ufffd" if unicodedata.category(c) in ("Cc", "Cf") else c for c in text)
+
+
+def kind_label(key: str) -> str:
+    """A kind of action in plain words, shown next to its key in simple mode: ``file:write`` is "file edits in the
+    project", ``shell:docker`` "docker commands", ``shell:git:push`` "git push", ``mcp:github:create_issue``
+    "Github: create_issue"; a category kind adds "touching identity/access fields". An unknown key is its own
+    label."""
+    split = fields._split(key)
+    base = split[0] if split else key
+    parts = base.split(":")
+    label = None
+    if base in _SAID:
+        label = tr(_SAID[base])
+    elif parts[0] == "shell" and len(parts) >= 2 and parts[1]:
+        prog = parts[1]
+        if len(parts) == 2:
+            label = tr("kind.shell", prog=prog)
+        elif parts[-1] == "inline":
+            label = tr("kind.shell_inline", prog=prog)
+        elif parts[-1] == "new-dependency":
+            label = tr("kind.shell_new_dependency", prog=prog)
+        else:
+            label = " ".join(parts[1:])
+    elif parts[0] == "mcp" and len(parts) >= 3 and parts[1]:
+        label = tr("kind.mcp", server=parts[1][:1].upper() + parts[1][1:], tool=":".join(parts[2:]))
+    if label is None:
+        return key
+    if split:
+        label = tr("kind.fields", kind=label, fields="/".join(split[1]))
+    return label
+
+
+def _kind_named(key: str, reason: str = "") -> str:
+    """``file:write (file edits in the project)``, with a short reason after the label when given."""
+    label = kind_label(key)
+    inner = label if label != key else ""
+    if reason:
+        inner = f"{inner}: {reason}" if inner else reason
+    return f"{key} ({inner})" if inner else key
 
 
 def _undo_label(core, st, rows_by_undo: dict, uid: int, snap: str | None, key: str) -> str:
     """What an undoable action did, as the end-of-turn line shows it: the command's first line, secrets masked
-    (remembered in memory by this process only), else the files its undo restores, else nothing."""
+    (remembered in memory by this process only), else the files its undo restores, else nothing. Control and format
+    characters become U+FFFD, as in that line."""
     r = rows_by_undo.get(uid)
     what = core.summary_of(st.path, r["n"], r["at"]) if r else ""
     if what.startswith(key + ": "):
@@ -708,42 +763,92 @@ def _undo_label(core, st, rows_by_undo: dict, uid: int, snap: str | None, key: s
         d = undo.describe(snap, core.data_dir())
         if d:
             what = tr("cli.undo.more_files", file=d["file"], n=d["files"] - 1) if d["files"] > 1 else d["file"]
+    what = _plain(what)
     cap = core.LABEL_CAP
     return what if len(what) <= cap else what[:cap - 1] + "\u2026"
 
 
-def _kind_state(core, cfg: dict, s: rule.TypeState) -> tuple[str, int]:
-    """Where a kind stands, for /tenure and /tenure trust: (free | pinned | out | high | capped | watched | ask,
-    how many more approvals or actions left undone bring it back to free). Study mode: free, capped, watched or ask,
-    with the successes still needed toward acting alone."""
+def _fixed(cfg: dict, s: rule.TypeState) -> str | None:
+    """Simple mode: why a kind always asks whatever its record, or None: it leaves the machine (out), high stakes
+    (high), or the settings cap its stakes (capped). Read from the kind alone, never from its state."""
+    if not params.simple_covers(s.key):
+        return "out"
+    if s.stakes == "high":
+        return "high"
+    if params.required_n(cfg["risks"], s.stakes) is None:
+        return "capped"
+    return None
+
+
+def _pending(core, st, agent: str, key: str) -> int:
+    """Watched actions of a kind still inside their undo window, each counting toward its series once it closes."""
+    if st is None:
+        return 0
+    return sum(1 for r in st.open_credits(time.time() - core.UNDO_WINDOW) if r["agent"] == agent and r["type"] == key)
+
+
+def _kind_info(core, cfg: dict, s: rule.TypeState, st=None, agent: str | None = None) -> dict:
+    """Where a kind stands, for /tenure and /tenure trust. ``state``: free, pinned (asks, the person's choice), out,
+    high, capped (always ask), noundo (free, but asks because tenure cannot undo it), held (its parent's mistake holds
+    it), doubted (a verifier's doubt: its next action asks), watched or ask; ``base``: the same without held and
+    doubted; ``left``: actions kept, or approvals, still needed to be free (watched: minus the watched actions already
+    waiting out their undo window). Study mode: free, capped, watched or ask, with the successes still needed toward
+    acting alone. ``st`` and ``agent`` add what the record alone does not say (simple mode)."""
     n = params.required_n(cfg["risks"], s.stakes)
+    info = {"n": n, "left": 0, "held": None, "doubted": False}
     if not core.simple(cfg):
         eff = effective_tier(s, n)
         if n is None:
-            return "capped", 0
-        if eff == rule.T3 or core.trusted(cfg, s, n, s.stakes):
-            return "free", 0
-        return ("watched" if eff == rule.T2 else "ask"), max(rule.required(s, n) - s.series, 1)
-    if core.trusted(cfg, s, n, s.stakes):
-        return "free", 0
+            state = "capped"
+        elif eff == rule.T3 or core.trusted(cfg, s, n, s.stakes):
+            state = "free"
+        else:
+            state = "watched" if eff == rule.T2 else "ask"
+            info["left"] = max(rule.required(s, n) - s.series, 1)
+        return {**info, "state": state, "base": state}
+    fixed = _fixed(cfg, s)
     if s.pinned:
-        return "pinned", 0
-    if not params.simple_covers(s.key):
-        return "out", 0
-    if s.stakes == "high":
-        return "high", 0
-    if n is None:
-        return "capped", 0
-    left = max(n - s.series, 1)
-    if rule.decide(s, n, cfg["spot"], suspended=False, rng=_core()._NoSpot, mode=rule.SIMPLE) == rule.NOTIFY:
-        return "watched", left
-    return "ask", left
+        base = "pinned"
+    elif fixed:
+        base = fixed
+    elif core.trusted(cfg, s, n, s.stakes):
+        base = ("noundo" if st is not None and not s.owner_freed and not rule.trust_covers(s.key)
+                and st.get_meta(core.NOUNDO + s.key) else "free")
+    elif rule.decide(s, n, cfg["spot"], suspended=False, rng=core._NoSpot, mode=rule.SIMPLE) == rule.NOTIFY:
+        base = "watched"
+        info["left"] = n - s.series - _pending(core, st, agent, s.key)
+    else:
+        base = "ask"
+        info["left"] = max(n - s.series, 1)
+    state = base
+    if st is not None and agent and base in ("free", "noundo", "watched", "ask"):
+        info["held"] = core._held_by(st, agent, s.key)
+        info["doubted"] = st.doubted(agent, s.key)
+        state = "held" if info["held"] else "doubted" if info["doubted"] else base
+    return {**info, "state": state, "base": base}
+
+
+def _kind_state(core, cfg: dict, s: rule.TypeState, st=None, agent: str | None = None) -> tuple[str, int]:
+    """(state, left) of ``_kind_info``."""
+    info = _kind_info(core, cfg, s, st, agent)
+    return info["state"], info["left"]
+
+
+def _short_why(info: dict) -> str:
+    """Why a kind the record calls free asks anyway, in a few words for /tenure."""
+    if info["state"] == "noundo":
+        return tr("home.why.noundo")
+    if info["state"] == "held":
+        return tr("home.why.held", held=info["held"])
+    if info["state"] == "doubted":
+        return tr("home.why.doubted")
+    return ""
 
 
 def home_text(prefix: str = "/tenure") -> str:
     """``/tenure`` alone, simple mode: what the agent did lately in plain words. The actions that can still be undone
-    (newest first, at most ten), how many ran without asking today, which kinds are watched or ask first, and the
-    two commands. Study mode keeps ``status``. Reads only."""
+    (newest first, at most ten), how many ran without asking today (local time), which kinds are watched or ask
+    first and why, and the two commands. Study mode keeps ``status``. Reads only."""
     core = _core()
     cfg = core.settings()
     if not core.simple(cfg):
@@ -767,96 +872,162 @@ def home_text(prefix: str = "/tenure") -> str:
         cells = [[str(uid), key, _undo_label(core, st, by_undo, uid, snap, key), _ago(now - at)]
                  for uid, key, at, snap in rows]
         lines.append(tr("home.undo_title", n=hours))
-        lines += ["  " + ln for ln in _table([tr("cli.col.number"), tr("cli.col.type"), tr("cli.col.target"),
+        lines += ["  " + ln for ln in _table([tr("cli.col.number"), tr("simple.col.kind"), tr("simple.col.what"),
                                                tr("cli.col.when")], cells)]
         if total > len(rows):
             lines.append("  " + tr("home.undo_more", n=total - len(rows), command=f"{prefix} undo"))
     else:
         lines.append(tr("home.undo_none", n=hours))
-    lines.append(tr("home.today", n=st.totals(None, now)["alone"]))
+    lines.append(tr("home.today", n=st.totals(None, now)["alone"]))       # days are local (store.bump)
     watched, asks = [], []
-    for _, s in st.states(_agent(core, None)):
-        state, _left = _kind_state(core, cfg, s)
-        if state == "watched":
-            watched.append(s.key)
-        elif state in ("ask", "pinned"):
-            asks.append(s.key)
+    agent = _agent(core, None)
+    for _, s in st.states(agent):
+        info = _kind_info(core, cfg, s, st, agent)
+        if info["state"] == "watched":
+            watched.append(_kind_named(s.key))
+        elif info["state"] in ("ask", "pinned"):
+            asks.append(_kind_named(s.key))
+        elif info["state"] in ("noundo", "held", "doubted"):
+            asks.append(_kind_named(s.key, _short_why(info)))
     if watched:
         lines.append(tr("home.watched", types=_join(watched)))
     if asks:
         lines.append(tr("home.asks", types=_join(asks)))
-    lines += ["", f"{prefix} undo N \u00b7 {prefix} trust"]
+    lines += ["", tr("home.footer", prefix=prefix)]
     return "\n".join(lines)
 
 
-def _state_text(core, cfg: dict, s: rule.TypeState, prefix: str) -> str:
-    state, left = _kind_state(core, cfg, s)
+def _state_text(core, cfg: dict, s: rule.TypeState, prefix: str, info: dict | None = None) -> str:
+    info = info or _kind_info(core, cfg, s)
+    state, left = info["state"], info["left"]
     if state == "pinned":
         return tr("trust.state.pinned", command=f"{prefix} trust {s.key}")
-    if state in ("out", "high", "capped"):
+    if state in ("out", "high", "capped", "noundo", "doubted"):
         return tr(f"trust.state.{state}")
+    if state == "held":
+        return tr("trust.state.held", held=info["held"])
     if not core.simple(cfg):
         return tr("trust.state.study", tier=tier_name(effective_tier(s, params.required_n(cfg["risks"], s.stakes))),
                   n=left)
-    n = params.required_n(cfg["risks"], s.stakes)
+    n = info["n"]
     if state == "ask" and rule._middle(s) and s.series + core._to_t2(s) < n:
         # a reversible kind: approvals first bring it back to watched (the Wald score, as _simple_success moves it,
         # the series counting each one), then actions left undone through their window finish the series
         k = core._to_t2(s)
         return tr("trust.state.ask_watched", n=k) + " " + tr("trust.state.then_free", n=n - s.series - k)
+    if state == "watched" and left <= 0:                # enough watched actions already wait out their window
+        return tr("trust.state.watched_wait", hours=core.UNDO_WINDOW // 3600)
     return tr(f"trust.state.{state}", n=left)
 
 
-def trust_list(prefix: str = "/tenure", model: str | None = None) -> str:
-    """``/tenure trust`` alone: the kinds of action that are not free, in plain words, with what brings each back.
-    Reads only."""
+def _trust_agent(core, st, model: str | None, session: str | None) -> str:
+    """The agent ``trust`` acts on: the one ``--model`` names, else the conversation's own (the slash command knows
+    its session), else the profile's last active agent."""
+    if model:
+        return _targets(core, st, model=model)[0]
+    if session:
+        return core.agent_of(session)
+    return _targets(core, st)[0]
+
+
+def _resolve_kind(core, cfg: dict, st, agent: str, kind: str, known: dict, prefix: str) -> str:
+    """The recorded kind ``trust`` names: the key itself, else the one kind whose key ends with it (``git:push``,
+    ``docker``, ``rm``), else the one ``shell:`` kind of that program (``git``). Several: the candidates are listed,
+    nothing is written. None: the family it would be (``shell:docker``) has no record."""
+    if kind in known:
+        return kind
+    cands = sorted(k for k in known if k.endswith(":" + kind))
+    if not cands and ":" not in kind:
+        cands = sorted(k for k in known if k.split(":")[:2] == ["shell", kind])
+    if len(cands) == 1:
+        return cands[0]
+    if cands:
+        raise CliError(tr("trust.ambiguous", kind=kind, types=_join(cands), command=f"{prefix} trust"))
+    family = kind if ":" in kind else f"shell:{kind}"
+    others = [k for k, x in known.items() if _kind_state(core, cfg, x, st, agent)[0] != "free"]
+    raise CliError(tr("trust.unknown", type=family, agent=agent, types=_join(sorted(others)) or "-"))
+
+
+def trust_list(prefix: str = "/tenure", model: str | None = None, session: str | None = None) -> str:
+    """``/tenure trust`` alone: the kinds of action that ask, or are watched, in plain words, with why and what brings
+    each back. Reads only."""
     core = _core()
     cfg = core.settings()
     st = core.store_()
-    agent = _targets(core, st, model=model)[0]
-    cells = [[s.key, _state_text(core, cfg, s, prefix)] for _, s in st.states(agent)
-             if _kind_state(core, cfg, s)[0] != "free"]
+    plain = core.simple(cfg)
+    agent = _trust_agent(core, st, model, session)
+    cells = []
+    for _, s in st.states(agent):
+        info = _kind_info(core, cfg, s, st if plain else None, agent)
+        if info["state"] != "free":
+            cells.append([_kind_named(s.key) if plain else s.key, _state_text(core, cfg, s, prefix, info)])
     if not cells:
         return tr("trust.none", agent=agent)
-    lines = [tr("trust.title", agent=agent)] + ["  " + ln for ln in _table([tr("cli.col.type"),
-                                                                             tr("simple.col.state")], cells)]
-    if core.simple(cfg):
+    head = [tr("simple.col.kind") if plain else tr("cli.col.type"), tr("simple.col.state")]
+    lines = [tr("trust.title", agent=agent)] + ["  " + ln for ln in _table(head, cells)]
+    if plain:
         lines += ["", tr("trust.footer", command=f"{prefix} trust")]
     else:
         lines += ["", tr("trust.study", command=f"{prefix} mode simple")]
     return "\n".join(lines)
 
 
-def trust_set(kind: str, to: str, prefix: str = "/tenure", model: str | None = None) -> str:
+def _for_agent(st, agent: str, text: str) -> str:
+    """Name the agent when the profile has several: the word was given for one of them."""
+    return text + " " + tr("trust.for", agent=agent) if len(st.agents()) > 1 else text
+
+
+def trust_set(kind: str, to: str, prefix: str = "/tenure", model: str | None = None,
+              session: str | None = None) -> str:
     """``/tenure trust KIND`` (free it now) or ``/tenure trust KIND ask`` (it asks first until freed again): a
-    person's word, simple mode only. Refused for a kind simple mode never frees (what leaves the machine, high
-    stakes, a capped kind). Raises CliError with the owner's message, nothing written, when refused."""
+    person's word, simple mode only. A kind that asks only because tenure cannot undo it is freed too: it then runs
+    without an undo. Refused for a kind simple mode never frees (what leaves the machine, high stakes, a capped
+    kind), whatever its state; asking those to ask writes nothing (they always do). A kind held by its parent, or
+    doubted by a verifier, is explained. Raises CliError with the owner's message, nothing written, when refused."""
     core = _core()
     cfg = core.settings()
     if not core.simple(cfg):
         raise CliError(tr("trust.study", command=f"{prefix} mode simple"))
     with core.txn() as st:
-        agent = _targets(core, st, model=model)[0]
+        agent = _trust_agent(core, st, model, session)
         known = {s.key: s for _, s in st.states(agent)}
-        if kind not in known:
-            others = [k for k, x in known.items() if _kind_state(core, cfg, x)[0] != "free"]
-            raise CliError(tr("trust.unknown", type=kind, agent=agent, types=_join(sorted(others)) or "-"))
+        kind = _resolve_kind(core, cfg, st, agent, kind, known, prefix)
         s = known[kind]
-        state, _left = _kind_state(core, cfg, s)
-        if to == rule.FREE:
-            if state in ("out", "high", "capped"):
-                raise CliError(tr(f"trust.refused.{state}", type=kind, command=f"{prefix} setup"))
-            if state == "free":
-                return tr("trust.already_free", type=kind)
-        elif state == "pinned":
-            return tr("trust.already_pinned", type=kind, command=f"{prefix} trust {kind}")
+        fixed = _fixed(cfg, s)
+        if fixed:
+            if to == rule.FREE:
+                raise CliError(tr(f"trust.refused.{fixed}", type=kind, command=f"{prefix} setup"))
+            return tr("trust.always", type=kind)
+        info = _kind_info(core, cfg, s, st, agent)
+        held, doubted = info["held"], info["doubted"]
+        notes = (([tr("trust.held", type=kind, held=held, command=f"{prefix} trust {held}")] if held else [])
+                 + ([tr("trust.doubted", type=kind)] if doubted else []))
+        if to == rule.PIN:
+            if info["base"] == "pinned":
+                return tr("trust.already_pinned", type=kind, command=f"{prefix} trust {kind}")
+            try:
+                core.owner_trust(st, cfg, agent, s, rule.PIN)
+            except ValueError as e:
+                raise CliError(str(e))
+            return _for_agent(st, agent, tr("trust.pinned", type=kind, command=f"{prefix} trust {kind}"))
+        if info["base"] == "free":
+            return " ".join(notes) if notes else tr("trust.already_free", type=kind)
+        children = [k for k in known if k != kind and fields.parent_of(k) == kind and core._held_by(st, agent, k)]
         try:
-            core.owner_trust(st, cfg, agent, s, to)
+            core.owner_trust(st, cfg, agent, s, rule.FREE)
         except ValueError as e:
             raise CliError(str(e))
-    if to == rule.FREE:
-        return tr("trust.freed", type=kind)
-    return tr("trust.pinned", type=kind, command=f"{prefix} trust {kind}")
+        released = [k for k in children if not core._held_by(st, agent, k)]
+        back = f"{prefix} trust {kind} ask"
+        if info["base"] == "noundo":
+            words = [tr("trust.freed_noundo", type=kind, command=back)]
+        else:
+            words = [tr("trust.freed" if rule._middle(s) else "trust.freed_asks", type=kind, command=back)]
+            if not rule.trust_covers(kind):
+                words.append(tr("trust.freed_unsaved"))
+        if released:
+            words.append(tr("trust.released", types=_join(released)))
+        return _for_agent(st, agent, " ".join(words + notes))
 
 
 def help_text(prefix: str = "/tenure") -> str:
@@ -1173,6 +1344,30 @@ def _add_subcommands(subparser) -> None:
     p.add_argument("--out", default="", help="Output file (default: tenure-record-<date>.json here)")
 
 
+def _win_console() -> bool:
+    """Windows: stdin is a real console. ``isatty()`` is also true for the NUL device (``< NUL``), a character device
+    like a console; only a console answers GetConsoleMode."""
+    try:
+        import ctypes
+        import msvcrt
+        handle = msvcrt.get_osfhandle(sys.stdin.fileno())
+        mode = ctypes.c_uint32()
+        return bool(ctypes.windll.kernel32.GetConsoleMode(ctypes.c_void_p(handle), ctypes.byref(mode)))
+    except Exception:
+        return False
+
+
+def interactive() -> bool:
+    """A person at a real terminal: stdin is a tty, and on Windows a console (``_win_console``). The agent's own
+    processes are refused before this (``agent_process``), whatever their terminal."""
+    try:
+        if not sys.stdin.isatty():
+            return False
+    except Exception:
+        return False
+    return _win_console() if sys.platform == "win32" else True
+
+
 def _usage() -> str:
     """A command line that does not parse: every command, the hidden ones included."""
     return advanced_text("hermes tenure")
@@ -1193,17 +1388,18 @@ def execute(ns) -> tuple[str, int]:
             if not g("kind"):
                 if g("level"):
                     return help_text(prefix), 1
-                return trust_list(prefix, model=g("model")), 0
-            if not g("tenure_slash") and os.environ.get("TENURE_AGENT_CHILD"):
-                raise CliError(tr("ask.person_only"))        # run by one of the agent's own tools: never
-            if not g("tenure_slash") and not sys.stdin.isatty():
+                return trust_list(prefix, model=g("model"), session=g("tenure_sid")), 0
+            if _core().agent_process():
+                raise CliError(tr("ask.person_only"))        # run by the agent's own tools or code: never, slash or not
+            if not g("tenure_slash") and not interactive():
                 words = " ".join(x for x in (g("kind"), g("level")) if x)
                 raise CliError(tr("trust.terminal", slash=f"/tenure trust {words}",
                                   cli=f"hermes tenure trust {words}"))       # a script or the agent's own terminal
             why = _core().nobody_answers()
             if why:
                 raise CliError(tr("trust.nobody", why=why))
-            return trust_set(g("kind"), rule.PIN if g("level") else rule.FREE, prefix, model=g("model")), 0
+            return trust_set(g("kind"), rule.PIN if g("level") else rule.FREE, prefix, model=g("model"),
+                             session=g("tenure_sid")), 0
         if cmd == "status":
             return status_text(profile=g("profile"), model=g("model"), every=bool(g("all"))), 0
         if cmd == "card":
@@ -1216,10 +1412,10 @@ def execute(ns) -> tuple[str, int]:
             return models_text(g("type")), 0
         if cmd == "week":
             return week_text(g("model")), 0
-        if cmd in ("ok", "excuse") and not g("tenure_slash") and os.environ.get("TENURE_AGENT_CHILD"):
-            raise CliError(tr("ask.person_only"))            # run by one of the agent's own tools: never
+        if cmd in ("ok", "excuse") and _core().agent_process():
+            raise CliError(tr("ask.person_only"))            # run by the agent's own tools or code: never, slash or not
         if cmd == "ok":
-            if not g("tenure_slash") and not sys.stdin.isatty():
+            if not g("tenure_slash") and not interactive():
                 raise CliError(tr("cli.ok.terminal"))         # a script or the agent's own terminal: never
             core = _core()
             if core.simple():                                 # harmless, and not needed in simple mode
@@ -1232,7 +1428,7 @@ def execute(ns) -> tuple[str, int]:
                 except ValueError as e:
                     return str(e), 1
         if cmd == "excuse":
-            if g("id") is not None and not g("tenure_slash") and not sys.stdin.isatty():
+            if g("id") is not None and not g("tenure_slash") and not interactive():
                 raise CliError(tr("cli.excuse.terminal"))    # a script or the agent's own terminal: never
             return excuse_cmd(g("id"))
         if cmd == "undo":
@@ -1303,8 +1499,9 @@ def slash(raw_args="", **kwargs):
             return (f"tenure: {e}\n" if str(e) else "") + help_text("/tenure")
         # `flag` alone lists the current session (none: the profile); Hermes hands the session id in
         ns.tenure_session = _core().anon(kwargs.get("session_id") or kwargs.get("session_key")) or None
+        ns.tenure_sid = str(kwargs.get("session_id") or "") or None     # trust acts on this conversation's agent
         ns.tenure_command_name = "/tenure flag"
-        ns.tenure_slash = True                             # typed by a person in the chat
+        ns.tenure_slash = True                             # typed in the chat (the agent's own process still refused)
         return execute(ns)[0]
     except Exception as e:
         return f"tenure: {type(e).__name__}: {e}"

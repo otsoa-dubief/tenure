@@ -796,6 +796,27 @@ def nobody_answers(session_id: str = "") -> str | None:
     return None
 
 
+AGENT_CHILD = "TENURE_AGENT_CHILD"     # set by Hermes in every tool subprocess of a session (register_session_env)
+# Hermes starts execute_code's Python with a scrubbed environment (tools/code_execution_env.py, _build_child_env):
+# the marker above does not reach it, but its tool RPC endpoint and token always do, local kernel or remote sandbox.
+EXEC_CODE_ENV = ("HERMES_RPC_TOKEN", "HERMES_RPC_SOCKET", "HERMES_RPC_DIR", "HERMES_KERNEL_SENTINEL")
+
+
+def agent_process() -> str | None:
+    """Why this process is one of the agent's own, or None: a child of Hermes' tools in a session (``AGENT_CHILD``,
+    which tenure registers for every terminal command, ``execute_code``'s ``terminal()`` included), or the Python of
+    ``execute_code`` itself (``EXEC_CODE_ENV``), where code may import tenure. A person's word (trust, ok, excuse) is
+    never taken from there, even through the slash command's entry point. Defence in depth: code that deletes these
+    variables in its own process first can still write the store directly; the approval of a command that names
+    Hermes (capped) and of code naming tenure's data (capped) remain the walls."""
+    if os.environ.get(AGENT_CHILD):
+        return AGENT_CHILD
+    for name in EXEC_CODE_ENV:
+        if os.environ.get(name):
+            return name
+    return None
+
+
 def _profile_name() -> str:
     """The Hermes profile this process serves: ``profiles/<name>`` in its home, else ``default``."""
     try:
@@ -881,9 +902,21 @@ LABEL_CAP = 60                  # characters of a command shown in the end-of-tu
 
 class Watched:
     """Simple mode: one watched action of this turn (acted, then shown, with an undo), kept in memory until the turn
-    ends (``post_llm_call``), when one line lists them all."""
-    def __init__(self, session: str, undo_id: int, label: str):
+    ends (``post_llm_call``), when one line lists them all. ``more``: the lines of its command past the first one;
+    ``cut``: the first line was cut; ``files``: the files it changed, as shown (both say what a harmless first line
+    could hide)."""
+    def __init__(self, session: str, undo_id: int, label: str, more: int = 0, cut: bool = False, files: str = ""):
         self.session, self.undo_id, self.label = session, undo_id, label
+        self.more, self.cut, self.files = more, cut, files
+
+    def text(self) -> str:
+        """``#14 npm run build``, then ``(+2 lines, files: a.py, b.py)`` when the command has more lines or was cut."""
+        parts = []
+        if self.more:
+            parts.append(tr("simple.turn.lines", n=self.more))
+        if (self.more or self.cut) and self.files:
+            parts.append(tr("simple.turn.files", files=self.files))
+        return f"#{self.undo_id} {self.label}" + (f" ({', '.join(parts)})" if parts else "")
 
 
 def _label(tool: str, args: dict, vocabulary=None) -> str:
@@ -898,8 +931,17 @@ def _label(tool: str, args: dict, vocabulary=None) -> str:
     return text if len(text) <= LABEL_CAP else text[:LABEL_CAP - 1] + "\u2026"
 
 
+def _more_lines(tool: str, args: dict) -> tuple[int, bool]:
+    """A terminal command in the end-of-turn line: (its non-empty lines past the first, whether the first is cut at
+    ``LABEL_CAP``)."""
+    if tool != "terminal" or not isinstance(args.get("command"), str):
+        return 0, False
+    lines = [x for x in args["command"].strip().splitlines() if x.strip()]
+    return max(len(lines) - 1, 0), bool(lines) and len(lines[0].strip()) > LABEL_CAP
+
+
 def _turn_line(items: list) -> str:
-    return tr("simple.turn", n=len(items), actions=", ".join(w.label for w in items), command="/tenure undo")
+    return tr("simple.turn", n=len(items), actions=", ".join(w.text() for w in items), command="/tenure undo")
 
 
 def _flush_turn(session: str | None) -> None:
@@ -1127,6 +1169,7 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
 
 UNDO_WINDOW = 24 * 3600          # seconds an act-then-notify action can be undone
 UNDO_FAILED = "undo_failed:"     # meta key prefix: the undo entry of a call that failed after its files were saved
+NOUNDO = "noundo:"               # meta key prefix: a kind whose last free call asked because tenure could not undo it
 
 
 def _credit_due(st: store.Store, cfg: dict, now: float | None = None) -> list[dict]:
@@ -1187,15 +1230,19 @@ def excuse(st: store.Store, seq: int) -> str:
     names its ledger row, and every state is replayed from the ledger, where that fault now counts as neutral. Its
     effects go with it: the tier drop, the trial, the lost trusted start (unless another fault or a revoke keeps it
     lost). Call it inside ``txn()``. Raises ValueError with the owner's message when it is not excusable."""
+    if agent_process():                             # code or a command the agent runs: never its own excuse
+        raise ValueError(tr("ask.person_only"))
+    plain = simple()
     why = nobody_answers()
     if why:                                         # the agent's own command, approved by nobody: never
-        raise ValueError(tr("cli.excuse.nobody", why=why))
+        raise ValueError(tr("simple.excuse.nobody" if plain else "cli.excuse.nobody", why=why))
     row = next((r for r in excusable(st) if r["seq"] == seq), None)
     if row is None:
         if seq in {r["seq"] for r in excusable(st, limit=False)}:     # it would be, but for the weekly limit
-            raise ValueError(tr("cli.excuse.limit", n=seq, limit=store.EXCUSE_LIMIT,
-                                days=store.EXCUSE_PERIOD // 86400))
-        raise ValueError(tr("cli.excuse.unknown", n=seq, minutes=store.EXCUSE_WINDOW // 60))
+            raise ValueError(tr("simple.excuse.limit" if plain else "cli.excuse.limit", n=seq,
+                                limit=store.EXCUSE_LIMIT, days=store.EXCUSE_PERIOD // 86400))
+        raise ValueError(tr("simple.excuse.unknown" if plain else "cli.excuse.unknown", n=seq,
+                            minutes=store.EXCUSE_WINDOW // 60))
     rows = st.ledger()
     head = rows[-1] if rows else {"seq": 0, "at": 0}
     replayed, _ = passport._replay(rows + [{"seq": head["seq"] + 1, "at": time.time(),   # dry run first: a ledger
@@ -1215,8 +1262,9 @@ def excuse(st: store.Store, seq: int) -> str:
     s = replayed.get((row["agent"], row["type"]))
     _push("changed", {"agent": row["agent"], "type": row["type"]})
     cfg = settings()
-    tier = (state_name(cfg, s) if simple(cfg) else
-            tr("cli.excuse.trusted") if s is not None and trusted(cfg, s, params.required_n(cfg["risks"], s.stakes),
+    if simple(cfg):
+        return tr("simple.excuse.done", n=seq, type=row["type"], state=state_name(cfg, s))
+    tier = (tr("cli.excuse.trusted") if s is not None and trusted(cfg, s, params.required_n(cfg["risks"], s.stakes),
                                                                   s.stakes) else tier_name(s.tier) if s is not None
             else "")
     return tr("cli.excuse.done", n=seq, type=row["type"], agent=row["agent"], tier=tier)
@@ -1227,6 +1275,8 @@ def seen(st: store.Store, undo_ids: list[int]) -> str:
     (rule B/2): each counts as a success now, source ``seen``. Never a blanket "all of them": a person names what
     they saw. Only a person: never while nobody answers. Raises ValueError with the owner's message when none of the
     numbers is open."""
+    if agent_process():                             # code or a command the agent runs: never its own "seen"
+        raise ValueError(tr("ask.person_only"))
     why = nobody_answers()
     if why:
         raise ValueError(tr("cli.ok.nobody", why=why))
@@ -1249,8 +1299,10 @@ def owner_trust(st: store.Store, cfg: dict, agent: str, s: rule.TypeState, to: s
     """A person's word on a kind, simple mode only (``/tenure trust``): ``rule.FREE`` gives it its freedom back now,
     ``rule.PIN`` makes it ask first until freed again. Logged as a ``trust`` input event, then the rule's derived
     events, so a replay gives the same record. The caller checks the kind may take it (``cli.trust_set``); this only
-    refuses when nobody answers approvals (never the agent's own command) or outside simple mode. Call it inside
-    ``txn()``."""
+    refuses in one of the agent's own processes (``agent_process``), when nobody answers approvals (never the agent's
+    own command) and outside simple mode. Call it inside ``txn()``."""
+    if agent_process():
+        raise ValueError(tr("ask.person_only"))
     why = nobody_answers()
     if why:
         raise ValueError(tr("trust.nobody", why=why))
@@ -1303,7 +1355,8 @@ def _excuse_hint(st: store.Store, events: list[dict]) -> list[str]:
     if st.get_meta("excuse_hint:" + key) == day:
         return []
     st.set_meta("excuse_hint:" + key, day)
-    return [tr("notice.excuse.hint", n=seq, minutes=store.EXCUSE_WINDOW // 60)]
+    return [tr("simple.notice.excuse_hint" if simple() else "notice.excuse.hint", n=seq,
+               minutes=store.EXCUSE_WINDOW // 60)]
 
 
 class UndoMessage(str):
@@ -1339,37 +1392,55 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
         return UndoMessage(tr("undo.already", id=id), False)
     if time.time() - entry["at"] > UNDO_WINDOW:
         return UndoMessage(tr("undo.expired", id=id, n=UNDO_WINDOW // 3600), False)
+    cfg = settings()
+    plain = simple(cfg)                                   # simple mode's words: no fault, no snapshot
     if not entry["snap_id"]:
-        return _undo_failed(st, entry, tr("undo.no_snapshot", id=id))
+        return _undo_failed(st, entry, tr("simple.undo.no_snapshot" if plain else "undo.no_snapshot", id=id))
     after_failure = bool(st.get_meta(UNDO_FAILED + str(id)))
     try:
         untouched = after_failure and undo.unchanged(entry["snap_id"], data_dir(), key=undo_key())
         restored, failed = undo.restore(entry["snap_id"], data_dir(), keep=True, key=undo_key())
     except undo.Refused as e:
-        return _undo_failed(st, entry, tr("undo.refused", id=id, reason=e))
+        return _undo_failed(st, entry, tr("simple.undo.refused" if plain else "undo.refused", id=id, reason=e))
     if failed:
-        return _undo_failed(st, entry, tr("undo.partial", id=id, n=failed, restored=restored))
+        return _undo_failed(st, entry, tr("simple.undo.partial" if plain else "undo.partial", id=id, n=failed,
+                                          restored=restored))
     if restored == 0:
-        return _undo_failed(st, entry, tr("undo.gone", id=id))
+        return _undo_failed(st, entry, tr("simple.undo.gone" if plain else "undo.gone", id=id))
     agent, key = entry["agent"], entry["type"]
     st.mark_undone(id)
     st.flag_by_undo(id)                                   # undone: it cannot be flagged afterwards
     if entry["fault"]:
-        return UndoMessage(tr("undo.done_already_fault", id=id, type=key), True, entry["snap_id"])
+        return UndoMessage(tr("simple.undo.done_already_fault" if plain else "undo.done_already_fault", id=id,
+                              type=key), True, entry["snap_id"])
     if untouched:                                         # a failed call that changed nothing: restored, no fault
-        return UndoMessage(tr("undo.done_unchanged", id=id, type=key), True, entry["snap_id"])
+        return UndoMessage(tr("simple.undo.done_unchanged" if plain else "undo.done_unchanged", id=id, type=key),
+                           True, entry["snap_id"])
     recorded = st.recorded(agent, key)
     stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
-    cfg = settings()
     sync_settings(st, cfg)
     events = record_outcome(st, cfg, agent=agent, type_key=key, stakes=stakes, reversible=reversible,
                             result="fault", source="undo")
     st.bump(agent, "faults")
     s = st.get_state(agent, key, stakes, reversible)
+    if plain:                                             # two short lines at most: what happened and what now,
+        line = " ".join(x for x in [tr("simple.undo.done", id=id, type=key), _undo_now(events)] if x)
+        return UndoMessage("\n".join([line] + _excuse_hint(st, events)), True, entry["snap_id"])   # then the hint
     text = "\n\n".join([tr("undo.done", id=id, type=key, agent=agent, tier=state_name(cfg, s))]
                        + _say(events, cfg["spot"], mode(cfg))   # e.g. "On probation" when it ends the trusted start
                        + _excuse_hint(st, events))
     return UndoMessage(text, True, entry["snap_id"])
+
+
+def _undo_now(events: list[dict]) -> str:
+    """Simple mode, after an undo or a refusal: where the kind stands now, in one short sentence ("" when unchanged)."""
+    for ev in events:
+        if ev.get("event") == "tier" and ev.get("reason") == "fault":
+            first = ev.get("from") in ("trusted", rule.T3)
+            if ev.get("to") == rule.T2:
+                return tr("simple.undo.watched", type=ev.get("type"))
+            return tr("simple.undo.asks" if first else "simple.undo.second", type=ev.get("type"))
+    return ""
 
 
 def _undo_failed(st: store.Store, entry: dict, text: str) -> UndoMessage:
@@ -1387,8 +1458,8 @@ def _undo_failed(st: store.Store, entry: dict, text: str) -> UndoMessage:
                             result="fault", source="undo")
     st.bump(agent, "faults")
     st.mark_undo_fault(entry["id"])                       # a retry of the undo counts no second fault
-    return UndoMessage("\n\n".join([text, tr("simple.undo.fault_anyway", type=key)] + _say(events, cfg["spot"],
-                                                                                         mode(cfg))), False)
+    now = " ".join(x for x in [tr("simple.undo.fault_anyway", type=key), _undo_now(events)] if x)
+    return UndoMessage("\n".join([text, now]), False)
 
 
 def _bump(st: store.Store, agent: str, result: str, *, checked: bool = False, alone: bool = False) -> None:
@@ -1588,6 +1659,16 @@ def _held_by(st: store.Store, agent: str, type_key: str) -> str | None:
     return None
 
 
+FILE_PROGRAMS = frozenset({"rm", "rmdir", "mv", "cp"})   # their targets are files tenure reads, saved first or not
+
+
+def _file_program(type_key: str) -> bool:
+    """A plain file command whose files tenure could not save (a folder too large, a special file): it can tell what
+    it changes, it cannot keep a copy."""
+    parts = type_key.split(":")
+    return len(parts) == 2 and parts[0] == "shell" and parts[1] in FILE_PROGRAMS
+
+
 def _uncovered_local(act, s: rule.TypeState, n) -> bool:
     """A local action the trusted start does not cover (rm, mv, cp, a heredoc...), at low or medium stakes, never
     faulted: the owner may allow it for the session. Not what leaves the machine (high), not a type on probation."""
@@ -1606,6 +1687,7 @@ def _to_t2(s: rule.TypeState) -> int:
 
 def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspended: bool, unsaved: bool,
                  earned_at: str | None, per_session: bool = False, trusted_start: bool = False,
+                 unsaved_listed: bool = False,
                  held: str | None = None, doubted: bool = False, fresh: list | None = None,
                  exec_files: list | None = None, taint_from: str = "", simple: bool = False,
                  lifts: bool = False) -> str:
@@ -1618,28 +1700,31 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
         why = tr("ask.why.fresh_script", files=", ".join(fresh[:3]))
     elif exec_files:
         why = tr("ask.why.exec_file", files=", ".join(exec_files[:3]))
-    elif n is None:
-        why = (tr("simple.ask.always", type=act.type, stakes=stakes) if simple else
+    elif n is None:                                     # simple mode: high stakes, or capped by the owner's settings
+        why = ((tr("simple.ask.always", type=act.type) if act.stakes == "high" or not params.simple_covers(act.type)
+                else tr("simple.ask.settings", type=act.type)) if simple else
                tr("ask.why.capped", type=act.type, stakes=stakes, n=s.successes))
     elif suspended:
         why = tr("simple.ask.suspended" if simple else
                  "ask.why.suspended_trusted" if trusted_start else "ask.why.suspended")
         if taint_from:                                  # which call suspended it: a tool, and a host if any
-            why += " " + tr("ask.why.suspended_from", source=taint_from)
+            why += " " + tr("simple.ask.suspended_from" if simple else "ask.why.suspended_from", source=taint_from)
     elif s.trial_left:
         why = tr("ask.why.trial", type=act.type, n=s.trial_left)
     elif s.trial_wait:
         why = tr("ask.why.trial_wait", type=act.type, n=s.trial_wait)
     elif earned_at and earned_at != act.stakes:
-        why = tr("ask.why.other_stakes", type=act.type, earned=stakes_name(earned_at), stakes=stakes)
+        why = (tr("simple.ask.other_stakes", type=act.type) if simple else
+               tr("ask.why.other_stakes", type=act.type, earned=stakes_name(earned_at), stakes=stakes))
     elif unsaved:
-        why = tr("simple.ask.unsaved" if simple else "ask.why.unsaved", type=act.type)
+        why = tr(("simple.ask.unsaved_files" if unsaved_listed else "simple.ask.unsaved") if simple
+                 else "ask.why.unsaved", type=act.type)
     elif held:                                          # before the trusted start's own reasons: name what holds it
         why = tr("ask.why.held", type=act.type, held=held)
     elif simple and s.pinned:                           # the owner's word: it asks until the owner frees it
         why = tr("trust.ask.pinned", type=act.type, command=f"/tenure trust {act.type}")
     elif simple and not rule.simple_eligible(s, n):     # what leaves the machine, high stakes: always asked
-        why = tr("simple.ask.always", type=act.type, stakes=stakes)
+        why = tr("simple.ask.always", type=act.type)
     elif simple and s.tier != rule.T2 and act.reversible and act.stakes in params.WALD:
         why = tr("simple.ask.mistakes", type=act.type, n=_to_t2(s))
     elif simple:
@@ -1654,9 +1739,11 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
         if s.provisional:
             why += " " + tr("ask.why.provisional", n=s.provisional)
     if per_session:
-        return tr("ask.prompt_session", summary=act.summary, why=why)
+        return tr("simple.ask.prompt_session" if simple else "ask.prompt_session", summary=act.summary, why=why)
     if lifts:                                           # a no doubts the content, not the agent: no fault
         return tr("simple.ask.prompt_lift", summary=act.summary, why=why)
+    if simple:
+        return tr("simple.ask.prompt", summary=act.summary, why=why) + "\n" + tr("simple.ask.always_button")
     return tr("ask.prompt", summary=act.summary, why=why) + "\n" + tr("ask.always")
 
 
@@ -1665,6 +1752,20 @@ FOREGROUND_MAX = 600
 
 
 BACKGROUND_KEYS = ("auto_backgrounded", "promoted_from_foreground")   # Hermes' markers in a terminal result
+# Hermes stopped the call before it ran (tools/terminal_tool.py, _error_json): its own approval refused, timed out,
+# undelivered (status "blocked"), or left pending (status "pending_approval", approval_pending); an action gate's
+# "approval_required". The hook's own status then says only "error".
+NOT_RUN = frozenset({"blocked", "pending_approval", "approval_required"})
+
+
+def _not_run(result) -> bool:
+    """The result of a call Hermes did not run: an error result whose ``status`` is in ``NOT_RUN``."""
+    try:
+        data = json.loads(result) if isinstance(result, (str, bytes)) else result
+    except ValueError:
+        return False
+    return (isinstance(data, dict) and str(data.get("status") or "").strip().lower() in NOT_RUN
+            and bool(data.get("error") or data.get("approval_pending")))
 
 
 def _background(tool: str, args: dict, result=None) -> bool:
@@ -1692,13 +1793,15 @@ def _background(tool: str, args: dict, result=None) -> bool:
 
 def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool, reason: str | None,
             launched: bool = False, written: list[str] | None = None, cwd: str = "", unjudged: bool = False,
-            label: str = "") -> list[str]:
+            label: str = "", more: int = 0, cut: bool = False, untouched: bool = False) -> list[str]:
     """The verified outcome of one pending decision, from facts gathered before the transaction: was the call stopped
     (``blocked``), did the tool fail, what did the automatic check of the written files say. The check judges every
     action that ran, even one nobody answered. A background launch (``launched``) is neutral: the command's own
     outcome is not known when the call returns. ``written`` (absolute paths) only names the files in the owner's
     messages: it is stored nowhere. An action that ran gets a number in ``recent`` (a fault is born flagged), handed
-    on as ``p["n"]`` and ``p["n_at"]``. Returns the owner's messages."""
+    on as ``p["n"]`` and ``p["n_at"]``; its undo entry, if any, as ``p["undo_id"]``. ``untouched``: a failed call whose
+    saved files are all as they were (simple mode): it keeps no undo and joins no end-of-turn line. Returns the
+    owner's messages."""
     try:                                                    # display only: it never aborts a settlement
         home = os.path.expanduser("~")
         shown = [_show(x, cwd, home) for x in written or []]
@@ -1745,9 +1848,11 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
               alone=not blocked and (acted or phase == "alone"))
     posts = []
     undo_id = None
-    broke = acted and not blocked and failed and bool(p.get("snap_id")) and not reason
-    if acted and not blocked and (not failed or p.get("snap_id")):   # the files were saved: the owner can revert them,
+    broke = acted and not blocked and failed and bool(p.get("snap_id")) and not reason and not untouched
+    p["undo_id"] = None
+    if acted and not blocked and (not failed or broke or (reason and p.get("snap_id"))):   # files saved: revertible,
         undo_id = st.add_undo(agent, key, p["snap_id"], fault=bool(reason))   # even after a failure (rm -r cut short)
+        p["undo_id"] = undo_id
         if broke:
             st.set_meta(UNDO_FAILED + str(undo_id), "1")    # undoing a failed call that changed nothing is no fault
         if deferred:
@@ -1755,12 +1860,14 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
         _push("acted", {"agent": agent, "type": key, "undo_id": undo_id, "fault": bool(reason),
                         "profile": _profile_name()})
         if reason:
-            posts.append(tr("settle.acted_fault", type=key, reason=reason, what=what, command="/tenure undo", id=undo_id))
+            posts.append(tr("simple.settle.acted_fault" if simple(cfg) else "settle.acted_fault", type=key,
+                            reason=reason, what=what, command="/tenure undo", id=undo_id))
         elif broke and not simple(cfg):
             posts.append(tr("settle.acted_failed", type=key, what=what, command="/tenure undo", id=undo_id))
         elif simple(cfg):                       # simple mode: a free action says nothing, a watched one joins the
             if deferred or broke:               # line said at the end of the turn, and so does a failed one
-                posts.append(Watched(p["session"], undo_id, label or _join_shown(shown) or key))
+                posts.append(Watched(p["session"], undo_id, label or _join_shown(shown) or key, more=more, cut=cut,
+                                     files=_join_shown(shown) if label else ""))
         else:
             text = tr("settle.acted", type=key, what=what, command="/tenure undo", id=undo_id)
             if deferred:                                # rule B/2: only a person's "seen" counts toward acting alone
@@ -1768,7 +1875,8 @@ def _settle(st: store.Store, cfg: dict, p: dict, *, blocked: bool, failed: bool,
             posts.append(Acted(text, p["session"], key, undo_id, shown))
             posts[-1].ok_hint = deferred
     elif reason:
-        posts.append(tr("settle.check_failed", type=key, reason=reason, what=what))
+        posts.append(tr("simple.settle.check_failed" if simple(cfg) else "settle.check_failed", type=key,
+                        reason=reason, what=what))
     if not blocked:                             # it ran: numbered, so the owner can flag it (a fault is born flagged)
         at = time.time()
         p["n"], p["n_at"] = st.add_recent(p["session"], agent, key, at=at, flagged=result_source[0] == "fault",
@@ -1813,30 +1921,43 @@ def pre_api_request(model="", provider="", session_id="", **kwargs):
     return None
 
 
+# A person's word, run or called: ``ok``, ``excuse`` or ``trust`` after Hermes' CLI (its options, long ones included,
+# before ``tenure``), ``python -m tenure`` or the slash command; the core and CLI functions that record it.
+_WORD_FUNCS = r"seen|excuse|_see|owner_trust|owner_free|owner_pin|trust_set|slash|execute"
 _PERSON_ONLY = re.compile(
-    r"(?:\bhermes\b(?:[ \t]+-[^\s-]\S{0,40}(?:[ \t]+[^\s-]\S{0,80})?){0,6}[ \t]+['\"]?tenure['\"]?"
+    r"(?:\bhermes\b(?:[ \t]+--?[^\s-]\S{0,40}(?:[ \t]+[^\s-]\S{0,80})?){0,6}[ \t]+['\"]?tenure['\"]?"
     r"|-m[ \t]+tenure(?:\.cli)?|(?:^|\s|['\"])/tenure)"
-    r"\s+['\"]?(?:ok|excuse|trust)['\"]?(?:\s|$|;|&|\|)"
-    r"|\b(?:tenure|core)\.(?:seen|excuse|_see|owner_trust)\s*\("
-    r"|\bfrom[ \t]+tenure\b[^\n]{0,80}?\bimport\b[^\n]{0,200}?\b(?:seen|excuse|_see|owner_trust)\b", re.I)
-_RUNS = {"terminal": "command", "execute_code": "code"}     # the arguments that run: never a file's text or a message
+    r"\s+['\"]?(?:ok|excuse|trust)['\"]?(?:\s|$|;|&|\||['\"])"
+    rf"|\btenure\.(?:cli\.|rule\.)?(?:{_WORD_FUNCS})\s*\("
+    r"|\bcore\.(?:seen|excuse|_see|owner_trust)\s*\("
+    rf"|\bfrom[ \t]+tenure\b[^\n]{{0,80}}?\bimport\b[^\n]{{0,200}}?\b(?:{_WORD_FUNCS}|cli|rule)\b", re.I)
+# The same functions through a module name that is not tenure's (``cli.slash(``, ``rule.owner_free(``): only in a
+# text that names tenure somewhere, so another project's ``cli.execute(`` is left alone.
+_PERSON_ONLY_CALL = re.compile(rf"\b(?:core|cli|rule)\.(?:{_WORD_FUNCS})\s*\(")
+_NAMES_TENURE = re.compile(r"tenure", re.I)
+# The arguments that run, or are typed: a terminal command, execute_code's code, the text computer_use types or sets
+# in a field (``type``, ``set_value``; tools/computer_use/schema.py). Never a file's text or a message.
+_RUNS = {"terminal": ("command",), "execute_code": ("code",), "computer_use": ("text", "value")}
 
 
 def _person_only(tool: str, args: dict) -> bool:
-    """A tool call that would run ``tenure ok``, ``tenure excuse`` or ``tenure trust`` (or their functions): those are a person's
-    word on the agent's work, never the agent's own, whatever terminal or approval it could get. Blocked outright, in
-    what a call runs (a terminal command, ``execute_code``'s code), never a file being written or a message: tenure's
-    own source and docs name these commands. Defence in depth, not a wall: the CLI also refuses them in a child of
-    Hermes' tools (``TENURE_AGENT_CHILD``) and without a terminal; an agent that builds the name at run time, unsets
-    the marker and opens a pty still needs an approval of a command that names Hermes (capped)."""
+    """A tool call that would run ``tenure ok``, ``tenure excuse`` or ``tenure trust`` (or their functions): those are a
+    person's word on the agent's work, never the agent's own, whatever terminal or approval it could get. Blocked
+    outright, in what a call runs or types (a terminal command, ``execute_code``'s code, ``computer_use``'s text),
+    never a file being written or a message: tenure's own source and docs name these commands. Defence in depth, not
+    a wall: the CLI and the core functions also refuse them in one of the agent's own processes (``agent_process``)
+    and the CLI without a real terminal; an agent that builds the name at run time, unsets the markers and opens a pty
+    still needs an approval of a command that names Hermes (capped)."""
     try:
-        text = args.get(_RUNS.get(tool, ""))
-        return isinstance(text, str) and bool(_PERSON_ONLY.search(text))
+        for name in _RUNS.get(tool, ()):
+            text = args.get(name)
+            if not isinstance(text, str):
+                continue
+            if _PERSON_ONLY.search(text) or (_PERSON_ONLY_CALL.search(text) and _NAMES_TENURE.search(text)):
+                return True
+        return False
     except Exception:
         return False
-
-
-AGENT_CHILD = "TENURE_AGENT_CHILD"     # set by Hermes in every tool subprocess of a session (register_session_env)
 
 
 def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_id="", **kwargs):
@@ -1864,7 +1985,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
         uid = uuid.uuid4().hex
         if act.stakes == classify.CAP:
             return {"action": "approve", "rule_key": f"{PREFIX}:cap:{act.type}:{uid}",
-                    "message": tr("ask.capped", summary=act.summary, type=act.type)}
+                    "message": tr("simple.ask.capped" if wide else "ask.capped", summary=act.summary, type=act.type)}
         call, sid = str(tool_call_id or ""), str(session_id or task_id or "")
         session, agent, nobody = anon(sid), agent_of(sid, deadline), nobody_answers()
         n = params.required_n(cfg["risks"], act.stakes)
@@ -1912,12 +2033,19 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 else:
                     ST.fresh.pop((session, call), None)
             watched = decision == rule.WATCH
-            # Simple mode frees kinds the trusted start leaves out (rm, mv...) only with their files saved first.
-            needs_undo = watched and simple(cfg) and not rule.trust_covers(act.type)
+            # Simple mode frees kinds the trusted start leaves out (rm, mv...) only with their files saved first, unless
+            # a person freed the kind by hand (/tenure trust KIND): then it runs even when no undo can be prepared.
+            needs_undo = watched and simple(cfg) and not rule.trust_covers(act.type) and not s.owner_freed
+            listed = False                                  # the call names files it changes (they may not be saved)
             if watched:                                     # files saved: act then tell, with an undo; else run alone
-                files = bool(snap) or bool(classify.files_written(tool, args, cwd, wide=wide))
+                listed = bool(classify.files_written(tool, args, cwd, wide=wide))
+                files = bool(snap) or listed
                 decision = (rule.NOTIFY if snap else rule.ASK if (suspended and not local_ok) or needs_undo
                             else rule.NOTIFY if files else rule.ALLOW)    # files that could not be saved: ask (below)
+                if needs_undo and not suspended:            # /tenure trust names a kind tenure cannot undo (display)
+                    noundo = not snap
+                    if noundo != bool(st.get_meta(NOUNDO + act.type)):
+                        st.set_meta(NOUNDO + act.type, "1" if noundo else "")
             if decision != rule.NOTIFY:
                 snap = None                                 # the record changed since the preview: no undo needed
             unsaved = (decision == rule.NOTIFY and snap is None) or (needs_undo and not snap and not suspended)
@@ -1945,6 +2073,7 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 # never let a write run without its undo.
                 no_undo = act.reversible and not snap and bool(classify.files_written(tool, args, cwd, wide=wide))
                 per_session = (cfg.get("start") == "trusted" and not nobody and decision == rule.ASK and not no_undo
+                               and not s.pinned                                 # the person said: every time
                                and fields.parent_of(act.type) is None           # never for a category kind
                                and not st.doubted(agent, act.type)              # a doubt is asked, whatever the grant
                                and not exec_files and not (fresh and outside)    # code written after outside content
@@ -1969,7 +2098,11 @@ def pre_tool_call(tool_name="", args=None, session_id="", tool_call_id="", task_
                 directive = {"action": "approve", "rule_key": key,
                              "message": _ask_message(act, s, n, cfg["spot"], decision=decision, suspended=suspended,
                                                      taint_from=_taint_label(session),
-                                                     unsaved=unsaved, per_session=per_session, trusted_start=cfg.get("start") == "trusted",
+                                                     unsaved=unsaved,
+                                                     unsaved_listed=listed or _file_program(act.type) or (
+                                                         unsaved and bool(classify.files_written(tool, args, cwd,
+                                                                                                 wide=wide))),
+                                                     per_session=per_session, trusted_start=cfg.get("start") == "trusted",
                                                      doubted=st.doubted(agent, act.type),
                                                      fresh=[_show(x, cwd, os.path.expanduser("~")) for x in fresh],
                                                      exec_files=[_show(x, cwd, os.path.expanduser("~"))
@@ -2119,8 +2252,15 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
         if not rows:
             return None
         p = rows[0]
-        blocked = str(status or "").strip().lower() == "blocked"
+        # Simple mode also reads Hermes' own refusal in the result: a call its approval stopped never ran.
+        blocked = str(status or "").strip().lower() == "blocked" or (wide and _not_run(result))
         failed = not blocked and proofs.execution(tool, status, error_type, result) == "failed"
+        untouched = False                   # simple mode: a failed call that changed none of its saved files
+        if wide and failed and p.get("snap_id"):
+            try:
+                untouched = undo.unchanged(p["snap_id"], data_dir(), key=undo_key())
+            except Exception:               # a snapshot it cannot read: kept, the undo says why
+                untouched = False
         launched = not blocked and not failed and _background(tool, args, result)
         reason, paths, unjudged = None, [], False
         if not blocked and not launched:    # a failed call is judged too: "...; false" never hides a broken file
@@ -2133,9 +2273,12 @@ def post_tool_call(tool_name="", args=None, result=None, session_id="", tool_cal
             p = st.pop_pending(p["id"])                         # settled once, by whoever comes first
             if p is not None:
                 posts += _say(sync_settings(st, cfg), cfg["spot"], mode(cfg))
+                more, cut = _more_lines(tool, args)
                 posts += _settle(st, cfg, p, blocked=blocked, failed=failed, reason=reason, launched=launched,
                                 written=paths, cwd=cwd, unjudged=unjudged,
-                                label=_label(tool, args, cfg["vocabulary"]))
+                                label=_label(tool, args, cfg["vocabulary"]), more=more, cut=cut, untouched=untouched)
+        if p is not None and p.get("snap_id") and p.get("undo_id") is None:
+            undo.discard(p["snap_id"], data_dir())          # committed, and no undo entry holds it: nothing to keep
         for text in posts:
             _announce(text)
         if p is not None and p.get("n") is not None:            # committed: remember what it did, in memory only

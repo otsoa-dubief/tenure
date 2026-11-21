@@ -111,6 +111,8 @@ class TypeState:
                                        # only by the trial a model change opens
     distrusted: bool = False           # a fault or a revoke happened: the trusted start no longer covers the type
     pinned: bool = False               # simple mode: the owner said the kind always asks first, until freed again
+    owner_freed: bool = False          # simple mode: the owner freed the kind by hand (``owner_free``), until its next
+                                       # fault: it runs even when tenure cannot tell which files it changes (no undo)
     # carry-over
     provisional: int = 0               # carried-over successes not yet matched by the agent's own series successes
     # counters (the agent's own)
@@ -440,6 +442,7 @@ def rebase(s: TypeState) -> list[dict]:
     old = s.tier
     s.tier, s.series, s.sessions, s.provisional, s.wald = T1, 0, [], 0, max(s.wald, 0.0)
     s.session_runs = []
+    s.owner_freed = False              # a person's word was given at the old stakes
     return [_move(s, "tier", old, T1, "stakes")]
 
 
@@ -453,6 +456,7 @@ def revoke(s: TypeState) -> list[dict]:
     s.session_runs = []
     s.wald = max(s.wald, 0.0)
     s.distrusted = True
+    s.owner_freed = False              # simple mode: the owner takes back a freedom given by hand too
     return [_move(s, "revoked", old, T1, "owner")]
 
 
@@ -525,6 +529,7 @@ def _simple_fault(s: TypeState, n: int | None, *, source: str, free: bool) -> li
     the score only leads back up to T2, after the study's count of approvals. No trial, wait or lengthening."""
     s.faults += 1
     s.distrusted = True
+    s.owner_freed = False          # a person's word holds until the next mistake: a kind tenure cannot undo asks again
     if source == "spot":
         s.spot_checks += 1
     old, borrowed = s.tier, s.provisional > 0
@@ -572,7 +577,8 @@ def carry_over_simple(old: TypeState, *, strict: bool) -> TypeState:
     start, its faults), with other counters of its own and no trial; in strict mode it starts over, still distrusted
     and with its faults if it had them."""
     new = TypeState(key=old.key, stakes=old.stakes, reversible=old.reversible, changed_at=time.time(),
-                    distrusted=old.distrusted, pinned=old.pinned)     # the owner's word holds for the new model
+                    distrusted=old.distrusted, pinned=old.pinned,     # the owner's word holds for the new model
+                    owner_freed=old.owner_freed)
     new.faults = old.faults            # the faults on the type stay on its record: they hold its categories (_marked)
     if not strict:
         new.tier, new.wald, new.series = old.tier, old.wald, old.series
@@ -585,13 +591,16 @@ FREE, PIN = "free", "ask"     # the ``to`` of a ``trust`` ledger event (simple m
 
 def owner_free(s: TypeState, n: int | None) -> list[dict]:
     """Simple mode, a ``trust`` event with ``to: free``: a person gives the kind its freedom back now, as a full
-    series would (T3 with its series full, no longer pinned). Never for a kind simple mode does not free (an
-    outbound verb, high stakes, capped): those stay as they are. The faults stay on the record and ``distrusted``
-    stays set, so its next fault makes it watched again (``_simple_fault`` from T3)."""
+    series would (T3 with its series full, no longer pinned), and marks it freed by hand (``owner_freed``): a kind the
+    trusted start leaves out then runs even when tenure cannot tell which files it changes, so with no undo (the
+    hooks read it), until its next fault. The pin goes in every case. A kind simple mode does not free (an outbound
+    verb, high stakes, capped) keeps its tier. The faults stay on the record and ``distrusted`` stays set, so its next
+    fault makes it watched again (``_simple_fault`` from T3), or asks first for a kind with no middle tier."""
+    s.pinned = False
     if not simple_eligible(s, n):
         return []
     old = s.tier
-    s.tier, s.series, s.provisional, s.pinned = T3, n, 0, False
+    s.tier, s.series, s.provisional, s.owner_freed = T3, n, 0, True
     return [_move(s, "tier", old, T3, "owner")] if old != T3 else []
 
 
@@ -600,4 +609,5 @@ def owner_pin(s: TypeState) -> list[dict]:
     (``owner_free``). Its approvals still count in its statistics, never toward freedom; its series starts over."""
     old = s.tier
     s.tier, s.series, s.sessions, s.session_runs, s.provisional, s.pinned = T1, 0, [], [], 0, True
+    s.owner_freed = False
     return [_move(s, "tier", old, T1, "owner")] if old != T1 else []

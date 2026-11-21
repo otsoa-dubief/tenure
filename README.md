@@ -401,8 +401,8 @@ nightly reconciliation) names an action by Hermes' session and tool call id, or 
 
 | Command | What it does |
 |---|---|
-| `hermes tenure` · `/tenure` | What the agent did lately: the actions that can still be undone, how many ran without asking today, which kinds are watched or ask first (study mode: the status) |
-| `hermes tenure trust [KIND [ask]]` · `/tenure trust` | The kinds of action that are not free and what brings each back; with a kind, give it its freedom back now (simple mode, a person only: never for what leaves the machine, high stakes or a capped kind); with `ask`, it asks first until you free it |
+| `hermes tenure` · `/tenure` | What the agent did today: the changes that can still be undone, how many actions ran without asking today (your local day), which kinds are watched or ask first, and why (study mode: the status) |
+| `hermes tenure trust [KIND [ask]]` · `/tenure trust` | What still asks you or is watched, why, and what brings each back (a kind tenure cannot undo, one held by its parent's mistake, one a check doubted); with a kind (its key, or a unique end of it: `docker`), stop it asking now, on your word, the conversation's agent first (simple mode, a person only: never for what leaves the machine, high stakes or a capped kind; a kind tenure cannot undo then runs without an undo, until its next mistake); with `ask`, it asks first, every time, until you free it |
 | `hermes tenure advanced` · `/tenure advanced` | Every other command below, one line each: they all keep working, the help shows only the first three |
 | `hermes tenure status [--profile P] [--model M] [--all]` | What each agent has earned, per action type |
 | `hermes tenure setup [careful\|balanced\|fast]` | The presets side by side; with a name, use it |
