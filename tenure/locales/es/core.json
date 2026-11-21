@@ -2,7 +2,7 @@
   "ask.capped": "tenure — {summary}\n{type} está limitado: siempre se pregunta.",
   "ask.internal_error": "tenure: error interno ({error}); te pregunto en lugar de dejar pasar la acción.",
   "ask.prompt": "tenure — {summary}\n{why}\nRechaza si es incorrecto: cuenta como un fallo.",
-  "ask.person_only": "tenure: solo usted puede marcar como vistas las acciones del agente o excusar sus faltas, desde su propio terminal o con /tenure. Esta llamada no se ejecutó.",
+  "ask.person_only": "tenure: solo usted puede marcar como vistas las acciones del agente, excusar sus faltas o liberar un tipo de acción, desde su propio terminal o con /tenure. Esta llamada no se ejecutó.",
   "ask.spot_nobody": "tenure: toca un control de {type}, y nadie puede responderlo ahora ({why}): esta acción no se ejecutó, y ninguna acción {type} se ejecutará hasta que una persona responda ese control.",
   "notice.spot_due": "tenure: salió un control de {type} cuando nadie podía responder ({why}). Sus acciones esperan su respuesta: la próxima acción {type} en una conversación con usted se la pedirá.",
   "ask.prompt_session": "tenure — {summary}\n{why}\nPermítelo para esta sesión y tenure deja de preguntar por esto hasta que termine; recházalo si es incorrecto (un fallo).",
@@ -278,7 +278,7 @@
     "one": "Acciones hechas por su cuenta en la última hora (deshacer una cuenta como fallo):",
     "other": "Acciones hechas por su cuenta en las últimas {n} horas (deshacer una cuenta como fallo):"
   },
-  "cli.usage": "    status [--profile P] [--model M] [--all]   lo que ha ganado cada agente, por tipo de acción\n    setup [careful|balanced|fast]              las tres recomendaciones; con un nombre, lo aplica\n    explain                                    cómo decide tenure y qué garantizan los números\n    models [--type T]                          el historial verificado de cada modelo en tu propio trabajo\n    undo [ID]                                  restaura los archivos de una acción que actuó y luego avisó (cuenta un fallo); sin ID, la lista\n    flag [N]                                   sin número, las últimas acciones numeradas; con un número, informa de esa acción como un error\n    flag TYPE [note] [--model M]               informa de un error que el agente cometió por su cuenta: se le revoca la autonomía\n    revoke TYPE|all [--model M | --all]        retira la autonomía ganada sin que haya error\n    passport [--agent A] [--out FILE]          escribe el pasaporte firmado de un agente (--no-redact conserva los nombres de tipo)\n    verify PASSPORT [LEDGER]                   comprueba un pasaporte; con el registro exportado, lo recalcula reproduciéndolo\n    anchor                                     una línea para publicar: el último hash, la fecha y la longitud del registro\n    export [PATH]                              escribe el registro de evidencia (líneas JSON encadenadas por hash)\n    start trusted|probation                    trusted: ninguna pregunta antes del primer error de un tipo; probation: el inicio del estudio\n    strict on|off                              modo estricto: un modelo nuevo empieza con un historial vacío\n    mode simple|study                          simple (por defecto): libre, vigilado tras un error, pregunta tras un segundo; study: la regla del estudio\n    cleanup                                    lista las claves muertas de tenure en la lista de permitidos permanente de Hermes\n    share [--out FILE]                         escribe un registro firmado de recuentos para el benchmark comunitario (opcional, no se envía nada)\n    week [--model M]                           los últimos siete días: acciones, preguntas, faltas, deshechas, lo que sigue abierto\n    ok [N ...]                                 solo, las acciones «actúa y avisa» abiertas; con números, cuentan las que comprobó\n    excuse [N]                                 solo, las faltas de los últimos 10 minutos; con N, retirar esa\n    flag --call ID --session ID [--doubt]      un verificador: una falta (o, con --doubt, la siguiente pregunta) sobre una acción\n",
+  "cli.usage": "    status [--profile P] [--model M] [--all]   lo que ha ganado cada agente, por tipo de acción\n    card [--model M] [--no-redact]             el pasaporte como una breve tarjeta de texto para pegar en un chat o una publicación\n    setup [careful|balanced|fast]              las tres recomendaciones; con un nombre, lo aplica\n    explain                                    cómo decide tenure y qué garantizan los números\n    models [--type T]                          el historial verificado de cada modelo en tu propio trabajo\n    flag [N]                                   sin número, las últimas acciones numeradas; con un número, informa de esa acción como un error\n    flag TYPE [note] [--model M]               informa de un error que el agente cometió por su cuenta: se le revoca la autonomía\n    revoke TYPE|all [--model M | --all]        retira la autonomía ganada sin que haya error\n    passport [--agent A] [--out FILE]          escribe el pasaporte firmado de un agente (--no-redact conserva los nombres de tipo)\n    verify PASSPORT [LEDGER]                   comprueba un pasaporte; con el registro exportado, lo recalcula reproduciéndolo\n    anchor                                     una línea para publicar: el último hash, la fecha y la longitud del registro\n    export [PATH]                              escribe el registro de evidencia (líneas JSON encadenadas por hash)\n    start trusted|probation                    trusted: ninguna pregunta antes del primer error de un tipo; probation: el inicio del estudio\n    strict on|off                              modo estricto: un modelo nuevo empieza con un historial vacío\n    mode simple|study                          simple (por defecto): libre, vigilado tras un error, pregunta tras un segundo; study: la regla del estudio\n    cleanup                                    lista las claves muertas de tenure en la lista de permitidos permanente de Hermes\n    share [--out FILE]                         escribe un registro firmado de recuentos para el benchmark comunitario (opcional, no se envía nada)\n    week [--model M]                           los últimos siete días: acciones, preguntas, faltas, deshechas, lo que sigue abierto\n    ok [N ...]                                 solo, las acciones «actúa y avisa» abiertas; con números, cuentan las que comprobó\n    excuse [N]                                 solo, las faltas de los últimos 10 minutos; con N, retirar esa\n    flag --call ID --session ID [--doubt]      un verificador: una falta (o, con --doubt, la siguiente pregunta) sobre una acción\n",
   "cli.verify.after": {
     "one": "Nota: el registro tiene {n} evento posterior a este pasaporte; los niveles no cambian.",
     "other": "Nota: el registro tiene {n} eventos posteriores a este pasaporte; los niveles no cambian."
@@ -459,5 +459,57 @@
   "simple.ask.prompt_lift": "tenure — {summary}\n{why}\nRechazarla no cuenta ningún error: dudas del contenido, no del agente.",
   "simple.undo.fault_anyway": "Se cuenta igualmente como un error de {type}: pediste deshacerla.",
   "settle.acted_failed": "tenure: {type} falló, y pudo cambiar archivos antes de detenerse{what} · {command} {id}",
-  "undo.done_unchanged": "Deshacer {id}: archivos restaurados. La llamada había fallado sin cambiar nada: no se cuenta ningún error de {type}."
+  "undo.done_unchanged": "Deshacer {id}: archivos restaurados. La llamada había fallado sin cambiar nada: no se cuenta ningún error de {type}.",
+  "cli.help": "  {prefix}                  lo que el agente hizo hace poco, y lo que aún se puede deshacer\n  {prefix} undo [N]         solo, lo que aún se puede deshacer (24 h); con un número, restaura esa acción\n  {prefix} trust [KIND]     los tipos de acción que no son libres; con un tipo, lo libera ahora (KIND ask: siempre pregunta antes)\nMás: {prefix} advanced",
+  "cli.advanced.title": "Todos los demás comandos, que funcionan como antes ({command} <comando>):",
+  "home.title": "tenure · lo que el agente hizo hace poco",
+  "home.undo_title": {
+    "one": "Aún se puede deshacer (la última hora, {n} h), lo más reciente primero:",
+    "other": "Aún se puede deshacer (las últimas {n} horas), lo más reciente primero:"
+  },
+  "home.undo_none": {
+    "one": "Nada que deshacer de la última hora ({n} h).",
+    "other": "Nada que deshacer de las últimas {n} horas."
+  },
+  "home.undo_more": {
+    "one": "y {n} más: {command}",
+    "other": "y {n} más: {command}"
+  },
+  "home.today": {
+    "one": "Hecho sin preguntar hoy: {n} acción.",
+    "other": "Hecho sin preguntar hoy: {n} acciones."
+  },
+  "home.watched": "Vigilado tras un error (cada acción se te muestra, con un deshacer): {types}.",
+  "home.asks": "Te pregunta antes: {types}.",
+  "trust.title": "Tipos de acción que no son libres, para {agent}:",
+  "trust.none": "Todos los tipos de acción que usó {agent} son libres.",
+  "trust.footer": "Liberar uno ahora: {command} <tipo> · que siempre pregunte antes: {command} <tipo> ask",
+  "trust.state.watched": {
+    "one": "vigilado tras un error: libre de nuevo tras {n} acción más que no deshagas",
+    "other": "vigilado tras un error: libre de nuevo tras {n} acciones más que no deshagas"
+  },
+  "trust.state.ask": {
+    "one": "te pregunta antes: libre de nuevo tras {n} aprobación más",
+    "other": "te pregunta antes: libre de nuevo tras {n} aprobaciones seguidas más"
+  },
+  "trust.state.pinned": "te pregunta antes, por tu decisión: {command} lo libera",
+  "trust.state.out": "siempre pregunta: sale de tu máquina",
+  "trust.state.high": "siempre pregunta: riesgo alto",
+  "trust.state.capped": "siempre pregunta: limitado en tu configuración",
+  "trust.state.study": {
+    "one": "{tier}: {n} éxito verificado más antes de actuar solo",
+    "other": "{tier}: {n} éxitos verificados más antes de actuar solo"
+  },
+  "trust.freed": "{type} vuelve a ser libre, por tu palabra. Un nuevo error lo vuelve a poner bajo vigilancia.",
+  "trust.already_free": "{type} ya es libre.",
+  "trust.pinned": "{type} ahora te pregunta antes, cada vez, hasta que lo liberes: {command}",
+  "trust.already_pinned": "{type} ya te pregunta antes. Para liberarlo: {command}",
+  "trust.refused.out": "{type} sale de tu máquina: siempre pregunta y no se puede liberar a mano.",
+  "trust.refused.high": "{type} es de riesgo alto: siempre pregunta y no se puede liberar a mano.",
+  "trust.refused.capped": "{type} está limitado por tu configuración: siempre pregunta. Para cambiar la configuración: {command}",
+  "trust.unknown": "No hay historial de {type} para {agent}. Tipos que no son libres: {types}",
+  "trust.study": "Liberar un tipo a mano es cosa del modo simple ({command}); en el modo estudio, un tipo se gana su nivel.",
+  "trust.terminal": "Liberar un tipo lo dice una persona: {slash} en el chat, o {cli} en un terminal interactivo.",
+  "trust.nobody": "No mientras nadie responde a las aprobaciones ({why}): solo una persona puede liberar un tipo.",
+  "trust.ask.pinned": "{type} te pregunta antes, como elegiste: {command} lo libera."
 }

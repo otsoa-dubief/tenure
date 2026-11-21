@@ -139,7 +139,8 @@ def _replay_rows(rows: list[dict],
       reversibility, ``on_success`` / ``on_fault`` / ``on_neutral``, then ``rule.count_action`` for a COUNTED
       outcome unless that fault failed the trial (R17);
     - agent (``_carry``): ``rule.carry_over`` for every type of ``old`` that ``new`` has no state for (R24);
-    - revoke (``cli.revoke``): ``rule.revoke``.
+    - revoke (``cli.revoke``): ``rule.revoke``;
+    - trust (``owner_trust``): ``rule.owner_free`` or ``rule.owner_pin``, under simple mode only.
 
     The whole ledger replays under one mode (``mode``, else the one of its last settings event): switching modes
     rebuilds every record from the ledger under the new one. An act-then-tell action simple mode ran without asking
@@ -235,6 +236,17 @@ def _replay_rows(rows: list[dict],
                 raise ValueError(f"row {i}: revoke of {e['type']} for {e['agent']}, which has no record")
             rule.revoke(s)
             lose_trust(e["type"])
+        elif kind == "trust":                                    # a person's word on a kind, simple mode only
+            s = states.get((e.get("agent"), e.get("type")))
+            if s is None:
+                raise ValueError(f"row {i}: trust of {e.get('type')} for {e.get('agent')}, which has no record")
+            if e.get("to") not in (rule.FREE, rule.PIN):
+                raise ValueError(f"row {i}: trust event with to {e.get('to')!r}, expected free or ask")
+            if simple:                                           # the study rule reads nothing from it
+                if e["to"] == rule.FREE:
+                    rule.owner_free(s, params.required_n(cfg["risks"], s.stakes))
+                else:
+                    rule.owner_pin(s)
     return states, cfg
 
 

@@ -1245,6 +1245,30 @@ def seen(st: store.Store, undo_ids: list[int]) -> str:
     return "\n\n".join([tr("cli.ok.done", n=len(done), which=marked)] + _say(events, cfg["spot"], mode(cfg)))
 
 
+def owner_trust(st: store.Store, cfg: dict, agent: str, s: rule.TypeState, to: str) -> list[dict]:
+    """A person's word on a kind, simple mode only (``/tenure trust``): ``rule.FREE`` gives it its freedom back now,
+    ``rule.PIN`` makes it ask first until freed again. Logged as a ``trust`` input event, then the rule's derived
+    events, so a replay gives the same record. The caller checks the kind may take it (``cli.trust_set``); this only
+    refuses when nobody answers approvals (never the agent's own command) or outside simple mode. Call it inside
+    ``txn()``."""
+    why = nobody_answers()
+    if why:
+        raise ValueError(tr("trust.nobody", why=why))
+    if not simple(cfg) or to not in (rule.FREE, rule.PIN):
+        raise ValueError(tr("trust.study", command="hermes tenure mode simple"))
+    sync_settings(st, cfg)
+    s = st.recorded(agent, s.key) or s                  # the settings just synced may have re-evaluated it
+    n = params.required_n(cfg["risks"], s.stakes)
+    events = rule.owner_free(s, n) if to == rule.FREE else rule.owner_pin(s)
+    s.changed_at = time.time()
+    st.put_state(agent, s)
+    st.log({"event": "trust", "agent": agent, "type": s.key, "to": to})
+    for ev in events:
+        st.log({**ev, "agent": agent})
+    _push("changed", {"agent": agent, "type": s.key})
+    return events
+
+
 def _see(st: store.Store, cfg: dict, rows: list[dict], done: list | None = None) -> list[dict]:
     """Credit these open act-then-tell actions as seen by a person; returns the derived events."""
     sync_settings(st, cfg)
@@ -1612,6 +1636,8 @@ def _ask_message(act, s: rule.TypeState, n, spot: float, *, decision: str, suspe
         why = tr("simple.ask.unsaved" if simple else "ask.why.unsaved", type=act.type)
     elif held:                                          # before the trusted start's own reasons: name what holds it
         why = tr("ask.why.held", type=act.type, held=held)
+    elif simple and s.pinned:                           # the owner's word: it asks until the owner frees it
+        why = tr("trust.ask.pinned", type=act.type, command=f"/tenure trust {act.type}")
     elif simple and not rule.simple_eligible(s, n):     # what leaves the machine, high stakes: always asked
         why = tr("simple.ask.always", type=act.type, stakes=stakes)
     elif simple and s.tier != rule.T2 and act.reversible and act.stakes in params.WALD:
@@ -1790,14 +1816,14 @@ def pre_api_request(model="", provider="", session_id="", **kwargs):
 _PERSON_ONLY = re.compile(
     r"(?:\bhermes\b(?:[ \t]+-[^\s-]\S{0,40}(?:[ \t]+[^\s-]\S{0,80})?){0,6}[ \t]+['\"]?tenure['\"]?"
     r"|-m[ \t]+tenure(?:\.cli)?|(?:^|\s|['\"])/tenure)"
-    r"\s+['\"]?(?:ok|excuse)['\"]?(?:\s|$|;|&|\|)"
-    r"|\b(?:tenure|core)\.(?:seen|excuse|_see)\s*\("
-    r"|\bfrom[ \t]+tenure\b[^\n]{0,80}?\bimport\b[^\n]{0,200}?\b(?:seen|excuse|_see)\b", re.I)
+    r"\s+['\"]?(?:ok|excuse|trust)['\"]?(?:\s|$|;|&|\|)"
+    r"|\b(?:tenure|core)\.(?:seen|excuse|_see|owner_trust)\s*\("
+    r"|\bfrom[ \t]+tenure\b[^\n]{0,80}?\bimport\b[^\n]{0,200}?\b(?:seen|excuse|_see|owner_trust)\b", re.I)
 _RUNS = {"terminal": "command", "execute_code": "code"}     # the arguments that run: never a file's text or a message
 
 
 def _person_only(tool: str, args: dict) -> bool:
-    """A tool call that would run ``tenure ok`` or ``tenure excuse`` (or their functions): those are a person's
+    """A tool call that would run ``tenure ok``, ``tenure excuse`` or ``tenure trust`` (or their functions): those are a person's
     word on the agent's work, never the agent's own, whatever terminal or approval it could get. Blocked outright, in
     what a call runs (a terminal command, ``execute_code``'s code), never a file being written or a message: tenure's
     own source and docs name these commands. Defence in depth, not a wall: the CLI also refuses them in a child of
@@ -2211,8 +2237,8 @@ def register(ctx):
     ctx.register_hook("subagent_start", subagent_start)
     ctx.register_hook("subagent_stop", subagent_stop)
     from . import cli
-    ctx.register_cli_command(name="tenure", help="Earned autonomy per action type: status, models, undo, flag, "
-                                                     "revoke, passport, verify, export",
+    ctx.register_cli_command(name="tenure", help="What the agent did and what can be undone; undo, trust "
+                                                     "(more: hermes tenure advanced)",
                              setup_fn=cli.setup, handler_fn=cli.run)
     ctx.register_command("tenure", handler=_slash,
-                         description="What the agent has earned, per action type; models, undo, flag, revoke, passport, verify")
+                         description="What the agent did and what can be undone; undo, trust (more: /tenure advanced)")

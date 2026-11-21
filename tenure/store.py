@@ -68,7 +68,7 @@ RECENT_COLS = ("n", "session", "agent", "type", "at", "flagged", "undo_id", "cal
 WRITTEN_SCHEMA = "CREATE TABLE IF NOT EXISTS written (h TEXT PRIMARY KEY, at REAL)"
 WRITTEN_WINDOW = 24 * 3600
 DOUBT = "doubt:"           # meta key prefix: a kind whose next action asks first (a verifier's doubt, #6)
-INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke", "copy", "excuse"})
+INPUT_KINDS = frozenset({"settings", "outcome", "agent", "revoke", "copy", "excuse", "trust"})
 LIFTED = "lifted:"         # meta key prefix: a session whose suspension a person lifted (simple mode)
 DISTRUST = "distrust:"     # meta key prefix: a type that lost the trusted start in this profile
 PROGRAM_ALIASES = {"python2": "python", "python3": "python", "py": "python", "nodejs": "node", "pip3": "pip"}
@@ -114,6 +114,10 @@ PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible"
 #       n_new=params.required_n(risks, stakes), veto=type in vetoed, strict=mode == "strict").
 #   {"event": "revoke", "agent", "type"}
 #       Replay: rule.revoke on that type.
+#   {"event": "trust", "agent", "type", "to": free|ask}  (simple mode)
+#       A person's word on a kind (``/tenure trust``): ``free`` gives it its freedom back now (rule.owner_free, never
+#       for an outbound verb, high stakes or a capped kind), ``ask`` makes it ask first until freed again
+#       (rule.owner_pin). Replay: under simple mode only; the study rule reads nothing from it.
 #   {"event": "excuse", "seq": int}  (protocol 0.2)
 #       The owner says the fault outcome at ledger row `seq` was not the agent's mistake (a refusal for another
 #       reason, an undo of a correct change), within EXCUSE_WINDOW of it. Only sources in EXCUSABLE (refusal, undo):

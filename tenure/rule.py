@@ -51,7 +51,8 @@ its score at the bar (ln B), any other to T1; a fault at T2 sends it to T1 whate
 step ``a``), and approvals bring it back to T2 as above. A series of ``n`` verified successes, an act-then-tell action left
 undone through its undo window counting as one (``unseen``), gives the type its freedom back (T3, which never draws a
 spot check there). No trial, wait, lengthening, session condition or guarantee; high stakes and outbound verbs always
-ask. ``outcome`` applies one outcome under either mode, for the hooks and the replay alike.
+ask. A person may also free a kind at once (``owner_free``) or pin it to ask until freed again (``owner_pin``): the
+``trust`` ledger event, which the study rule never reads. ``outcome`` applies one outcome under either mode, for the hooks and the replay alike.
 
 The functions mutate the state and return the derived events to log, for display only: ``tier``, ``trial``,
 ``confirmed`` and ``revoked``. An event holds the type, its stakes, tiers, reasons and counts, nothing else.
@@ -109,6 +110,7 @@ class TypeState:
     unresolved_fault: bool = False     # a medium or high fault in memory: kept when its trial is passed, erased
                                        # only by the trial a model change opens
     distrusted: bool = False           # a fault or a revoke happened: the trusted start no longer covers the type
+    pinned: bool = False               # simple mode: the owner said the kind always asks first, until freed again
     # carry-over
     provisional: int = 0               # carried-over successes not yet matched by the agent's own series successes
     # counters (the agent's own)
@@ -251,7 +253,7 @@ def decide(s: TypeState, n: int | None, spot: float, *, suspended: bool, rng: ra
     if n is None or suspended or s.trial_left > 0 or s.trial_wait > 0:
         return ASK
     if mode == SIMPLE:
-        return NOTIFY if s.tier == T2 and _middle(s) and simple_eligible(s, n) else ASK
+        return NOTIFY if s.tier == T2 and _middle(s) and simple_eligible(s, n) and not s.pinned else ASK
     if s.tier == T3:
         return SPOT if rng.random() < spot else ALLOW
     if s.tier == T2 and _middle(s):
@@ -464,7 +466,7 @@ def trusted(s: TypeState, n: int | None, start: str | None, mode: str = STUDY) -
     medium stakes, not capped, no trial. Such a type asks nothing Hermes alone would not ask. In simple mode: a type
     simple mode may free that is free, never faulted or revoked, or back at T3."""
     if mode == SIMPLE:
-        return (simple_eligible(s, n) and not s.trial_left and not s.trial_wait
+        return (simple_eligible(s, n) and not s.trial_left and not s.trial_wait and not s.pinned
                 and (not s.distrusted or s.tier == T3))
     return trusted_start(s, n, start)
 
@@ -500,7 +502,7 @@ def _simple_success(s: TypeState, n: int | None, *, source: str) -> list[dict]:
     s.successes += 1
     if source == "spot":
         s.spot_checks += 1
-    if not simple_eligible(s, n):
+    if not simple_eligible(s, n) or s.pinned:     # pinned by the owner: it asks until the owner frees it
         return []
     s.series = min(s.series + 1, n)
     if _middle(s):
@@ -570,8 +572,32 @@ def carry_over_simple(old: TypeState, *, strict: bool) -> TypeState:
     start, its faults), with other counters of its own and no trial; in strict mode it starts over, still distrusted
     and with its faults if it had them."""
     new = TypeState(key=old.key, stakes=old.stakes, reversible=old.reversible, changed_at=time.time(),
-                    distrusted=old.distrusted)
+                    distrusted=old.distrusted, pinned=old.pinned)     # the owner's word holds for the new model
     new.faults = old.faults            # the faults on the type stay on its record: they hold its categories (_marked)
     if not strict:
         new.tier, new.wald, new.series = old.tier, old.wald, old.series
     return new
+
+
+# ------------------------------------------------------------------------------------------ the owner's word
+FREE, PIN = "free", "ask"     # the ``to`` of a ``trust`` ledger event (simple mode only)
+
+
+def owner_free(s: TypeState, n: int | None) -> list[dict]:
+    """Simple mode, a ``trust`` event with ``to: free``: a person gives the kind its freedom back now, as a full
+    series would (T3 with its series full, no longer pinned). Never for a kind simple mode does not free (an
+    outbound verb, high stakes, capped): those stay as they are. The faults stay on the record and ``distrusted``
+    stays set, so its next fault makes it watched again (``_simple_fault`` from T3)."""
+    if not simple_eligible(s, n):
+        return []
+    old = s.tier
+    s.tier, s.series, s.provisional, s.pinned = T3, n, 0, False
+    return [_move(s, "tier", old, T3, "owner")] if old != T3 else []
+
+
+def owner_pin(s: TypeState) -> list[dict]:
+    """Simple mode, a ``trust`` event with ``to: ask``: the kind asks first, every time, until a person frees it
+    (``owner_free``). Its approvals still count in its statistics, never toward freedom; its series starts over."""
+    old = s.tier
+    s.tier, s.series, s.sessions, s.session_runs, s.provisional, s.pinned = T1, 0, [], [], 0, True
+    return [_move(s, "tier", old, T1, "owner")] if old != T1 else []
