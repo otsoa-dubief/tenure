@@ -10,39 +10,45 @@ hermes plugins install otsoa-dubief/tenure/tenure
 Hermes 0.23+ and Python 3.11+. Nothing to configure. Restart a running gateway (`hermes gateway restart`); in Hermes
 Desktop, turn the page on once in **Capabilities → Plugins → Tenure**.
 
-<!-- TODO capture: a real Hermes session in simple mode (CLI or Desktop chat): a few free file changes, one /tenure undo,
-the end-of-turn line "tenure · N watched action(s), kept unless you undo ...", and the output of /tenure. The images in
-docs/images/ come from 1.3 and show study mode: they are in the Study mode part below. -->
+<!-- TODO capture: the same kind of session as an image (CLI or Desktop chat), if wanted. The images in docs/images/
+come from 1.3 and show study mode: they are in the Study mode part below. -->
 
-<!-- REAL-SESSION: filled from a real Hermes run -->
+<!-- REAL-SESSION: run 20261121-141155-real, conversations b and d, copied word for word; "sonnet@…" shortens the
+agent string, and the "…" row of /tenure stands for rows cut here. -->
 ```text
-TODO: replace this skeleton with the output of a real Hermes run. The tenure lines use its real wording;
-files, numbers and times are placeholders.
-
-you ›  tidy the notes folder, then push
-       write_file  notes/index.md                     (runs, saved first)
-       terminal    rm notes/draft.md                  (runs, saved first)
-       terminal    git push origin main
-       tenure — shell:git:push: git push origin main
-       shell:git:push reaches outside this machine, or does something tenure can't undo or read: it always asks.
-
-you ›  /tenure undo <N>
-       Undone #<N>: files restored (file:shell:rm). file:shell:rm is now watched; a second mistake and it asks first.
-       (next turn, the agent deletes another file)
-       tenure · 1 watched action, kept unless you undo it: #<N> rm notes/<file> · /tenure undo <#>
-
-you ›  /tenure
-       tenure · what the agent did today, and what you can undo
-       Changes you can still undo (24 h), newest first: ...
-       Watched after a mistake (each action listed at the end of the turn, with an undo): file:shell:rm (deleting files (rm)).
+agent ›  rm -rf build && rm -f ./*.log && git mv inventory/textutil.py inventory/text.py && sed -i…
+you   ›  /tenure undo 3
+         Undone #3: files restored (file:shell:rm). file:shell:rm is now watched; a second mistake and it asks first.
+         Undid or refused a correct action? /tenure excuse 12 within 10 min and it won't count.
+agent ›  rm -rf tmp notes.bak && python3 -m unittest discover -s tests -v 2>&1 | tail -30; git st…
+         tenure · 1 watched action, kept unless you undo it: #8 rm -rf tmp notes.bak && python3 -m unittest discover -s tes… (+3 files) · /tenure undo <#>
+you   ›  /tenure
+         tenure · what the agent did today, and what you can undo
+         Changes you can still undo (24 h), newest first:
+           #  kind           what                                                                     when
+           8  file:shell:rm  rm -rf tmp notes.bak && python3 -m unittest discover -s tes… (+3 files)  2 s ago
+           7  file:write     tests/test_report.py                                                     13 s ago
+           …
+           1  file:write     inventory/store.py                                                       41 s ago
+         Ran without asking today: 10 actions.
+         Watched after a mistake (each action listed at the end of the turn, with an undo): file:shell:rm (deleting files (rm)).
+you   ›  /tenure trust
+         What still asks you, or is watched (sonnet@…):
+           kind                                 state
+           file:shell:rm (deleting files (rm))  watched after a mistake: free after 51 more actions you keep
 ```
+
+From a real Hermes session with Claude Sonnet, Tenure 1.4 (4 coding tasks: 1 question from Tenure, 2 from Hermes
+itself).
 
 ## In one minute
 
 - **It runs without asking:** file edits, memory, subagents, the usual dev tools (npm, pytest, cargo, go, make,
-  git...), and plain file commands on project files (`rm`, `mv`, `cp`, `sed -i`, `echo > file`). Reads never ask.
-- **File changes are saved first.** Every file edit or deletion is saved before it runs: `/tenure undo N` puts it
-  back, for 24 hours. Other commands (a test run, a build, a commit) can't be undone: they run as with Hermes alone.
+  git...), and plain file commands on project files (`rm`, `mv`, `cp`, `sed -i`, `echo > file`), alone or chained in
+  one line. Reads never ask.
+- **File changes are saved first.** Every file edit or deletion is saved before it runs: `/tenure undo N` puts it back,
+  for 24 hours (a chained line, as one change, with git's index for `git rm` and `git mv`). Other commands (a test run,
+  a build, a commit) can't be undone: they run as with Hermes alone.
 - **Some things ask you.** Pushes, publishing, deploys, uploads, messages to people, payments and new packages from
   a registry always ask; a script the agent just wrote asks the first time it runs. Programs whose changes tenure
   can't save (docker, a database CLI, a tool it doesn't know, an MCP tool that writes) ask until you free them with
@@ -71,7 +77,7 @@ works: `/tenure advanced` lists them, and [All commands](#all-commands) has the 
 ## What it does not do
 
 - **It doesn't undo commands.** Only file edits and deletions are saved (text files, up to 5 MB per action; a binary or
-  bigger file asks). A build, an install or a commit stays done.
+  bigger file asks). A build, an install or a commit stays done, even inside a line whose file changes are saved.
 - **It doesn't watch unattended work.** Under cron or `--yolo` nobody answers: Hermes settles tenure's questions by
   its own rules (`--yolo` lets them run), and nothing counts.
 - **It isn't a sandbox.** It reads a command's text before it runs, and a spelling it doesn't recognise can slip
@@ -114,9 +120,13 @@ The `types:` setting reclassifies a kind (`cap`: it always asks).
 **Free.** A kind at low or medium stakes that does not leave the machine runs as with Hermes alone, until its first
 mistake. Files it changes are saved first and can be undone. The usual dev tools (npm, pnpm, yarn, node, python,
 pytest, uv, pip, cargo, go, make, gradle, git...) run without an undo, as they would with Hermes. Any other program
-runs free only when tenure can save the files it changes first: a plain `rm`, `mv`, `cp` or `sed -i` on project files,
-an `rm -r` of a folder it can save whole (up to 2,000 files and 5 MB, no link, no empty folder), a glob it can read
-now. Otherwise it asks ("tenure can't undo it") until you free it with `/tenure trust`.
+runs free only when tenure can save the files it changes first: a plain `rm`, `mv`, `cp`, `touch` or `sed -i` on
+project files; `rm` or `sed -i` over a glob it can read now (`src/*.py`: glob characters in the last part of the path
+only, no `..`, every match a regular file); an `rm -r` of a folder it can save whole (up to 2,000 files and 5 MB, no
+link, no empty folder); and [chained lines](#chained-lines-one-undo) of these. An `rm` of patterns that match nothing
+removes nothing: it runs free, with nothing to save, unless something before it on the line could change the folder
+(`cd src && rm *.log` asks) or a file bears the pattern's own name. Otherwise it asks ("tenure can't undo it") until
+you free it with `/tenure trust`.
 
 **A mistake** is one of these: you undo one of its actions (`/tenure undo N`), you refuse it when asked, you flag it
 (`/tenure flag N`), a check of yours reports a fault ([a verifier](#flag-one-action)), or a file it wrote no longer
@@ -137,6 +147,31 @@ A kind tenure can't undo (`shell:npm`, `memory:write`) asks first instead.
 **Asks first.** After a second mistake, the kind asks you before each action. The prompt says why and what brings it
 back. Deny it if it is wrong: that counts as a mistake. Hermes' "Always" is ignored here: tenure decides each time.
 
+### Chained lines, one undo
+
+A line that chains commands with `&&`, `;` or `||` runs without asking, with one undo for the whole line, when every
+segment is free on its own or a file command whose targets tenure can all save first (`rm`, `git rm`, `git mv`, `mv`,
+`cp`, `sed -i`, `touch`, a redirect into the file it saves). A pipe may go, anywhere in the line, into pure readers
+only (`tail -40`, `head`, `cat`, `grep x`, `wc -l`, `sort`, `uniq`); a pipe into `tee`, `sh`, `xargs`, `python` or a
+reader given a file keeps the question. The second line of the session above is one: its undo, #8, holds the 3 files
+it deleted. For `git rm` and `git mv`, the undo also puts git's index back, so `git status` shows the state before the
+line, staged changes included; if git cannot (a lock), the undo says so, the files stay restored, and the same undo
+tries the index again. The line takes the kind of its riskiest segment (`file:shell:rm` when it deletes), and one
+budget covers it whole (2,000 files, 5 MB, a time limit for reading them).
+
+The line keeps its question when:
+
+- a segment would ask on its own: it reaches another host, has high stakes, adds a dependency, redirects into a file
+  tenure can't save, or holds a substitution, a `cd` or an assignment;
+- a program runs before a segment that saves files (`python3 -m unittest && rm -rf tmp`): it could change what the
+  paths name;
+- it deletes a file an earlier segment of the same line creates (`touch x.txt && rm x.txt`): there is nothing to save
+  yet;
+- a later segment runs a file the line changed;
+- git's index can't be promised back: in a git worktree or a submodule (where `.git` is a file), or for an index entry
+  with a flag (intent-to-add, skip-worktree, assume-unchanged);
+- on Windows.
+
 ### Getting its freedom back
 
 The numbers come from the study's rule, with the default preset (`hermes tenure explain` prints yours):
@@ -147,11 +182,12 @@ The numbers come from the study's rule, with the default preset (`hermes tenure 
 | Watched, then free | 52 actions in a row you keep | 105 actions in a row you keep |
 | A kind tenure can't undo: asks first, then free | 52 approvals in a row | 105 approvals in a row |
 
-A watched action you don't undo within 24 hours counts as kept. The first row is the study's Wald sequential test,
-the other two its series length (Dodge's continuous sampling plan CSP-1) for the risk the preset accepts: `careful`
-asks for longer runs, `fast` for shorter ones (`hermes tenure setup`). Freedom earned back holds at the stakes it was
-earned at; a later mistake starts again at watched (or asks first, for a kind tenure can't undo). There is no spot
-check, no session condition and no guarantee in simple mode: those are [study mode](#study-mode)'s.
+A watched action you don't undo within 24 hours counts as kept. An approved line whose exit code a pipe, a `;` or a `||`
+may hide (`npm test | tail -5`, `make; echo done`) proves nothing, and counts for nothing. The first row is the study's
+Wald sequential test, the other two its series length (Dodge's continuous sampling plan CSP-1) for the risk the preset
+accepts: `careful` asks for longer runs, `fast` for shorter ones (`hermes tenure setup`). Freedom earned back holds at
+the stakes it was earned at; a later mistake starts again at watched (or asks first, for a kind tenure can't undo).
+There is no spot check, no session condition and no guarantee in simple mode: those are [study mode](#study-mode)'s.
 
 ### On your word: `/tenure trust`
 
@@ -179,10 +215,14 @@ the agent's own tool processes, or while nobody answers (cron, `--yolo`).
 - a new dependency from a registry (`npm install left-pad`, `pip install requests`, `uv add httpx`, a URL or a
   `git+` spec...): its install scripts run now. A bare `npm install`, `npm ci` or `pip install -r requirements.txt`
   stays free (unless the agent changed that file);
+- outside content written into a file, in both modes: a download (`curl -o f`, `curl -O`, `curl -sSLO`, `wget URL`,
+  `wget -qO f`) and a read whose output a redirect sends into a file (`gh pr list > prs.txt`). A fetch to the screen or
+  to `/dev/null` (`curl -s URL`, `curl -o /dev/null -w '%{http_code}'`, `wget -O -`) writes nothing and stays a read;
+  `curl` or `wget` piped into a shell is high stakes;
 - programs whose changes tenure can't save (database and unknown CLIs, `docker`, local scripts, MCP tools that write,
   messages to other Bots, other writing through the shell such as `tee` or a pipe into a file; a covered tool's own
-  output, `pytest > log`, is fine), until you free them with `/tenure trust`. For these, and for inline code and shell it cannot read, Hermes' "Allow for this session"
-  stops the question for that kind until the conversation ends;
+  output, `pytest > log`, is fine), until you free them with `/tenure trust`. For these, and for inline code and shell
+  it cannot read, Hermes' "Allow for this session" stops the question for that kind until the conversation ends;
 - Hermes and tenure themselves (a heredoc whose body names their files included), secrets, the agent's own skills and
   plugins, and code that would run later without asking: see [Self-protection](#self-protection).
 
@@ -202,11 +242,19 @@ started from a suspended conversation starts suspended. The exact list, and what
 ### In practice
 
 In one ordinary coding session of 30 calls (writing files, npm, pytest, git, `rm`, `mv`, `sed -i`, `echo >>`, a web
-page, a push), simple mode asks 3 questions Hermes would not: `rm *.log` (no file matches, so nothing to save),
-`git push`, and the first command after the web page. Hermes asks 2 more by itself. After one undone file write,
-still 3 questions: the 6 file writes are listed at the end of their turns instead of asked. Put the web page fourth:
-still 3. Replay it: `HERMES_AGENT_DIR=<Hermes source> python scripts/friction.py` (the session is in
-`tests/friction.py`; without Hermes' source, Hermes' own questions count as tenure's).
+page, a push), simple mode asks 2 questions Hermes would not: `git push`, and the first command after the web page.
+Hermes asks 2 more by itself (`python -c`, `rm -rf build`); 12 calls run free with an undo. After one undone file
+write, still 2 questions: the 6 file writes are listed at the end of their turns instead of asked. Put the web page
+fourth: still 2. Eight chained lines as a real agent wrote them ask 1 question from Tenure
+(`rm notes.bak && git push origin main`); Hermes asks 4 by itself, and 4 of the lines get one undo each. Replay it:
+`HERMES_AGENT_DIR=<Hermes source> python scripts/friction.py` (the sessions are in `tests/friction.py`; without
+Hermes' source, Hermes' own questions count as tenure's).
+
+A corpus of 74 terminal lines as coding agents write them (tests, reads, edits, deletions, git, installs, network,
+mixed chains) is played in simple mode by the test suite (`tests/agent_corpus.py`): 72 do what the rule says (free,
+free with an undo, or a question and its reason). The 2 known gaps both ask more than the rule says:
+`find . -name '*.py' -exec grep -l TODO {} +` (reading `-exec` as a read would mean trusting its command line) and a
+heredoc into a folder the same line creates with `mkdir` (the folder does not exist yet, so nothing can be saved).
 
 ### Models, Bots and copied profiles
 
@@ -351,7 +399,8 @@ and a hash chain over all of it. Never in the database or the ledger: a whole co
 message, or a secret. Type names can include a script, target or alias name taken from the command
 (`shell:npm:run:build`, `shell:make:deploy`, `shell:git:my-alias`): the ledger keeps them, and the passport and the
 dashboard redact them by default (a hash of the name, see [docs/protocol.md](docs/protocol.md) §3.1). The undo
-snapshots (file bytes and their paths, mode 0600) are the one other exception, deleted after 24 h. The database also
+snapshots (file bytes and their paths, mode 0600; for a `git rm` or `git mv`, also the index entries of those paths)
+are the one other exception, deleted after 24 h. The database also
 holds the undo HMAC key, a random secret that signs each snapshot so that a changed snapshot is never restored. The
 first line of a watched command, shown at the end of the turn, is kept in memory only.
 
@@ -364,6 +413,12 @@ table, so that a compressed conversation stays one; to recognise Hermes' own fil
 Hermes home and profile folders and reads the first 4 KB of a small program a command runs; and, for a `git commit`
 after outside content, it reads the repository's `.git/hooks` and `.git/config` and your `~/.gitconfig`, to see
 whether a commit could run a hook.
+
+The one program tenure runs is `git`, and only for a chained line holding `git rm` or `git mv`: `git ls-files` reads
+the index entries of its paths before the line runs, and the undo puts them back (`git update-index`, with
+`git rev-parse` to read the object format when an entry must be taken out). It runs in the
+repository's top folder, with hooks and the file-system monitor turned off, none of the agent's `GIT_*` variables, and
+a 10-second limit.
 
 ## Configuration
 
@@ -420,24 +475,34 @@ the mode you pick, so switching loses nothing.
 ## Hermes Desktop and the dashboard
 
 **In Hermes Desktop**, turn the page on once (Hermes asks this of every plugin's desktop half):
-**Capabilities → Plugins → Tenure**. The **Tenure** page then appears in the sidebar, with a status-bar chip and ⌘K
-commands to open the map, show the current model's passport or revoke it. The web dashboard shows a **Tenure** tab
-without any step.
+**Capabilities → Plugins → Tenure**. The **Tenure** page then appears in the sidebar, with a status-bar chip; ⌘K opens
+it. The web dashboard shows a **Tenure** tab without any step.
 
-Both show every agent and every kind of action of every profile on the machine (read-only): where each stands, the
-actions that ran without asking with Undo and Flag, your own benchmark, and a switch preview before you change model.
+**In simple mode**, both show one page for the profile they run in, in the words of `/tenure` and `/tenure trust`:
+
+- four counters: what ran without asking today, the changes you can still undo, the kinds watched after a mistake,
+  and the kinds that ask you first;
+- the changes you can still undo (24 hours, newest first), each with an **Undo** button: it puts the files back as
+  they were and counts as a mistake of that kind;
+- per agent, what still asks you or is watched, in four groups (watched after a mistake, asks you first, can't be
+  undone, always asks), each kind with the sentence `/tenure trust` gives: why it asks, and what brings it back.
+
+Nothing on the page frees a kind: it gives the command to type in the chat or a terminal (`/tenure trust KIND`), as
+only a person's word frees one. The chip counts the kinds watched or asking first, and a toast appears only for a
+watched action. No tier, guarantee or passport: one line points at study mode.
+
+**In study mode**, both keep their tabs: every agent and every action type of every profile on the machine
+(read-only), the map, your own benchmark, the community board, a switch preview before you change model, the
+passport, the undo list with Undo and Flag, and settings; ⌘K also shows the current model's passport or revokes it.
 Revoke, flag, undo and settings act on the current profile only.
 
-**Your own benchmark.** Public leaderboards say how a model does on someone else's tasks. tenure keeps a table of how
-each model does on yours: verified successes and faults per kind of action, always with the denominator
-(`3 faults / 140 checks`), beside a bundled snapshot of public scores. A model with no public measure is shown as
-such.
+**Your own benchmark** (`hermes tenure models`, and a tab in study mode). Public leaderboards say how a model does on
+someone else's tasks. tenure keeps a table of how each model does on yours: verified successes and faults per kind of
+action, always with the denominator (`3 faults / 140 checks`), beside a bundled snapshot of public scores. A model
+with no public measure is shown as such.
 
-Both screens still use study mode's words (tiers, "trusted start"). In simple mode they show no guarantee, and the
-passport view says the passport belongs to study mode.
-
-<!-- TODO capture: the Tenure page in Hermes Desktop with simple mode on (the kinds of action, the undo list), once
-its wording follows simple mode. -->
+<!-- TODO capture: the simple page in Hermes Desktop (the counters, the undo list with its Undo buttons, what still
+asks and why), from a real session. -->
 
 **In your language.** Every surface (desktop page, dashboard tab, chat messages, `hermes tenure` output) speaks
 English, French, Spanish, Simplified Chinese and Arabic (right to left), and follows Hermes' own language setting
@@ -494,7 +559,8 @@ from then on the study rule applies, starting from T1. Trusted actions carry no 
 spot checks like any other.
 
 **Proofs.** A type climbs on verified outcomes, judged after the tool has run: an approved action that ran cleanly
-and whose automatic check passed (the written file still parses, the exit code is zero) is a success, and so is an
+and whose automatic check passed (the written file still parses, the exit code is zero, and no pipe, `;` or `||` may
+hide another one) is a success, and so is an
 act-then-notify action whose check passed once you name it as seen (`/tenure ok N`, one number or several, within its
 24-hour undo window; `/tenure ok` alone lists the open ones, never "all of them"). Left unread, it counts for nothing:
 not undone is not checked (an undo is a fault). A refusal, an undo or an error you flag is a fault, and a failed check
@@ -604,10 +670,11 @@ way back. Reduced motion is honoured, and one switch turns animations off.
 
 ### In practice, in study mode
 
-In the same 30-call session, study mode with the trusted start asks the same 3 questions Hermes would not. Put the web
-page fourth instead and every later command asks until `/new` (file changes keep going with their undo): 11 questions
-if you allow each once, 3 if you pick "Allow for this session" the first time. After one undone file write, every file
-write of that session asks: 9 questions instead of 3; excused (`/tenure excuse`), 3 again. The study's start asks 23.
+In the same 30-call session, study mode with the trusted start asks 3 questions Hermes would not: simple mode's 2, and
+`rm *.log`, which matches nothing (simple mode lets it run). Put the web page fourth instead and every later command
+asks until `/new` (file changes keep going with their undo): 11 questions if you allow each once, 3 if you pick "Allow
+for this session" the first time. After one undone file write, every file write of that session asks: 9 questions
+instead of 3; excused (`/tenure excuse`), 3 again. The study's start asks 23.
 
 ### Community benchmark (opt-in)
 
@@ -667,8 +734,8 @@ The full rules, every protected entry and every known gap: [docs/self-protection
   after the snapshot and before an `rm -r` runs is removed without being saved.
 - **On Windows, plain `rm`, `mv`, `cp` or `sed -i` keep asking** instead of acting with an undo; writes through
   Hermes' own tools are saved and undoable as everywhere else.
-- **The Desktop page and the dashboard tab** still use study mode's words in simple mode. **Settings saved from the
-  dashboard** may not reach the plugin from the dashboard process; the tab then shows the CLI command to run.
+- **Settings saved from the dashboard** may not reach the plugin from the dashboard process; the tab then shows the
+  CLI command to run.
 
 </details>
 
