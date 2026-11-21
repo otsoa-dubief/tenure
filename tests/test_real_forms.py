@@ -93,6 +93,126 @@ def test_in_a_chain_an_rm_that_removes_nothing_is_left_out_of_the_reading(plugin
     assert kind(mod, ctx, "rm -f ./*.log && git push origin main")[0] == "shell:git:push"
 
 
+# an rm that matches nothing now is dropped only when nothing before it can change what its pattern matches
+GAPS = [("cd src && rm *.py", ["src/m.py"]),                         # no .py at the root, one in src
+        ("git mv a.py a.tmp && rm *.tmp", ["a.py"]),                 # the move makes the pattern match
+        ("make && rm *.o", ["Makefile"]),                             # a program may build what it removes
+        ("rm *.x | mv keep a.x", ["keep"])]                           # the segments of a pipe run together
+
+
+@pytest.mark.parametrize("line,files", GAPS)
+def test_an_rm_after_what_can_change_its_matches_keeps_the_question(plugin, line, files):
+    mod, ctx = make(plugin)
+    for name in files:
+        touch(ctx, name, "all:\n\ttouch a.o\n" if name == "Makefile" else "keep me\n")
+    home = os.path.expanduser("~")
+    assert mod.classify._without_empty_rm(line, ctx.cwd, home) is None
+    assert kind(mod, ctx, line) == ("file:unknown", "high")
+    assert ctx.call("terminal", {"command": line}) == "approved"
+
+
+def test_a_move_then_an_rm_of_what_it_moved_runs_only_with_the_moved_file_saved(plugin):
+    mod, ctx = make(plugin)
+    touch(ctx, "a.py", "keep me\n")
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@example.com"]
+    for args in (["init", "-q"], ["add", "a.py"], ["commit", "-qm", "s"]):
+        subprocess.run(git + args, cwd=ctx.cwd, check=True, capture_output=True, env=ENV)
+    line = "git mv a.py a.tmp && rm *.tmp"
+    assert kind(mod, ctx, line) == ("file:shell:rm", "low")                    # read as a chain, a.py saved
+    run(mod, ctx, line, "c1")
+    assert not os.path.exists(os.path.join(ctx.cwd, "a.py"))
+    mod.cli.slash(f"undo {last_undo(mod)}")
+    assert read(ctx, "a.py") == "keep me\n"
+
+
+@pytest.mark.parametrize("line", ["ls && rm -f *.log", "rm -f *.log; pwd", "cat README.md && rm -f *.log *.tmp"])
+def test_an_rm_after_pure_reads_is_still_left_out(plugin, line):
+    mod, ctx = make(plugin)
+    project(ctx, logs=False)
+    assert kind(mod, ctx, line)[1] == "free"
+    assert ctx.call("terminal", {"command": line}) == "ran" and last_undo(mod) is None
+
+
+@pytest.mark.parametrize("pattern,ok", [("*.log", True), ("./*.log", True), ("build/*.o", True), ("./build/*.o", True),
+                                        ("*/", True), (".*/*.py", False), ("*/x.py", False), ("*/../x*", False),
+                                        ("src/../*.py", False), ("../*.log", False)])
+def test_a_glob_only_in_the_last_part_and_no_dot_dot(plugin, pattern, ok):
+    mod, _ctx = make(plugin)
+    assert mod.classify._plain_glob(pattern) is ok
+
+
+@pytest.mark.parametrize("command", ["rm -f .*/*.py", "rm -f */../x*", "rm -f ../*.nothing"])
+def test_a_glob_bash_walks_otherwise_never_runs_free(plugin, command):
+    mod, ctx = make(plugin)
+    project(ctx, logs=False)
+    os.symlink(os.path.join(ctx.cwd, "inventory"), os.path.join(ctx.cwd, "link"))    # */.. through a link
+    assert kind(mod, ctx, command)[1] != "free"
+    assert mod.classify.undo_chain(command + " && true", ctx.cwd) is None
+
+
+@pytest.mark.parametrize("name", [".hidden.log", "APP.LOG", "App.Log"])
+def test_a_name_the_users_glob_options_may_match_is_not_nothing(plugin, name):
+    mod, ctx = make(plugin)
+    project(ctx, logs=False)
+    touch(ctx, name, "maybe matched\n")                     # dotglob, GLOB_DOTS, nocaseglob, NO_CASE_GLOB
+    assert kind(mod, ctx, "rm -f *.log")[1] != "free"
+    assert mod.classify.files_written("terminal", {"command": "rm -f *.log"}, ctx.cwd, wide=True) == []
+    assert mod.classify.undo_chain("rm -f *.log && true", ctx.cwd) is None
+
+
+@pytest.mark.parametrize("extra", [".hidden.log", "B.LOG"])
+def test_a_glob_python_reads_short_of_the_shells_options_is_not_saved_by_halves(plugin, extra):
+    mod, ctx = make(plugin)
+    project(ctx)                                              # app.log, debug.log
+    touch(ctx, extra, "maybe matched\n")
+    assert mod.classify.files_written("terminal", {"command": "rm *.log"}, ctx.cwd, wide=True) == []
+    assert mod.classify.undo_chain("rm -f *.log && rm -rf build", ctx.cwd) is None
+    assert ctx.call("terminal", {"command": "rm *.log"}) == "approved"
+
+
+def test_a_question_mark_over_a_multibyte_name_is_not_nothing(plugin):
+    mod, ctx = make(plugin)
+    project(ctx, logs=False)
+    touch(ctx, "é.log", "two bytes in the C locale\n")          # bash's ?? takes it there, Python's does not
+    assert kind(mod, ctx, "rm -f ??.log")[1] != "free"
+    assert mod.classify.files_written("terminal", {"command": "rm -f ?.log"}, ctx.cwd, wide=True) != []
+    touch(ctx, "ab.log")
+    assert mod.classify.files_written("terminal", {"command": "rm -f ?.log"}, ctx.cwd, wide=True) == []
+
+
+def test_a_folder_named_like_a_pattern_is_read_as_spelled(plugin):
+    mod, ctx = make(plugin)
+    odd = os.path.join(ctx.cwd, "p[1]")
+    os.makedirs(odd)
+    touch(ctx, "p[1]/a.log", "in the odd folder\n")
+    assert mod.classify.classify("terminal", {"command": "rm -f *.log"}, cwd=odd, wide=True).stakes != "free"
+    touch(ctx, "p1/a.log", "in the folder Python's glob reads\n")
+    assert mod.classify.files_written("terminal", {"command": "rm *.log"}, odd, wide=True) == []
+
+
+@pytest.mark.parametrize("command", ["rm -f *.lo\x01g", "rm -f\x0b*.log", "rm -f *.log\x7f"])
+def test_an_rm_with_a_control_character_is_never_nothing(plugin, command):
+    mod, ctx = make(plugin)
+    project(ctx, logs=False)
+    assert mod.classify._rm_matches_nothing(command, ctx.cwd, os.path.expanduser("~")) is False
+
+
+def test_an_rm_in_an_unknown_folder_is_never_nothing(plugin):
+    mod, _ctx = make(plugin)
+    home, unknown = os.path.expanduser("~"), mod.classify.UNKNOWN
+    assert mod.classify._rm_matches_nothing("rm -f *.log", unknown, home) is False
+    assert mod.classify._without_empty_rm("ls && rm -f *.log", unknown, home) is None
+
+
+@pytest.mark.parametrize("command", ["rm -f *.log", "rm *.log", "rm -f ./*.log *.tmp"])
+def test_no_log_file_in_any_case_hidden_or_not_still_runs_free(plugin, command):
+    mod, ctx = make(plugin)
+    project(ctx, logs=False)
+    touch(ctx, "notes.txt")
+    touch(ctx, ".env.local")
+    assert kind(mod, ctx, command) == ("shell:rm", "free")
+
+
 # --------------------------------------------------------------------------------------------- 2. sed -i
 SCRIPTS = ["'s/a/b/'", "'s/a/b/g; s/c/d/'", "'s#x/y#z#g'", "'s|a|b|I'", "'s,a,b,2'", "'s/a/b/p;s/c/d/i'",
            "'s/a\\.b/c\\/d/'", "'/^#/d'"]

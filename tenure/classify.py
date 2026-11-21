@@ -1712,11 +1712,35 @@ _SIMPLE_CLASS = re.compile(r"\[[A-Za-z0-9._]+\]")
 def _plain_glob(pattern: str) -> bool:
     """A pattern Python's glob and the shell expand alike: ``*`` and ``?`` (never ``**``), and only classes of plain
     letters, digits, dots and underscores (``[ab]``): no ``^`` or ``!`` negation, no range (collation differs), no
-    brace or extended glob."""
+    brace or extended glob. Glob characters only in the last part of the path (``.*/x``: bash before 5.2, macOS
+    /bin/bash among them, walks ``.`` and ``..`` too), and no ``..`` part (the shell walks it on the disk, through a
+    link; the path read here is lexical)."""
     if "**" in pattern or "^" in pattern:
         return False
     rest = _SIMPLE_CLASS.sub("", pattern)
-    return "[" not in rest and "]" not in rest
+    if "[" in rest or "]" in rest:
+        return False
+    parts = pattern.rstrip("/").split("/")
+    return ".." not in parts and not any(_GLOB & set(part) for part in parts[:-1])
+
+
+def _glob_superset(path: str) -> set[str] | None:
+    """The paths of ``path``'s folder that its last part (a ``_plain_glob``) may match under glob options a user sets
+    and Python's glob does not read: hidden names too (bash dotglob or GLOBIGNORE, zsh GLOB_DOTS), any case (bash
+    nocaseglob, zsh NO_CASE_GLOB), ``?`` over several bytes (a multibyte name in the C locale), ``.`` and ``..`` for
+    a leading dot (bash before 5.2). The folder is read as it is spelled, its glob characters as plain text. None
+    when it cannot be read."""
+    folder, base = os.path.split(path)
+    try:
+        names = os.listdir(folder)
+    except (FileNotFoundError, NotADirectoryError):
+        return set()                                     # no such folder: nothing to match
+    except (OSError, ValueError):
+        return None
+    if base.startswith("."):
+        names += [".", ".."]
+    rx = re.compile(fnmatch.translate(base.replace("?", "*")), re.I)
+    return {os.path.join(folder, n) for n in names if rx.match(n)}
 
 
 def _undo_glob(text: str, cwd: str, home: str) -> list[str] | None:
@@ -1739,9 +1763,12 @@ def _undo_glob(text: str, cwd: str, home: str) -> list[str] | None:
         if _GLOB & set(a):
             if not _plain_glob(a):
                 return None                              # read differently by Python and the shell: keep asking
-            matches = sorted(itertools.islice(_globmod.iglob(_undo_path(a, cwd, home)), WIDE_MAX_FILES + 1))
-            if len(matches) > WIDE_MAX_FILES or (not matches and os.path.lexists(_undo_path(a, cwd, home))):
+            path = _undo_path(a, cwd, home)
+            matches = sorted(itertools.islice(_globmod.iglob(path), WIDE_MAX_FILES + 1))
+            if len(matches) > WIDE_MAX_FILES or (not matches and os.path.lexists(path)):
                 return None                              # none, but a file of that name: bash removes it
+            if _glob_superset(path) != set(matches):
+                return None                              # a hidden name, another case: the user's options may take it
             out += matches                               # none: the shell passes the pattern, nothing is removed
         else:
             out.append(_undo_path(a, cwd, home))
@@ -2108,11 +2135,13 @@ def unknown_reason(command: str) -> str:
 def _rm_matches_nothing(command: str, cwd: str | None, home: str) -> bool:
     """A lone ``rm`` whose operands are all plain globs, unquoted, that match nothing in the folder now and are not
     the name of a file either: bash passes each pattern as it is and rm finds nothing to remove (with -f silently,
-    without it it fails); zsh stops on the pattern. Nothing is removed, nothing needs saving (simple mode: free)."""
-    import glob as _globmod
+    without it it fails); zsh stops on the pattern. Nothing is removed, nothing needs saving (simple mode: free).
+    "Nothing" holds under any glob option of the user's (``_glob_superset``: hidden names, any case)."""
     text = str(command or "").strip()
+    if not cwd or cwd == UNKNOWN or any(_undo_odd(c) for c in text):
+        return False
     masked = _undo_mask(text, bang=True)
-    if not cwd or masked != text or set(masked) & (_UNDOABLE_BAD - _GLOB) or ">" in masked:
+    if masked != text or set(masked) & (_UNDOABLE_BAD - _GLOB) or ">" in masked:
         return False
     try:
         toks = shlex.split(text)
@@ -2120,21 +2149,31 @@ def _rm_matches_nothing(command: str, cwd: str | None, home: str) -> bool:
         return False
     got = _undo_opts(toks[1:], "fvrR") if toks[:1] == ["rm"] else None
     return bool(got and got[0]) and all(
-        _GLOB & set(a) and _plain_glob(a) and not any(True for _ in _globmod.iglob(_undo_path(a, cwd, home)))
+        _GLOB & set(a) and _plain_glob(a) and _glob_superset(_undo_path(a, cwd, home)) == set()
         and not os.path.lexists(_undo_path(a, cwd, home)) for a in got[0])
 
 
 def _without_empty_rm(command: str, cwd: str | None, home: str) -> str | None:
     """Simple mode: the line read without its rm segments that remove nothing (``_rm_matches_nothing``): "" when
-    nothing else is left, None when there is none to drop."""
+    nothing else is left, None when there is none to drop. Each rm is read in the folder the line starts in, as the
+    files are now: so only when every segment before the last of them is a pure read (no ``cd``, no program, no move
+    that could make its pattern match) and no pipe reaches it (the segments of a pipe run together); else None, the
+    line is read as it is."""
     if _rm_matches_nothing(command, cwd, home):
         return ""
     parts = chain_parts(command)
     if not parts:
         return None
-    kept = [(seg, op) for seg, _m, op in parts if not _rm_matches_nothing(seg, cwd, home)]
-    if len(kept) == len(parts):
+    drop = {i for i, (seg, _m, _op) in enumerate(parts) if _rm_matches_nothing(seg, cwd, home)}
+    if not drop:
         return None
+    last = max(drop)
+    if any(op == "|" for _seg, _m, op in parts[1:last + 2]):
+        return None                                      # a pipe up to the last of them: a program runs beside it
+    for i, (seg, seg_masked, _op) in enumerate(parts[:last]):
+        if i not in drop and (_chain_segment(seg, seg_masked, cwd, home) or ("",))[0] != "read":
+            return None                                  # it may change the folder or the files the rm reads
+    kept = [(seg, op) for i, (seg, _m, op) in enumerate(parts) if i not in drop]
     return " ".join([seg if i == 0 else f"{op} {seg}" for i, (seg, op) in enumerate(kept)])
 
 
@@ -2238,9 +2277,12 @@ def _chain_targets(operands: list[tuple[str, bool]], recursive: bool, cwd: str, 
         if expand:
             if not _plain_glob(a):
                 return None
-            found = sorted(itertools.islice(_globmod.iglob(_undo_path(a, cwd, home)), WIDE_MAX_FILES + 1))
-            if len(found) > WIDE_MAX_FILES or (not found and os.path.lexists(_undo_path(a, cwd, home))):
+            path = _undo_path(a, cwd, home)
+            found = sorted(itertools.islice(_globmod.iglob(path), WIDE_MAX_FILES + 1))
+            if len(found) > WIDE_MAX_FILES or (not found and os.path.lexists(path)):
                 return None                              # none, but a file of that name: bash removes it
+            if _glob_superset(path) != set(found):
+                return None                              # a hidden name, another case: the user's options may take it
         else:
             found = [_undo_path(a, cwd, home)]
         for p in found:
