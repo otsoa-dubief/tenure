@@ -647,3 +647,23 @@ def test_type_row_names_the_type_that_holds_a_sensitive_kind(env):
     st.db.close()
     types = {t["type"]: t for t in get(client, "/agents").json()["profiles"][0]["agents"][0]["types"]}
     assert types[F_]["held"] == P and types[P]["held"] is None and types["file:write"]["held"] is None
+
+
+def test_simple_mode_passport_answers_at_once_without_a_replay(tmp_path, monkeypatch):
+    """Simple mode keeps no passport: /passport says so at once (409), and never replays the ledger."""
+    root = tmp_path / "hermes"
+    monkeypatch.setenv("HERMES_HOME", str(root))
+    core = importlib.reload(importlib.import_module(PKG))
+    core.ST.ctx = Ctx()
+    seed(core, root, A, 3)
+    st = core.store.Store(os.path.join(str(root), "plugin-data", "tenure", "tenure.db"))
+    with st.transaction():
+        core.sync_settings(st, {**core.settings(), "risks": FAST["risks"], "mode": "simple"})
+    st.db.close()
+    monkeypatch.setattr(core.passport, "_replay_rows", lambda *a, **k: (_ for _ in ()).throw(AssertionError("replay")))
+    api = load_api()
+    app = FastAPI()
+    app.include_router(api.router, prefix="/api/plugins/tenure")
+    client = TestClient(app)
+    r = client.get("/api/plugins/tenure/passport", params={"agent": A})
+    assert r.status_code == 409 and "hermes tenure mode study" in r.json()["detail"]

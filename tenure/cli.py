@@ -740,8 +740,6 @@ def _load_ledger(path: str) -> list[dict]:
 
 
 def verify_cmd(passport_path: str, ledger_path: str = "", key: str = "") -> tuple[str, int]:
-    if _core().simple():
-        return tr("simple.passport", command="hermes tenure mode study"), 0
     try:
         p = _load_json(passport_path)
         rows = _load_ledger(ledger_path) if ledger_path else None

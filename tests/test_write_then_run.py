@@ -31,7 +31,9 @@ def test_adds_dependency(cmd, new):
 def test_scripts_run():
     assert C.scripts_run("python cleanup.py && ./run.sh; npm test; make build; python -m pytest; "
                          "bash -c 'x'; node src/a.js; sh -e x.sh", "/p") == [
-        "/p/cleanup.py", "/p/run.sh", "/p/package.json", "/p/Makefile", "/p/src/a.js", "/p/x.sh"]
+        "/p/cleanup.py", "/p/run.sh", "/p/package.json", "/p/Makefile",
+        "/p/pytest.py", "/p/pytest/__main__.py",          # python -m <mod>: the project's own module, if any (1.4)
+        "/p/src/a.js", "/p/x.sh"]
 
 
 @pytest.mark.parametrize("path,runs", [

@@ -405,5 +405,6 @@
   "simple.explain.always": "始终询问：离开你机器的操作（push、deploy、publish、upload……）、高风险、已封顶的类型、智能体刚写的脚本、新的软件包，以及读取外部内容后写入的会执行代码的文件。读取外部内容后，下一条命令会询问一次：批准后，会话照常工作（mkdir、git add 和 git commit 从不询问）。",
   "simple.explain.study": "此模式下没有随机抽查，也没有保证。研究规则、其保证和签名护照：{command}",
   "simple.ask.suspended": "此会话读取了外部内容：允许此操作后，本会话余下的命令会像之前一样执行（仍遵循简单规则）；拒绝则它们会继续询问。",
-  "simple.ask.prompt_lift": "tenure — {summary}\n{why}\n拒绝不会记为失误：你怀疑的是内容，而不是智能体。"
+  "simple.ask.prompt_lift": "tenure — {summary}\n{why}\n拒绝不会记为失误：你怀疑的是内容，而不是智能体。",
+  "simple.undo.fault_anyway": "仍记为 {type} 的一次失误：你要求撤销它。"
 }

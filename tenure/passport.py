@@ -153,7 +153,7 @@ def _replay_rows(rows: list[dict],
         mode = rule.mode_of(next((r["event"] for r in reversed(rows) if isinstance(r, dict) and isinstance(
             r.get("event"), dict) and r["event"].get("event") == "settings"), None))
     simple = mode == rule.SIMPLE
-    from_simple = False                                          # the rows that follow were recorded in simple mode
+    other = simple                                               # simple mode, or rows recorded under it
 
     def lose_trust(key):                                         # a fault or revoke: every model of the profile
         distrust.add(key)
@@ -171,7 +171,8 @@ def _replay_rows(rows: list[dict],
         if kind == "settings":
             if e.get("rule") not in rule.VERSIONS:
                 raise ValueError(f"row {i}: settings of rule {e.get('rule')!r}, this replay knows {rule.VERSION!r}")
-            cfg, from_simple = e, rule.mode_of(e) == rule.SIMPLE
+            cfg = e
+            other = simple or rule.mode_of(e) == rule.SIMPLE
             for s in states.values():
                 rule.reevaluate(s, params.required_n(cfg["risks"], s.stakes))
             continue
@@ -193,21 +194,20 @@ def _replay_rows(rows: list[dict],
             if r.get("seq") in excused:                         # protocol 0.2: excused afterwards by the owner
                 result, source = "neutral", "excused"
                 s.excused += 1
+            if other and not simple and result == "success" and source == "notify" and not rule.trusted_start(
+                    s, n, cfg.get("start")):                     # rows simple mode recorded, replayed as the study
+                result, source = "neutral", "alone"
             if simple:
                 events = rule.outcome(s, n, result, source, session=e.get("session", ""), start=cfg.get("start"),
                                       mode=mode)
-            else:                                                # study: the hot path of a long ledger, inline
-                if (from_simple and result == "success" and source == "notify"
-                        and not rule.trusted(s, n, cfg.get("start"))):
-                    result, source = "neutral", "alone"
-                if result == "success" and rule.trusted(s, n, cfg.get("start")):
-                    events = rule.on_trusted_success(s, source=source)
-                elif result == "success":
-                    events = rule.on_success(s, n, session=e.get("session", ""), source=source)
-                elif result == "fault":
-                    events = rule.on_fault(s, n, session=e.get("session", ""), source=source)
-                else:
-                    events = rule.on_neutral(s, source)
+            elif result == "success" and rule.trusted_start(s, n, cfg.get("start")):   # study: the hot path, as 1.3
+                events = rule.on_trusted_success(s, source=source)
+            elif result == "success":
+                events = rule.on_success(s, n, session=e.get("session", ""), source=source)
+            elif result == "fault":
+                events = rule.on_fault(s, n, session=e.get("session", ""), source=source)
+            else:
+                events = rule.on_neutral(s, source)
             failed = any(v["event"] == "trial" and v.get("reason") == "failed" for v in events)
             if (result, source) in store.COUNTED and not failed:
                 rule.count_action(s)
@@ -403,10 +403,10 @@ def _last_settings(rows: list[dict]) -> dict | None:
     return next((r["event"] for r in reversed(rows) if r["event"].get("event") == "settings"), None)
 
 
-def _states_for(rows: list[dict], agent: str, st) -> dict:
+def _states_for(rows: list[dict], agent: str, st, mode: str | None = None) -> dict:
     """The agent's types as the ledger replays them; the recorded states when the ledger cannot be replayed."""
     try:
-        states, _ = _replay(rows)
+        states, _ = _replay(rows, mode)
         return {k: s for (a, k), s in states.items() if a == agent}
     except (KeyError, TypeError, ValueError, AttributeError):
         return {s.key: s for _, s in st.states(agent)}
@@ -438,7 +438,7 @@ def build(st, agent: str, settings: dict, data_dir: str, redact: bool = True, cr
          "redacted": bool(redact),
          # What the ledger proves, by replay: the very states a verifier recomputes (a record kept by an older
          # version may differ in a field the replay now derives, such as the trusted start).
-         "types": _entries(_states_for(rows, agent, st), cfg, redact),
+         "types": _entries(_states_for(rows, agent, st, rule.mode_of(cfg)), cfg, redact),
          "ledger": {"count": len(rows), "head": _head(rows)}}
     if create_key or os.path.exists(os.path.join(data_dir, KEY_FILE)):
         key, public = keypair(data_dir)
@@ -555,7 +555,7 @@ def verify(passport: dict, rows: list[dict] | None = None, chain_ok: bool = Fals
     if passport["ledger"]["head"] != head:
         problems.append(f"ledger: head {passport['ledger']['head']} in the passport, {head} at event {count}")
     try:
-        states, cfg = _replay(rows[:count])
+        states, cfg = _replay(rows[:count], rule.STUDY)        # a passport is the study mode's
     except (KeyError, TypeError, ValueError, AttributeError) as exc:
         return problems + [f"replay: {exc}"]
     if passport.get("protocol") == PROTOCOLS[0] and any((r.get("event") or {}).get("event") == "excuse"

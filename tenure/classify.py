@@ -1383,6 +1383,7 @@ def files_written(tool_name: str, args: dict, cwd: str | None, home: str | None 
 # ------------------------------------------------------------------------------------------ undoable file commands
 UNDOABLE_PROGRAMS = frozenset({"rm", "mv", "cp", "sed", "touch", "echo", "printf", "cat"})
 UNDOABLE_MAX_FILES = 50
+RM_TYPE = "file:shell:rm"                                # simple mode: an undoable rm, apart from other file commands
 WIDE_MAX_FILES = 2000                                    # simple mode's rm -r: files of a folder (5 MB in all)
 _GLOB = set("*?[]")
 UNDOABLE_MAX_BYTES = 5_000_000                           # undo.snapshot's own limit
@@ -1610,6 +1611,19 @@ def _undo_tree(folder: str) -> list[str] | None:
     return out or None
 
 
+_SIMPLE_CLASS = re.compile(r"\[[A-Za-z0-9._]+\]")
+
+
+def _plain_glob(pattern: str) -> bool:
+    """A pattern Python's glob and the shell expand alike: ``*`` and ``?`` (never ``**``), and only classes of plain
+    letters, digits, dots and underscores (``[ab]``): no ``^`` or ``!`` negation, no range (collation differs), no
+    brace or extended glob."""
+    if "**" in pattern or "^" in pattern:
+        return False
+    rest = _SIMPLE_CLASS.sub("", pattern)
+    return "[" not in rest and "]" not in rest
+
+
 def _undo_glob(text: str, cwd: str, home: str) -> list[str] | None:
     """Simple mode: ``rm [-f|-v] PATTERN...`` with unquoted glob patterns, read the way the shell expands them in the
     working directory now (no hidden file for a leading ``*``, a pattern that matches nothing makes the command keep
@@ -1628,6 +1642,8 @@ def _undo_glob(text: str, cwd: str, home: str) -> list[str] | None:
     out: list[str] = []
     for a in got[0]:
         if _GLOB & set(a):
+            if not _plain_glob(a):
+                return None                              # read differently by Python and the shell: keep asking
             matches = sorted(_globmod.glob(_undo_path(a, cwd, home)))
             if not matches:
                 return None
@@ -1848,6 +1864,16 @@ def _git_discards(sub: str, args: list[str]) -> bool:
     """git commands that throw away uncommitted work: checkout -- <paths> / checkout ., restore, stash drop|clear,
     reset --hard, clean -f, branch -D."""
     rest = [a for a in args if a != sub]
+    if getattr(_CACHE, "wide", False):                  # simple mode reads a few more ways to discard work
+        plain = [a for a in rest if not a.startswith("-")]
+        if sub == "checkout" and len(plain) >= 2 and not set(rest) & {"-b", "-B", "--orphan", "-t", "--track",
+                                                                       "--detach"}:
+            return True                                  # checkout <tree-ish> <path>: the path's changes are gone
+        if sub == "switch" and "--discard-changes" in rest:
+            return True
+        if sub in ("rm", "mv") and any(a in ("-f", "--force") or (a.startswith("-") and not a.startswith("--")
+                                                                 and "f" in a[1:]) for a in rest):
+            return True
     if sub == "checkout":
         return "--" in rest or "." in rest
     if sub == "restore":
@@ -1903,6 +1929,13 @@ HIJACK_VARS = re.compile(
     r"|PYTHONSTARTUP|PYTHONHOME|PYTHONBREAKPOINT|PYTHONUSERBASE|NODE_OPTIONS|PERL5OPT|PERL5DB|RUBYOPT"
     r"|JAVA_TOOL_OPTIONS|_JAVA_OPTIONS|GCONV_PATH|\w*ASKPASS|LESS|BROWSER|TERMINFO|TERMINFO_DIRS"
     r"|HOME|XDG_CONFIG_HOME|XDG_CONFIG_DIRS|XDG_DATA_HOME|HERMES_\w+)")
+WIDE_HIJACK = {"GLOBIGNORE", "FIGNORE"}                 # simple mode: they change what a glob or a name expands to
+
+
+def _hijack(name: str) -> bool:
+    return bool(HIJACK_VARS.fullmatch(name)) or (getattr(_CACHE, "wide", False) and name in WIDE_HIJACK)
+
+
 # Assignments that change nothing a read-only command runs: it stays free. Any other assignment lifts it to high.
 HARMLESS_VARS = re.compile(r"(?:LANG|LANGUAGE|LC_\w+|TZ|TERM|COLUMNS|LINES|NO_COLOR|FORCE_COLOR|CLICOLOR\w*"
                            r"|GREP_COLOR\w*|LS_COLORS)")
@@ -4287,7 +4320,7 @@ def _hijacks(tokens: list[str]) -> str | None:
     names = set(_assigned(tokens))
     for t in toks:
         m = ASSIGN_WORD.match(t)
-        if m and m.group(1) in names and HIJACK_VARS.fullmatch(m.group(1)) and not APPENDED_PATH.match(t):
+        if m and m.group(1) in names and _hijack(m.group(1)) and not APPENDED_PATH.match(t):
             v = _value_hijacks(m.group(1), t.split("=", 1)[1])
             if v == CAP:
                 return CAP
@@ -4295,7 +4328,7 @@ def _hijacks(tokens: list[str]) -> str | None:
     if toks and os.path.basename(toks[0]) in ASSIGNING_BUILTINS:
         for t in toks[1:]:
             for word in (t, t.split("=", 1)[-1]):
-                if not word.startswith("-") and HIJACK_VARS.fullmatch(word):
+                if not word.startswith("-") and _hijack(word):
                     return CAP
     return worst
 
@@ -5354,9 +5387,12 @@ def same_program(t: str) -> str:
 
 def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overrides: dict | None = None,
              home: str | None = None, vocabulary: fields.Vocabulary | None = None, wide: bool = False) -> Action:
+    """``wide``: simple mode's reading (rm -r and rm globs saved, rm its own type, more git discards and hijacked
+    variables); the study mode reads without it."""
     args = args if isinstance(args, dict) else {}
     home = home or os.path.expanduser("~")
     _CACHE.memo, _CACHE.roots, _CACHE.cwd, _CACHE.home = {}, None, cwd, home
+    _CACHE.wide = wide
     if tool_name in FREE_TOOLS:
         t, stakes, rev = f"read:{tool_name}", FREE, False
     elif tool_name in ("write_file", "patch"):
@@ -5372,11 +5408,10 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
         elif (wide and (t, stakes) == ("file:unknown", HIGH) and _GLOB & set(command)
               and undoable_shell(command, cwd, home, wide=True)):
             t, stakes, rev = "file:shell", LOW, True    # simple mode: an rm glob read now, every match saved first
-        parts = t.split(":")
-        if (parts[0] == "shell" and stakes != CAP and (len(parts) == 2 and parts[1] in DEPENDENCY_PROGRAMS
-                                                       or parts[2:] == ["-m", "pip"])
-                and adds_dependency(command)):
-            t = f"{t}:{NEW_DEPENDENCY}"                 # a package from a registry: its install scripts run now
+        if wide and t == "file:shell" and any(os.path.basename(w[0]) == "rm" for w in _segments(command) if w):
+            t = RM_TYPE                                 # simple mode: deleting earns its freedom apart from writing
+        if t.split(":")[0] in ("shell", "file") and stakes != CAP and adds_dependency(command):
+            t = f"{t}:{NEW_DEPENDENCY}"                 # a package from a registry, in any segment: its scripts run now
     elif tool_name == "execute_code":
         t, stakes, rev = _code(str(args.get("code") or ""), cwd, home)
     elif tool_name in TOOLS:
@@ -5420,7 +5455,7 @@ def classify(tool_name: str, args: dict | None, *, cwd: str | None = None, overr
             and not tool_name.startswith("kanban_") and not _clamped(tool_name)
             and ":@" not in tool_name and fields.parent_of(t) is None):      # refuse only a type that already parses as a category type
         t, stakes = _categorized(t, stakes, before, tool_name, args, overrides, vocabulary)
-    rev = rev and t in ("file:write", "file:shell")  # only a change inside the project can be undone
+    rev = rev and t in ("file:write", "file:shell", RM_TYPE)  # only a change inside the project can be undone
     return Action(type=t, stakes=stakes, reversible=rev, summary=_summary(tool_name, args, t, vocabulary))
 
 
@@ -5440,7 +5475,9 @@ EXEC_NAMES = {"package.json", "makefile", "gnumakefile", "justfile", "rakefile",
               "dockerfile", "build.gradle", "build.gradle.kts", ".gitlab-ci.yml", ".npmrc", ".yarnrc.yml",
               "vite.config.js", "vite.config.ts", "webpack.config.js", "jest.config.js", "vitest.config.ts"}
 EXEC_SUFFIXES = (".sh", ".bash", ".zsh", ".mk", ".ps1", ".bat", ".cmd")
-EXEC_DIRS = (".github/workflows/", ".husky/", ".git/hooks/", ".circleci/")
+EXEC_DIRS = (".github/workflows/", ".husky/", ".git/hooks/", ".circleci/", ".cursor/rules/")
+# Instructions an agent reads as its own (they steer what it runs next): written after outside content, asked.
+INSTRUCTION_NAMES = {"agents.md", "claude.md", ".hermes.md", "soul.md", ".cursorrules"}
 
 
 _PREFIXES = {"env", "command", "builtin", "time", "nohup", "exec", "nice", "ionice", "stdbuf", "xargs", "timeout",
@@ -5497,7 +5534,7 @@ def adds_dependency(command: str) -> str | None:
     for words in _segments(command):
         prog = os.path.basename(words[0])
         rest = words[1:]
-        if prog in ("python", "python3") and rest[:2] == ["-m", "pip"]:
+        if (re.fullmatch(r"python\d*(\.\d+)?", prog) or prog == "py") and rest[:2] == ["-m", "pip"]:
             prog, rest = "pip", rest[2:]
         if prog == "uv" and rest[:1] == ["pip"]:
             prog, rest = "pip", rest[1:]
@@ -5558,8 +5595,14 @@ def scripts_run(command: str, cwd: str | None) -> list[str]:
                                                                "--experimental-loader"):
                     add(next(it, ""))                            # node -r ./hook.js preloads a file of the project
                     continue
-                if a in inline or a in ("-m", "-"):
-                    break                                        # inline code or a module: no file of the project
+                if a == "-m":                                    # a module: the project's own file, if it has one
+                    mod = next(it, "").replace(".", "/")
+                    if mod and not mod.startswith("/"):
+                        add(mod + ".py")
+                        add(os.path.join(mod, "__main__.py"))
+                    break
+                if a in inline or a == "-":
+                    break                                        # inline code: no file of the project
                 if a in ("-W", "-X", "--check-hash-based-pycs", "-I"):
                     next(it, None) if a != "-I" else None        # python -W ignore x.py: the value is not the script
                 elif not a.startswith("-"):
@@ -5596,12 +5639,55 @@ def scripts_run(command: str, cwd: str | None) -> list[str]:
 
 
 def runs_on_execution(path: str) -> bool:
-    """A file whose content runs when a tool runs (a script, a build or test config, a CI workflow, a git hook)."""
+    """A file whose content runs when a tool runs (a script, a build or test config, a CI workflow, a git hook), or
+    that an agent reads as instructions (AGENTS.md, CLAUDE.md, SOUL.md, .cursorrules...)."""
     p = path.replace("\\", "/")
     name = p.rsplit("/", 1)[-1].lower()
     return (name in EXEC_NAMES or name.endswith(EXEC_SUFFIXES) or any(d in p for d in EXEC_DIRS)
+            or name in INSTRUCTION_NAMES or p.lower().endswith(".github/copilot-instructions.md")
             or (name.startswith("conftest") and name.endswith(".py")) or name in ("requirements.txt",
                                                                                  "sitecustomize.py", "usercustomize.py")
             or name.endswith(".pth") or name in ("cargo.toml", "build.rs", "docker-compose.yml", "docker-compose.yaml")
             or name.startswith("dockerfile") or re.search(r"\.config\.[cm]?[jt]s$", name) is not None
             or any(d in p for d in ("node_modules/", ".venv/", "venv/")))
+
+
+_PATCH_PATH = re.compile(r"^(?:diff --git a/(\S+) b/(\S+)|\+\+\+ b/(\S+)|--- a/(\S+)|rename to (.+)|copy to (.+))$",
+                         re.M)
+PATCH_MAX_BYTES = 2_000_000
+
+
+def patch_targets(command: str, cwd: str | None) -> list[str] | None:
+    """Simple mode: the files a ``git apply`` or ``git am`` of the command would write, read from the headers of its
+    patch files (absolute, from ``cwd``: the repository root in the usual case; ``-p``/``--directory`` are not
+    followed). [] when the command applies no patch; None when a patch cannot be read (standard input, a missing or
+    too large file), so the caller asks."""
+    base = cwd or os.getcwd()
+    out: list[str] = []
+    for words in _segments(command):
+        if os.path.basename(words[0]) != "git":
+            continue
+        rest, i = words[1:], 0
+        while i < len(rest) and rest[i].startswith("-"):
+            i += 2 if rest[i] in ("-C", "-c", "--git-dir", "--work-tree") else 1
+        if i >= len(rest) or rest[i] not in ("apply", "am"):
+            continue
+        if i:
+            return None                                      # git -C dir apply...: another folder, read as unknown
+        files = [a for a in rest[1:] if not a.startswith("-")]
+        if not files:
+            return None                                      # the patch comes on standard input
+        for f in files:
+            path = os.path.join(base, os.path.expanduser(f))
+            try:
+                if not os.path.isfile(path) or os.path.getsize(path) > PATCH_MAX_BYTES:
+                    return None
+                with open(path, encoding="utf-8", errors="replace") as fh:
+                    text = fh.read()
+            except OSError:
+                return None
+            for m in _PATCH_PATH.finditer(text):
+                name = next(g for g in m.groups() if g).strip()
+                if name != "/dev/null":
+                    out.append(os.path.normpath(os.path.join(base, name)))
+    return out
