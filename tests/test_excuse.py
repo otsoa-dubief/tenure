@@ -250,3 +250,48 @@ def test_a_fault_numbered_by_an_older_tenure_is_not_listed(plugin):
     with mod.txn() as st:
         st.set_meta(mod.store.EXCUSE_NUMBERS, "")
     assert mod.excusable(mod.store_()) == [] and "No fault to excuse" in mod.cli.slash("excuse")
+
+
+# ------------------------------------------------------------------------------- review of PR #36 (21/11): numbers
+def test_e1_once_said_today_the_hint_reads_no_ledger(plugin, monkeypatch):
+    import time
+    mod, ctx = plugin(TRUST)
+    ctx.call("write_file", write("a"))
+    with mod.txn() as st:
+        st.set_meta("excuse_hint:file:write", time.strftime("%Y-%m-%d"))
+    calls = []
+    monkeypatch.setattr(mod, "excusable", lambda *a, **k: calls.append(1) or [])
+    out = mod.cli.slash(f"undo {int(ctx.posted[-1].rsplit(' ', 1)[1])}")
+    assert "files restored" in out and "/tenure excuse" not in out and calls == []
+
+
+def test_e2_a_copied_profile_drops_the_excuse_numbers(plugin, tmp_path, monkeypatch):
+    from test_copied_profile import clone, reopen
+    mod, ctx = plugin(TRUST)
+    ctx.call("write_file", write("a"))
+    mod.cli.slash(f"undo {int(ctx.posted[-1].rsplit(' ', 1)[1])}")
+    assert mod.store_().fault_numbers()
+    original = tmp_path / "hermes"
+    reopen(mod, monkeypatch, original)
+    copy = clone(original)
+    reopen(mod, monkeypatch, copy)
+    st = mod.store_()
+    assert st.get_meta(mod.store.EXCUSE_NUMBERS) is None and mod.excusable(st) == []
+    reopen(mod, monkeypatch, original)
+    assert mod.store_().fault_numbers()
+
+
+def test_e3_flag_undo_and_excuse_read_one_numbering(plugin):
+    mod, ctx = plugin(TRUST)
+    assert ctx.call("terminal", {"command": "python -c 'print(1)'"}) == "approved"   # ran first, no undo
+    ctx.call("write_file", write("a"))                                       # acts, with undo number u
+    u = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    st = mod.store_()
+    rows = st.recent_rows(None)
+    assert next(r["n"] for r in rows if r["undo_id"] == u) == u               # the number the person saw
+    other = next(r["n"] for r in rows if r["undo_id"] is None)
+    assert other != u and st.get_undo(other) is None                         # its own number, from the same counter
+    with mod.txn() as st:
+        assert st.add_undo(A, "file:write", None) > other                    # and no later undo gets it
+    assert f"action {u} flagged" in mod.cli.slash(f"flag {u}") and state(mod, "file:write").faults == 1
+    assert f"Action {u} already counted" in mod.cli.slash(f"flag {u}")
