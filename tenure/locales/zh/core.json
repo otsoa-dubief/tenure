@@ -375,6 +375,7 @@
   "simple.notice.now": "tenure · {type}，按你的新设置：{state}。",
   "simple.ask.unsaved": "tenure 无法撤销 {type}：它不知道该命令会改动哪些文件，所以询问。",
   "simple.ask.always": "{type} 会触及本机之外，或做 tenure 无法撤销或读懂的事：它始终询问。",
+  "simple.ask.unknown": "{type} 涉及 tenure 无法识别的文件（{reason}）：始终询问。",
   "simple.ask.mistakes": {
     "other": "{type} 失误后先询问：再连续批准 {n} 次，它就会重新执行，每个操作都会告知你。"
   },
@@ -442,6 +443,7 @@
   "trust.state.pinned_hidden": "先询问你（你的选择）：显示名称（r）以复制让它自由的命令",
   "trust.state.out": "始终询问：它会触及本机之外",
   "trust.state.high": "始终询问：高风险",
+  "trust.state.unknown": "始终询问：tenure 无法识别的文件（{reason}）",
   "trust.state.capped": "始终询问：你的设置如此要求",
   "trust.state.study": {
     "other": "{tier}：再有 {n} 次已验证的成功即可自主执行"
@@ -518,6 +520,10 @@
   "kind.file_write": "项目内的文件编辑",
   "kind.file_write_outside": "项目外的文件编辑",
   "kind.file_shell": "命令造成的文件改动",
+  "unknown.why.path": "tenure 无法读取的路径",
+  "unknown.why.variable": "tenure 无法读取的变量或替换",
+  "unknown.why.glob": "tenure 无法展开的通配模式",
+  "kind.file_unknown": "tenure 无法识别的文件",
   "kind.file_shell_rm": "删除文件（rm）",
   "kind.memory_write": "记忆笔记",
   "kind.delegate_task": "交给子智能体的工作",

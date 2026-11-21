@@ -600,6 +600,7 @@
   "simple.notice.now": "tenure · {type}، وفق إعداداتك الجديدة: {state}.",
   "simple.ask.unsaved": "لا يستطيع tenure التراجع عن {type}: لا يعرف أي الملفات يغيّرها، لذا يسأل.",
   "simple.ask.always": "{type} يصل إلى خارج هذا الجهاز، أو يفعل ما لا يستطيع tenure التراجع عنه أو قراءته: يسأل دائمًا.",
+  "simple.ask.unknown": "{type} يلمس ملفات لم يتمكن tenure من تحديدها ({reason}): يسأل دائمًا.",
   "simple.ask.mistakes": {
     "zero": "{type} يسأل أولًا بعد أخطائه: {n} من الموافقات المتتالية الإضافية ويعود إلى التنفيذ، مع عرض كل إجراء عليك.",
     "one": "{type} يسأل أولًا بعد أخطائه: {n} من الموافقات المتتالية الإضافية ويعود إلى التنفيذ، مع عرض كل إجراء عليك.",
@@ -717,6 +718,7 @@
   "trust.state.pinned_hidden": "يسألك أولًا، باختيارك: اعرض الأسماء (r) لنسخ الأمر الذي يجعله حرًّا",
   "trust.state.out": "يسأل دائمًا: يصل إلى خارج هذا الجهاز",
   "trust.state.high": "يسأل دائمًا: مخاطرة عالية",
+  "trust.state.unknown": "يسأل دائمًا: ملفات لم يتمكن tenure من تحديدها ({reason})",
   "trust.state.capped": "يسأل دائمًا: هكذا تقول إعداداتك",
   "trust.state.study": {
     "zero": "{tier}: {n} من النجاحات الموثّقة الإضافية قبل أن يعمل وحده",
@@ -838,6 +840,10 @@
   "kind.file_write": "تعديلات الملفات داخل المشروع",
   "kind.file_write_outside": "تعديلات الملفات خارج المشروع",
   "kind.file_shell": "ملفات تغيّرها الأوامر",
+  "unknown.why.path": "مسار لم يتمكن tenure من قراءته",
+  "unknown.why.variable": "متغير أو استبدال لم يتمكن tenure من قراءته",
+  "unknown.why.glob": "نمط لم يتمكن tenure من توسيعه",
+  "kind.file_unknown": "ملفات لم يتمكن tenure من تحديدها",
   "kind.file_shell_rm": "حذف الملفات (rm)",
   "kind.memory_write": "ملاحظات الذاكرة",
   "kind.delegate_task": "عمل يُسند إلى وكيل فرعي",

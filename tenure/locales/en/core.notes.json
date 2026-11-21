@@ -39,6 +39,8 @@
   "cli.report.doubt_done": "A verifier reported a doubt, not a fault: nothing counts against the agent, only the next action of this kind asks first.",
   "simple.turn": "Simple mode: one line at the end of a turn. {actions}: the commands (or files) of the watched actions of that turn, comma-separated; {command} is /tenure undo.",
   "simple.turn.count": "Simple mode: after a chained command in the end-of-turn line and in /tenure, in brackets: how many files its one undo holds. Keep +{n}.",
+  "simple.ask.unknown": "Simple mode: why a command whose files could not be identified always asks. {reason} is one of the unknown.why.* texts.",
+  "trust.state.unknown": "/tenure trust, for file:unknown: {reason} is what the last such command hid (unknown.why.*).",
   "simple.ask.more_segments": "Simple mode, in the question that lifts a suspension: after a long chained command cut at 200 characters, how many of its segments the cut hides.",
   "undo.index_failed": "One line after an undo of git rm or git mv when git could not put its index back. {error} is git's first error line or a short reason; {command} {id} is the undo command to run again. Keep git status, {command} and {id} as they are.",
   "undo.index_done": "After a retried undo (the files came back earlier): git's index is back too.",

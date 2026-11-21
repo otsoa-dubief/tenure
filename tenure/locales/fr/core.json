@@ -422,6 +422,7 @@
   "simple.notice.now": "tenure · {type}, avec vos nouveaux paramètres : {state}.",
   "simple.ask.unsaved": "tenure ne peut pas annuler {type} : il ne sait pas quels fichiers la commande modifie, donc il demande.",
   "simple.ask.always": "{type} sort de cette machine, ou fait quelque chose que tenure ne peut ni annuler ni lire : il demande toujours.",
+  "simple.ask.unknown": "{type} touche des fichiers que tenure n'a pas pu identifier ({reason}) : il demande toujours.",
   "simple.ask.mistakes": {
     "one": "{type} demande d'abord après ses fautes : encore {n} approbation et il agit de nouveau, chaque action vous étant montrée.",
     "other": "{type} demande d'abord après ses fautes : encore {n} approbations d'affilée et il agit de nouveau, chaque action vous étant montrée."
@@ -499,6 +500,7 @@
   "trust.state.pinned_hidden": "vous demande d'abord, à votre demande : affichez les noms (r) pour copier la commande qui le libère",
   "trust.state.out": "demande toujours : il sort de cette machine",
   "trust.state.high": "demande toujours : risque élevé",
+  "trust.state.unknown": "demande toujours : fichiers que tenure n'a pas pu identifier ({reason})",
   "trust.state.capped": "demande toujours : vos réglages le veulent",
   "trust.state.study": {
     "one": "{tier} : encore {n} succès vérifié avant d'agir seul",
@@ -584,6 +586,10 @@
   "kind.file_write": "modifications de fichiers dans le projet",
   "kind.file_write_outside": "modifications de fichiers hors du projet",
   "kind.file_shell": "fichiers modifiés par des commandes",
+  "unknown.why.path": "un chemin que tenure n'a pas pu lire",
+  "unknown.why.variable": "une variable ou une substitution que tenure n'a pas pu lire",
+  "unknown.why.glob": "un motif que tenure n'a pas pu développer",
+  "kind.file_unknown": "fichiers que tenure n'a pas pu identifier",
   "kind.file_shell_rm": "suppression de fichiers (rm)",
   "kind.memory_write": "notes de mémoire",
   "kind.delegate_task": "travail confié à un sous-agent",

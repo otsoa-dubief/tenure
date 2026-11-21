@@ -420,6 +420,7 @@
   "simple.notice.now": "tenure · {type}, under your new settings: {state}.",
   "simple.ask.unsaved": "tenure can't undo {type}: it can't tell which files it changes, so it asks.",
   "simple.ask.always": "{type} reaches outside this machine, or does something tenure can't undo or read: it always asks.",
+  "simple.ask.unknown": "{type} touches files tenure couldn't identify ({reason}): it always asks.",
   "simple.ask.mistakes": {
     "one": "{type} asks first after its mistakes: {n} more approval and it acts again, each action shown to you.",
     "other": "{type} asks first after its mistakes: {n} more approvals in a row and it acts again, each action shown to you."
@@ -497,6 +498,7 @@
   "trust.state.pinned_hidden": "asks you first, your choice: show names (r) to copy the command that frees it",
   "trust.state.out": "always asks: it reaches outside this machine",
   "trust.state.high": "always asks: high risk",
+  "trust.state.unknown": "always asks: files tenure couldn't identify ({reason})",
   "trust.state.capped": "always asks: your settings say so",
   "trust.state.study": {
     "one": "{tier}: {n} more verified success before acting alone",
@@ -582,6 +584,10 @@
   "kind.file_write": "file edits in the project",
   "kind.file_write_outside": "file edits outside the project",
   "kind.file_shell": "file changes made by commands",
+  "unknown.why.path": "a path tenure couldn't read",
+  "unknown.why.variable": "a variable or a substitution tenure couldn't read",
+  "unknown.why.glob": "a pattern tenure couldn't expand",
+  "kind.file_unknown": "files tenure couldn't identify",
   "kind.file_shell_rm": "deleting files (rm)",
   "kind.memory_write": "memory notes",
   "kind.delegate_task": "work handed to a subagent",
