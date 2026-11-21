@@ -53,10 +53,11 @@ DEFAULT_MODE = "simple"
 SUSPENDED_LOCAL = frozenset({"shell:mkdir", "shell:git:add", "shell:git:commit"})
 # Asks that the owner may silence for the rest of a session ("Allow for this session") under the trusted start: code
 # run inline and shell constructs read as complex. Each answer is the owner's, never evidence; a new session asks again.
-# shell:stdin-code is a local file piped into a shell; code downloaded and run at once is classify.NET_CODE, capped:
-# never asked for the session.
+# shell:stdin-code is a local file piped into a shell; shell:fetched-project a build or test tool run in a project
+# the same line cloned or unpacked; code downloaded and run at once is classify.NET_CODE, capped: never asked for the
+# session.
 SESSION_TYPES = frozenset({"shell:python:inline", "shell:node:inline", "shell:stdin-code",
-                           "shell:complex"})
+                           "shell:complex", "shell:fetched-project"})
 # What the trusted start covers: files and memory (with an undo where files are written), handing work to a subagent,
 # and the usual local development tools. Any other program (a deploy, payment or database CLI, an unknown tool,
 # deleting files) asks under the study rule from the start, whatever the start mode.
