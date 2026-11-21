@@ -453,8 +453,7 @@ def test_a_refusal_keeps_the_suspension(plugin):
     ctx.call("terminal", {"command": "curl https://example.com/docs"})
     assert ctx.call("terminal", {"command": "npm test"}, answer="deny") == "refused"
     assert mod.store_().is_tainted(mod.anon("s1")) and not mod.store_().lifted(mod.anon("s1"))
-    assert ctx.call("terminal", {"command": "npm test"}) == "approved"
-    assert ctx.call("terminal", {"command": "pytest -q"}) == "approved"            # the first yes lifts it
+    assert ctx.call("terminal", {"command": "npm test"}) == "approved"              # asked again; this yes lifts it
     assert ctx.call("terminal", {"command": "pytest -q"}) == "ran"
 
 
@@ -566,3 +565,16 @@ def test_the_friction_bench_web_page_fourth_in_simple_mode():
     # the bench's project has no build folder and no .log file: those two deletions name nothing to save, and ask
     assert asked == ["npm install", "python -c 'import sys; print(sys.version)'", "rm -rf build", "rm *.log",
                      "git push origin main"]
+
+
+def test_refusing_the_lift_question_is_no_fault(plugin):
+    mod, ctx = make(plugin)
+    ctx.call("terminal", {"command": "curl https://example.com/docs"})
+    assert ctx.call("terminal", {"command": "npm test"}, answer="deny") == "refused"
+    msg = ctx.prompts[-1]["message"]
+    assert "counts no fault" in msg and "counts as a fault" not in msg
+    s = state(mod, "shell:npm")
+    assert s.faults == 0 and not s.distrusted and s.neutrals == 1
+    assert [e["result"] for e in ledger(mod, "outcome")] == ["neutral"]
+    assert not mod.excusable(mod.store_())
+    assert mod.store_().is_tainted(mod.anon("s1"))                # the suspension stays

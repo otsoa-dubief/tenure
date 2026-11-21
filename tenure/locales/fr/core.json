@@ -455,5 +455,6 @@
   "simple.explain.free_again_capped": "Une action surveillée que vous n'annulez pas dans les {hours} heures compte comme correcte ; une série sans faute le libère de nouveau.",
   "simple.explain.always": "Demande toujours : ce qui sort de votre machine (push, deploy, publish, upload...), les enjeux élevés, les types plafonnés, un script que l'agent vient d'écrire, un nouveau paquet, et un fichier qui exécute du code écrit après un contenu extérieur. Après un contenu extérieur, la commande suivante demande une fois : approuvée, la session fonctionne comme avant (mkdir, git add et git commit ne demandent jamais).",
   "simple.explain.study": "Ni contrôle aléatoire ni garantie dans ce mode. Pour la règle de l'étude, sa garantie et le passeport signé : {command}",
-  "simple.ask.suspended": "Cette session a lu un contenu extérieur : autorisez cette action et ses commandes s'exécutent comme avant pour le reste de la session (toujours selon la règle simple) ; refusez-la et elles continuent de demander."
+  "simple.ask.suspended": "Cette session a lu un contenu extérieur : autorisez cette action et ses commandes s'exécutent comme avant pour le reste de la session (toujours selon la règle simple) ; refusez-la et elles continuent de demander.",
+  "simple.ask.prompt_lift": "tenure — {summary}\n{why}\nLa refuser ne compte aucune faute : c'est du contenu que vous doutez, pas de l'agent."
 }
