@@ -136,7 +136,7 @@ def test_an_excused_fault_does_not_cancel_an_earlier_credit(plugin):
     _t2_action(mod, ctx)
     assert ctx.call("write_file", write("no"), answer="deny") in ("refused", "ran", "approved")
     for r in mod.excusable(mod.store_()):
-        mod.cli.slash(f"excuse {r['seq']}")
+        mod.cli.slash(f"excuse {r['n']}")
     successes = state(mod, "file:write").successes
     credit_now(mod)
     assert state(mod, "file:write").successes >= successes

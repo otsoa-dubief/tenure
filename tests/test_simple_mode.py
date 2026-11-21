@@ -266,9 +266,9 @@ def test_simple_mode_never_mentions_tenure_ok(plugin):
 def test_excuse_takes_the_fault_back(plugin):
     mod, ctx = make(plugin)
     ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})
-    mod.cli.slash(f"undo {last_undo(mod)}")
-    seq = mod.excusable(mod.store_())[0]["seq"]
-    out = mod.cli.slash(f"excuse {seq}")
+    n = last_undo(mod)
+    mod.cli.slash(f"undo {n}")
+    out = mod.cli.slash(f"excuse {n}")                                # the number just undone
     s = state(mod, "file:write")
     assert not s.distrusted and s.excused == 1 and "free" in out
     assert mod.trusted(mod.settings(), s, 4, "low")

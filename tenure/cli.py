@@ -639,17 +639,18 @@ def ok_list(session: str | None) -> str:
     return "\n".join([tr("cli.ok.title")] + ["  " + ln for ln in _table(head, cells)] + ["", tr("cli.ok.footer")])
 
 
-def excuse_cmd(seq: int | None) -> tuple[str, int]:
-    """``excuse`` alone: the faults of the last minutes that can still be excused; with a number, excuse that one."""
+def excuse_cmd(number: int | None) -> tuple[str, int]:
+    """``excuse`` alone: the faults of the last minutes that can still be excused; with a number, excuse that one:
+    the undo number of an undone action, or the number the notice gave after a refusal (``Store.number_fault``)."""
     core = _core()
     minutes = store.EXCUSE_WINDOW // 60
     plain = core.simple()
-    if seq is None:
+    if number is None:
         rows = core.excusable(core.store_())
         if not rows:
             return tr("simple.excuse.none" if plain else "cli.excuse.none", minutes=minutes), 0
         cause = {"refusal": tr("cli.excuse.source.refusal"), "undo": tr("cli.excuse.source.undo")}
-        cells = [[str(r["seq"]), time.strftime("%H:%M", time.localtime(r["at"])), r["type"], r["agent"],
+        cells = [[str(r["n"]), time.strftime("%H:%M", time.localtime(r["at"])), r["type"], r["agent"],
                   cause.get(r["source"], r["source"])] for r in rows]
         lines = [tr("simple.excuse.title" if plain else "cli.excuse.title", minutes=minutes)]
         head = [tr("cli.col.number"), tr("cli.col.time"), tr("simple.col.kind" if plain else "cli.col.type"),
@@ -658,7 +659,7 @@ def excuse_cmd(seq: int | None) -> tuple[str, int]:
         return "\n".join(lines + ["", tr("cli.excuse.footer")]), 0
     with core.txn() as st:
         try:
-            return core.excuse(st, seq), 0
+            return core.excuse(st, number), 0
         except ValueError as e:
             return str(e), 1
 
@@ -1006,11 +1007,17 @@ def trust_set(kind: str, to: str, prefix: str = "/tenure", model: str | None = N
     without an undo (the ``trust`` event says ``undo: false``); any other kind keeps its undo where its files can be
     saved, and asks where they cannot. Refused for a kind simple mode never frees (what leaves the machine, high stakes, a capped
     kind), whatever its state; asking those to ask writes nothing (they always do). A kind held by its parent, or
-    doubted by a verifier, is explained. Raises CliError with the owner's message, nothing written, when refused."""
+    doubted by a verifier, is explained. Code downloaded from the internet and run at once is never freed, record or
+    not. Raises CliError with the owner's message, nothing written, when refused."""
     core = _core()
     cfg = core.settings()
     if not core.simple(cfg):
         raise CliError(tr("trust.study", command=f"{prefix} mode simple"))
+    net = core.classify.NET_CODE[0]
+    if kind in (net, net.split(":", 1)[1]):
+        if to == rule.FREE:
+            raise CliError(tr("trust.refused.net_code", type=net))
+        return tr("trust.always", type=net)
     with core.txn() as st:
         agent = _trust_agent(core, st, model, session)
         known = {s.key: s for _, s in st.states(agent)}

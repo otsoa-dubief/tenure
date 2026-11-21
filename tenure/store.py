@@ -35,6 +35,7 @@ RECENT_WINDOW = 24 * 3600      # seconds a numbered action stays in ``recent``
 EXCUSE_WINDOW = 10 * 60        # seconds the owner has to excuse a fault (protocol 0.2)
 EXCUSE_LIMIT = 3              # excuses per type ...
 EXCUSE_PERIOD = 7 * 86400     # ... over this many seconds: past it, a fault of that type stays a fault
+EXCUSE_NUMBERS = "excuse_numbers"   # meta key: the number a person excuses each recent fault by (number_fault)
 EXCUSABLE = frozenset({"refusal", "undo"})   # faults a person caused: never a check, a spot check or a flag
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS types (agent TEXT NOT NULL, key TEXT NOT NULL, state TEXT NOT NULL,
@@ -123,6 +124,7 @@ PENDING_COLS = ("id", "session", "call", "agent", "type", "stakes", "reversible"
 #       reason, an undo of a correct change), within EXCUSE_WINDOW of it. Only sources in EXCUSABLE (refusal, undo):
 #       never the automatic check, a spot check or a flag, which are the detection the guarantee rests on. Replay: that earlier outcome is replayed
 #       as ("neutral", "excused"), as if it had been neutral from the start; the excuse row itself changes nothing.
+#       A person names that fault by its number (``number_fault``), never by `seq`: the ledger keeps the row.
 OUTCOME_SOURCES = {
     "success": frozenset({"approval", "spot", "notify", "seen"}),
     "fault": frozenset({"refusal", "spot", "check", "undo", "flag"}),
@@ -427,6 +429,37 @@ class Store:
         self._write()
         self.db.execute("UPDATE undo SET fault = 1 WHERE id = ?", (id,))
 
+    # ------------------------------------------------------------------------------------- excuse numbers
+    # A person excuses a fault by the number they saw, never by its ledger row: the undo number of the action they
+    # undid; a refusal, which has none, takes the next one of the same counter (an undo entry made and deleted at
+    # once: AUTOINCREMENT never gives it again). One namespace, so a number never names two actions. Meta keeps
+    # [number, ledger row, at] for EXCUSE_WINDOW, past which nothing can be excused anyway; the ledger is unchanged.
+    def number_fault(self, seq: int, number: int | None = None, at: float | None = None) -> int:
+        """Give the excusable fault at ledger row ``seq`` its number: ``number`` (an undo number), else a new one."""
+        self._write()
+        at = time.time() if at is None else at
+        if number is None:
+            number = self.new_number(at)
+        kept = [x for x in self._fault_numbers() if at - x[2] <= EXCUSE_WINDOW and number != x[0] and seq != x[1]]
+        self.set_meta(EXCUSE_NUMBERS, json.dumps([list(x) for x in kept] + [[int(number), int(seq), at]]))
+        return int(number)
+
+    def new_number(self, at: float | None = None) -> int:
+        """A number of the undo counter that no undo entry will ever have: an entry made and deleted at once."""
+        number = self.add_undo("", "", None, at)
+        self.db.execute("DELETE FROM undo WHERE id = ?", (number,))
+        return number
+
+    def fault_numbers(self) -> dict:
+        """Ledger row -> the number a person excuses it by, for the faults numbered in the last EXCUSE_WINDOW."""
+        return {seq: n for n, seq, _ in self._fault_numbers()}
+
+    def _fault_numbers(self) -> list:
+        try:
+            return [(int(n), int(seq), float(at)) for n, seq, at in json.loads(self.get_meta(EXCUSE_NUMBERS) or "[]")]
+        except (ValueError, TypeError):
+            return []
+
     # ------------------------------------------------------------------------------------------------- recent
     # Numbered actions of the last 24 hours: session (anonymised), agent, type, time, already a fault, undo id.
     # Opened without the table (see _ensure_recent), a read looks again whether another process added it, else is
@@ -458,14 +491,24 @@ class Store:
 
     def add_recent(self, session: str, agent: str, type_key: str, at: float, *, flagged: bool,
                    undo_id: int | None, call: str = "") -> int:
-        """Number one settled action and purge the rows older than 24 hours, in the same write. Numbers are never
-        reused (AUTOINCREMENT), even after every row is purged. ``call`` is the call id as stored (hashed, like a
-        session): with the session it lets a verifier name the action (#6)."""
+        """Number one settled action and purge the rows older than 24 hours, in the same write. Its number is the
+        one a person already saw for it: its undo number, else a new one of the same counter (``new_number``), so
+        ``flag``, ``undo``, ``ok`` and ``excuse`` read one numbering, where a number never names two actions. Numbers
+        are never reused. A number a row of an older tenure still holds (its own counter, 24 hours at most) is passed
+        over. ``call`` is the call id as stored (hashed, like a session): with the session it lets a verifier name
+        the action (#6)."""
         self._recent_write()
         self.db.execute("DELETE FROM recent WHERE at < ?", (at - RECENT_WINDOW,))
-        cur = self.db.execute("INSERT INTO recent (session, agent, type, at, flagged, undo_id, call) "
-                              "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                              (session, agent, type_key, at, int(bool(flagged)), undo_id, call or None))
+        n = undo_id
+        for _ in range(64):
+            if n is not None and not self.db.execute("SELECT 1 FROM recent WHERE n = ?", (n,)).fetchone():
+                break
+            n = self.new_number(at)
+        else:
+            n = None                                           # never in practice: SQLite numbers the row itself
+        cur = self.db.execute("INSERT INTO recent (n, session, agent, type, at, flagged, undo_id, call) "
+                              "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                              (n, session, agent, type_key, at, int(bool(flagged)), undo_id, call or None))
         return int(cur.lastrowid)
 
     def recent_by_call(self, session: str, call: str) -> list[dict]:

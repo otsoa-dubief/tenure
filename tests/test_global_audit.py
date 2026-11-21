@@ -73,10 +73,10 @@ def test_at_most_three_excuses_per_type_a_week_and_one_hint_a_day(plugin):
         hints += "/tenure excuse" in out
         open_ = mod.excusable(mod.store_())
         if i < 3:
-            mod.cli.slash(f"excuse {open_[0]['seq']}")
+            mod.cli.slash(f"excuse {open_[0]['n']}")
         else:
             assert open_ == []                                    # the fourth fault of the week stays a fault
-            assert "3 excuses" in mod.cli.slash(f"excuse {mod.excusable(mod.store_(), limit=False)[0]['seq']}")
+            assert "3 excuses" in mod.cli.slash(f"excuse {mod.excusable(mod.store_(), limit=False)[0]['n']}")
     assert hints == 1
 
 

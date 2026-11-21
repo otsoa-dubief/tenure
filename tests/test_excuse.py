@@ -35,8 +35,7 @@ def test_a_refusal_then_excuse_restores_the_record(plugin):
     before = state(mod, "file:write")
     assert ctx.call("write_file", write("no"), answer="deny") == "refused"
     assert state(mod, "file:write").faults == 1 and state(mod, "file:write").series == 0
-    seq = mod.excusable(mod.store_())[0]["seq"]
-    mod.cli.slash(f"excuse {seq}")
+    mod.cli.slash(f"excuse {mod.excusable(mod.store_())[0]['n']}")
     s = state(mod, "file:write")
     assert (s.tier, s.faults, s.series, s.wald) == (before.tier, 0, 0, before.wald)   # the series restarts (CSP-1)
     assert (s.neutrals, s.excused) == (before.neutrals + 1, 1)
@@ -58,7 +57,9 @@ def test_excuse_refusals(plugin):
     ctx.call("write_file", write("a"))
     seq = _seq(mod.cli.slash(f"undo {int(ctx.posted[-1].rsplit(' ', 1)[1])}"))
     count = len(ledger_rows(mod))
-    assert "nothing changed" in mod.cli.slash("excuse 1")                   # row 1 is settings, not a fault
+    row = mod.excusable(mod.store_())[0]["seq"]
+    assert row != seq and "nothing changed" in mod.cli.slash(f"excuse {row}")   # its ledger row is not its number
+    assert "nothing changed" in mod.cli.slash(f"excuse {seq + 1}")         # no such number
     mod.cli.slash(f"excuse {seq}")
     assert len(ledger_rows(mod)) == count + 1
     assert "nothing changed" in mod.cli.slash(f"excuse {seq}")              # once
@@ -191,3 +192,106 @@ def test_a_passport_is_02_from_the_start(plugin):
     assert p["protocol"] == "earned-autonomy/0.2"
     p["protocol"] = "earned-autonomy/0.1"
     assert any("should be 0.2" in x for x in mod.passport.verify(p, mod.store_().ledger()))
+
+
+# ------------------------------------------------------------------- one number: the one the person saw (21/11)
+def test_after_an_undo_the_hint_names_the_undo_number(plugin):
+    """Seen 21/11: "Undone #3 ... /tenure excuse 12", the ledger row leaked. The hint names the number just undone."""
+    mod, ctx = plugin(TRUST)
+    ctx.call("write_file", write("a"))
+    n = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    out = mod.cli.slash(f"undo {n}")
+    assert f"Undo {n}:" in out and _seq(out) == n
+    row = mod.excusable(mod.store_())[0]
+    assert (row["n"], row["source"]) == (n, "undo") and row["seq"] != n   # two numberings: only one is shown
+    assert f"fault {n} excused" in mod.cli.slash(f"excuse {n}")
+    assert ledger_rows(mod)[-1]["event"] == {"event": "excuse", "seq": row["seq"]}   # the ledger keeps the row
+    assert replay_matches(mod)
+
+
+def test_after_a_refusal_the_hint_number_excuses_it_and_no_undo_ever_has_it(plugin):
+    from test_plugin import pre
+    mod, ctx = plugin(TRUST)
+    ctx.call("write_file", write("a"))                                       # undo number 1 is taken
+    assert pre(mod, "write_file", write("b"), "x") is None                   # the trusted start lets it through
+    mod.post_approval_response(pattern_key="dangerous", tool_call_id="x", choice="deny", session_id="s1")
+    n = _seq(next(p for p in ctx.posted if "/tenure excuse" in p))           # Hermes' own prompt, refused
+    row = mod.excusable(mod.store_())[0]
+    assert (row["n"], row["source"]) == (n, "refusal") and row["seq"] != n
+    assert mod.store_().get_undo(n) is None                                  # its own number, from the same counter
+    with mod.txn() as st:
+        assert st.add_undo(A, "file:write", None) > n                        # and no later undo gets it
+    assert f"fault {n} excused" in mod.cli.slash(f"excuse {n}")
+    assert ledger_rows(mod)[-1]["event"] == {"event": "excuse", "seq": row["seq"]}
+    assert replay_matches(mod)
+
+
+def test_an_undo_and_a_refusal_open_at_once_never_share_a_number(plugin):
+    mod, ctx = plugin(TRUST)
+    ctx.call("write_file", write("a"))                                       # trusted: acts, with an undo
+    u = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    mod.cli.slash(f"undo {u}")
+    assert ctx.call("write_file", write("b"), answer="deny") == "refused"
+    open_ = {r["source"]: r for r in mod.excusable(mod.store_())}
+    r = open_["refusal"]["n"]
+    assert open_["undo"]["n"] == u and r != u
+    mod.cli.slash(f"excuse {r}")
+    assert ledger_rows(mod)[-1]["event"] == {"event": "excuse", "seq": open_["refusal"]["seq"]}
+    mod.cli.slash(f"excuse {u}")
+    assert ledger_rows(mod)[-1]["event"] == {"event": "excuse", "seq": open_["undo"]["seq"]}
+    assert mod.excusable(mod.store_()) == [] and replay_matches(mod)
+
+
+def test_a_fault_numbered_by_an_older_tenure_is_not_listed(plugin):
+    """A fault logged before excuse numbers (no number in meta) is not offered: no number could name it."""
+    mod, ctx = plugin(TRUST)
+    ctx.call("write_file", write("a"))
+    mod.cli.slash(f"undo {int(ctx.posted[-1].rsplit(' ', 1)[1])}")
+    with mod.txn() as st:
+        st.set_meta(mod.store.EXCUSE_NUMBERS, "")
+    assert mod.excusable(mod.store_()) == [] and "No fault to excuse" in mod.cli.slash("excuse")
+
+
+# ------------------------------------------------------------------------------- review of PR #36 (21/11): numbers
+def test_e1_once_said_today_the_hint_reads_no_ledger(plugin, monkeypatch):
+    import time
+    mod, ctx = plugin(TRUST)
+    ctx.call("write_file", write("a"))
+    with mod.txn() as st:
+        st.set_meta("excuse_hint:file:write", time.strftime("%Y-%m-%d"))
+    calls = []
+    monkeypatch.setattr(mod, "excusable", lambda *a, **k: calls.append(1) or [])
+    out = mod.cli.slash(f"undo {int(ctx.posted[-1].rsplit(' ', 1)[1])}")
+    assert "files restored" in out and "/tenure excuse" not in out and calls == []
+
+
+def test_e2_a_copied_profile_drops_the_excuse_numbers(plugin, tmp_path, monkeypatch):
+    from test_copied_profile import clone, reopen
+    mod, ctx = plugin(TRUST)
+    ctx.call("write_file", write("a"))
+    mod.cli.slash(f"undo {int(ctx.posted[-1].rsplit(' ', 1)[1])}")
+    assert mod.store_().fault_numbers()
+    original = tmp_path / "hermes"
+    reopen(mod, monkeypatch, original)
+    copy = clone(original)
+    reopen(mod, monkeypatch, copy)
+    st = mod.store_()
+    assert st.get_meta(mod.store.EXCUSE_NUMBERS) is None and mod.excusable(st) == []
+    reopen(mod, monkeypatch, original)
+    assert mod.store_().fault_numbers()
+
+
+def test_e3_flag_undo_and_excuse_read_one_numbering(plugin):
+    mod, ctx = plugin(TRUST)
+    assert ctx.call("terminal", {"command": "python -c 'print(1)'"}) == "approved"   # ran first, no undo
+    ctx.call("write_file", write("a"))                                       # acts, with undo number u
+    u = int(ctx.posted[-1].rsplit(" ", 1)[1])
+    st = mod.store_()
+    rows = st.recent_rows(None)
+    assert next(r["n"] for r in rows if r["undo_id"] == u) == u               # the number the person saw
+    other = next(r["n"] for r in rows if r["undo_id"] is None)
+    assert other != u and st.get_undo(other) is None                         # its own number, from the same counter
+    with mod.txn() as st:
+        assert st.add_undo(A, "file:write", None) > other                    # and no later undo gets it
+    assert f"action {u} flagged" in mod.cli.slash(f"flag {u}") and state(mod, "file:write").faults == 1
+    assert f"Action {u} already counted" in mod.cli.slash(f"flag {u}")

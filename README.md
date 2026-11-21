@@ -231,7 +231,11 @@ the agent's own tool processes, or while nobody answers (cron, `--yolo`).
 - outside content written into a file, in both modes: a download (`curl -o f`, `curl -O`, `curl -sSLO`, `wget URL`,
   `wget -qO f`) and a read whose output a redirect sends into a file (`gh pr list > prs.txt`). A fetch to the screen or
   to `/dev/null` (`curl -s URL`, `curl -o /dev/null -w '%{http_code}'`, `wget -O -`) writes nothing and stays a read;
-  `curl` or `wget` piped into a shell is high stakes;
+- code downloaded and run at once, in both modes (`shell:net-code`): a download piped into a shell or an interpreter
+  (`curl … | sh`, `irm … | iex`) or given to one as its code (`bash <(curl …)`, `sh -c "$(curl …)"`), a file downloaded
+  then run by the same line (`curl -o i.sh … && bash i.sh`, `git clone … && ./x/install.sh`), and a program run from a
+  URL (`deno run https://…`, `npx github:…`). It asks every time, never "for this session"; no record, preset or
+  override frees it, and `/tenure trust` refuses it;
 - programs whose changes Tenure can't save (database and unknown CLIs, `docker`, local scripts, MCP tools that write,
   messages to other Bots, other writing through the shell such as `tee` or a pipe into a file; a covered tool's own
   output, `pytest > log`, is fine), until you free them with `/tenure trust`. For these, and for inline code and shell

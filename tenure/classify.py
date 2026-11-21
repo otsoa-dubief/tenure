@@ -5,8 +5,8 @@
 Grid from the earned-autonomy study: an action is classed by what it does, not by the tool. Reads are free. Writes
 inside the project are low stakes and reversible; writes elsewhere, commands, code and delegation are medium;
 anything that leaves the machine (messages to others, publications, pushes, uploads) and money are high. Some
-actions are capped and always ask: secrets, the agent's own skills, plugins and guardrails, sensitive files. An
-action whose effect cannot be read is treated as high stakes.
+actions are capped and always ask: secrets, the agent's own skills, plugins and guardrails, sensitive files, code
+downloaded from the internet and run at once. An action whose effect cannot be read is treated as high stakes.
 
 Types are fine-grained so that a record says something: shell commands are typed by program (and by subcommand
 when the subcommand changes the stakes), MCP tools by server and tool. A program that runs other commands (find
@@ -29,11 +29,12 @@ import sys
 import threading
 import time
 import unicodedata
+import urllib.parse
 from dataclasses import dataclass
 
 FREE, LOW, MEDIUM, HIGH, CAP = "free", "low", "medium", "high", "cap"
 RANK = {FREE: 0, LOW: 1, MEDIUM: 2, HIGH: 3, CAP: 4}
-PROTECTED = ("secrets:", "self:", "file:sensitive")     # caps an owner override can never lower
+PROTECTED = ("secrets:", "self:", "file:sensitive", "shell:net-code")   # caps an owner override can never lower
 
 
 @dataclass(frozen=True)
@@ -5221,18 +5222,21 @@ KEYWORDS = {"if", "then", "elif", "else", "fi", "case", "esac", "for", "while", 
 HEREDOC = re.compile(r"<<(-?)\s*([\"']?)([A-Za-z_][A-Za-z0-9_]*)\2")
 
 
-def _strip_heredocs(command: str) -> str:
-    """The command without the bodies of simple heredocs (their text is data, not grammar)."""
-    out, pending = [], []
+def _strip_heredocs(command: str, bodies: bool = False) -> str:
+    """The command without the bodies of simple heredocs (their text is data, not grammar); ``bodies``: those
+    bodies alone, without their delimiters."""
+    out, body, pending = [], [], []
     for line in command.split("\n"):
         if pending:
             strip, delim = pending[0]
             if (line.lstrip("\t") if strip else line).rstrip("\r") == delim:
                 pending.pop(0)
+            else:
+                body.append(line)
             continue
         out.append(line)
         pending += [(m.group(1) == "-", m.group(3)) for m in HEREDOC.finditer(line.replace("<<<", "   "))]
-    return "\n".join(out)
+    return "\n".join(body if bodies else out)
 
 
 def _frag(word: str) -> bool:
@@ -5495,6 +5499,8 @@ def _shell_read(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str,
         named = _plain_hermes(command)
         if named:
             return named[0], named[1], False
+        if _net_raw(command):
+            return NET_CODE[0], NET_CODE[1], False  # a download run, as far as the raw text shows
         low = command.casefold()
         if any(f in low for f in SENSITIVE_FRAGMENTS) or any(d.casefold() in low for d in SENSITIVE_DIRS):
             return "file:sensitive", CAP, False
@@ -5513,6 +5519,8 @@ def _shell_read(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str,
         return floor, CAP, False
     if _hermes_floor(command):
         return "self:hermes", CAP, False
+    if _net_code(command, start):
+        return NET_CODE[0], NET_CODE[1], False      # code downloaded and run at once: always asked
     if _complex_floor(command):
         low = command.casefold()          # quotes cannot be trusted here: look at the raw text
         if tenure_named(low):
@@ -5529,6 +5537,394 @@ def _shell_read(command: str, cwd=None, home=None, depth: int = 0) -> tuple[str,
 EXTERNAL_PROGRAMS = frozenset({"curl", "wget", "http", "https", "xh", "xhs", "lynx", "w3m", "links", "aria2c", "nc",
                                "ncat"})
 GIT_EXTERNAL = frozenset({"clone", "pull", "fetch"})
+
+# Code downloaded from the internet and run at once (the owner's decision, 21/11): capped, so it asks every time in
+# both modes, never for the rest of a session, never freed by a series under any preset nor by /tenure trust. A local
+# file piped into a shell (`cat script.sh | sh`) stays shell:stdin-code.
+NET_CODE = ("shell:net-code", CAP)
+STDIN_FILES = ("/dev/stdin", "/dev/fd/0", "/proc/self/fd/0")
+# Programs that download, named in any case and without .exe: those that bring in outside content, wget2, and
+# PowerShell's own (irm, iwr). A server on this machine counts too: what it serves may come from anywhere.
+NET_FETCHERS = frozenset(EXTERNAL_PROGRAMS | {"wget2", "irm", "iwr", "invoke-webrequest", "invoke-restmethod"})
+PS_EXEC = frozenset({"iex", "invoke-expression"})          # PowerShell runs its input, or its argument, as code
+_SHELLS = frozenset(x.casefold() for x in SHELLS)
+_INTERPS = frozenset(x.casefold() for x in INTERPRETERS)
+_FETCH = "|".join(sorted(map(re.escape, NET_FETCHERS)))
+_RUN = "|".join(sorted(map(re.escape, _SHELLS | _INTERPS | PS_EXEC | {"source"})))
+# A substitution whose output comes from another host: `$(curl …)`, `` `wget -qO- …` ``.
+NET_SUB = re.compile(r"(?:\$\(|`)[^`)]*?(?<![\w.-])(?:" + _FETCH + r")(?:\.exe)?(?![\w.:/-])", re.I)
+# What PowerShell's iex is given to run, when it downloads: `iex (irm …)`, `(New-Object Net.WebClient).DownloadString`.
+PS_DOWNLOAD = re.compile(r"(?<![\w.-])(?:" + _FETCH + r")(?:\.exe)?(?![\w.:/-])|\.Download(?:String|Data|File)\b"
+                         r"|Net\.WebClient", re.I)
+# The raw text of a line too long to be lexed (``MAX_COMMAND``): a fetch piped into a shell or an interpreter, or a
+# process substitution of a fetch.
+NET_PIPE_RAW = re.compile(r"(?<![\w.-])(?:" + _FETCH + r")(?:\.exe)?(?![\w.-])[^\n|]*\|\s*(?:(?:sudo|doas|env|command"
+                          r"|exec|nohup|time|busybox)\s+(?:-\S+\s+)*)*(?:\S*[/\\])?(?:" + _RUN + r")(?:\.exe)?"
+                          r"(?![\w.-])", re.I)
+NET_PROC_RAW = re.compile(r"<\(\s*(?:\S*[/\\])?(?:" + _FETCH + r")(?:\.exe)?(?![\w.-])", re.I)
+# A package or script named by where it is downloaded from, not by an installed name (npx, bunx, uvx, pipx...).
+REMOTE_SPEC = re.compile(r"^(?:https?://|ftp://|git\+|git://|github:|gitlab:|bitbucket:|gist:)", re.I)
+URL = re.compile(r"^(?:https?|ftp)://", re.I)
+
+
+def _name(word: str) -> str:
+    """A program as the system finds it: its base name, case folded, without .exe."""
+    name = re.split(r"[/\\]", str(word))[-1].casefold()
+    return name[:-4] if name.endswith(".exe") else name
+
+
+def _interp(name: str) -> bool:
+    return name in _INTERPS or re.sub(r"\d+(\.\d+)*$", "", name) in _INTERPS
+
+
+def _code_flag(name: str, a: str) -> bool:
+    """``a`` is the option that gives ``name`` its code as the next word (`sh -c`, `python -c`, `su -c`)."""
+    if name in _SHELLS:
+        return bool(re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*", a))
+    if name == "su":
+        return a in ("-c", "--command")
+    if name in ("pwsh", "powershell"):
+        return a.casefold() in ("-c", "-command", "--command", "-commandwithargs", "-cwa")
+    return a in INLINE_FLAGS or _inline_cluster([a])
+
+
+def _xargs_repl(args: list[str]) -> str:
+    """The placeholder xargs replaces with each input line (`-I {}`, `-I{}`, `-i`, `--replace`), else ""."""
+    for n, a in enumerate(args):
+        if a == "-I":
+            return args[n + 1] if n + 1 < len(args) else ""
+        if a.startswith("-I") and len(a) > 2:
+            return a[2:]
+        if a in ("-i", "--replace"):
+            return "{}"
+        if a.startswith(("--replace=", "-i")) and len(a) > 2:
+            return a.split("=", 1)[1] if a.startswith("--") else a[2:]
+        if not a.startswith("-"):
+            break
+    return ""
+
+
+def _code_source(toks: list[str]) -> tuple[str, str]:
+    """Where a command takes the code it runs: ("stdin", "") for one reading its program from standard input (`sh`,
+    `bash -s`, `python -`, `su`, `source` alone or `source /dev/stdin`, `iex` alone, `xargs sh -c`, `xargs -I{} sh -c
+    '{}'`), ("arg", code) for code given as an argument (`sh -c CODE`, `python -c CODE`, `su -c CODE`, `eval ARGS`,
+    `iex ARGS`), else ("", "")."""
+    if not toks:
+        return "", ""
+    name, args = _name(toks[0]), toks[1:]
+    if name == "xargs":
+        rest = _xargs_rest(args)
+        kind, code = _code_source(rest) if rest else ("", "")
+        repl = _xargs_repl(args)
+        return ("stdin", "") if kind == "arg" and repl and repl in code else (kind, code)   # each line is the code
+    if name == "eval":
+        return "arg", " ".join(args)
+    if name in PS_EXEC:
+        return ("arg", " ".join(args)) if args else ("stdin", "")
+    if name in ("source", "."):
+        return ("stdin", "") if not args or args[0] in STDIN_FILES + ("-",) else ("", "")   # fish: `| source`
+    shell = name in _SHELLS or name == "su"
+    if not shell and not _interp(name):
+        return "", ""
+    flag = next((n for n, a in enumerate(args) if _code_flag(name, a)), None)
+    if flag is not None:
+        if shell and flag + 1 >= len(args):
+            return "stdin", ""                               # `xargs sh -c`: the input is the code
+        return "arg", args[flag + 1] if flag + 1 < len(args) else ""
+    if name == "su":
+        return "stdin", ""                                   # su, su -, su root: a shell reading standard input
+    if not shell and "-m" in args:
+        return "", ""
+    script = next((a for a in args if not a.startswith("-")), "")
+    return ("stdin", "") if _stdin_code(args, script) else ("", "")
+
+
+def _sudo_shell(raw: list[str]) -> bool:
+    """`sudo -s`, `sudo -i`, `doas -s` with no program: a root shell reading standard input."""
+    words = [w for w in raw if not ENV_ASSIGN.match(w)]
+    if not words or _name(words[0]) not in ("sudo", "doas"):
+        return False
+    return any(w in ("--shell", "--login") or (re.fullmatch(r"-[A-Za-z]+", w) and ("s" in w or "i" in w))
+               for w in words[1:])
+
+
+def _norm_sub(text: str) -> str:
+    return re.sub(r"\$\s*\(", "$(", text)                    # `$ ( curl` as lexed apart, back to `$(curl`
+
+
+def _raw_code(raw: list[str], toks: list[str], code: str) -> str:
+    """The code of an "arg" command as written, a substitution included (`sh -c $(curl …)` is lexed apart)."""
+    name = _name(toks[0])
+    i = next((n for n, t in enumerate(raw) if t == toks[0]), None)
+    if i is None:
+        return code
+    rest = raw[i + 1:]
+    if name in ("eval",) or name in PS_EXEC:
+        return " ".join(rest)
+    j = next((n for n, a in enumerate(rest) if _code_flag(name, a)), None)
+    if j is None or j + 1 >= len(rest):
+        return code
+    first = rest[j + 1]
+    if first == "$" and j + 2 < len(rest) and rest[j + 2] == "(":
+        depth, out = 0, []
+        for t in rest[j + 1:]:
+            out.append(t)
+            depth += t in ("(", "<(", ">(")
+            depth -= t == ")"
+            if t == ")" and depth <= 0:
+                break
+        return " ".join(out)
+    if first.startswith("`") and not (len(first) > 1 and first.endswith("`")):
+        out = [first]
+        for t in rest[j + 2:]:
+            out.append(t)
+            if t.endswith("`"):
+                break
+        return " ".join(out)
+    return first
+
+
+def _script_from_net(raw: list[str], toks: list[str], kind: str) -> bool:
+    """A download given as the program itself: a process substitution of a fetch as the first word that is not an
+    option of a shell, an interpreter, or source (`bash <(curl …)`, `python <(curl …)`, `source <(curl …)`), or as
+    the standard input of one that reads its program there (`sh < <(curl …)`). An argument of a script is data:
+    `python3 parse.py <(curl …)` is not."""
+    name = _name(toks[0])
+    if not (kind or name in _SHELLS or _interp(name) or name in ("source", ".") or name in PS_EXEC):
+        return False
+    i = next((n for n, t in enumerate(raw) if t == toks[0]), None)
+    if i is None:
+        return False
+    rest = raw[i + 1:]
+    j = 0
+    while j < len(rest) and rest[j].startswith("-") and rest[j] != "-":
+        j += 1
+    if j + 1 < len(rest) and rest[j] == "<" and rest[j + 1] == "<(":
+        j += 1                                               # sh < <(curl …): its standard input is the download
+    if j >= len(rest) or rest[j] != "<(":
+        return False
+    inner, depth = [], 1
+    for t in rest[j + 1:]:
+        depth += t in ("(", "<(", ">(")
+        depth -= t == ")"
+        if depth <= 0:
+            break
+        inner.append(t)
+    return any(_name(t) in NET_FETCHERS for t in inner) or _seg_reads_external(inner, 0)
+
+
+def _runs_remote(toks: list[str]) -> bool:
+    """A program run straight from where it is downloaded, not from an installed copy: `deno run https://…`, `uv run
+    https://…/x.py`, `go run mod@version`, `npx github:…` or a URL (also bunx, pnpm dlx, yarn dlx, npm exec, uvx,
+    pipx run). A package named only by its registry name is not read here."""
+    name, args = _name(toks[0]), toks[1:]
+    pos = [a for a in args if not a.startswith("-")]
+    if name == "deno":
+        script = pos[1] if pos[:1] == ["run"] and len(pos) > 1 else pos[0] if pos and URL.match(pos[0]) else ""
+        return bool(URL.match(script))
+    if name == "go":
+        return pos[:1] == ["run"] and any("@" in a and not a.startswith((".", "/")) and not a.endswith(".go")
+                                          for a in pos[1:2])
+    if name in ("uv", "pipx") and pos[:1] == ["run"] or name == "uvx" or name == "uv" and pos[:2] == ["tool", "run"]:
+        specs = pos[(0 if name == "uvx" else 2 if pos[:2] == ["tool", "run"] else 1):][:1]
+        specs += [v for k, v in zip(args, args[1:]) if k in ("--from", "--spec", "--with")]
+        specs += [a.split("=", 1)[1] for a in args if a.startswith(("--from=", "--spec=", "--with="))]
+        return any(REMOTE_SPEC.match(s) for s in specs)
+    runner = (name in ("npx", "bunx", "pnpx") or (name in ("pnpm", "yarn") and pos[:1] == ["dlx"])
+              or (name == "npm" and pos[:1] in (["exec"], ["x"])) or (name == "bun" and pos[:1] == ["x"]))
+    if not runner:
+        return False
+    specs = [v for k, v in zip(args, args[1:]) if k in ("-p", "--package")]
+    specs += [a.split("=", 1)[1] for a in args if a.startswith("--package=")]
+    first = pos[1:2] if name in ("pnpm", "yarn", "npm", "bun") else pos[:1]
+    for s in specs + first:
+        if REMOTE_SPEC.match(s) or (re.fullmatch(r"[\w.-]+/[\w.-]+(?:#\S*)?", s) and not s.startswith(".")):
+            return True                                      # github:user/repo, a URL, or npm's user/repo shorthand
+    return False
+
+
+def _upstream(segs: list, n: int) -> list:
+    """The commands whose output reaches command ``n`` through pipes, a group feeding the pipe whole (`{ curl …; }
+    | sh`, `(curl …; true) | sh`)."""
+    out, k = [], n
+    while k > 0 and segs[k].sep in PIPES:
+        k -= 1
+        out.append(segs[k])
+        depth = sum(t in (")", "}") for t in segs[k].tokens) - sum(t in ("(", "{", "<(", ">(") for t in segs[k].tokens)
+        while depth > 0 and k > 0:
+            k -= 1
+            out.append(segs[k])
+            depth += (sum(t in (")", "}") for t in segs[k].tokens)
+                      - sum(t in ("(", "{", "<(", ">(") for t in segs[k].tokens))
+    return out
+
+
+def _net_source(seg, body: str, cwd, depth: int) -> bool:
+    """A command whose output may come from another host: a fetch (a server on this machine included), anything
+    ``_seg_reads_external`` sees (`$(curl …)`, `<(curl …)`, `gh api`), `gh gist view`, a program named by a variable
+    (prudence), or a heredoc whose body downloads."""
+    toks, raw = _unwrap(seg.tokens), [str(t) for t in seg.tokens]
+    if toks and (toks[0].startswith("$") or _name(toks[0]) in NET_FETCHERS):
+        return True
+    if toks and _name(toks[0]) == "gh" and _strip(toks[1:], GH_VALUE_OPTS)[:2] == ["gist", "view"]:
+        return True
+    if _seg_reads_external(seg.tokens, depth) or any(NET_SUB.search(_norm_sub(t)) for t in raw):
+        return True
+    return bool(body) and bool({"<<", "<<-"} & set(raw)) and bool(NET_SUB.search(body)
+                                                                    or _net_code(body, cwd, depth + 1))
+
+
+def _at(base: str, path: str) -> str:
+    return os.path.normpath(os.path.join(base, os.path.expanduser(path)))
+
+
+def _url_name(args: list[str]) -> list[str]:
+    """The file names a download takes from its URLs (curl -O, wget without -O)."""
+    out = []
+    for a in args:
+        if not a.startswith("-") and ("://" in a or re.match(r"^[\w.-]+\.[a-z]{2,}(?:/|$)", a, re.I)):
+            path = urllib.parse.urlsplit(a if "://" in a else "http://" + a).path
+            out.append(path.rstrip("/").rsplit("/", 1)[-1] or "index.html")
+    return out
+
+
+def _downloads(toks: list[str], raw: list[str], base: str, net: bool, fed: bool, files: set,
+               dirs: set) -> tuple[set, set]:
+    """The files and folders one command fills with downloaded content: what a fetch saves (its output options, the
+    name taken from the URL, a redirect), what a pipe from the network writes (`| tee f`, `> f`, `| tar x`), a `git
+    clone`, an archive or a file already downloaded unpacked, copied or moved."""
+    name, args = _name(toks[0]), toks[1:]
+    got, into = set(), set()
+    if net or fed:
+        got |= {_at(base, t) for t in _redirects(raw)}
+    if name in NET_FETCHERS:
+        pairs = _tool_output_pairs(["wget" if name == "wget2" else toks[0]] + args)
+        outdir = next((f for o, f in pairs if o == "--output-dir"), "")
+        got |= {_at(base, os.path.join(outdir, f) if o in ("-o", "--output") else f) for o, f in pairs
+                if f not in _NO_FILE and f != "-" and o != "--output-dir"}
+        if name == "curl" and any(re.fullmatch(r"-[A-Za-z]*O[A-Za-z]*", a) or a.startswith("--remote-name")
+                                  for a in args):
+            got |= {_at(base, os.path.join(outdir, f)) for f in _url_name(args)}
+        if name in ("wget", "wget2") and not any(o in ("-O", "--output-document", "-P", "--directory-prefix")
+                                                 for o, _f in pairs):
+            got |= {_at(base, f) for f in _url_name(args)}
+        low = [a.casefold() for a in args]
+        got |= {_at(base, args[k + 1]) for k, a in enumerate(low) if a == "-outfile" and k + 1 < len(args)}
+    if name == "tee" and fed:
+        got |= {_at(base, a) for a in args if not a.startswith("-")}
+    if name == "git":
+        plain = _strip(args, GIT_VALUE_OPTS)
+        if plain[:1] == ["clone"]:
+            rest, skip = [], False
+            for a in plain[1:]:
+                if skip:
+                    skip = False
+                elif a in ("-b", "--branch", "-o", "--origin", "--depth", "-c", "--config", "--template",
+                           "--reference", "--separate-git-dir", "-j", "--jobs", "--filter", "-u", "--upload-pack",
+                           "--shallow-since", "--shallow-exclude", "--server-option"):
+                    skip = True
+                elif not a.startswith("-"):
+                    rest.append(a)
+            if rest:
+                into.add(_at(base, rest[1] if len(rest) > 1 else
+                              re.sub(r"\.git$", "", rest[0].rstrip("/").rsplit("/", 1)[-1].rsplit(":", 1)[-1])))
+    if name in ("tar", "gtar", "bsdtar"):
+        first = args[0] if args else ""
+        extract = (any(a in ("--extract", "--get") for a in args) or re.fullmatch(r"-?[A-Za-z]*x[A-Za-z]*", first)
+                   or any(re.fullmatch(r"-[A-Za-z]*x[A-Za-z]*", a) for a in args))
+        archive = [args[k + 1] for k, a in enumerate(args[:-1]) if re.fullmatch(r"-?[A-Za-z]*f", a) or a == "--file"]
+        archive += [a.split("=", 1)[1] for a in args if a.startswith("--file=")]
+        if re.fullmatch(r"[A-Za-z]*f[A-Za-z]*", first) and not first.startswith("-") and len(args) > 1:
+            archive.append(args[1])
+        source = fed or any(a == "-" for a in archive) and fed or any(_at(base, a) in files for a in archive)
+        if extract and source:
+            target = next((args[k + 1] for k, a in enumerate(args[:-1]) if a in ("-C", "--directory")), "")
+            target = target or next((a.split("=", 1)[1] for a in args if a.startswith("--directory=")), "")
+            into.add(_at(base, target or "."))
+    if name == "unzip" and any(_at(base, a) in files for a in args if not a.startswith("-")):
+        target = next((args[k + 1] for k, a in enumerate(args[:-1]) if a == "-d"), "")
+        into.add(_at(base, target or "."))
+    if name in ("cp", "mv") and len([a for a in args if not a.startswith("-")]) >= 2:
+        pos = [a for a in args if not a.startswith("-")]
+        srcs, dest = [_at(base, a) for a in pos[:-1]], _at(base, pos[-1])
+        for src in srcs:
+            if src in files:
+                got |= {dest, os.path.join(dest, os.path.basename(src))}
+            if src in dirs or any(src.startswith(d + os.sep) for d in dirs):
+                into.add(dest)
+    return got, into
+
+
+def _downloaded_then_run(segs: list, cwd, body: str, depth: int) -> bool:
+    """A command of the line runs a file, or a file of a folder, that an earlier command of the same line filled with
+    downloaded content (`curl -o i.sh URL && bash i.sh`, `wget -O i.sh URL && chmod +x i.sh && ./i.sh`, `curl URL |
+    tar xz && ./install.sh`, `git clone URL && ./x/install.sh`): the files a command runs are read as
+    ``scripts_run`` reads them."""
+    base = cwd or os.getcwd()
+    files: set = set()
+    dirs: set = set()
+    for n, seg in enumerate(segs):
+        toks, raw = _unwrap(seg.tokens), [str(t) for t in seg.tokens]
+        if not toks:
+            continue
+        name = _name(toks[0])
+        if name in ("cd", "pushd"):
+            base = _at(base, toks[1]) if len(toks) > 1 else base
+            continue
+        if files or dirs:
+            runs = scripts_run(" ".join(shlex.quote(t) for t in toks), base, wide=True)
+            if any(p in files or any(p == d or p.startswith(d + os.sep) for d in dirs) for p in runs):
+                return True
+        fed = seg.sep in PIPES and any(_net_source(up, body, cwd, depth) for up in _upstream(segs, n))
+        net = (name in NET_FETCHERS or _seg_reads_external(seg.tokens, depth)
+               or any(NET_SUB.search(_norm_sub(t)) for t in raw))
+        got, into = _downloads(toks, raw, base, net, fed, files, dirs)
+        files |= got
+        dirs |= into
+    return False
+
+
+def _net_raw(command: str) -> bool:
+    """A line too long to be lexed runs a download, as far as its raw text shows."""
+    return bool(NET_SUB.search(_norm_sub(command)) or NET_PIPE_RAW.search(command) or NET_PROC_RAW.search(command))
+
+
+def _net_code(command: str, cwd=None, depth: int = 0) -> bool:
+    """The line runs what it downloads (``NET_CODE``): a fetch piped into a command that reads its program from
+    standard input (`curl … | sh`, `{ curl …; } | bash`, `echo "$(curl …)" | sh`, `irm … | iex`), a download given as
+    the program (`bash <(curl …)`, `source <(curl …)`, `sh < <(curl …)`) or as the code (`sh -c "$(curl …)"`, `eval
+    "$(curl …)"`, `iex (irm …)`), a here-string of a download read as the program (`bash <<< "$(curl …)"`), a file or
+    folder downloaded then run by the same line (``_downloaded_then_run``), or a program run from a URL or a remote
+    module (``_runs_remote``). The code of `sh -c`, `eval` and a heredoc a shell reads is read the same way. Names
+    are compared case folded, without .exe; names in names (`python3 parse.py <(curl …)`, an argument of `python -c
+    CODE`) are data. Both readings of the line count."""
+    if depth > MAX_DEPTH:
+        return False
+    text = _strip_heredocs(command)
+    body = _strip_heredocs(command, bodies=True) if text != command else ""
+    for tokens in (_tokens_lines(text), _tokens_whole(text)):
+        segs = _build(tokens)
+        for n, seg in enumerate(segs):
+            toks, raw = _unwrap(seg.tokens), [str(t) for t in seg.tokens]
+            kind, code = _code_source(toks) if toks else (("stdin", "") if _sudo_shell(raw) else ("", ""))
+            if toks and (_script_from_net(raw, toks, kind) or _runs_remote(toks)):
+                return True
+            if kind == "arg":
+                written = _raw_code(raw, toks, code)
+                if (NET_SUB.search(_norm_sub(written)) or (_name(toks[0]) in PS_EXEC and PS_DOWNLOAD.search(written))
+                        or (code and _net_code(code, cwd, depth + 1))):
+                    return True                               # sh -c "$(curl …)", iex (irm …), or curl … | sh inside
+            if kind != "stdin":
+                continue
+            if "<<<" in raw and NET_SUB.search(_norm_sub(" ".join(raw[raw.index("<<<") + 1:]))):
+                return True                                   # bash <<< "$(curl …)"
+            if body and {"<<", "<<-"} & set(raw) and (NET_SUB.search(body) or _net_code(body, cwd, depth + 1)):
+                return True                                   # sh <<EOF … curl … | sh … EOF
+            if any(_net_source(up, body, cwd, depth) for up in _upstream(segs, n)):
+                return True                                   # curl … | sh, curl … | tee log | sh
+        if _downloaded_then_run(segs, cwd, body, depth):
+            return True
+    return False
 
 
 LOCAL_URL = re.compile(r"(?:https?://)?(?:localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)(?::\d+)?(?:[/?#].*)?", re.I)
