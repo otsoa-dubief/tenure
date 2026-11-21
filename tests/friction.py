@@ -83,8 +83,8 @@ def _hermes_detect():
 def session(early_web: bool = False, chains: bool = False) -> list:
     """The session; early_web moves the web page from the end to the fourth call (chains: a web page second)."""
     if chains:
-        calls = list(CHAINS)
-        return calls[:1] + [("terminal", {"command": "curl https://example.com/docs"})] + calls[1:] if early_web else calls
+        web = [("terminal", {"command": "curl https://example.com/docs"})] if early_web else []
+        return CHAINS[:1] + web + CHAINS[1:]
     if not early_web:
         return list(SESSION)
     web = [c for c in SESSION if c[1].get("command", "").startswith("curl")]

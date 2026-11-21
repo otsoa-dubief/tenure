@@ -352,6 +352,7 @@
     "other": "L'annulation {id} date de plus de {n} h : l'instantané n'est plus conservé."
   },
   "undo.gone": "Annulation {id} : l'instantané a disparu, rien n'a été restauré.",
+  "undo.index_failed": "L'index de git n'a pas été remis ({error}) : les fichiers sont restaurés ; git status montre ce qui est indexé.",
   "undo.missing": "Aucune annulation n° {id}.",
   "undo.no_snapshot": "Annulation {id} : aucun instantané n'a été enregistré pour cette action, rien à restaurer.",
   "undo.partial": {

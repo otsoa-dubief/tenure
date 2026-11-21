@@ -21,6 +21,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import tempfile
 import time
 import uuid
@@ -47,11 +48,61 @@ def _undo_dir(root: str) -> str:
     return os.path.join(root, "undo")
 
 
+# git, run by an undo or a snapshot: no hook, no file-system monitor, names taken as written, nothing from the
+# environment of the agent's process (GIT_DIR, GIT_INDEX_FILE... would point it elsewhere).
+GIT = ("git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "--literal-pathspecs")
+GIT_TIMEOUT = 10
+
+
+def _git(top: str, *args: str, data: bytes | None = None) -> subprocess.CompletedProcess:
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    env.update(GIT_TERMINAL_PROMPT="0", LC_ALL="C")
+    return subprocess.run([*GIT, "-C", top, *args], input=data, capture_output=True, env=env, timeout=GIT_TIMEOUT,
+                          check=False)
+
+
+def _git_top(cwd: str | None) -> str | None:
+    """The repository holding ``cwd`` when git keeps it plainly there (a ``.git`` folder, not a link or a file)."""
+    d = os.path.realpath(cwd or ".")
+    while True:
+        git = os.path.join(d, ".git")
+        if os.path.lexists(git):
+            return d if os.path.isdir(git) and not os.path.islink(git) else None
+        parent = os.path.dirname(d)
+        if parent == d:
+            return None
+        d = parent
+
+
+def _git_index(paths: list[str], cwd: str | None) -> dict:
+    """The index entries of ``paths`` before a ``git rm`` or ``git mv`` changes them: {"top", "paths" (from the top),
+    "index" (``git ls-files -s`` records)}; "top" is None when they cannot be read, and the undo then says so."""
+    top = _git_top(cwd)
+    if not top:
+        return {"top": None, "paths": [], "index": []}
+    rels = []
+    for p in paths:
+        rel = os.path.relpath(os.path.realpath(p), top)
+        if rel == ".." or rel.startswith(".." + os.sep) or os.path.isabs(rel):
+            return {"top": None, "paths": [], "index": []}
+        rels.append(rel.replace(os.sep, "/"))
+    try:
+        r = _git(top, "--no-optional-locks", "ls-files", "-s", "-z", "--", *rels)
+    except (OSError, subprocess.SubprocessError):
+        return {"top": None, "paths": rels, "index": []}
+    if r.returncode != 0:
+        return {"top": None, "paths": rels, "index": []}
+    records = [x.decode("utf-8", "surrogateescape") for x in r.stdout.split(b"\0") if x]
+    return {"top": top, "paths": rels, "index": records}
+
+
 def snapshot(paths: list[str], root: str, max_bytes: int = 5_000_000, *, key: bytes | None, cwd: str | None = None,
-             home: str | None = None) -> str | None:
+             home: str | None = None, git: list[str] | None = None) -> str | None:
     """Save paths; return the snapshot id, or None if it cannot be done safely (no ``key`` included: a snapshot
     without its MAC could never be restored). ``cwd`` and ``home``: the session's working directory and user home,
-    signed with the manifest, so a restore judges its targets as classify judged the write."""
+    signed with the manifest, so a restore judges its targets as classify judged the write. ``git``: the paths a
+    ``git rm`` or ``git mv`` of the call changes in git's index; their entries are signed with the manifest too, so
+    ``restore_index`` can put them back."""
     if not key:
         return None
     entries = []
@@ -97,7 +148,8 @@ def snapshot(paths: list[str], root: str, max_bytes: int = 5_000_000, *, key: by
         for i, data in enumerate(blobs):
             if data is not None:
                 _write_private(os.path.join(d, str(i)), data)
-        manifest = json.dumps({"files": entries, "cwd": cwd, "home": home}).encode("utf-8")
+        extra = {"git": _git_index(git, cwd)} if git else {}
+        manifest = json.dumps({"files": entries, "cwd": cwd, "home": home, **extra}).encode("utf-8")
         _write_private(os.path.join(d, "manifest.json"), manifest)
         _write_private(os.path.join(d, MAC_FILE), _mac(key, snap_id, manifest).encode("ascii"))
     except OSError:
@@ -204,6 +256,54 @@ def restore(snap_id: str, root: str, keep: bool = False, *, key: bytes | None) -
     if not failed and not keep:
         shutil.rmtree(d, ignore_errors=True)
     return count, failed
+
+
+def restore_index(snap_id: str, root: str, *, key: bytes | None) -> str | None:
+    """After ``restore``: put git's index entries of the snapshot's ``git rm`` and ``git mv`` paths back as they were
+    (an entry that was there comes back, one that was not is taken out), so ``git status`` shows the state before the
+    call. None when done or when the snapshot holds no git entries; else why it failed, in a few words (the files
+    stay restored)."""
+    if not isinstance(snap_id, str) or not _ID_RE.match(snap_id):
+        return None
+    d = os.path.join(_undo_dir(root), snap_id)
+    try:
+        with open(os.path.join(d, "manifest.json"), "rb") as fh:
+            manifest = fh.read()
+        with open(os.path.join(d, MAC_FILE), "rb") as fh:
+            mac = fh.read().decode("ascii", "replace").strip()
+    except OSError:
+        return None
+    if not key or not hmac.compare_digest(mac, _mac(key, snap_id, manifest)):
+        return "snapshot changed"
+    try:
+        rec = json.loads(manifest).get("git")
+        if not rec:
+            return None
+        top, rels, records = rec.get("top"), list(rec.get("paths") or []), list(rec.get("index") or [])
+    except (ValueError, TypeError, AttributeError):
+        return "unreadable"
+    if not top or _git_top(top) != top:
+        return "not a plain git repository"
+    known, lines = set(), []
+    for r in records:
+        if not isinstance(r, str) or "\t" not in r:
+            return "unreadable"
+        known.add(r.split("\t", 1)[1])
+        lines.append(r)
+    try:
+        if any(p not in known for p in rels):          # a path git did not hold: taken out, with a zero object id
+            size = len(records[0].split(" ")[1]) if records else (
+                64 if _git(top, "rev-parse", "--show-object-format").stdout.strip() == b"sha256" else 40)
+            lines += [f"0 {'0' * size}\t{p}" for p in rels if p not in known]
+        r = _git(top, "update-index", "-z", "--index-info",
+                 data=b"".join(x.encode("utf-8", "surrogateescape") + b"\0" for x in lines))
+    except (OSError, subprocess.SubprocessError) as exc:
+        return type(exc).__name__
+    if r.returncode != 0:
+        err = r.stderr.decode("utf-8", "replace").replace(top.rstrip("/") + "/", "").strip().splitlines()
+        first = err[0] if err else f"exit {r.returncode}"
+        return (first[len("fatal: "):] if first.startswith("fatal: ") else first)[:160]
+    return None
 
 
 def unchanged(snap_id: str, root: str, *, key: bytes | None) -> bool:
