@@ -247,8 +247,9 @@ def test_trust_refuses_while_nobody_answers(plugin, monkeypatch, how):
             mod.owner_trust(st, mod.settings(), A, state(mod, "shell:npm"), mod.rule.FREE)
 
 
-@pytest.mark.parametrize("command", ["hermes tenure trust shell:npm", "/tenure trust file:write ask",
-                                     "python -c 'from tenure import owner_trust'", "hermes tenure trust"])
+@pytest.mark.parametrize("command", ["hermes tenure trust shell:npm", "hermes chat -q '/tenure trust file:write ask'",
+                                     "python -c 'from tenure import owner_trust'",
+                                     "python -m hermes_cli.main tenure trust shell:npm"])
 def test_the_agent_never_runs_trust(plugin, command):
     mod, ctx = make(plugin)
     d = mod.pre_tool_call(tool_name="terminal", args={"command": command}, session_id="s1", tool_call_id="c1")
