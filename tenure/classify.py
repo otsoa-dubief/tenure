@@ -3847,7 +3847,7 @@ UNRESOLVED = "$`?*[{"
 
 OUTPUT_OPTS = {
     "curl": ("oDc", ("--output", "--output-dir", "--dump-header", "--cookie-jar", "--trace", "--trace-ascii",
-                     "--stderr", "--libcurl", "--etag-save", "--hsts", "--alt-svc")),
+                     "--stderr", "--libcurl", "--etag-save", "--hsts", "--alt-svc", "--ssl-sessions")),
     "wget": ("OoaP", ("--output-document", "--output-file", "--append-output", "--directory-prefix",
                       "--save-cookies", "--warc-file", "--rejected-log", "--hsts-file")),
     "sort": ("o", ("--output",)),
@@ -3855,55 +3855,142 @@ OUTPUT_OPTS = {
 }
 
 
-def _tool_outputs(tokens: list[str]) -> list[str]:
-    """Files curl, wget, sort or less write through an option, long options abbreviated or not, short ones alone,
-    grouped (`-fsSLo f`) or with the value attached; for wget -P, also the folder with each URL's file name."""
+# The options for which `-` is standard output; for any other (`--hsts -`, `--save-cookies -`) it is a file named -.
+STDOUT_DASH = {"curl": {"-o", "--output", "-D", "--dump-header", "-c", "--cookie-jar", "--trace", "--trace-ascii",
+                        "--stderr"},
+               "wget": {"-O", "--output-document", "-o", "--output-file", "-a", "--append-output"}}
+_NO_FILE = {"/dev/null", "/dev/stdout", "/dev/stderr"}
+# The short options that take a value: in a group (`-sK cfg`, `-qO-`), the value-taking one ends it.
+VALUE_SHORTS = {"curl": set("AbcCdDeEFHKmoPQrtTuUwxXyYz"), "wget": set("oaeiBtOTwQPlARDXIU")}
+
+
+def _fetch_args(prog: str, args: list[str]) -> list[str]:
+    """curl's ``--expand-X`` (X with variables expanded) read as ``--X``."""
+    return ["--" + a[len("--expand-"):] if prog == "curl" and a.startswith("--expand-") else a for a in args]
+
+
+def _shorts(args: list[str], value_shorts: set) -> list[tuple[str, str | None]]:
+    """The short options of ``args``, alone or grouped: (letter, its value, or None for a flag). A letter that takes
+    a value ends its group: the rest of the word, else the next word."""
+    out, n = [], 0
+    while n < len(args):
+        a = args[n]
+        if a == "--":
+            break
+        if a.startswith("-") and not a.startswith("--") and len(a) > 1:
+            for k, ch in enumerate(a[1:], 1):
+                if ch in value_shorts:
+                    value = a[k + 1:]
+                    if not value and n + 1 < len(args):
+                        n, value = n + 1, args[n + 1]
+                    out.append((ch, value))
+                    break
+                out.append((ch, None))
+        n += 1
+    return out
+
+
+def _long_values(args: list[str], names: tuple[str, ...]) -> list[tuple[str, str]]:
+    """(name, value) of each long option of ``names`` (abbreviated or not), the value after `=` or the next word."""
+    args, out = _canon_long(args, names), []
+    for n, a in enumerate(args):
+        name, eq, value = a.partition("=")
+        if name in names:
+            out.append((name, value if eq else (args[n + 1] if n + 1 < len(args) else "")))
+    return out
+
+
+def _tool_output_pairs(tokens: list[str]) -> list[tuple[str, str]]:
+    """(option, file) for each file curl, wget, sort or less write through an option, long options abbreviated or
+    not (curl's ``--expand-X`` too), short ones alone, grouped (`-fsSLo f`) or with the value attached, curl's
+    ``%output{f}`` and ``%output{>>f}`` in a format; for wget -P, also the folder with each URL's file name."""
     toks = _unwrap(tokens)
     if not toks or os.path.basename(toks[0]) not in OUTPUT_OPTS:
         return []
     prog = os.path.basename(toks[0])
     shorts, longs = OUTPUT_OPTS[prog]
-    args = _canon_long(toks[1:], longs)
+    args = _canon_long(_fetch_args(prog, toks[1:]), longs)
     out, n = [], 0
     while n < len(args):
         a = args[n]
         name, eq, value = a.partition("=")
         if name in longs:
             if eq:
-                out.append(value)
+                out.append((name, value))
             elif n + 1 < len(args):
-                out.append(args[n + 1])
+                out.append((name, args[n + 1]))
         elif a.startswith("-") and not a.startswith("--") and len(a) > 1:
             for k, ch in enumerate(a[1:], 1):
                 if ch in shorts:
-                    out.append(a[k + 1:] or (args[n + 1] if n + 1 < len(args) else ""))
+                    out.append(("-" + ch, a[k + 1:] or (args[n + 1] if n + 1 < len(args) else "")))
         if "%output{" in a:
-            out += re.findall(r"%output\{([^}]*)\}", a)
+            out += [("%output", f) for f in re.findall(r"%output\{(?:>>)?([^}]*)\}", a)]
         n += 1
     if prog == "wget":
         dirs = [v for k, v in zip(args, args[1:]) if k in ("-P", "--directory-prefix")]
         dirs += [a.split("=", 1)[1] for a in args if a.startswith("--directory-prefix=")]
         dirs += [a.split("P", 1)[1] for a in args if re.match(r"-[A-Za-z]*P.", a) and not a.startswith("--")]
         urls = [a for a in args if not a.startswith("-") and "." in a]
-        out += [d.rstrip("/") + "/" + u.rstrip("/").rsplit("/", 1)[-1] for d in dirs for u in urls]
+        out += [("-P", d.rstrip("/") + "/" + u.rstrip("/").rsplit("/", 1)[-1]) for d in dirs for u in urls]
     return out
 
 
-_NO_FILE = {"-", "/dev/null", "/dev/stdout", "/dev/stderr"}
+def _tool_outputs(tokens: list[str]) -> list[str]:
+    """The files of ``_tool_output_pairs``."""
+    return [f for _opt, f in _tool_output_pairs(tokens)]
+
+
+_WGET_SAVING = {"--recursive", "--mirror", "--page-requisites", "--input-file", "--timestamping", "--continue",
+                "--force-directories", "--background", "--content-disposition"}
 
 
 def _fetch_saves(toks: list[str]) -> bool:
     """curl or wget writing what it fetches (or its headers, cookies, a trace) into a file: an output option in any
     spelling (``-o f``, ``-sSo f``, ``--output=f``, wget's ``-qO f``), curl's ``-O`` or ``--remote-name`` grouped or
-    not (a file named after the URL), wget's ``-P``. Standard output and /dev/null are no file."""
+    not (a file named after the URL), wget's ``-P``. /dev/null is no file, nor ``-`` where the option means standard
+    output (``STDOUT_DASH``). wget saves the document in the folder unless ``-O`` sends it to standard output or
+    /dev/null, and always with ``-r``, ``-m``, ``-p``, ``-i``, ``-N``, ``-c``, ``-x``, ``-b`` or
+    ``--content-disposition`` (``-o`` and ``-a`` are its log, not the document)."""
     prog = os.path.basename(toks[0]) if toks else ""
-    if any(t not in _NO_FILE for t in _tool_outputs(toks)):
+    for opt, target in _tool_output_pairs(toks):
+        if target not in _NO_FILE and not (target == "-" and opt in STDOUT_DASH.get(prog, ())):
+            return True
+    args = _fetch_args(prog, toks[1:])
+    if prog == "curl":
+        names = ("--remote-name", "--remote-name-all", "--remote-header-name")
+        return (any(a.split("=", 1)[0] in names[:2] for a in _canon_long(args, names))
+                or any(ch == "O" for ch, _v in _shorts(args, VALUE_SHORTS["curl"])))
+    if prog != "wget":
+        return False
+    docs = [v for ch, v in _shorts(args, VALUE_SHORTS["wget"]) if ch == "O"]
+    docs += [v for _n, v in _long_values(args, ("--output-document",))]
+    if not docs or docs[-1] not in _NO_FILE | {"-"}:
+        return True                                      # the document is saved in the folder, or where -O says
+    long_names = tuple(sorted(_WGET_SAVING))
+    return (any(a.split("=", 1)[0] in _WGET_SAVING for a in _canon_long(args, long_names))
+            or any(ch in "rmpiNcxb" for ch, _v in _shorts(args, VALUE_SHORTS["wget"])))
+
+
+def _fetch_sends(prog: str, args: list[str]) -> bool:
+    """curl or wget sending something: data, a form, an upload, a body, a method that changes the server, or a local
+    file read into the request (``-d@f``, ``-sd @f``, ``-Fx=@f``, ``-Tf``, a header, a query or a variable from
+    ``@file``)."""
+    args = _fetch_args(prog, args)
+    joined = " ".join(args)
+    if (re.search(r"(^|\s)(-d|--data\S*|--json|-F|--form\S*|-T|--upload-file|--post-data|--post-file|--body-data"
+                  r"|--body-file)(\s|=|$)", joined)
+            or re.search(r"(-X|--request|--method)[\s=]*(POST|PUT|PATCH|DELETE)", joined, re.I)):
         return True
+    if prog == "wget":
+        return any(a.split("=", 1)[0] in ("--body-data", "--body-file", "--post-data", "--post-file")
+                   for a in _canon_long(args, ("--body-data", "--body-file", "--post-data", "--post-file")))
     if prog != "curl":
         return False
-    args = _canon_long(toks[1:], ("--remote-name", "--remote-name-all", "--remote-header-name"))
-    return any(a.split("=", 1)[0] in ("--remote-name", "--remote-name-all") or
-               (re.match(r"-[^-]", a) and "O" in a.split("=", 1)[0]) for a in args)
+    shorts = _shorts(args, VALUE_SHORTS["curl"])
+    if any(ch in "dFT" for ch, _v in shorts) or any(ch == "H" and (v or "").startswith("@") for ch, v in shorts):
+        return True
+    return any((name == "--header" and v.startswith("@")) or (name != "--header" and "@" in v)
+               for name, v in _long_values(args, ("--header", "--url-query", "--variable")))
 
 
 def _fetcher_risky(tokens: list[str], home: str) -> tuple[str, str] | None:
@@ -3912,11 +3999,15 @@ def _fetcher_risky(tokens: list[str], home: str) -> tuple[str, str] | None:
     toks = _unwrap(tokens)
     if not toks or os.path.basename(toks[0]) not in ("curl", "wget"):
         return None
-    prog, args = os.path.basename(toks[0]), toks[1:]
-    if prog == "curl" and any(a in ("-K", "--config") or a.startswith(("--config=", "-K")) for a in args):
-        return "shell:curl:config", HIGH
-    if prog == "wget" and any(a in ("-e", "--execute") or a.startswith(("--execute", "--use-askpass", "-e"))
-                              for a in args):
+    prog = os.path.basename(toks[0])
+    args = _fetch_args(prog, toks[1:])
+    shorts = _shorts(args, VALUE_SHORTS[prog])
+    if prog == "curl" and (any(ch == "K" or (ch == "w" and (v or "").startswith("@")) for ch, v in shorts)
+                           or _long_values(args, ("--config",))
+                           or any(v.startswith("@") for _n, v in _long_values(args, ("--write-out",)))):
+        return "shell:curl:config", HIGH                     # a config file, or a format read from a file
+    if prog == "wget" and (any(ch == "e" for ch, _v in shorts)
+                           or _long_values(args, ("--execute", "--use-askpass", "--config"))):
         return "shell:wget:execute", HIGH
     h = (home or os.path.expanduser("~")).rstrip("/")
     for d in _tool_outputs(tokens):
@@ -4191,8 +4282,11 @@ def _may_be_hermes(word: str, args: list[str]) -> bool:
 
 
 def _core(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
-    """One command, plus what it runs from a string or another program it names (``_wrapped``)."""
+    """One command, plus what it runs from a string or another program it names (``_wrapped``). A read whose output
+    goes to a file through a redirect writes that file: medium stakes at least."""
     own = _core_main(tokens, cwd, home, depth)
+    if own[1] == FREE and _redirects(tokens):
+        own = (own[0], MEDIUM)
     toks = _unwrap(tokens)
     if (own[1] != CAP and toks and (not _seg_pure(tokens) or _substituted(tokens)) and not _hermes_read(tokens)
             and (_hermes_inside(toks, cwd, home) or _may_be_hermes(toks[0], toks[1:]))
@@ -4343,11 +4437,7 @@ def _core_main(tokens: list[str], cwd, home, depth: int = 0) -> tuple[str, str]:
     if prog == "dotnet" and sub == "nuget" and "push" in args:
         return "shell:dotnet:nuget:push", HIGH
     if prog in ("curl", "wget"):
-        joined = " ".join(args)
-        sends = (re.search(r"(^|\s)(-d|--data\S*|--json|-F|--form\S*|-T|--upload-file|--post-data|--post-file)"
-                           r"(\s|=|$)", joined)
-                 or re.search(r"(-X|--request|--method)[\s=]*(POST|PUT|PATCH|DELETE)", joined, re.I))
-        if sends:
+        if _fetch_sends(prog, args):
             return f"shell:{prog}:send", HIGH
         return f"shell:{prog}", MEDIUM if writes or _fetch_saves(toks) else FREE
     if prog == "rsync":
