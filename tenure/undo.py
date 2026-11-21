@@ -206,6 +206,30 @@ def restore(snap_id: str, root: str, keep: bool = False, *, key: bytes | None) -
     return count, failed
 
 
+def unchanged(snap_id: str, root: str, *, key: bytes | None) -> bool:
+    """Every file of the snapshot is still as it was saved (a saved file with the same bytes, a new one still
+    absent): the call changed nothing. False when the snapshot cannot be read. Raises Refused like ``restore``."""
+    if not isinstance(snap_id, str) or not _ID_RE.match(snap_id):
+        return False
+    try:
+        files, _ = _checked(os.path.join(_undo_dir(root), snap_id), snap_id, key)
+    except OSError:
+        return False
+    for e in files:
+        path = e["path"]
+        if not e["existed"]:
+            if os.path.lexists(path):
+                return False
+            continue
+        try:
+            with open(path, "rb") as fh:
+                if hashlib.sha256(fh.read()).hexdigest() != e["sha256"]:
+                    return False
+        except OSError:
+            return False
+    return True
+
+
 def describe(snap_id: str | None, root: str) -> dict:
     """What an undo would restore, said for the owner of this machine: the first file, relative to the folder the
     agent worked in, and how many files in all. Read from the snapshot's manifest; {} when it is unreadable."""

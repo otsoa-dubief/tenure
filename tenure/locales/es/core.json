@@ -457,5 +457,7 @@
   "simple.explain.study": "Sin controles aleatorios ni garantía en este modo. Para la regla del estudio, su garantía y el pasaporte firmado: {command}",
   "simple.ask.suspended": "Esta sesión leyó contenido externo: permite esta acción y sus comandos se ejecutan como antes el resto de la sesión (siempre con la regla simple); recházala y siguen preguntando.",
   "simple.ask.prompt_lift": "tenure — {summary}\n{why}\nRechazarla no cuenta ningún error: dudas del contenido, no del agente.",
-  "simple.undo.fault_anyway": "Se cuenta igualmente como un error de {type}: pediste deshacerla."
+  "simple.undo.fault_anyway": "Se cuenta igualmente como un error de {type}: pediste deshacerla.",
+  "settle.acted_failed": "tenure: {type} falló, y pudo cambiar archivos antes de detenerse{what} · {command} {id}",
+  "undo.done_unchanged": "Deshacer {id}: archivos restaurados. La llamada había fallado sin cambiar nada: no se cuenta ningún error de {type}."
 }
