@@ -354,6 +354,7 @@
   "undo.gone": "Deshacer {id}: la instantánea ya no existe, no se restauró nada.",
   "undo.index_failed": "El índice de git no se ha restaurado ({error}): los archivos sí. Cuando git esté libre, {command} {id} restaura el índice.",
   "undo.index_done": "Deshacer {id}: el índice de git vuelve a estar como antes.",
+  "undo.index_expired": "Deshacer {id}: el índice de git ya no se puede restaurar (su instantánea ya no está o su plazo pasó); git status muestra lo preparado.",
   "undo.missing": "No hay ninguna entrada de deshacer {id}.",
   "undo.no_snapshot": "Deshacer {id}: no se guardó ninguna instantánea de esta acción, no hay nada que restaurar.",
   "undo.partial": {

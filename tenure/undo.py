@@ -322,7 +322,7 @@ def restore_index(snap_id: str, root: str, *, key: bytes | None) -> str | None:
         with open(os.path.join(d, MAC_FILE), "rb") as fh:
             mac = fh.read().decode("ascii", "replace").strip()
     except OSError:
-        return None
+        return "snapshot gone"
     if not key or not hmac.compare_digest(mac, _mac(key, snap_id, manifest)):
         return "snapshot changed"
     try:
@@ -354,6 +354,12 @@ def restore_index(snap_id: str, root: str, *, key: bytes | None) -> str | None:
         first = err[0] if err else f"exit {r.returncode}"
         return (first[len("fatal: "):] if first.startswith("fatal: ") else first)[:160]
     return None
+
+
+def exists(snap_id: str | None, root: str) -> bool:
+    """The snapshot is still there (not purged, not discarded)."""
+    return (isinstance(snap_id, str) and bool(_ID_RE.match(snap_id))
+            and os.path.isfile(os.path.join(_undo_dir(root), snap_id, "manifest.json")))
 
 
 def unchanged(snap_id: str, root: str, *, key: bytes | None) -> bool:

@@ -1883,7 +1883,8 @@ class Chain:
     git: tuple = ()      # the files of its git rm and git mv segments: their index entries are put back by an undo
     git_specs: tuple = ()  # the paths those segments give git (a folder of git rm -r among them)
     writes: tuple = ()   # the files its writing segments (sed -i, mv, cp, touch, a redirect) change: a broken one is
-    free: tuple = ()     # theirs (file:shell); free: (type, stakes) of each program that runs, checked by the hooks
+    checks: tuple = ()   # theirs (file:shell); checks: (type, stakes, reversible) of each kind of the line that must
+                         # be free now for the agent (its programs, git rm and git mv, file:shell beside an rm)
 
 
 def chain_parts(command: str) -> list[tuple[str, str, str]] | None:
@@ -1971,17 +1972,23 @@ def _undo_chain(command: str, parts: list, cwd: str, home: str) -> Chain | None:
     git: list[str] = []
     specs: list[str] = []
     writes: list[str] = []
-    for seg, kind, targets, extra in plans:
+    gone: list[str] = []                                 # what earlier segments delete, read now
+    for seg, kind, targets, info in plans:
         if kind not in ("save", "save-git"):
             continue
+        dest = info.get("dest")
+        if dest and any(_nfc(dest) == _nfc(g) or _nfc(dest).startswith(_nfc(g).rstrip("/") + "/") for g in gone):
+            return None                                  # a move into what the line deleted: not the paths read now
         found = targets(budget)
         if found is None:
             return None                                  # a target that cannot be saved, or too many
         paths += found
         if kind == "save-git":
             git += found
-            specs += extra
-        elif not _chain_deletes(seg):
+            specs += info.get("specs", [])
+        if info.get("deletes"):
+            gone += info.get("specs", info.get("gone", [])) + found
+        elif info.get("writes"):
             writes += found                              # files it writes: a broken one is that segment's fault
     out = _undo_checked(paths, cwd, home, WIDE_MAX_FILES, wide=True)
     if not out:
@@ -1989,11 +1996,13 @@ def _undo_chain(command: str, parts: list, cwd: str, home: str) -> Chain | None:
     ran = scripts_run(command, cwd, wide=True)
     if ran and any(_same_path(p, r) for p in out for r in _named_alike(p, ran)):
         return None                                      # a file the line changes, then runs: write then run
-    return Chain(paths=tuple(out),
-                 rm=any(k in ("save", "save-git") and _chain_deletes(seg) for seg, k, _t, _x in plans),
-                 runs=any(k in ("free", "save-git") for _s, k, _t, _x in plans), git=tuple(dict.fromkeys(git)),
-                 git_specs=tuple(dict.fromkeys(specs)), writes=tuple(dict.fromkeys(writes)),
-                 free=tuple(x for _s, k, _t, x in plans if k == "free"))
+    rm = any(info.get("deletes") for _s, _k, _t, info in plans)
+    checks = [info["check"] for _s, _k, _t, info in plans if info.get("check")]
+    if rm and any(info.get("writes") for _s, _k, _t, info in plans):
+        checks.append(("file:shell", LOW, True))         # beside an rm, the writing segments are file:shell's own
+    return Chain(paths=tuple(out), rm=rm, runs=any(k in ("free", "save-git") for _s, k, _t, _x in plans),
+                 git=tuple(dict.fromkeys(git)), git_specs=tuple(dict.fromkeys(specs)),
+                 writes=tuple(dict.fromkeys(writes)), checks=tuple(dict.fromkeys(checks)))
 
 
 def _nfc(path: str) -> str:
@@ -2055,7 +2064,7 @@ def _chain_may_save(seg: str, seg_masked: str) -> bool:
         return True
     words = seg.split()
     return bool(words) and (words[0] in ("rm", "mv", "cp", "sed", "touch")
-                            or (os.path.basename(words[0]) == "git" and words[1:2] in (["rm"], ["mv"])))
+                            or (words[0] == "git" and words[1:2] in (["rm"], ["mv"])))
 
 
 def _chain_deletes(seg: str) -> bool:
@@ -2063,7 +2072,7 @@ def _chain_deletes(seg: str) -> bool:
         toks = shlex.split(seg)
     except ValueError:
         return True
-    return bool(toks) and (toks[0] == "rm" or (os.path.basename(toks[0]) == "git" and toks[1:2] == ["rm"]))
+    return bool(toks) and (toks[0] == "rm" or (toks[0] == "git" and toks[1:2] == ["rm"]))
 
 
 def _set_ok(args: list[str]) -> bool:
@@ -2078,10 +2087,11 @@ def _set_ok(args: list[str]) -> bool:
 
 
 def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple | None:
-    """(kind, targets, extra): ("save", files, None) for a file command whose files may be saved, ("save-git", files,
-    the paths git is given) for ``git rm`` or ``git mv``, ("read", None, None) for a free read, ("free", None, (type,
-    stakes)) for a covered program free on its own; None otherwise. ``files`` takes the line's ``_Budget``: the
-    folders are walked only once every segment has been read."""
+    """(kind, targets, info): "save" for a file command whose files may be saved, "save-git" for ``git rm`` or
+    ``git mv`` (``git`` itself, never a program of the same name elsewhere), "read" for a free read, "free" for a
+    covered program free on its own; None otherwise. ``targets`` takes the line's ``_Budget``: the folders are walked
+    only once every segment has been read. ``info``: "specs" (the paths git is given), "dest" (where a move or a copy
+    lands), "deletes", "gone" (the paths it deletes), "writes", "check" (a kind the hooks check now)."""
     try:
         toks = shlex.split(seg)
     except ValueError:
@@ -2089,7 +2099,7 @@ def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple | No
     if any(t.startswith("=") for t in toks):
         return None                                      # zsh expands =word to a program's path
     if toks and toks[0] == "set" and _set_ok(toks[1:]):
-        return "read", None, None                        # errexit, nounset, xtrace, pipefail: nothing changes paths
+        return "read", None, {}                          # errexit, nounset, xtrace, pipefail: nothing changes paths
     if not toks or ENV_ASSIGN.match(toks[0]) or os.path.basename(toks[0]) in CHAIN_STATE:
         return None                                      # it changes the shell for the segments after it
     if os.path.basename(toks[0]) in EXTERNAL_PROGRAMS | set(OUTSIDE) or _cmd_reads_external(seg, 0):
@@ -2097,7 +2107,10 @@ def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple | No
     if _GLOB & set(seg) and seg_masked != seg:
         return None                                      # a glob next to quotes: which words expand is unsure
     prog, globbed = toks[0], bool(_GLOB & set(seg_masked))
-    if os.path.basename(prog) == "git" and toks[1:2] in (["rm"], ["mv"]) and "--cached" not in toks:
+    if ">" in seg_masked and prog not in ("echo", "printf", "cat"):
+        return None                                      # `rm x >main.py` empties main.py: only a saved redirect
+    git_saves = prog == "git" and toks[1:2] in (["rm"], ["mv"]) and "--cached" not in toks
+    if git_saves:
         from . import undo as _undo
         if globbed or any(_GIT_MAGIC & set(a) or a.startswith(":") for a in toks[2:]) or not _undo.git_top(cwd):
             return None                                  # a pathspec git would expand, or an index it cannot read
@@ -2105,38 +2118,43 @@ def _chain_segment(seg: str, seg_masked: str, cwd: str, home: str) -> tuple | No
     if reading[1] == CAP:
         return None
     saver_ok = reading[1] != HIGH or (reading[0] == "file:unknown" and globbed)     # an rm glob reads as unknown
-    if os.path.basename(prog) == "git" and toks[1:2] in (["rm"], ["mv"]) and "--cached" not in toks:
+    if git_saves:
         if not saver_ok:
             return None                                  # its files are checked with the others (_undo_chain)
+        check = (reading[0], reading[1], False)          # shell:git:rm, shell:git:mv: free now for the agent?
         if toks[1] == "rm":
             got = _undo_opts(toks[2:], "rqf")
             if not got or not got[0]:
                 return None
+            ops = [_undo_path(a, cwd, home) for a in got[0]]
             return ("save-git", lambda b: _chain_targets(got[0], "r" in got[1], cwd, home, b),
-                    [_undo_path(a, cwd, home) for a in got[0]])
+                    {"specs": ops, "deletes": True, "check": check})
         got = _undo_opts(toks[2:], "kvn")                # git mv, never -f
         if not got or len(got[0]) < 2:
             return None
+        ops = [_undo_path(a, cwd, home) for a in got[0]]
         return ("save-git", lambda b: _undo_mv_cp("mv", ["--"] + got[0], cwd, home),
-                [_undo_path(a, cwd, home) for a in got[0]])
+                {"specs": ops, "dest": ops[-1], "check": check})
     if prog == "rm":
         got = _undo_opts(toks[1:], "fvrR")
         if not saver_ok or not got or not got[0]:
             return None
-        return "save", lambda b: _chain_targets(got[0], bool(got[1] & {"r", "R"}), cwd, home, b), None
+        return ("save", lambda b: _chain_targets(got[0], bool(got[1] & {"r", "R"}), cwd, home, b),
+                {"deletes": True, "gone": [_undo_path(a, cwd, home) for a in got[0] if not _GLOB & set(a)]})
     if ">" in seg_masked or prog in ("mv", "cp", "sed", "touch"):
         found = undoable_shell(seg, cwd, home, wide=True) if saver_ok and not globbed else None
         if found:
-            return "save", lambda b: found, None
+            dest = _undo_path(toks[-1], cwd, home) if prog in ("mv", "cp") else None
+            return "save", lambda b: found, {"dest": dest, "writes": True}
         if ">" in seg_masked:
             return None                                  # a redirect into a file it cannot save
     if globbed:
         return None
     if reading[1] == FREE:
-        return "read", None, None
+        return "read", None, {}
     if (reading[1] in (LOW, MEDIUM) and params.trust_covers(same_program(reading[0]))
             and params.simple_covers(reading[0]) and not adds_dependency(seg)):
-        return "free", None, (reading[0], reading[1])
+        return "free", None, {"check": (reading[0], reading[1], False)}
     return None
 
 
