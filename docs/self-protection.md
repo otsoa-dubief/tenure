@@ -26,15 +26,22 @@ starts suspended, and a child agent that read external content suspends its pare
 
 ## Self-protection
 
-**A person's word stays a person's.** `tenure ok` (marking act-then-tell actions as seen) and `tenure excuse` count
-only from a person. A tool call whose arguments would run either (`hermes tenure ok`, `python -m tenure excuse`,
-`/tenure ok`, or `tenure.seen(...)` in code) is blocked outright, whatever approval or terminal the agent could get;
-and Hermes marks every tool subprocess of a session with `TENURE_AGENT_CHILD` (`register_session_env`), where both
-commands refuse to run. These are defences in depth, not a wall: code that builds the command at run time
-(`"ok"` assembled from parts, a function imported under another name), `env -u TENURE_AGENT_CHILD`, and a
-pseudo-terminal (`script -q /dev/null ...`) get
-past all three; the approval such a call needs still shows a command that names Hermes (capped), and under `--yolo`
-nobody sees it.
+**A person's word stays a person's.** `tenure ok` (marking act-then-tell actions as seen), `tenure excuse` (taking a
+fault back) and `tenure trust KIND` (freeing a kind of action now, or making it ask first: `tenure trust KIND ask`)
+count only from a person. A tool call that would run one of them is blocked outright, whatever approval or terminal
+the agent could get: in a terminal command, in `execute_code`'s code or in the text `computer_use` types
+(`hermes tenure ok`, `python -m tenure excuse`, `hermes tenure trust docker`, `tenure.seen(...)` or
+`tenure.cli.trust_set(...)` in code, even inside a `grep` or an `echo`). The slash form (`/tenure ok`,
+`/tenure excuse`, `/tenure trust KIND`) is blocked when `computer_use` types it or a command line hands it to Hermes
+(`hermes chat -q "/tenure trust docker"`); a shell alone cannot run it, so a commit message or a `grep` that names it
+is left alone. `tenure trust` alone, which only lists, is never blocked. Hermes marks every tool subprocess of a
+session with `TENURE_AGENT_CHILD` (`register_session_env`), and the Python of `execute_code` carries Hermes' RPC
+endpoint: `ok`, `excuse` and `trust KIND` refuse to run there, through the CLI and the slash command's entry point
+alike. They also refuse while nobody answers approvals (cron, `--yolo`), and the CLI refuses them without an
+interactive terminal. These are defences in depth, not a wall: code that builds the command at run time (`"ok"`
+assembled from parts, a function imported under another name), `env -u TENURE_AGENT_CHILD`, and a pseudo-terminal
+(`script -q /dev/null ...`) get past these checks; the approval such a call needs still shows a command that names
+Hermes (capped), and under `--yolo` nobody sees it.
 
 **One conversation, one session.** The sessions the rule counts are conversations: a subagent counts as its parent,
 and a conversation Hermes compressed into a new session id stays the same one (when Hermes' state can be read: a
