@@ -1147,11 +1147,13 @@ def outcome(choice, decided_by=None) -> str:
 
 
 def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, stakes: str, reversible: bool,
-                   result: str, source: str, session: str = "") -> list[dict]:
+                   result: str, source: str, session: str = "", number: int | None = None) -> list[dict]:
     """Apply one outcome to an agent's type and log it, in a transaction, after ``sync_settings``: first the input
     event a replay reads, then the rule's derived events. The one way an outcome reaches the record (hooks, CLI,
     dashboard). After the outcome of an action that ran, the wait after a failed trial counts it (``store.COUNTED``),
-    except for the fault that failed the trial. Returns the derived events."""
+    except for the fault that failed the trial. A fault a person may excuse gets the number they excuse it by
+    (``Store.number_fault``): ``number``, the undo number of an undone action, else a new one. Returns the derived
+    events."""
     if source not in store.OUTCOME_SOURCES.get(result, ()):
         raise ValueError(f"tenure: unknown outcome {result!r} from {source!r}")
     recorded = st.recorded(agent, type_key)
@@ -1178,6 +1180,8 @@ def record_outcome(st: store.Store, cfg: dict, *, agent: str, type_key: str, sta
     st.last_outcome_seq = st.log({"event": "outcome", "agent": agent, "type": type_key, "stakes": stakes,
                                   "reversible": bool(reversible), "result": result, "source": source,
                                   "session": session})
+    if result == "fault" and source in store.EXCUSABLE:
+        st.number_fault(st.last_outcome_seq, number)
     for ev in events:
         st.log({**ev, "agent": agent})
     _push("changed", {"agent": agent, "type": type_key})      # sent when the transaction commits
@@ -1221,10 +1225,12 @@ def _credit_due(st: store.Store, cfg: dict, now: float | None = None) -> list[di
 
 
 def excusable(st: store.Store, now: float | None = None, limit: bool = True) -> list[dict]:
-    """The fault outcomes of the last ``store.EXCUSE_WINDOW`` seconds not excused yet, newest first: ``seq``, ``at``,
-    ``agent``, ``type``, ``source``."""
+    """The fault outcomes of the last ``store.EXCUSE_WINDOW`` seconds not excused yet, newest first: ``n`` (the number
+    a person excuses it by, ``Store.number_fault``), ``seq`` (its ledger row), ``at``, ``agent``, ``type``,
+    ``source``. A fault without a number (logged by an older tenure) is not listed: no number could name it."""
     now = time.time() if now is None else now
     rows = st.ledger()
+    numbers = st.fault_numbers()
     done = {(r["event"] or {}).get("seq") for r in rows if (r["event"] or {}).get("event") == "excuse"}
     by_seq = {r["seq"]: r for r in rows}
     recent: dict = {}                                # excuses per type over the last EXCUSE_PERIOD: at most LIMIT
@@ -1239,30 +1245,34 @@ def excusable(st: store.Store, now: float | None = None, limit: bool = True) -> 
             break
         e = r["event"] or {}
         if (e.get("event") == "outcome" and e.get("result") == "fault" and e.get("source") in store.EXCUSABLE
-                and r["seq"] not in done and (not limit or recent.get(e.get("type"), 0) < store.EXCUSE_LIMIT)):
-            out.append({"seq": r["seq"], "at": r["at"], "agent": e["agent"], "type": e["type"],
-                        "source": e["source"]})
+                and r["seq"] not in done and r["seq"] in numbers
+                and (not limit or recent.get(e.get("type"), 0) < store.EXCUSE_LIMIT)):
+            out.append({"n": numbers[r["seq"]], "seq": r["seq"], "at": r["at"], "agent": e["agent"],
+                        "type": e["type"], "source": e["source"]})
     return out
 
 
-def excuse(st: store.Store, seq: int) -> str:
-    """The owner takes back one fault of the last ``store.EXCUSE_WINDOW`` seconds (protocol 0.2): an ``excuse`` event
-    names its ledger row, and every state is replayed from the ledger, where that fault now counts as neutral. Its
-    effects go with it: the tier drop, the trial, the lost trusted start (unless another fault or a revoke keeps it
-    lost). Call it inside ``txn()``. Raises ValueError with the owner's message when it is not excusable."""
+def excuse(st: store.Store, number: int) -> str:
+    """The owner takes back one fault of the last ``store.EXCUSE_WINDOW`` seconds (protocol 0.2), named by the number
+    they saw: the undo number of the action they undid, or the number the notice gave after a refusal (one namespace,
+    ``Store.number_fault``). An ``excuse`` event names its ledger row, and every state is replayed from the ledger,
+    where that fault now counts as neutral. Its effects go with it: the tier drop, the trial, the lost trusted start
+    (unless another fault or a revoke keeps it lost). Call it inside ``txn()``. Raises ValueError with the owner's
+    message when it is not excusable."""
     if agent_process():                             # code or a command the agent runs: never its own excuse
         raise ValueError(tr("ask.person_only"))
     plain = simple()
     why = nobody_answers()
     if why:                                         # the agent's own command, approved by nobody: never
         raise ValueError(tr("simple.excuse.nobody" if plain else "cli.excuse.nobody", why=why))
-    row = next((r for r in excusable(st) if r["seq"] == seq), None)
+    row = next((r for r in excusable(st) if r["n"] == number), None)
     if row is None:
-        if seq in {r["seq"] for r in excusable(st, limit=False)}:     # it would be, but for the weekly limit
-            raise ValueError(tr("simple.excuse.limit" if plain else "cli.excuse.limit", n=seq,
+        if number in {r["n"] for r in excusable(st, limit=False)}:     # it would be, but for the weekly limit
+            raise ValueError(tr("simple.excuse.limit" if plain else "cli.excuse.limit", n=number,
                                 limit=store.EXCUSE_LIMIT, days=store.EXCUSE_PERIOD // 86400))
-        raise ValueError(tr("simple.excuse.unknown" if plain else "cli.excuse.unknown", n=seq,
+        raise ValueError(tr("simple.excuse.unknown" if plain else "cli.excuse.unknown", n=number,
                             minutes=store.EXCUSE_WINDOW // 60))
+    seq = row["seq"]
     rows = st.ledger()
     head = rows[-1] if rows else {"seq": 0, "at": 0}
     replayed, _ = passport._replay(rows + [{"seq": head["seq"] + 1, "at": time.time(),   # dry run first: a ledger
@@ -1283,11 +1293,11 @@ def excuse(st: store.Store, seq: int) -> str:
     _push("changed", {"agent": row["agent"], "type": row["type"]})
     cfg = settings()
     if simple(cfg):
-        return tr("simple.excuse.done", n=seq, type=row["type"], state=state_name(cfg, s))
+        return tr("simple.excuse.done", n=number, type=row["type"], state=state_name(cfg, s))
     tier = (tr("cli.excuse.trusted") if s is not None and trusted(cfg, s, params.required_n(cfg["risks"], s.stakes),
                                                                   s.stakes) else tier_name(s.tier) if s is not None
             else "")
-    return tr("cli.excuse.done", n=seq, type=row["type"], agent=row["agent"], tier=tier)
+    return tr("cli.excuse.done", n=number, type=row["type"], agent=row["agent"], tier=tier)
 
 
 def seen(st: store.Store, undo_ids: list[int]) -> str:
@@ -1366,17 +1376,19 @@ def _see(st: store.Store, cfg: dict, rows: list[dict], done: list | None = None)
 
 def _excuse_hint(st: store.Store, events: list[dict]) -> list[str]:
     """After a fault the owner caused (a refusal, an undo) that cost something (a tier, the trusted start): how to
-    take it back if the error was the owner's. Said neutrally, and only then: never an invitation after every no."""
+    take it back if the error was the owner's. Said neutrally, and only then: never an invitation after every no.
+    It names the fault by the number the owner excuses it by: the undo number they just typed, after an undo."""
     seq = getattr(st, "last_outcome_seq", None)
     costly = any(ev.get("event") in ("tier", "trial") for ev in events)
-    if not seq or not costly or not any(r["seq"] == seq for r in excusable(st)):
+    row = next((r for r in excusable(st) if r["seq"] == seq), None) if seq and costly else None
+    if row is None:
         return []
     key = next((ev.get("type") for ev in events if ev.get("type")), "")
     day = time.strftime("%Y-%m-%d")                 # once a day per type: a reminder, never a reflex after every no
     if st.get_meta("excuse_hint:" + key) == day:
         return []
     st.set_meta("excuse_hint:" + key, day)
-    return [tr("simple.notice.excuse_hint" if simple() else "notice.excuse.hint", n=seq,
+    return [tr("simple.notice.excuse_hint" if simple() else "notice.excuse.hint", n=row["n"],
                minutes=store.EXCUSE_WINDOW // 60)]
 
 
@@ -1456,7 +1468,7 @@ def undo_entry(st: store.Store, id: int) -> UndoMessage:
     stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
     sync_settings(st, cfg)
     events = record_outcome(st, cfg, agent=agent, type_key=key, stakes=stakes, reversible=reversible,
-                            result="fault", source="undo")
+                            result="fault", source="undo", number=id)   # excused by the number just undone
     st.bump(agent, "faults")
     s = st.get_state(agent, key, stakes, reversible)
     if plain:                                             # two short lines at most: what happened and what now,
@@ -1491,7 +1503,7 @@ def _undo_failed(st: store.Store, entry: dict, text: str) -> UndoMessage:
     stakes, reversible = (recorded.stakes, recorded.reversible) if recorded else ("medium", True)
     sync_settings(st, cfg)
     events = record_outcome(st, cfg, agent=agent, type_key=key, stakes=stakes, reversible=reversible,
-                            result="fault", source="undo")
+                            result="fault", source="undo", number=entry["id"])
     st.bump(agent, "faults")
     st.mark_undo_fault(entry["id"])                       # a retry of the undo counts no second fault
     now = " ".join(x for x in [tr("simple.undo.fault_anyway", type=key), _undo_now(events)] if x)
