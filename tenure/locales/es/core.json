@@ -511,5 +511,13 @@
   "trust.study": "Liberar un tipo a mano es cosa del modo simple ({command}); en el modo estudio, un tipo se gana su nivel.",
   "trust.terminal": "Liberar un tipo lo dice una persona: {slash} en el chat, o {cli} en un terminal interactivo.",
   "trust.nobody": "No mientras nadie responde a las aprobaciones ({why}): solo una persona puede liberar un tipo.",
-  "trust.ask.pinned": "{type} te pregunta antes, como elegiste: {command} lo libera."
+  "trust.ask.pinned": "{type} te pregunta antes, como elegiste: {command} lo libera.",
+  "trust.state.ask_watched": {
+    "one": "te pregunta antes: vigilado de nuevo tras {n} aprobación más",
+    "other": "te pregunta antes: vigilado de nuevo tras {n} aprobaciones seguidas más"
+  },
+  "trust.state.then_free": {
+    "one": "(luego libre tras {n} acción más que no deshagas)",
+    "other": "(luego libre tras {n} acciones más que no deshagas)"
+  }
 }

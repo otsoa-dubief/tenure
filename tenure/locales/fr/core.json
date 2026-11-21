@@ -511,5 +511,13 @@
   "trust.study": "Libérer un type à la main relève du mode simple ({command}) ; en mode étude, un type gagne son niveau.",
   "trust.terminal": "Libérer un type se dit à la main : {slash} dans la conversation, ou {cli} dans un terminal interactif.",
   "trust.nobody": "Pas tant que personne ne répond aux approbations ({why}) : seule une personne peut libérer un type.",
-  "trust.ask.pinned": "{type} vous demande d'abord, comme vous l'avez choisi : {command} le libère."
+  "trust.ask.pinned": "{type} vous demande d'abord, comme vous l'avez choisi : {command} le libère.",
+  "trust.state.ask_watched": {
+    "one": "vous demande d'abord : de nouveau sous surveillance après encore {n} approbation",
+    "other": "vous demande d'abord : de nouveau sous surveillance après encore {n} approbations d'affilée"
+  },
+  "trust.state.then_free": {
+    "one": "(puis libre après encore {n} action que vous n'annulez pas)",
+    "other": "(puis libre après encore {n} actions que vous n'annulez pas)"
+  }
 }

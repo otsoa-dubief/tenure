@@ -382,3 +382,81 @@ def test_after_install_tells_the_simple_story():
                    "/tenure mode study", "/tenure advanced"):
         assert needle in text, needle
     assert len(text.splitlines()) <= 20
+
+
+# ------------------------------------------------------------- the numbers trust gives, against the state machine
+def credit_all(mod):
+    """Every open act-then-tell action past its undo window, as if a day went by: each counts as not undone."""
+    cfg = mod.settings()
+    with mod.txn() as st:
+        return mod._credit_due(st, cfg, now=time.time() + mod.UNDO_WINDOW + 1)
+
+
+def trust_line(mod, key):
+    return next(ln for ln in mod.cli.slash("trust").splitlines() if ln.startswith(f"  {key} "))
+
+
+def numbers(line):
+    import re
+    return [int(x) for x in re.findall(r"after (\d+) more", line)]
+
+
+def is_free(mod, key):
+    s = state(mod, key)
+    return mod.trusted(mod.settings(), s, mod.params.required_n(mod.settings()["risks"], s.stakes), s.stakes)
+
+
+def test_trust_ask_line_of_a_reversible_kind_gives_the_real_next_steps(plugin):
+    mod, ctx = make(plugin, {"risks": {"low": "1/50", "medium": "1/100"}})       # n = 52: the score decides first
+    for i in range(2):                                                            # two mistakes: it asks first
+        ctx.call("write_file", {"path": "src/a.py", "content": f"x = {i}\n"})
+        mod.cli.slash(f"undo {last_undo(mod)}")
+    line = trust_line(mod, "file:write")
+    assert "asks you first: watched again after" in line and "(then free after" in line
+    n_approvals, m_unseen = numbers(line)
+    assert n_approvals == mod._to_t2(state(mod, "file:write")) and n_approvals + m_unseen == 52
+    for i in range(n_approvals - 1):
+        assert ctx.call("write_file", {"path": f"src/b{i}.py", "content": "x = 1\n"}) == "approved"
+    assert state(mod, "file:write").tier == mod.rule.T1                          # not one approval early
+    assert ctx.call("write_file", {"path": "src/b.py", "content": "x = 1\n"}) == "approved"
+    s = state(mod, "file:write")
+    assert mod.rule.decide(s, 52, 0.1, suspended=False, rng=None, mode="simple") == mod.rule.NOTIFY
+    assert "watched after a mistake: free again after %d more actions" % m_unseen in trust_line(mod, "file:write")
+    before = len(ctx.prompts)
+    for i in range(m_unseen - 1):
+        assert ctx.call("write_file", {"path": f"src/w{i}.py", "content": "x = 1\n"}) == "ran"
+    credit_all(mod)
+    assert not is_free(mod, "file:write")                                         # not one action early
+    ctx.call("write_file", {"path": "src/w.py", "content": "x = 1\n"})
+    credit_all(mod)
+    assert is_free(mod, "file:write") and len(ctx.prompts) == before              # no question on the way
+
+
+def test_trust_watched_line_gives_the_real_count(plugin):
+    mod, ctx = make(plugin)
+    ctx.call("write_file", {"path": "src/a.py", "content": "x = 1\n"})
+    mod.cli.slash(f"undo {last_undo(mod)}")                                       # one mistake: watched
+    (m_unseen,) = numbers(trust_line(mod, "file:write"))
+    assert m_unseen == 4
+    for i in range(m_unseen - 1):
+        ctx.call("write_file", {"path": f"src/w{i}.py", "content": "x = 1\n"})
+    credit_all(mod)
+    assert not is_free(mod, "file:write") and numbers(trust_line(mod, "file:write")) == [1]
+    ctx.call("write_file", {"path": "src/w.py", "content": "x = 1\n"})
+    credit_all(mod)
+    assert is_free(mod, "file:write")
+
+
+def test_trust_ask_line_of_an_irreversible_kind_counts_approvals_to_free(plugin):
+    mod, ctx = make(plugin)
+    ctx.call("terminal", {"command": "npm test"})
+    mod.cli.slash("flag shell:npm")                                               # no undo: it asks, never watched
+    line = trust_line(mod, "shell:npm")
+    assert "asks you first: free again after" in line and "watched" not in line
+    (n_approvals,) = numbers(line)
+    assert n_approvals == 5                                                       # medium stakes, FAST
+    for _ in range(n_approvals - 1):
+        assert ctx.call("terminal", {"command": "npm test"}) == "approved"
+    assert not is_free(mod, "shell:npm") and state(mod, "shell:npm").tier == mod.rule.T1
+    assert ctx.call("terminal", {"command": "npm test"}) == "approved"
+    assert is_free(mod, "shell:npm") and ctx.call("terminal", {"command": "npm test"}) == "ran"

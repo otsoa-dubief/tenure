@@ -72,6 +72,8 @@ fingerprint. An action counts at most one fault: a flag, an undo or a failed che
 
 A replay refuses a ledger with an unknown event kind, an outcome, agent or revoke event before the first settings
 event, or settings of another rule.
+A ledger that holds events of simple mode (settings of rule `simple/1`, `trust` events) verifies with Tenure 1.4
+or later; the passport format does not change.
 
 ### 1.2 Derived events
 
