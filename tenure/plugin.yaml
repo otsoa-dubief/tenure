@@ -4,12 +4,14 @@ manifest_version: 2
 api_version: 1
 label: tenure
 description: >-
-  Revocable trust for Hermes agents. No extra question for everyday work (files, memory, known dev tools): what the
-  agent writes can be undone for 24 hours, and anything can be flagged. Its first mistake on a kind of action (an undo, a flag, a refusal, a failed check)
-  puts that kind on probation: it asks first, then earns its way back to acting then notifying (with undo) and to
-  acting alone with random spot checks, from verified evidence and a guarantee you choose (Dodge's CSP-1). What
-  leaves the machine always asks. Your own per-model benchmark, a live dashboard map, and a signed, tamper-evident
-  autonomy passport. Local only: no network, no LLM call.
+  Your agent works without asking. When it gets a change wrong, you undo it, and that kind of action gets watched.
+  File edits and deletions are saved first and can be undone for 24 hours (/tenure undo); other commands can't be
+  undone. After one mistake on a kind of action (an undo, a refusal, a flag, a file that no longer parses), its actions
+  are listed at the end of the turn with an undo (a kind tenure can't undo asks first); after a second, it asks first;
+  a run of actions you keep frees it again. Pushes, publishing, uploads, messages to people and payments always ask; after outside content, the next
+  command asks once. Three commands: /tenure, /tenure undo, /tenure trust. Opt-in study mode: the rule of a
+  preregistered study, with spot checks, a guarantee you choose (Dodge's CSP-1) and a signed, tamper-evident autonomy
+  passport. Local only: no network, no LLM call.
 author: Otsoa Dubief
 license: Apache-2.0
 homepage: https://github.com/otsoa-dubief/tenure
