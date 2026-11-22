@@ -439,8 +439,8 @@ The one program Tenure runs is `git`, and only for a chained line holding `git r
 the index entries of its paths before the line runs, and the undo puts them back (`git update-index`, with
 `git rev-parse` to read the object format when an entry must be taken out). It runs in the
 repository's top folder, with hooks and the file-system monitor turned off, a 10-second limit, and an environment
-built from scratch: `PATH`, `HOME` (`SYSTEMROOT` on Windows) and the C locale. None of the agent's other variables,
-its API keys or `GIT_*` included, reach it.
+built from scratch: `PATH`, `HOME` (`SYSTEMROOT` on Windows), the C locale and `GIT_TERMINAL_PROMPT=0`. None of the
+agent's other variables, its API keys or `GIT_*` included, reach it.
 
 ## Configuration
 

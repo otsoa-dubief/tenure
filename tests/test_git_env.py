@@ -52,10 +52,10 @@ def test_missing_variables_are_left_out(monkeypatch):
 
 
 @pytest.mark.skipif(shutil.which("git") is None, reason="git not installed")
-def test_real_git_runs_with_it_and_ignores_the_agents_git_dir(leaky_env, tmp_path):
+def test_real_git_runs_with_it(leaky_env, tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
-    clean = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    clean = {k: v for k, v in os.environ.items() if k not in SECRETS and not k.startswith("GIT_")}
     subprocess.run(["git", "init", "-q", str(repo)], check=True, env=clean)
     out = undo._git(str(repo), "rev-parse", "--absolute-git-dir")
     assert out.returncode == 0, out.stderr
