@@ -48,17 +48,24 @@ def _undo_dir(root: str) -> str:
     return os.path.join(root, "undo")
 
 
-# git, run by an undo or a snapshot: no hook, no file-system monitor, names taken as written, nothing from the
-# environment of the agent's process (GIT_DIR, GIT_INDEX_FILE... would point it elsewhere).
+# git, run by an undo or a snapshot: no hook, no file-system monitor, names taken as written, and a minimal
+# environment built from scratch: nothing else from the agent's process reaches it (its API keys, GIT_DIR or
+# GIT_INDEX_FILE, which would point git elsewhere).
 GIT = ("git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "--literal-pathspecs")
 GIT_TIMEOUT = 10
+GIT_ENV_KEPT = ("PATH", "HOME") + (("SYSTEMROOT",) if os.name == "nt" else ())
+
+
+def git_env() -> dict[str, str]:
+    """The whole environment of the git child: PATH, HOME (SYSTEMROOT on Windows), the C locale, no prompt."""
+    env = {k: os.environ[k] for k in GIT_ENV_KEPT if os.environ.get(k)}
+    env.update(LANG="C", LC_ALL="C", GIT_TERMINAL_PROMPT="0")
+    return env
 
 
 def _git(top: str, *args: str, data: bytes | None = None) -> subprocess.CompletedProcess:
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    env.update(GIT_TERMINAL_PROMPT="0", LC_ALL="C")
-    return subprocess.run([*GIT, "-C", top, *args], input=data, capture_output=True, env=env, timeout=GIT_TIMEOUT,
-                          check=False)
+    return subprocess.run([*GIT, "-C", top, *args], input=data, capture_output=True, env=git_env(),
+                          timeout=GIT_TIMEOUT, check=False)
 
 
 def git_top(cwd: str | None) -> str | None:

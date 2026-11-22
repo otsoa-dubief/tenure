@@ -3,7 +3,7 @@
   "label": "Tenure",
   "description": "What the agent did today, what you can undo, and what still asks you; in study mode, tiers, personal benchmark per model, model-switch preview, passport",
   "icon": "Shield",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "tab": {
     "path": "/tenure",
     "position": "after:skills"
